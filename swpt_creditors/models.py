@@ -255,9 +255,10 @@ class CommittedTransfer(db.Model):
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
-    transfer_info = db.Column(pg.JSON, nullable=False, default={})
+    transfer_info = db.Column(pg.JSON, nullable=False)
     new_account_principal = db.Column(db.BigInteger, nullable=False)
     __table_args__ = (
+        db.CheckConstraint(transfer_seqnum >= 0),
         db.CheckConstraint(new_account_principal > MIN_INT64),
         db.CheckConstraint(committed_amount != 0),
     )
@@ -281,6 +282,8 @@ class CommittedTransferHistoryRecord(db.Model):
             transfer_seqnum,
             unique=True,
         ),
+        db.CheckConstraint(record_seqnum >= 0),
+        db.CheckConstraint(transfer_seqnum >= 0),
     )
 
     committed_transfer = db.relationship('CommittedTransfer')
@@ -296,6 +299,20 @@ class PendingCommittedTransfer(db.Model):
             ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
             ondelete='CASCADE',
         ),
+        db.CheckConstraint(transfer_seqnum >= 0),
     )
 
     committed_transfer = db.relationship('CommittedTransfer')
+
+
+class AccountLedger(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    principal = db.Column(db.BigInteger, nullable=False, default=0)
+    zero_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=0)
+    last_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=0)
+    __table_args__ = (
+        db.CheckConstraint(principal > MIN_INT64),
+        db.CheckConstraint(zero_transfer_seqnum >= 0),
+        db.CheckConstraint(zero_transfer_seqnum <= last_transfer_seqnum),
+    )
