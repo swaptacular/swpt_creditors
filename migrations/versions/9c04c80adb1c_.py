@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 02d1f802447e
+Revision ID: 9c04c80adb1c
 Revises: 8d8c816257ce
-Create Date: 2020-01-09 21:03:29.458592
+Create Date: 2020-01-09 22:18:38.783916
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '02d1f802447e'
+revision = '9c04c80adb1c'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -21,6 +21,7 @@ def upgrade():
     op.create_table('account_ledger',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('epoch', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('zero_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
@@ -33,13 +34,14 @@ def upgrade():
     op.create_table('committed_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False, comment='Along with `creditor_id` and `debtor_id` uniquely identifies the committed transfer. It gets incremented on each committed transfer. Initially, `transfer_seqnum` has its lowest 40 bits set to zero, and its highest 24 bits calculated from the value of `transfer_epoch`.'),
+    sa.Column('transfer_epoch', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and re-created again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has committed the transfer.'),
+    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='The creditor ID of other party in the transfer. When `committed_amount` is positive, this is the sender. When `committed_amount` is negative, this is the recipient.'),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
-    sa.Column('new_account_principal', sa.BigInteger(), nullable=False),
+    sa.Column('new_account_principal', sa.BigInteger(), nullable=False, comment='The balance on the account after the transfer.'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('new_account_principal > -9223372036854775808'),
     sa.CheckConstraint('transfer_seqnum >= 0'),
@@ -71,14 +73,14 @@ def upgrade():
     op.create_index('idx_direct_coordinator_request_id', 'running_transfer', ['debtor_id', 'direct_coordinator_request_id'], unique=True)
     op.create_table('committed_transfer_history_record',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('record_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('record_seqnum', sa.BigInteger(), nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('record_seqnum >= 0'),
     sa.CheckConstraint('transfer_seqnum >= 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'record_seqnum'),
-    comment='Represents an item in the ordered sequence of incoming committed transfers. The `record_seqnum` column determines the order of incoming transfers for each creditor. Clients can store the sequential number for the last known transfer, and later request only transfers with bigger sequential numbers.'
+    comment="Represents an item in creditor's ordered sequence of incoming committed transfers. This allows users to store the sequential number for the last seen transfer, and later ask only for transfers with bigger sequential numbers."
     )
     op.create_index('idx_committed_transfer_seqnum', 'committed_transfer_history_record', ['creditor_id', 'debtor_id', 'transfer_seqnum'], unique=True)
     op.create_table('initiated_transfer',

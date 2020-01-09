@@ -250,13 +250,42 @@ class RunningTransfer(db.Model):
 class CommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    other_creditor_id = db.Column(db.BigInteger, nullable=False)
+    transfer_seqnum = db.Column(
+        db.BigInteger,
+        primary_key=True,
+        comment="Along with `creditor_id` and `debtor_id` uniquely identifies the committed "
+                "transfer. It gets incremented on each committed transfer. Initially, "
+                "`transfer_seqnum` has its lowest 40 bits set to zero, and its highest 24 "
+                "bits calculated from the value of `transfer_epoch`.",
+    )
+    transfer_epoch = db.Column(
+        db.DATE,
+        nullable=False,
+        comment="The date on which the account was created. This is needed to detect when "
+                "an account has been deleted, and re-created again. (In that case the sequence "
+                "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
+                "a brand new ledger created).",
+    )
+    coordinator_type = db.Column(
+        db.String(30),
+        nullable=False,
+        comment='Indicates which subsystem has committed the transfer.',
+    )
+    other_creditor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The creditor ID of other party in the transfer. When `committed_amount` is '
+                'positive, this is the sender. When `committed_amount` is negative, this is '
+                'the recipient.',
+    )
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False)
-    new_account_principal = db.Column(db.BigInteger, nullable=False)
+    new_account_principal = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The balance on the account after the transfer.',
+    )
     __table_args__ = (
         db.CheckConstraint(transfer_seqnum >= 0),
         db.CheckConstraint(committed_amount != 0),
@@ -271,7 +300,11 @@ class CommittedTransfer(db.Model):
 
 class CommittedTransferHistoryRecord(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    record_seqnum = db.Column(db.BigInteger, primary_key=True)
+    record_seqnum = db.Column(
+        db.BigInteger,
+        primary_key=True,
+        comment='Determines the order of incoming transfers for each creditor.',
+    )
     debtor_id = db.Column(db.BigInteger, nullable=False)
     transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     __table_args__ = (
@@ -290,10 +323,9 @@ class CommittedTransferHistoryRecord(db.Model):
         db.CheckConstraint(record_seqnum >= 0),
         db.CheckConstraint(transfer_seqnum >= 0),
         {
-            'comment': 'Represents an item in the ordered sequence of incoming committed transfers. The '
-                       '`record_seqnum` column determines the order of incoming transfers for each '
-                       'creditor. Clients can store the sequential number for the last known transfer, '
-                       'and later request only transfers with bigger sequential numbers.',
+            'comment': "Represents an item in creditor's ordered sequence of incoming committed transfers. "
+                       "This allows users to store the sequential number for the last seen transfer, and "
+                       "later ask only for transfers with bigger sequential numbers.",
         }
     )
 
@@ -326,6 +358,7 @@ class PendingCommittedTransfer(db.Model):
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    epoch = db.Column(db.DATE, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     zero_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=0)
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=0)
