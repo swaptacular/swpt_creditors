@@ -123,10 +123,10 @@ class TransferSchema(Schema):
         description='The type of this object.',
         example='Transfer',
     )
-    debtorUri = fields.Function(
-        lambda obj: endpoints.build_url('debtor', debtorId=obj.debtor_id),
+    debtor_uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
+        data_key='debtorUri',
         format="uri",
         description="The debtor's URI.",
         example='https://example.com/debtors/1',
