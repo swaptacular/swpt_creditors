@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 2fc483efcbf3
+Revision ID: 1a5354161f02
 Revises: 8d8c816257ce
-Create Date: 2020-01-09 22:23:36.771768
+Create Date: 2020-01-09 22:40:00.032052
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '2fc483efcbf3'
+revision = '1a5354161f02'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -44,7 +44,7 @@ def upgrade():
     sa.Column('new_account_principal', sa.BigInteger(), nullable=False, comment='The balance on the account after the transfer.'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('new_account_principal > -9223372036854775808'),
-    sa.CheckConstraint('transfer_seqnum >= 0'),
+    sa.CheckConstraint('transfer_seqnum > 0'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
     comment='Represents a committed transfer. A new row is inserted when a `CommittedTransferSignal` is received. The row is deleted when some time (few months for example) has passed.'
     )
@@ -71,17 +71,6 @@ def upgrade():
     comment='Represents a running direct transfer. Important note: The records for the finalized direct transfers (failed or successful) must not be deleted right away. Instead, after they have been finalized, they should stay in the database for at least few days. This is necessary in order to prevent problems caused by message re-delivery.'
     )
     op.create_index('idx_direct_coordinator_request_id', 'running_transfer', ['debtor_id', 'direct_coordinator_request_id'], unique=True)
-    op.create_table('committed_transfer_history_record',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('record_seqnum', sa.BigInteger(), nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.CheckConstraint('record_seqnum >= 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'record_seqnum'),
-    comment="Represents an item in creditor's ordered sequence of incoming committed transfers. This allows users to store the sequential number for the last seen transfer, and later ask only for transfers with bigger sequential numbers."
-    )
-    op.create_index('idx_committed_transfer_seqnum', 'committed_transfer_history_record', ['creditor_id', 'debtor_id', 'transfer_seqnum'], unique=True)
     op.create_table('initiated_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
@@ -102,13 +91,24 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
     comment='Represents an initiated direct transfer. A new row is inserted when a creditor creates a new direct transfer. The row is deleted when the creditor acknowledges (purges) the transfer.'
     )
+    op.create_table('ledger_addition',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('addition_seqnum', sa.BigInteger(), nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.CheckConstraint('addition_seqnum > 0'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('creditor_id', 'addition_seqnum'),
+    comment="Represents an addition to creditors' account ledgers. This table is needed to allow users to store the sequential number for the last seen transfer, and later ask only for transfers with bigger sequential numbers."
+    )
+    op.create_index('idx_committed_transfer_seqnum', 'ledger_addition', ['creditor_id', 'debtor_id', 'transfer_seqnum'], unique=True)
     op.create_table('pending_committed_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
-    comment='Represents a committed transfer that has not been included in the account ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. Periodically, the pending rows are processed, added to the ledger, and deleted. This intermediate storage is necessary, because committed transfers can be received out of order, but must be added to the ledger in order.'
+    comment='Represents a committed transfer that has not been included in the account ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because committed transfers can be received out of order, but must be added to the ledgers in order.'
     )
     # ### end Alembic commands ###
 
@@ -116,9 +116,9 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('pending_committed_transfer')
+    op.drop_index('idx_committed_transfer_seqnum', table_name='ledger_addition')
+    op.drop_table('ledger_addition')
     op.drop_table('initiated_transfer')
-    op.drop_index('idx_committed_transfer_seqnum', table_name='committed_transfer_history_record')
-    op.drop_table('committed_transfer_history_record')
     op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
     op.drop_table('creditor')

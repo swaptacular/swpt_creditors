@@ -287,7 +287,7 @@ class CommittedTransfer(db.Model):
         comment='The balance on the account after the transfer.',
     )
     __table_args__ = (
-        db.CheckConstraint(transfer_seqnum >= 0),
+        db.CheckConstraint(transfer_seqnum > 0),
         db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(new_account_principal > MIN_INT64),
         {
@@ -298,9 +298,31 @@ class CommittedTransfer(db.Model):
     )
 
 
-class CommittedTransferHistoryRecord(db.Model):
+class PendingCommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    record_seqnum = db.Column(
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
+            ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
+            ondelete='CASCADE',
+        ),
+        {
+            'comment': 'Represents a committed transfer that has not been included in the account '
+                       'ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. '
+                       'Periodically, the pending rows are processed, added to account ledgers, and then '
+                       'deleted. This intermediate storage is necessary, because committed transfers can '
+                       'be received out of order, but must be added to the ledgers in order.',
+        }
+    )
+
+    committed_transfer = db.relationship('CommittedTransfer')
+
+
+class LedgerAddition(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    addition_seqnum = db.Column(
         db.BigInteger,
         primary_key=True,
         comment='Determines the order of incoming transfers for each creditor.',
@@ -320,33 +342,11 @@ class CommittedTransferHistoryRecord(db.Model):
             transfer_seqnum,
             unique=True,
         ),
-        db.CheckConstraint(record_seqnum >= 0),
+        db.CheckConstraint(addition_seqnum > 0),
         {
-            'comment': "Represents an item in creditor's ordered sequence of incoming committed transfers. "
-                       "This allows users to store the sequential number for the last seen transfer, and "
+            'comment': "Represents an addition to creditors' account ledgers. This table is needed "
+                       "to allow users to store the sequential number for the last seen transfer, and "
                        "later ask only for transfers with bigger sequential numbers.",
-        }
-    )
-
-    committed_transfer = db.relationship('CommittedTransfer')
-
-
-class PendingCommittedTransfer(db.Model):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
-            ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
-            ondelete='CASCADE',
-        ),
-        {
-            'comment': 'Represents a committed transfer that has not been included in the account '
-                       'ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. '
-                       'Periodically, the pending rows are processed, added to the ledger, and deleted. '
-                       'This intermediate storage is necessary, because committed transfers can '
-                       'be received out of order, but must be added to the ledger in order.',
         }
     )
 
