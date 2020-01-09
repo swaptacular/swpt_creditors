@@ -245,3 +245,57 @@ class RunningTransfer(db.Model):
     @property
     def is_finalized(self):
         return bool(self.finalized_at_ts)
+
+
+class CommittedTransfer(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    other_creditor_id = db.Column(db.BigInteger, nullable=False)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_info = db.Column(pg.JSON, nullable=False, default={})
+    new_account_principal = db.Column(db.BigInteger, nullable=False)
+    __table_args__ = (
+        db.CheckConstraint(new_account_principal > MIN_INT64),
+        db.CheckConstraint(committed_amount != 0),
+    )
+
+
+class CommittedTransferHistoryRecord(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    record_seqnum = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, nullable=False)
+    transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
+            ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
+            ondelete='CASCADE',
+        ),
+        db.Index(
+            'idx_committed_transfer_seqnum',
+            creditor_id,
+            debtor_id,
+            transfer_seqnum,
+            unique=True,
+        ),
+    )
+
+    committed_transfer = db.relationship('CommittedTransfer')
+
+
+class PendingCommittedTransfer(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
+            ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
+            ondelete='CASCADE',
+        ),
+    )
+
+    committed_transfer = db.relationship('CommittedTransfer')
