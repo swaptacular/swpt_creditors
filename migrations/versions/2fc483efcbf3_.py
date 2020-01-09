@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9c04c80adb1c
+Revision ID: 2fc483efcbf3
 Revises: 8d8c816257ce
-Create Date: 2020-01-09 22:18:38.783916
+Create Date: 2020-01-09 22:23:36.771768
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9c04c80adb1c'
+revision = '2fc483efcbf3'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -77,7 +77,6 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('record_seqnum >= 0'),
-    sa.CheckConstraint('transfer_seqnum >= 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'record_seqnum'),
     comment="Represents an item in creditor's ordered sequence of incoming committed transfers. This allows users to store the sequential number for the last seen transfer, and later ask only for transfers with bigger sequential numbers."
@@ -107,10 +106,9 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.CheckConstraint('transfer_seqnum >= 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
-    comment='Represents a committed transfer that has not been included in the account ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. Periodically, the pending rows are processed, added to the ledger, and deleted. This intermediate storage is necessary, because committed transfers can be received out-of-order, but must be added to the ledger in order.'
+    comment='Represents a committed transfer that has not been included in the account ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. Periodically, the pending rows are processed, added to the ledger, and deleted. This intermediate storage is necessary, because committed transfers can be received out of order, but must be added to the ledger in order.'
     )
     # ### end Alembic commands ###
 

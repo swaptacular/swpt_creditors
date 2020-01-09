@@ -321,7 +321,6 @@ class CommittedTransferHistoryRecord(db.Model):
             unique=True,
         ),
         db.CheckConstraint(record_seqnum >= 0),
-        db.CheckConstraint(transfer_seqnum >= 0),
         {
             'comment': "Represents an item in creditor's ordered sequence of incoming committed transfers. "
                        "This allows users to store the sequential number for the last seen transfer, and "
@@ -342,13 +341,12 @@ class PendingCommittedTransfer(db.Model):
             ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
             ondelete='CASCADE',
         ),
-        db.CheckConstraint(transfer_seqnum >= 0),
         {
             'comment': 'Represents a committed transfer that has not been included in the account '
                        'ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. '
                        'Periodically, the pending rows are processed, added to the ledger, and deleted. '
                        'This intermediate storage is necessary, because committed transfers can '
-                       'be received out-of-order, but must be added to the ledger in order.',
+                       'be received out of order, but must be added to the ledger in order.',
         }
     )
 
