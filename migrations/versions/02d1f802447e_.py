@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5c3c21be5827
+Revision ID: 02d1f802447e
 Revises: 8d8c816257ce
-Create Date: 2020-01-09 20:33:33.330631
+Create Date: 2020-01-09 21:03:29.458592
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5c3c21be5827'
+revision = '02d1f802447e'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -27,7 +27,8 @@ def upgrade():
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.CheckConstraint('zero_transfer_seqnum <= last_transfer_seqnum'),
     sa.CheckConstraint('zero_transfer_seqnum >= 0'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
+    comment='Contains status information about the ledger of a given account.'
     )
     op.create_table('committed_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -42,7 +43,8 @@ def upgrade():
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('new_account_principal > -9223372036854775808'),
     sa.CheckConstraint('transfer_seqnum >= 0'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum')
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
+    comment='Represents a committed transfer. A new row is inserted when a `CommittedTransferSignal` is received. The row is deleted when some time (few months for example) has passed.'
     )
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
@@ -75,7 +77,8 @@ def upgrade():
     sa.CheckConstraint('record_seqnum >= 0'),
     sa.CheckConstraint('transfer_seqnum >= 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'record_seqnum')
+    sa.PrimaryKeyConstraint('creditor_id', 'record_seqnum'),
+    comment='Represents an item in the ordered sequence of incoming committed transfers. The `record_seqnum` column determines the order of incoming transfers for each creditor. Clients can store the sequential number for the last known transfer, and later request only transfers with bigger sequential numbers.'
     )
     op.create_index('idx_committed_transfer_seqnum', 'committed_transfer_history_record', ['creditor_id', 'debtor_id', 'transfer_seqnum'], unique=True)
     op.create_table('initiated_transfer',
@@ -104,7 +107,8 @@ def upgrade():
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('transfer_seqnum >= 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum')
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
+    comment='Represents a committed transfer that has not been included in the account ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. Periodically, the pending rows are processed, added to the ledger, and deleted. This intermediate storage is necessary, because committed transfers can be received out-of-order, but must be added to the ledger in order.'
     )
     # ### end Alembic commands ###
 

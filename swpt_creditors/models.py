@@ -259,8 +259,13 @@ class CommittedTransfer(db.Model):
     new_account_principal = db.Column(db.BigInteger, nullable=False)
     __table_args__ = (
         db.CheckConstraint(transfer_seqnum >= 0),
-        db.CheckConstraint(new_account_principal > MIN_INT64),
         db.CheckConstraint(committed_amount != 0),
+        db.CheckConstraint(new_account_principal > MIN_INT64),
+        {
+            'comment': 'Represents a committed transfer. A new row is inserted when a '
+                       '`CommittedTransferSignal` is received. The row is deleted when '
+                       'some time (few months for example) has passed.',
+        }
     )
 
 
@@ -284,6 +289,12 @@ class CommittedTransferHistoryRecord(db.Model):
         ),
         db.CheckConstraint(record_seqnum >= 0),
         db.CheckConstraint(transfer_seqnum >= 0),
+        {
+            'comment': 'Represents an item in the ordered sequence of incoming committed transfers. The '
+                       '`record_seqnum` column determines the order of incoming transfers for each '
+                       'creditor. Clients can store the sequential number for the last known transfer, '
+                       'and later request only transfers with bigger sequential numbers.',
+        }
     )
 
     committed_transfer = db.relationship('CommittedTransfer')
@@ -300,6 +311,13 @@ class PendingCommittedTransfer(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(transfer_seqnum >= 0),
+        {
+            'comment': 'Represents a committed transfer that has not been included in the account '
+                       'ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. '
+                       'Periodically, the pending rows are processed, added to the ledger, and deleted. '
+                       'This intermediate storage is necessary, because committed transfers can '
+                       'be received out-of-order, but must be added to the ledger in order.',
+        }
     )
 
     committed_transfer = db.relationship('CommittedTransfer')
@@ -315,4 +333,7 @@ class AccountLedger(db.Model):
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(zero_transfer_seqnum >= 0),
         db.CheckConstraint(zero_transfer_seqnum <= last_transfer_seqnum),
+        {
+            'comment': 'Contains status information about the ledger of a given account.',
+        }
     )
