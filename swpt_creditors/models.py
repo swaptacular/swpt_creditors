@@ -1,10 +1,9 @@
 from __future__ import annotations
 from typing import Optional
-from datetime import datetime, date, timezone
-from marshmallow import Schema, fields
+from datetime import datetime, timezone
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import func, null, true, false, or_, and_
+from sqlalchemy.sql.expression import null, true, false, or_
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT16 = -1 << 15
@@ -345,8 +344,8 @@ class LedgerAddition(db.Model):
         db.CheckConstraint(addition_seqnum > 0),
         {
             'comment': "Represents an addition to creditors' account ledgers. This table is needed "
-                       "to allow users to store the sequential number for the last seen transfer, and "
-                       "later ask only for transfers with bigger sequential numbers.",
+                       "to allow users to store the sequential number of the last seen transfer, and "
+                       "later on, ask only for transfers with bigger sequential numbers.",
         }
     )
 
