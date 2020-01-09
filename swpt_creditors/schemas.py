@@ -33,20 +33,18 @@ class CreditorSchema(Schema):
         description='The type of this object.',
         example='Creditor',
     )
-    accountingAuthorityUri = fields.Function(
-        lambda obj: endpoints.build_url('authority'),
-        required=True,
-        type='string',
-        format="uri",
-        description="The URI of the authority that manages creditors' accounts.",
-        example='https://example.com/authority',
-    )
     created_at_date = fields.Date(
         required=True,
         dump_only=True,
         data_key='createdOn',
         description=Creditor.created_at_date.comment,
         example='2019-11-30',
+    )
+    is_active = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='isActive',
+        description="Whether the creditor is currently active or not."
     )
 
     def get_uri(self, obj):
@@ -69,7 +67,7 @@ class TransferErrorSchema(Schema):
     )
 
 
-class TransferCreationRequestSchema(Schema):
+class DirectTransferCreationRequestSchema(Schema):
     transfer_uuid = fields.UUID(
         required=True,
         data_key='transferUuid',
