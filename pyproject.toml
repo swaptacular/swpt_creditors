@@ -3,10 +3,10 @@ name = "swpt_creditors"
 version = "0.1.0"
 description = "Swaptacular micro-service that manages creditors"
 authors = ["Evgeni Pandurski <epandurski@gmail.com>"]
-license = ""
+license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.7"
 pudb = "*"
 web-pdb = "*"
 gunicorn = "*"
@@ -19,6 +19,9 @@ psycopg2-binary = "^2.8"
 dramatiq = {git = "https://github.com/epandurski/dramatiq.git", extras = ["rabbitmq", "watch"], branch = "set-queue-name-if-missing"}
 pytest = "^4.0"
 pytest-mock = "^1.10"
+iso8601 = "^0.1.12"
+flask-smorest = "^0.18.2"
+swpt_lib = {git = "https://github.com/epandurski/swpt_lib.git"}
 
 [tool.poetry.dev-dependencies]
 python-dotenv = ">=0.10.1"
@@ -26,6 +29,7 @@ flake8 = "^3.7"
 pytest-pudb = "^0.7.0"
 pytest-dotenv = "^0.4.0"
 pytest-cov = "^2.7"
+mypy = "^0.730"
 
 [build-system]
 requires = ["poetry>=0.12"]
