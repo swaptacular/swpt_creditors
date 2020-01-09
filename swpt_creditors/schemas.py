@@ -76,6 +76,15 @@ class TransferCreationRequestSchema(Schema):
         description="A client-generated UUID for the transfer.",
         example='123e4567-e89b-12d3-a456-426655440000',
     )
+    debtor_uri = fields.Url(
+        required=True,
+        relative=True,
+        schemes=[endpoints.get_url_scheme()],
+        data_key='debtorUri',
+        format='uri',
+        description="The debtor's URI.",
+        example='https://example.com/debtors/1',
+    )
     recipient_uri = fields.Url(
         required=True,
         relative=True,

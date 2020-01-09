@@ -62,18 +62,52 @@ class Signal(db.Model):
 
 
 class Creditor(db.Model):
+    STATUS_IS_ACTIVE_FLAG = 1
+
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    status = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment=f"Creditor's status bits: {STATUS_IS_ACTIVE_FLAG} - is active.",
+    )
     created_at_date = db.Column(
         db.DATE,
         nullable=False,
         default=get_now_utc,
         comment='The date on which the creditor was created.',
     )
+    deactivated_at_date = db.Column(
+        db.DATE,
+        comment='The date on which the creditor was deactivated. A `null` means that the '
+                'creditor has not been deactivated yet. Management operations (like making '
+                'direct transfers) are not allowed on deactivated creditors. Once '
+                'deactivated, a creditor stays deactivated until it is deleted. Important '
+                'note: All creditors are created with their "is active" status bit set to `0`, '
+                'and it gets set to `1` only after the first management operation has been '
+                'performed.',
+    )
+
+    @property
+    def is_active(self):
+        return bool(self.status & Creditor.STATUS_IS_ACTIVE_FLAG)
+
+    @is_active.setter
+    def is_active(self, value):
+        if value:
+            self.status |= Creditor.STATUS_IS_ACTIVE_FLAG
+        else:
+            self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
 
 
 class InitiatedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
+    debtor_uri = db.Column(
+        db.String,
+        nullable=False,
+        comment="The debtor's URI.",
+    )
     recipient_uri = db.Column(
         db.String,
         nullable=False,
@@ -142,3 +176,72 @@ class InitiatedTransfer(db.Model):
         if self.is_finalized and not self.is_successful:
             return [{'error_code': self.error_code, 'message': self.error_message}]
         return []
+
+
+class RunningTransfer(db.Model):
+    _dcr_seq = db.Sequence('direct_coordinator_request_id_seq', metadata=db.Model.metadata)
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
+    debtor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The debtor through which the transfer should go.',
+    )
+    recipient_creditor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The recipient of the transfer.',
+    )
+    amount = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The amount to be transferred. Must be positive.',
+    )
+    transfer_info = db.Column(
+        pg.JSON,
+        nullable=False,
+        default={},
+        comment='Notes from the sender. Can be any object that the sender wants the recipient to see.',
+    )
+    finalized_at_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        comment='The moment at which the transfer was finalized. A `null` means that the '
+                'transfer has not been finalized yet.',
+    )
+    direct_coordinator_request_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        server_default=_dcr_seq.next_value(),
+        comment='This is the value of the `coordinator_request_id` parameter, which has been '
+                'sent with the `prepare_transfer` message for the transfer. The value of '
+                '`creditor_id` is sent as the `coordinator_id` parameter. `coordinator_type` '
+                'is "direct".',
+    )
+    direct_transfer_id = db.Column(
+        db.BigInteger,
+        comment="This value, along with `debtor_id` and `creditor_id` uniquely identifies the "
+                "successfully prepared transfer.",
+    )
+    __mapper_args__ = {'eager_defaults': True}
+    __table_args__ = (
+        db.Index(
+            'idx_direct_coordinator_request_id',
+            debtor_id,
+            direct_coordinator_request_id,
+            unique=True,
+        ),
+        db.CheckConstraint(or_(direct_transfer_id == null(), finalized_at_ts != null())),
+        db.CheckConstraint(amount > 0),
+        {
+            'comment': 'Represents a running direct transfer. Important note: The records for the '
+                       'finalized direct transfers (failed or successful) must not be deleted '
+                       'right away. Instead, after they have been finalized, they should stay in '
+                       'the database for at least few days. This is necessary in order to prevent '
+                       'problems caused by message re-delivery.',
+        }
+    )
+
+    @property
+    def is_finalized(self):
+        return bool(self.finalized_at_ts)
