@@ -26,7 +26,7 @@ def get_now_utc():
     return datetime.now(tz=timezone.utc)
 
 
-def date_to_int24(date: datetime.date) -> int:
+def date_to_int24(date: date) -> int:
     # TODO: Move this logic to `swpt_lib`.
 
     days = (date - DATE_2020_01_01).days
