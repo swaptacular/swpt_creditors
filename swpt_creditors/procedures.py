@@ -62,7 +62,7 @@ def process_committed_transfer_signal(
         db.session.rollback()
         return
 
-    ledger = _get_or_create_ledger(debtor_id, creditor_id)
+    ledger = _get_or_create_ledger(creditor_id, debtor_id)
     current_ts = datetime.now(tz=timezone.utc)
     ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
     if transfer_epoch > ledger.epoch:
@@ -87,22 +87,22 @@ def process_committed_transfer_signal(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             transfer_seqnum=transfer_seqnum,
+            new_account_principal=new_account_principal,
             committed_at_ts=committed_at_ts,
         ))
 
 
 @atomic
-def process_pending_committed_transfers(debtor_id: int, creditor_id: int, max_count: int = None) -> bool:
+def process_pending_committed_transfers(creditor_id: int, debtor_id: int, max_count: int = None) -> bool:
     """Return `False` if some legible committed transfers remained unprocessed."""
 
     has_gaps = False
     pks_to_delete = []
     ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
-    transfer_seqnums = _get_ordered_pending_transfer_seqnums(ledger, max_count)
-    for transfer_seqnum in transfer_seqnums:
+    pending_transfers = _get_ordered_pending_transfers(ledger, max_count)
+    for transfer_seqnum, new_account_principal in pending_transfers:
         pk = (creditor_id, debtor_id, transfer_seqnum)
         if transfer_seqnum == ledger.next_transfer_seqnum:
-            new_account_principal = _get_committed_transfer_new_principal(*pk)  # TODO: get several with 1 query?
             _update_ledger(ledger, new_account_principal)
             _insert_ledger_addition(*pk)
         elif transfer_seqnum > ledger.next_transfer_seqnum:
@@ -113,17 +113,17 @@ def process_pending_committed_transfers(debtor_id: int, creditor_id: int, max_co
     PendingCommittedTransfer.query.\
         filter(PENDING_COMMITTED_TRANSFER_PK.in_(pks_to_delete)).\
         delete(synchronize_session=False)
-    return has_gaps or max_count is None or len(transfer_seqnums) < max_count
+    return has_gaps or max_count is None or len(pending_transfers) < max_count
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
-    ledger = AccountLedger(debtor_id=debtor_id, creditor_id=creditor_id)
+    ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
     with db.retry_on_integrity_error():
         db.session.add(ledger)
     return ledger
 
 
-def _get_or_create_ledger(debtor_id: int, creditor_id: int, lock: bool = False) -> AccountLedger:
+def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountLedger:
     if lock:
         ledger = AccountLedger.lock_instance((debtor_id, creditor_id))
     else:
@@ -145,22 +145,13 @@ def _update_ledger(ledger: AccountLedger, new_account_principal: int, current_ts
     ledger.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
-def _get_ordered_pending_transfer_seqnums(ledger: AccountLedger, max_count: int = None) -> List[int]:
+def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:
     creditor_id = ledger.creditor_id
     debtor_id = ledger.debtor_id
-    query = PendingCommittedTransfer.\
-        query(PendingCommittedTransfer.transfer_seqnum).\
+    query = db.session.\
+        query(PendingCommittedTransfer.transfer_seqnum, PendingCommittedTransfer.new_account_principal).\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         order_by(PendingCommittedTransfer.transfer_seqnum)
     if max_count is not None:
         query = query.limit(max_count)
-    return [t[0] for t in query.all()]
-
-
-def _get_committed_transfer_new_principal(creditor_id: int, debtor_id: int, transfer_seqnum: int) -> int:
-    new_account_principal = CommittedTransfer.\
-        query(CommittedTransfer.new_account_principal).\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id, transfer_seqnum=transfer_seqnum).\
-        scalar()
-    assert new_account_principal is not None
-    return new_account_principal
+    return query.all()

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f114f9d171ad
+Revision ID: 12abca298136
 Revises: 8d8c816257ce
-Create Date: 2020-01-10 21:31:19.228718
+Create Date: 2020-01-11 01:05:30.382671
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f114f9d171ad'
+revision = '12abca298136'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -105,9 +105,10 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('new_account_principal', sa.BigInteger(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum', 'new_account_principal'),
     comment='Represents a committed transfer that has not been included in the account ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because committed transfers can be received out of order, but must be added to the ledgers in order.'
     )
     # ### end Alembic commands ###

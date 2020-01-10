@@ -311,6 +311,14 @@ class PendingCommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+
+    # TODO: Normally, this column is not part of the primary key, but
+    #       because we want it to be included in the index to allow
+    #       index-only scans, and SQLAlchemy does not support that yet
+    #       (2020-01-11), we include it in the primary key as a
+    #       temporary workaround.
+    new_account_principal = db.Column(db.BigInteger, primary_key=True)
+
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -326,8 +334,6 @@ class PendingCommittedTransfer(db.Model):
                        'be received out of order, but must be added to the ledgers in order.',
         }
     )
-
-    committed_transfer = db.relationship('CommittedTransfer')
 
 
 class LedgerAddition(db.Model):
