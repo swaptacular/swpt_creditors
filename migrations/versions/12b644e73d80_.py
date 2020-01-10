@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1a5354161f02
+Revision ID: 12b644e73d80
 Revises: 8d8c816257ce
-Create Date: 2020-01-09 22:40:00.032052
+Create Date: 2020-01-10 15:29:55.393713
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1a5354161f02'
+revision = '12b644e73d80'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -23,14 +23,15 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('epoch', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('zero_transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('first_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.CheckConstraint('first_transfer_seqnum <= next_transfer_seqnum'),
+    sa.CheckConstraint('first_transfer_seqnum > 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
-    sa.CheckConstraint('zero_transfer_seqnum <= last_transfer_seqnum'),
-    sa.CheckConstraint('zero_transfer_seqnum >= 0'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
     comment='Contains status information about the ledger of a given account.'
     )
+    op.create_index('idx_next_transfer_seqnum', 'account_ledger', ['creditor_id', 'debtor_id', 'next_transfer_seqnum'], unique=False)
     op.create_table('committed_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -54,6 +55,16 @@ def upgrade():
     sa.Column('created_at_date', sa.DATE(), nullable=False, comment='The date on which the creditor was created.'),
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. A `null` means that the creditor has not been deactivated yet. Management operations (like making direct transfers) are not allowed on deactivated creditors. Once deactivated, a creditor stays deactivated until it is deleted. Important note: All creditors are created with their "is active" status bit set to `0`, and it gets set to `1` only after the first management operation has been performed.'),
     sa.PrimaryKeyConstraint('creditor_id')
+    )
+    op.create_table('ledger_addition',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('addition_seqnum', sa.BigInteger(), nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('addition_seqnum > 0'),
+    sa.PrimaryKeyConstraint('creditor_id', 'addition_seqnum'),
+    comment="Represents an addition to creditors' account ledgers. This table is needed to allow users to store the sequential number of the last seen transfer, and later on, ask only for transfers with bigger sequential numbers."
     )
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -91,21 +102,11 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
     comment='Represents an initiated direct transfer. A new row is inserted when a creditor creates a new direct transfer. The row is deleted when the creditor acknowledges (purges) the transfer.'
     )
-    op.create_table('ledger_addition',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('addition_seqnum', sa.BigInteger(), nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.CheckConstraint('addition_seqnum > 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'addition_seqnum'),
-    comment="Represents an addition to creditors' account ledgers. This table is needed to allow users to store the sequential number for the last seen transfer, and later ask only for transfers with bigger sequential numbers."
-    )
-    op.create_index('idx_committed_transfer_seqnum', 'ledger_addition', ['creditor_id', 'debtor_id', 'transfer_seqnum'], unique=True)
     op.create_table('pending_committed_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
     comment='Represents a committed transfer that has not been included in the account ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because committed transfers can be received out of order, but must be added to the ledgers in order.'
@@ -116,12 +117,12 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('pending_committed_transfer')
-    op.drop_index('idx_committed_transfer_seqnum', table_name='ledger_addition')
-    op.drop_table('ledger_addition')
     op.drop_table('initiated_transfer')
     op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
+    op.drop_table('ledger_addition')
     op.drop_table('creditor')
     op.drop_table('committed_transfer')
+    op.drop_index('idx_next_transfer_seqnum', table_name='account_ledger')
     op.drop_table('account_ledger')
     # ### end Alembic commands ###

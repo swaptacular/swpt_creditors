@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, true, false, or_
@@ -12,6 +12,7 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
+DATE_2020_01_01 = date(2020, 1, 1)
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
@@ -301,6 +302,7 @@ class PendingCommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id', 'transfer_seqnum'],
@@ -328,19 +330,8 @@ class LedgerAddition(db.Model):
     )
     debtor_id = db.Column(db.BigInteger, nullable=False)
     transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
-            ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
-            ondelete='CASCADE',
-        ),
-        db.Index(
-            'idx_committed_transfer_seqnum',
-            creditor_id,
-            debtor_id,
-            transfer_seqnum,
-            unique=True,
-        ),
         db.CheckConstraint(addition_seqnum > 0),
         {
             'comment': "Represents an addition to creditors' account ledgers. This table is needed "
@@ -355,14 +346,23 @@ class LedgerAddition(db.Model):
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    epoch = db.Column(db.DATE, nullable=False)
+    epoch = db.Column(db.DATE, nullable=False, default=DATE_2020_01_01)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
-    zero_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=0)
-    last_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=0)
+    first_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
+    next_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
     __table_args__ = (
+        db.Index(
+            # This index is supposed to allow efficient merge joins
+            # with `PendingCommittedTransfer`. Not sure if it is
+            # really needed in practice.
+            'idx_next_transfer_seqnum',
+            creditor_id,
+            debtor_id,
+            next_transfer_seqnum,
+        ),
         db.CheckConstraint(principal > MIN_INT64),
-        db.CheckConstraint(zero_transfer_seqnum >= 0),
-        db.CheckConstraint(zero_transfer_seqnum <= last_transfer_seqnum),
+        db.CheckConstraint(first_transfer_seqnum > 0),
+        db.CheckConstraint(first_transfer_seqnum <= next_transfer_seqnum),
         {
             'comment': 'Contains status information about the ledger of a given account.',
         }
