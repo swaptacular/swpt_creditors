@@ -339,7 +339,7 @@ class LedgerAddition(db.Model):
     )
     debtor_id = db.Column(db.BigInteger, nullable=False)
     transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.CheckConstraint(addition_seqnum > 0),
         {
