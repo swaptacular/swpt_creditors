@@ -26,6 +26,7 @@ def process_committed_transfer_signal(
         new_account_principal: int) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert len(coordinator_type) <= 30
     assert MIN_INT64 <= other_creditor_id <= MAX_INT64
     assert 0 < transfer_seqnum <= MAX_INT64
     assert committed_amount != 0
