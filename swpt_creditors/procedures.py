@@ -150,7 +150,7 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     debtor_id = ledger.debtor_id
     query = db.session.\
         query(PendingCommittedTransfer.transfer_seqnum, PendingCommittedTransfer.new_account_principal).\
-        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
         order_by(PendingCommittedTransfer.transfer_seqnum)
     if max_count is not None:
         query = query.limit(max_count)
