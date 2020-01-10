@@ -335,6 +335,7 @@ class LedgerAddition(db.Model):
     addition_seqnum = db.Column(
         db.BigInteger,
         primary_key=True,
+        autoincrement=True,
         comment='Determines the order of incoming transfers for each creditor.',
     )
     debtor_id = db.Column(db.BigInteger, nullable=False)
@@ -344,8 +345,9 @@ class LedgerAddition(db.Model):
         db.CheckConstraint(addition_seqnum > 0),
         {
             'comment': "Represents an addition to creditors' account ledgers. This table is needed "
-                       "to allow users to store the sequential number of the last seen transfer, and "
-                       "later on, ask only for transfers with bigger sequential numbers.",
+                       "to allow users to store the sequential number of the last seen transfer "
+                       "(`addition_seqnum`), and later on, ask only for transfers with bigger "
+                       "sequential numbers.",
         }
     )
 
@@ -356,6 +358,7 @@ class AccountLedger(db.Model):
     epoch = db.Column(db.DATE, nullable=False, default=DATE_2020_01_01)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     next_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
+    last_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.Index(
             # This index is supposed to allow efficient merge joins

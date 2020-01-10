@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: dfc3943d2082
+Revision ID: f114f9d171ad
 Revises: 8d8c816257ce
-Create Date: 2020-01-10 19:16:54.584784
+Create Date: 2020-01-10 21:31:19.228718
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'dfc3943d2082'
+revision = 'f114f9d171ad'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -24,6 +24,7 @@ def upgrade():
     sa.Column('epoch', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('last_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('next_transfer_seqnum > 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
@@ -56,13 +57,13 @@ def upgrade():
     )
     op.create_table('ledger_addition',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('addition_seqnum', sa.BigInteger(), nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
+    sa.Column('addition_seqnum', sa.BigInteger(), autoincrement=True, nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('addition_seqnum > 0'),
     sa.PrimaryKeyConstraint('creditor_id', 'addition_seqnum'),
-    comment="Represents an addition to creditors' account ledgers. This table is needed to allow users to store the sequential number of the last seen transfer, and later on, ask only for transfers with bigger sequential numbers."
+    comment="Represents an addition to creditors' account ledgers. This table is needed to allow users to store the sequential number of the last seen transfer (`addition_seqnum`), and later on, ask only for transfers with bigger sequential numbers."
     )
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),

@@ -3,6 +3,7 @@ from uuid import UUID
 from typing import TypeVar, Optional, Callable, Tuple, List
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql.expression import tuple_
 from .extensions import db
 from .models import AccountLedger, LedgerAddition, CommittedTransfer, PendingCommittedTransfer, \
     InitiatedTransfer, RunningTransfer, \
@@ -10,6 +11,13 @@ from .models import AccountLedger, LedgerAddition, CommittedTransfer, PendingCom
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
+
+TD_5_SECONDS = timedelta(seconds=10)
+PENDING_COMMITTED_TRANSFER_PK = tuple_(
+    PendingCommittedTransfer.debtor_id,
+    PendingCommittedTransfer.creditor_id,
+    PendingCommittedTransfer.transfer_seqnum,
+)
 
 
 @atomic
@@ -55,19 +63,65 @@ def process_committed_transfer_signal(
         return
 
     ledger = _get_or_create_ledger(debtor_id, creditor_id)
+    current_ts = datetime.now(tz=timezone.utc)
+    ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
     if transfer_epoch > ledger.epoch:
         # A new "epoch" has started -- the old ledger must be
         # discarded, and a brand new ledger created.
         ledger.epoch = transfer_epoch
         ledger.principal = 0
         ledger.next_transfer_seqnum = (date_to_int24(transfer_epoch) << 40) + 1
+        ledger.last_update_ts = current_ts
 
-    db.session.add(PendingCommittedTransfer(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        transfer_seqnum=transfer_seqnum,
-        committed_at_ts=committed_at_ts,
-    ))
+    # If committed transfers come in the right order, it is faster to
+    # update the account ledger right away. We must be careful,
+    # though, not to update the account ledger too often, because this
+    # can cause a row lock contention.
+    if ledger.next_transfer_seqnum == transfer_seqnum and ledger_has_not_been_updated_soon:
+        ledger.principal = new_account_principal
+        ledger.next_transfer_seqnum += 1
+        ledger.last_update_ts = current_ts
+        db.session.add(LedgerAddition(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            transfer_seqnum=transfer_seqnum,
+        ))
+    else:
+        # A dedicated asynchronous task will do the addition to the account
+        # ledger later. (See `process_pending_committed_transfers()`.)
+        db.session.add(PendingCommittedTransfer(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            transfer_seqnum=transfer_seqnum,
+            committed_at_ts=committed_at_ts,
+        ))
+
+
+@atomic
+def process_pending_committed_transfers(debtor_id: int, creditor_id: int, max_count: int = None) -> None:
+    ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
+    query = PendingCommittedTransfer.\
+        query(PendingCommittedTransfer.transfer_seqnum).\
+        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+        order_by(PendingCommittedTransfer.transfer_seqnum)
+    if max_count is not None:
+        query = query.limit(max_count)
+    current_ts = datetime.now(tz=timezone.utc)
+    pks_to_delete = []
+    for transfer_seqnum in [t[0] for t in query.all()]:
+        if transfer_seqnum == ledger.next_transfer_seqnum:
+            ledger.principal = new_account_principal  # TODO: how to get that?
+            ledger.next_transfer_seqnum += 1
+            ledger.last_update_ts = current_ts
+            db.session.add(LedgerAddition(
+                creditor_id=creditor_id,
+                debtor_id=debtor_id,
+                transfer_seqnum=transfer_seqnum,
+            ))
+        elif transfer_seqnum > ledger.next_transfer_seqnum:
+            break
+        pks_to_delete.append((creditor_id, debtor_id, transfer_seqnum))
+    PendingCommittedTransfer.filter(PENDING_COMMITTED_TRANSFER_PK.in_(pks_to_delete)).delete(synchronize_session=False)
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
