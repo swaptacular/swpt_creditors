@@ -13,7 +13,7 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 TD_5_SECONDS = timedelta(seconds=10)
-PENDING_COMMITTED_TRANSFER_PK = tuple_(
+PCT_PK = tuple_(
     PendingCommittedTransfer.debtor_id,
     PendingCommittedTransfer.creditor_id,
     PendingCommittedTransfer.transfer_seqnum,
@@ -78,14 +78,8 @@ def process_committed_transfer_signal(
     # though, not to update the account ledger too often, because this
     # can cause a row lock contention.
     if ledger.next_transfer_seqnum == transfer_seqnum and ledger_has_not_been_updated_soon:
-        ledger.principal = new_account_principal
-        ledger.next_transfer_seqnum += 1
-        ledger.last_update_ts = current_ts
-        db.session.add(LedgerAddition(
-            creditor_id=creditor_id,
-            debtor_id=debtor_id,
-            transfer_seqnum=transfer_seqnum,
-        ))
+        _update_ledger(ledger, new_account_principal, current_ts)
+        _insert_ledger_addition(creditor_id, debtor_id, transfer_seqnum)
     else:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_committed_transfers()`.)
@@ -114,18 +108,12 @@ def process_pending_committed_transfers(debtor_id: int, creditor_id: int, max_co
                 query(CommittedTransfer.new_account_principal).\
                 filter_by(debtor_id=debtor_id, creditor_id=creditor_id, transfer_seqnum=transfer_seqnum).\
                 scalar()
-            ledger.principal = new_account_principal
-            ledger.next_transfer_seqnum += 1
-            ledger.last_update_ts = current_ts
-            db.session.add(LedgerAddition(
-                creditor_id=creditor_id,
-                debtor_id=debtor_id,
-                transfer_seqnum=transfer_seqnum,
-            ))
+            _update_ledger(ledger, new_account_principal, current_ts)
+            _insert_ledger_addition(creditor_id, debtor_id, transfer_seqnum)
         elif transfer_seqnum > ledger.next_transfer_seqnum:
             break
         pks_to_delete.append((creditor_id, debtor_id, transfer_seqnum))
-    PendingCommittedTransfer.filter(PENDING_COMMITTED_TRANSFER_PK.in_(pks_to_delete)).delete(synchronize_session=False)
+    PendingCommittedTransfer.filter(PCT_PK.in_(pks_to_delete)).delete(synchronize_session=False)
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
@@ -141,3 +129,17 @@ def _get_or_create_ledger(debtor_id: int, creditor_id: int, lock: bool = False) 
     else:
         ledger = AccountLedger.get_instance((debtor_id, creditor_id))
     return ledger or _create_ledger(debtor_id, creditor_id)
+
+
+def _insert_ledger_addition(creditor_id: int, debtor_id: int, transfer_seqnum: int) -> None:
+    db.session.add(LedgerAddition(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        transfer_seqnum=transfer_seqnum,
+    ))
+
+
+def _update_ledger(ledger: AccountLedger, new_account_principal: int, current_ts: datetime = None) -> None:
+    ledger.principal = new_account_principal
+    ledger.next_transfer_seqnum += 1
+    ledger.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
