@@ -110,7 +110,11 @@ def process_pending_committed_transfers(debtor_id: int, creditor_id: int, max_co
     pks_to_delete = []
     for transfer_seqnum in [t[0] for t in query.all()]:
         if transfer_seqnum == ledger.next_transfer_seqnum:
-            ledger.principal = new_account_principal  # TODO: how to get that?
+            new_account_principal = CommittedTransfer.\
+                query(CommittedTransfer.new_account_principal).\
+                filter_by(debtor_id=debtor_id, creditor_id=creditor_id, transfer_seqnum=transfer_seqnum).\
+                scalar()
+            ledger.principal = new_account_principal
             ledger.next_transfer_seqnum += 1
             ledger.last_update_ts = current_ts
             db.session.add(LedgerAddition(
