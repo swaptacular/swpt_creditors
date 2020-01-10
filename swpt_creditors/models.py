@@ -340,8 +340,6 @@ class LedgerAddition(db.Model):
         }
     )
 
-    committed_transfer = db.relationship('CommittedTransfer')
-
 
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
