@@ -355,7 +355,6 @@ class AccountLedger(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     epoch = db.Column(db.DATE, nullable=False, default=DATE_2020_01_01)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
-    first_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
     next_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
     __table_args__ = (
         db.Index(
@@ -368,8 +367,7 @@ class AccountLedger(db.Model):
             next_transfer_seqnum,
         ),
         db.CheckConstraint(principal > MIN_INT64),
-        db.CheckConstraint(first_transfer_seqnum > 0),
-        db.CheckConstraint(first_transfer_seqnum <= next_transfer_seqnum),
+        db.CheckConstraint(next_transfer_seqnum > 0),
         {
             'comment': 'Contains status information about the ledger of a given account.',
         }

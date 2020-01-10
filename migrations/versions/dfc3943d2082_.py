@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8be65b712627
+Revision ID: dfc3943d2082
 Revises: 8d8c816257ce
-Create Date: 2020-01-10 18:33:53.343841
+Create Date: 2020-01-10 19:16:54.584784
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '8be65b712627'
+revision = 'dfc3943d2082'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -23,10 +23,8 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('epoch', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('first_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.CheckConstraint('first_transfer_seqnum <= next_transfer_seqnum'),
-    sa.CheckConstraint('first_transfer_seqnum > 0'),
+    sa.CheckConstraint('next_transfer_seqnum > 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
     comment='Contains status information about the ledger of a given account.'

@@ -60,8 +60,7 @@ def process_committed_transfer_signal(
         # discarded, and a brand new ledger created.
         ledger.epoch = transfer_epoch
         ledger.principal = 0
-        ledger.first_transfer_seqnum = (date_to_int24(transfer_epoch) << 40) + 1
-        ledger.next_transfer_seqnum = ledger.first_transfer_seqnum
+        ledger.next_transfer_seqnum = (date_to_int24(transfer_epoch) << 40) + 1
 
     db.session.add(PendingCommittedTransfer(
         creditor_id=creditor_id,
