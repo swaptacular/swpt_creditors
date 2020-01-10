@@ -92,22 +92,28 @@ def process_committed_transfer_signal(
 
 
 @atomic
-def process_pending_committed_transfers(debtor_id: int, creditor_id: int, max_count: int = None) -> None:
+def process_pending_committed_transfers(debtor_id: int, creditor_id: int, max_count: int = None) -> bool:
+    """Return `False` if some legible committed transfers remained unprocessed."""
+
+    has_gaps = False
     pks_to_delete = []
     ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
-    for transfer_seqnum in _get_ordered_pending_transfer_seqnums(ledger, max_count):
+    transfer_seqnums = _get_ordered_pending_transfer_seqnums(ledger, max_count)
+    for transfer_seqnum in transfer_seqnums:
         pk = (creditor_id, debtor_id, transfer_seqnum)
         if transfer_seqnum == ledger.next_transfer_seqnum:
-            new_account_principal = _get_committed_transfer_new_principal(*pk)
+            new_account_principal = _get_committed_transfer_new_principal(*pk)  # TODO: get several with 1 query?
             _update_ledger(ledger, new_account_principal)
             _insert_ledger_addition(*pk)
         elif transfer_seqnum > ledger.next_transfer_seqnum:
+            has_gaps = True
             break
         pks_to_delete.append(pk)
 
     PendingCommittedTransfer.query.\
         filter(PENDING_COMMITTED_TRANSFER_PK.in_(pks_to_delete)).\
         delete(synchronize_session=False)
+    return has_gaps or max_count is None or len(transfer_seqnums) < max_count
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
