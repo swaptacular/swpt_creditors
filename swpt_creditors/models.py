@@ -381,3 +381,86 @@ class AccountLedger(db.Model):
             'comment': 'Contains status information about the ledger of a given account.',
         }
     )
+
+
+class CreatedAccount(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    __table_args__ = (
+        {
+            'comment': "Represents a created account from users' perspecive. Note that the account "
+                       "may still have no corresponding `Account` record.",
+        },
+    )
+
+
+class DeletedAccount(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    deleted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['created_account.creditor_id', 'created_account.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_deletion_request.creditor_id', 'account_deletion_request.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        {
+            'comment': "Represents a deleted account from users' perspecive. Note that the account "
+                       "may still have a corresponding `Account` record.",
+        }
+    )
+
+
+class AccountDeletionRequest(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sent_at_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=get_now_utc,
+        comment='The moment at which the last `mark_account_for_deletion` signal was sent.',
+    )
+    ignore_after_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        comment='The `ignore_after_ts` parameter, sent with the last `mark_account_for_deletion` '
+                'signal. Must never decrease.',
+    )
+    negligible_amount = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The `negligible_amount` parameter, sent with the last '
+                '`mark_account_for_deletion` signal.',
+    )
+    is_canceled = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether the request was canceled or not. A `True` also implies that there is '
+                'no corresponding `DeletedAccount` record.',
+    )
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['created_account.creditor_id', 'created_account.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        {
+            'comment': 'Represents a request to delete an account.',
+        }
+    )
+
+
+class AccountDeletionFailureSignal(Signal):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    debtor_id = db.Column(db.BigInteger, nullable=False)
+    deleted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    deletion_failed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    details = db.Column(pg.JSON, nullable=False)
