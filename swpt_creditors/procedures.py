@@ -64,7 +64,6 @@ def process_committed_transfer_signal(
 
     ledger = _get_or_create_ledger(creditor_id, debtor_id)
     current_ts = datetime.now(tz=timezone.utc)
-    ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
     if transfer_epoch > ledger.epoch:
         # A new "epoch" has started -- the old ledger must be
         # discarded, and a brand new ledger created.
@@ -73,14 +72,15 @@ def process_committed_transfer_signal(
         ledger.next_transfer_seqnum = (date_to_int24(transfer_epoch) << 40) + 1
         ledger.last_update_ts = current_ts
 
-    # If committed transfers come in the right order, it is faster to
-    # update the account ledger right away. We must be careful,
-    # though, not to update the account ledger too often, because this
-    # can cause a row lock contention.
-    if ledger.next_transfer_seqnum == transfer_seqnum and ledger_has_not_been_updated_soon:
+    ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
+    if transfer_seqnum == ledger.next_transfer_seqnum and ledger_has_not_been_updated_soon:
+        # If committed transfers come in the right order, it is faster
+        # to update the account ledger right away. We must be careful,
+        # though, not to update the account ledger too often, because
+        # this can cause a row lock contention.
         _update_ledger(ledger, new_account_principal, current_ts)
         _insert_ledger_addition(creditor_id, debtor_id, transfer_seqnum)
-    else:
+    elif transfer_seqnum >= ledger.next_transfer_seqnum:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_committed_transfers()`.)
         db.session.add(PendingCommittedTransfer(

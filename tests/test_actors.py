@@ -8,7 +8,7 @@ def test_on_committed_transfer_signal(db_session):
     a.on_committed_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        transfer_seqnum=1,
+        transfer_seqnum=(1 << 40) + 1,
         transfer_epoch='2020-01-02',
         coordinator_type='direct',
         other_creditor_id=666,
@@ -20,7 +20,7 @@ def test_on_committed_transfer_signal(db_session):
     a.on_committed_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        transfer_seqnum=1,
+        transfer_seqnum=(1 << 40) + 1,
         transfer_epoch='2020-01-02',
         coordinator_type='direct',
         other_creditor_id=666,
