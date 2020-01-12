@@ -256,6 +256,10 @@ class RunningTransfer(db.Model):
         return bool(self.finalized_at_ts)
 
 
+# TODO: Implement a daemon that periodically scan the
+#       `CommittedTransfer` table and deletes old records (ones having
+#       an old `committed_at_ts`). We need to do this to free up disk
+#       space.
 class CommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -307,6 +311,13 @@ class CommittedTransfer(db.Model):
     )
 
 
+# TODO: Implement a daemon that periodically scan the
+#       `PendingCommittedTransfer` table, finds staled records (ones
+#       having an old `committed_at_ts`), deletes them, and mends the
+#       account ledger. When a transfer can not be added to the ledger
+#       for a long time, it should mean a preceding transfer has been
+#       lost. This should happen very rarely, but still eventually we
+#       must be able to recover from such losses.
 class PendingCommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -336,6 +347,9 @@ class PendingCommittedTransfer(db.Model):
     )
 
 
+# TODO: Implement a daemon that periodically scan the `LedgerAddition`
+#       table and deletes old records (ones having an old
+#       `added_at_ts`).  We need to do this to free up disk space.
 class LedgerAddition(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     addition_seqnum = db.Column(
