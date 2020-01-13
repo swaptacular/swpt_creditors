@@ -26,15 +26,6 @@ def get_now_utc():
     return datetime.now(tz=timezone.utc)
 
 
-def date_to_int24(date: date) -> int:
-    # TODO: Move this logic to `swpt_lib`.
-
-    days = (date - DATE_2020_01_01).days
-    assert days >= 0
-    assert days >> 24 == 0
-    return days
-
-
 class Signal(db.Model):
     __abstract__ = True
 

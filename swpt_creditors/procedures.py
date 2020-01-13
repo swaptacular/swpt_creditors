@@ -4,10 +4,11 @@ from typing import TypeVar, Optional, Callable, Tuple, List
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
+from swpt_lib.utils import date_to_int24
 from .extensions import db
 from .models import AccountLedger, LedgerAddition, CommittedTransfer, PendingCommittedTransfer, \
     InitiatedTransfer, RunningTransfer, \
-    MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID, date_to_int24
+    MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
