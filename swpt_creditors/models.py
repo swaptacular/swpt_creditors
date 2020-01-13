@@ -200,9 +200,9 @@ class RunningTransfer(db.Model):
     )
     transfer_info = db.Column(
         pg.JSON,
-        nullable=False,
-        default={},
-        comment='Notes from the sender. Can be any object that the sender wants the recipient to see.',
+        comment='Notes from the sender. Can be any JSON object that the sender wants the recipient '
+                'to see. Can be set `null` (to save disk space) only after the transfer has been '
+                'finalized.',
     )
     finalized_at_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -232,6 +232,7 @@ class RunningTransfer(db.Model):
             unique=True,
         ),
         db.CheckConstraint(or_(direct_transfer_id == null(), finalized_at_ts != null())),
+        db.CheckConstraint(or_(transfer_info != null(), finalized_at_ts != null())),
         db.CheckConstraint(amount > 0),
         {
             'comment': 'Represents a running direct transfer. Important note: The records for the '
