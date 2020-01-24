@@ -261,15 +261,7 @@ class CommittedTransfer(db.Model):
         comment="Along with `creditor_id` and `debtor_id` uniquely identifies the committed "
                 "transfer. It gets incremented on each committed transfer. Initially, "
                 "`transfer_seqnum` has its lowest 40 bits set to zero, and its highest 24 "
-                "bits calculated from the value of `transfer_epoch`.",
-    )
-    transfer_epoch = db.Column(
-        db.DATE,
-        nullable=False,
-        comment="The date on which the account was created. This is needed to detect when "
-                "an account has been deleted, and re-created again. (In that case the sequence "
-                "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
-                "a brand new ledger created).",
+                "bits calculated from the value of `account_creation_date`.",
     )
     coordinator_type = db.Column(
         db.String(30),
@@ -286,7 +278,15 @@ class CommittedTransfer(db.Model):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False)
-    new_account_principal = db.Column(
+    account_creation_date = db.Column(
+        db.DATE,
+        nullable=False,
+        comment="The date on which the account was created. This is needed to detect when "
+                "an account has been deleted, and re-created again. (In that case the sequence "
+                "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
+                "a brand new ledger created).",
+    )
+    account_new_principal = db.Column(
         db.BigInteger,
         nullable=False,
         comment='The balance on the account after the transfer.',
@@ -294,7 +294,7 @@ class CommittedTransfer(db.Model):
     __table_args__ = (
         db.CheckConstraint(transfer_seqnum > 0),
         db.CheckConstraint(committed_amount != 0),
-        db.CheckConstraint(new_account_principal > MIN_INT64),
+        db.CheckConstraint(account_new_principal > MIN_INT64),
         {
             'comment': 'Represents a committed transfer. A new row is inserted when a '
                        '`CommittedTransferSignal` is received. The row is deleted when '
@@ -320,7 +320,7 @@ class PendingCommittedTransfer(db.Model):
     #       index-only scans, and SQLAlchemy does not support that yet
     #       (2020-01-11), we include it in the primary key as a
     #       temporary workaround.
-    new_account_principal = db.Column(db.BigInteger, primary_key=True)
+    account_new_principal = db.Column(db.BigInteger, primary_key=True)
 
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
@@ -367,7 +367,7 @@ class LedgerAddition(db.Model):
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    epoch = db.Column(db.DATE, nullable=False, default=DATE_2020_01_01)
+    account_creation_date = db.Column(db.DATE, nullable=False, default=DATE_2020_01_01)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     next_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
     last_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
@@ -470,3 +470,8 @@ class AccountDeletionFailureSignal(Signal):
     deleted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     deletion_failed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     details = db.Column(pg.JSON, nullable=False)
+
+
+# TODO: Add `Account` model.
+
+# TODO: Add `AccountCreationRequest` model?

@@ -26,13 +26,13 @@ def process_committed_transfer_signal(
         debtor_id: int,
         creditor_id: int,
         transfer_seqnum: int,
-        transfer_epoch: date,
         coordinator_type: str,
         other_creditor_id: int,
         committed_at_ts: datetime,
         committed_amount: int,
         transfer_info: dict,
-        new_account_principal: int) -> None:
+        account_creation_date: date,
+        account_new_principal: int) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert len(coordinator_type) <= 30
@@ -40,19 +40,19 @@ def process_committed_transfer_signal(
     assert 0 < transfer_seqnum <= MAX_INT64
     assert committed_amount != 0
     assert -MAX_INT64 <= committed_amount <= MAX_INT64
-    assert -MAX_INT64 <= new_account_principal <= MAX_INT64
+    assert -MAX_INT64 <= account_new_principal <= MAX_INT64
 
     db.session.add(CommittedTransfer(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         transfer_seqnum=transfer_seqnum,
-        transfer_epoch=transfer_epoch,
         coordinator_type=coordinator_type,
         other_creditor_id=other_creditor_id,
         committed_at_ts=committed_at_ts,
         committed_amount=committed_amount,
         transfer_info=transfer_info,
-        new_account_principal=new_account_principal,
+        account_creation_date=account_creation_date,
+        account_new_principal=account_new_principal,
     ))
     try:
         db.session.flush()
@@ -65,12 +65,12 @@ def process_committed_transfer_signal(
 
     ledger = _get_or_create_ledger(creditor_id, debtor_id)
     current_ts = datetime.now(tz=timezone.utc)
-    if transfer_epoch > ledger.epoch:
+    if account_creation_date > ledger.account_creation_date:
         # A new "epoch" has started -- the old ledger must be
         # discarded, and a brand new ledger created.
-        ledger.epoch = transfer_epoch
+        ledger.account_creation_date = account_creation_date
         ledger.principal = 0
-        ledger.next_transfer_seqnum = (date_to_int24(transfer_epoch) << 40) + 1
+        ledger.next_transfer_seqnum = (date_to_int24(account_creation_date) << 40) + 1
         ledger.last_update_ts = current_ts
 
     ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
@@ -79,7 +79,7 @@ def process_committed_transfer_signal(
         # to update the account ledger right away. We must be careful,
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
-        _update_ledger(ledger, new_account_principal, current_ts)
+        _update_ledger(ledger, account_new_principal, current_ts)
         _insert_ledger_addition(creditor_id, debtor_id, transfer_seqnum)
     elif transfer_seqnum >= ledger.next_transfer_seqnum:
         # A dedicated asynchronous task will do the addition to the account
@@ -88,7 +88,7 @@ def process_committed_transfer_signal(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             transfer_seqnum=transfer_seqnum,
-            new_account_principal=new_account_principal,
+            account_new_principal=account_new_principal,
             committed_at_ts=committed_at_ts,
         ))
 
@@ -101,10 +101,10 @@ def process_pending_committed_transfers(creditor_id: int, debtor_id: int, max_co
     pks_to_delete = []
     ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
     pending_transfers = _get_ordered_pending_transfers(ledger, max_count)
-    for transfer_seqnum, new_account_principal in pending_transfers:
+    for transfer_seqnum, account_new_principal in pending_transfers:
         pk = (creditor_id, debtor_id, transfer_seqnum)
         if transfer_seqnum == ledger.next_transfer_seqnum:
-            _update_ledger(ledger, new_account_principal)
+            _update_ledger(ledger, account_new_principal)
             _insert_ledger_addition(*pk)
         elif transfer_seqnum > ledger.next_transfer_seqnum:
             has_gaps = True
@@ -140,8 +140,8 @@ def _insert_ledger_addition(creditor_id: int, debtor_id: int, transfer_seqnum: i
     ))
 
 
-def _update_ledger(ledger: AccountLedger, new_account_principal: int, current_ts: datetime = None) -> None:
-    ledger.principal = new_account_principal
+def _update_ledger(ledger: AccountLedger, account_new_principal: int, current_ts: datetime = None) -> None:
+    ledger.principal = account_new_principal
     ledger.next_transfer_seqnum += 1
     ledger.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
@@ -150,7 +150,7 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     creditor_id = ledger.creditor_id
     debtor_id = ledger.debtor_id
     query = db.session.\
-        query(PendingCommittedTransfer.transfer_seqnum, PendingCommittedTransfer.new_account_principal).\
+        query(PendingCommittedTransfer.transfer_seqnum, PendingCommittedTransfer.account_new_principal).\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
         order_by(PendingCommittedTransfer.transfer_seqnum)
     if max_count is not None:
