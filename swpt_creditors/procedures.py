@@ -80,7 +80,7 @@ def process_committed_transfer_signal(
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
         _update_ledger(ledger, account_new_principal, current_ts)
-        _insert_ledger_addition(creditor_id, debtor_id, transfer_seqnum)
+        _insert_ledger_addition(creditor_id, debtor_id, transfer_seqnum, account_new_principal)
     elif transfer_seqnum >= ledger.next_transfer_seqnum:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_committed_transfers()`.)
@@ -105,7 +105,7 @@ def process_pending_committed_transfers(creditor_id: int, debtor_id: int, max_co
         pk = (creditor_id, debtor_id, transfer_seqnum)
         if transfer_seqnum == ledger.next_transfer_seqnum:
             _update_ledger(ledger, account_new_principal)
-            _insert_ledger_addition(*pk)
+            _insert_ledger_addition(*pk, account_new_principal)
         elif transfer_seqnum > ledger.next_transfer_seqnum:
             has_gaps = True
             break
@@ -132,11 +132,12 @@ def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) 
     return ledger or _create_ledger(debtor_id, creditor_id)
 
 
-def _insert_ledger_addition(creditor_id: int, debtor_id: int, transfer_seqnum: int) -> None:
+def _insert_ledger_addition(creditor_id: int, debtor_id: int, transfer_seqnum: int, account_new_principal: int) -> None:
     db.session.add(LedgerAddition(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         transfer_seqnum=transfer_seqnum,
+        account_new_principal=account_new_principal,
     ))
 
 

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c87982110712
+Revision ID: b42d93b94f05
 Revises: 8d8c816257ce
-Create Date: 2020-01-24 15:08:55.951729
+Create Date: 2020-01-27 15:33:14.647503
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c87982110712'
+revision = 'b42d93b94f05'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -73,12 +73,12 @@ def upgrade():
     )
     op.create_table('ledger_addition',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('addition_seqnum', sa.BigInteger(), autoincrement=True, nullable=False, comment='Determines the order of incoming transfers for each creditor.'),
+    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), server_default=sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)"), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('addition_seqnum > 0'),
-    sa.PrimaryKeyConstraint('creditor_id', 'addition_seqnum'),
+    sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
+    sa.CheckConstraint('account_new_principal > -9223372036854775808'),
+    sa.PrimaryKeyConstraint('creditor_id', 'added_at_ts', 'debtor_id', 'transfer_seqnum', 'account_new_principal'),
     comment="Represents an addition to creditors' account ledgers. This table is needed to allow users to store the sequential number of the last seen transfer (`addition_seqnum`), and later on, ask only for transfers with bigger sequential numbers."
     )
     op.create_table('running_transfer',

@@ -3,7 +3,9 @@ from typing import Optional
 from datetime import datetime, timezone, date
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, false, or_
+from sqlalchemy.sql.expression import null, true, false, or_, FunctionElement
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.types import DateTime
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT16 = -1 << 15
@@ -24,6 +26,15 @@ def increment_seqnum(n):  # pragma: no cover
 
 def get_now_utc():
     return datetime.now(tz=timezone.utc)
+
+
+class utcnow(FunctionElement):
+    type = DateTime()
+
+
+@compiles(utcnow, 'postgresql')
+def pg_utcnow(element, compiler, **kw):
+    return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
 
 
 class Signal(db.Model):
@@ -344,17 +355,19 @@ class PendingCommittedTransfer(db.Model):
 #       `added_at_ts`).  We need to do this to free up disk space.
 class LedgerAddition(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    addition_seqnum = db.Column(
-        db.BigInteger,
-        primary_key=True,
-        autoincrement=True,
-        comment='Determines the order of incoming transfers for each creditor.',
-    )
-    debtor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True, server_default=utcnow())
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+
+    # TODO: Normally, this column is not part of the primary key, but
+    #       because we want it to be included in the index to allow
+    #       index-only scans, and SQLAlchemy does not support that yet
+    #       (2020-01-11), we include it in the primary key as a
+    #       temporary workaround.
+    account_new_principal = db.Column(db.BigInteger, primary_key=True)
+
     __table_args__ = (
-        db.CheckConstraint(addition_seqnum > 0),
+        db.CheckConstraint(account_new_principal > MIN_INT64),
         {
             'comment': "Represents an addition to creditors' account ledgers. This table is needed "
                        "to allow users to store the sequential number of the last seen transfer "
