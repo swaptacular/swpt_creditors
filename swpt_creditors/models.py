@@ -381,7 +381,6 @@ class AccountConfig(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    is_effectual = db.Column(db.BOOLEAN, nullable=False, default=False)
     last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     last_config_change_seqnum = db.Column(db.Integer, nullable=False)
     is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
@@ -389,8 +388,8 @@ class AccountConfig(db.Model):
     __table_args__ = (
         db.CheckConstraint(negligible_amount >= 2.0),
         {
-            'comment': "Represents a created account from users' perspecive. Note that the account "
-                       "may still have no corresponding `Account` record.",
+            'comment': "Represents a created account from users' perspecive. Note that the created "
+                       "account may still have no corresponding `Account` record.",
         },
     )
 
@@ -422,11 +421,11 @@ class AccountLedger(db.Model):
 
 class AccountIssue(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
     issue_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    debtor_id = db.Column(db.BigInteger, nullable=False)
     issue_type = db.Column(db.String(30), nullable=False)
     raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    details = db.Column(pg.JSON, nullable=False)
+    details = db.Column(pg.JSON)
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
@@ -434,6 +433,6 @@ class AccountIssue(db.Model):
             ondelete='CASCADE',
         ),
         {
-            'comment': 'Represents a problem with a given account, that needs attention.',
+            'comment': 'Represents a problem with a given account that needs attention.',
         }
     )

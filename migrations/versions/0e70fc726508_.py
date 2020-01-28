@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: afefc3de0f42
+Revision ID: 0e70fc726508
 Revises: 8d8c816257ce
-Create Date: 2020-01-27 16:47:09.962072
+Create Date: 2020-01-28 14:43:38.514404
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'afefc3de0f42'
+revision = '0e70fc726508'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -22,14 +22,13 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('is_effectual', sa.BOOLEAN(), nullable=False),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_change_seqnum', sa.Integer(), nullable=False),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.CheckConstraint('negligible_amount >= 2.0'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment="Represents a created account from users' perspecive. Note that the account may still have no corresponding `Account` record."
+    comment="Represents a created account from users' perspecive. Note that the created account may still have no corresponding `Account` record."
     )
     op.create_table('account_ledger',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -97,13 +96,14 @@ def upgrade():
     op.create_index('idx_direct_coordinator_request_id', 'running_transfer', ['debtor_id', 'direct_coordinator_request_id'], unique=True)
     op.create_table('account_issue',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('issue_id', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('issue_type', sa.String(length=30), nullable=False),
     sa.Column('raised_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=False),
+    sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'issue_id'),
-    comment='Represents a problem with a given account, that needs attention.'
+    sa.PrimaryKeyConstraint('creditor_id', 'issue_id'),
+    comment='Represents a problem with a given account that needs attention.'
     )
     op.create_table('initiated_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
