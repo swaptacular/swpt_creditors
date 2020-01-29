@@ -358,9 +358,9 @@ class PendingCommittedTransfer(db.Model):
 class LedgerAddition(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
 
-    # Logically, this column is not be part of the primary key, but
+    # Semantically, this column is not be part of the primary key, but
     # because we want ledger additions to be ordered chronologically,
-    # we include it in the index to for performance reasons.
+    # we include it in the index for performance reasons.
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True, server_default=utcnow())
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -376,10 +376,9 @@ class LedgerAddition(db.Model):
     __table_args__ = (
         db.CheckConstraint(account_new_principal > MIN_INT64),
         {
-            'comment': "Represents an addition to creditors' account ledgers. This table is needed "
-                       "to allow users to store the sequential number of the last seen transfer "
-                       "(`addition_seqnum`), and later on, ask only for transfers with bigger "
-                       "sequential numbers.",
+            'comment': "Represents an addition to one of creditor's account ledgers. This table "
+                       "allows users to ask only for transfers that have occurred after a given "
+                       "moment in time.",
         }
     )
 
