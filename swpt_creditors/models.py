@@ -173,7 +173,7 @@ class InitiatedTransfer(db.Model):
         }
     )
 
-    debtor = db.relationship(
+    creditor = db.relationship(
         'Creditor',
         backref=db.backref('initiated_transfers', cascade="all, delete-orphan", passive_deletes=True),
     )
