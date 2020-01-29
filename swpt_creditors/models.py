@@ -391,6 +391,11 @@ class AccountConfig(db.Model):
     is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
+            ondelete='RESTRICT',
+        ),
         db.CheckConstraint(negligible_amount >= 2.0),
         {
             'comment': "Represents a created account from users' perspecive. Note that the created "
