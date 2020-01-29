@@ -349,6 +349,8 @@ class PendingCommittedTransfer(db.Model):
         }
     )
 
+    committed_transfer = db.relationship('CommittedTransfer')
+
 
 # TODO: Implement a daemon that periodically scan the `LedgerAddition`
 #       table and deletes old records (ones having an old
@@ -478,4 +480,9 @@ class AccountIssue(db.Model):
         {
             'comment': 'Represents a problem with a given account that needs attention.',
         }
+    )
+
+    account_config = db.relationship(
+        'AccountConfig',
+        backref=db.backref('account_issues', cascade="all, delete-orphan", passive_deletes=True),
     )
