@@ -318,9 +318,9 @@ class CommittedTransfer(db.Model):
 #       `PendingCommittedTransfer` table, finds staled records (ones
 #       having an old `committed_at_ts`), deletes them, and mends the
 #       account ledger. When a transfer can not be added to the ledger
-#       for a long time, it should mean a preceding transfer has been
-#       lost. This should happen very rarely, but still eventually we
-#       must be able to recover from such losses.
+#       for a long time, this should mean that a preceding transfer
+#       has been lost. This should happen very rarely, but still
+#       eventually we must be able to recover from such losses.
 class PendingCommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
