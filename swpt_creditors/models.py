@@ -352,37 +352,6 @@ class PendingCommittedTransfer(db.Model):
     committed_transfer = db.relationship('CommittedTransfer')
 
 
-# TODO: Implement a daemon that periodically scan the `LedgerAddition`
-#       table and deletes old records (ones having an old
-#       `added_at_ts`).  We need to do this to free up disk space.
-class LedgerAddition(db.Model):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-
-    # Semantically, this column is not be part of the primary key, but
-    # because we want ledger additions to be ordered chronologically,
-    # we include it in the index for performance reasons.
-    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True, server_default=utcnow())
-
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-
-    # TODO: Normally, this column also is not part of the primary key,
-    #       but we want it to be included in the index to allow
-    #       index-only scans, and because SQLAlchemy does not support
-    #       that yet (2020-01-11), we include it in the primary key as
-    #       a temporary workaround.
-    account_new_principal = db.Column(db.BigInteger, primary_key=True)
-
-    __table_args__ = (
-        db.CheckConstraint(account_new_principal > MIN_INT64),
-        {
-            'comment': "Represents an addition to one of creditor's account ledgers. This table "
-                       "allows users to ask only for transfers that have occurred after a given "
-                       "moment in time.",
-        }
-    )
-
-
 class AccountConfig(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -436,6 +405,32 @@ class AccountConfig(db.Model):
     account_ledger = db.relationship('AccountLedger')
 
 
+class AccountIssue(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    issue_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    debtor_id = db.Column(db.BigInteger, nullable=False)
+    issue_type = db.Column(db.String(30), nullable=False)
+    issue_can_be_discarded = db.Column(db.BOOLEAN, nullable=False)
+    issue_raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    details = db.Column(pg.JSON, nullable=False, default={})
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_config.creditor_id', 'account_config.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.Index('idx_account_issue_debtor_id', creditor_id, debtor_id),
+        {
+            'comment': 'Represents a problem with a given account that needs attention.',
+        }
+    )
+
+    account_config = db.relationship(
+        'AccountConfig',
+        backref=db.backref('account_issues', cascade="all, delete-orphan", passive_deletes=True),
+    )
+
+
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -487,27 +482,32 @@ class AccountLedger(db.Model):
     )
 
 
-class AccountIssue(db.Model):
+# TODO: Implement a daemon that periodically scan the `LedgerAddition`
+#       table and deletes old records (ones having an old
+#       `added_at_ts`).  We need to do this to free up disk space.
+class LedgerAddition(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    issue_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    debtor_id = db.Column(db.BigInteger, nullable=False)
-    issue_type = db.Column(db.String(30), nullable=False)
-    issue_can_be_discarded = db.Column(db.BOOLEAN, nullable=False)
-    issue_raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    details = db.Column(pg.JSON, nullable=False, default={})
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_config.creditor_id', 'account_config.debtor_id'],
-            ondelete='CASCADE',
-        ),
-        db.Index('idx_account_issue_debtor_id', creditor_id, debtor_id),
-        {
-            'comment': 'Represents a problem with a given account that needs attention.',
-        }
-    )
 
-    account_config = db.relationship(
-        'AccountConfig',
-        backref=db.backref('account_issues', cascade="all, delete-orphan", passive_deletes=True),
+    # Semantically, this column is not be part of the primary key, but
+    # because we want ledger additions to be ordered chronologically,
+    # we include it in the index for performance reasons.
+    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True, server_default=utcnow())
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+
+    # TODO: Normally, this column also is not part of the primary key,
+    #       but we want it to be included in the index to allow
+    #       index-only scans, and because SQLAlchemy does not support
+    #       that yet (2020-01-11), we include it in the primary key as
+    #       a temporary workaround.
+    account_new_principal = db.Column(db.BigInteger, primary_key=True)
+
+    __table_args__ = (
+        db.CheckConstraint(account_new_principal > MIN_INT64),
+        {
+            'comment': "Represents an addition to one of creditor's account ledgers. This table "
+                       "allows users to ask only for transfers that have occurred after a given "
+                       "moment in time.",
+        }
     )

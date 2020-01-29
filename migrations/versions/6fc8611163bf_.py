@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b299bf63e66e
+Revision ID: 6fc8611163bf
 Revises: 8d8c816257ce
-Create Date: 2020-01-29 21:38:22.095415
+Create Date: 2020-01-29 22:05:33.483043
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b299bf63e66e'
+revision = '6fc8611163bf'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -63,7 +63,7 @@ def upgrade():
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.PrimaryKeyConstraint('creditor_id', 'added_at_ts', 'debtor_id', 'transfer_seqnum', 'account_new_principal'),
-    comment="Represents an addition to creditors' account ledgers. This table is needed to allow users to store the sequential number of the last seen transfer (`addition_seqnum`), and later on, ask only for transfers with bigger sequential numbers."
+    comment="Represents an addition to one of creditor's account ledgers. This table allows users to ask only for transfers that have occurred after a given moment in time."
     )
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
