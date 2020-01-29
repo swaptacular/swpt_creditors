@@ -432,6 +432,8 @@ class AccountConfig(db.Model):
         },
     )
 
+    account_ledger = db.relationship('AccountLedger')
+
 
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
