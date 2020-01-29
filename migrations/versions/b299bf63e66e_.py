@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d4d4f70320c6
+Revision ID: b299bf63e66e
 Revises: 8d8c816257ce
-Create Date: 2020-01-29 20:15:49.236815
+Create Date: 2020-01-29 21:38:22.095415
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'd4d4f70320c6'
+revision = 'b299bf63e66e'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -21,14 +21,14 @@ def upgrade():
     op.create_table('account_ledger',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('account_creation_date', sa.DATE(), nullable=False),
-    sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('last_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This column allows to correctly recognize the situation when the account has been purged, and then recreated.'),
+    sa.Column('principal', sa.BigInteger(), nullable=False, comment='The account principal, as it is after the last transfer has been added to the ledger.'),
+    sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False, comment="Incremented for each transfer added to the ledger. For a newly created (or a purged, and then recreated) account, the sequential number of the first transfer will have its lower 40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's creation date (the number of days since Jan 1st, 2020). Note that when an account has been removed from the database, and then recreated again, for this account, a gap will occur in the generated sequence of `transfer_seqnum`s."),
+    sa.Column('last_update_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the most recent change in the row happened.'),
     sa.CheckConstraint('next_transfer_seqnum > 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment='Contains status information about the ledger of a given account.'
+    comment='Contains information about the ledger of a given account.'
     )
     op.create_index('idx_next_transfer_seqnum', 'account_ledger', ['creditor_id', 'debtor_id', 'next_transfer_seqnum'], unique=False)
     op.create_table('committed_transfer',
@@ -131,8 +131,8 @@ def upgrade():
     sa.Column('issue_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('issue_type', sa.String(length=30), nullable=False),
-    sa.Column('issue_can_be_deleted', sa.BOOLEAN(), nullable=False),
-    sa.Column('raised_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('issue_can_be_discarded', sa.BOOLEAN(), nullable=False),
+    sa.Column('issue_raised_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'issue_id'),

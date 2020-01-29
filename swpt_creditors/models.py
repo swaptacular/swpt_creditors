@@ -440,10 +440,36 @@ class AccountConfig(db.Model):
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    account_creation_date = db.Column(db.DATE, nullable=False, default=DATE_2020_01_01)
-    principal = db.Column(db.BigInteger, nullable=False, default=0)
-    next_transfer_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
-    last_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    account_creation_date = db.Column(
+        db.DATE,
+        nullable=False,
+        default=DATE_2020_01_01,
+        comment='The date at which the account was created. This column allows to correctly recognize '
+                'the situation when the account has been purged, and then recreated.'
+    )
+    principal = db.Column(
+        db.BigInteger,
+        nullable=False,
+        default=0,
+        comment='The account principal, as it is after the last transfer has been added to the ledger.'
+    )
+    next_transfer_seqnum = db.Column(
+        db.BigInteger,
+        nullable=False,
+        default=1,
+        comment="Incremented for each transfer added to the ledger. For a newly created (or a purged, "
+                "and then recreated) account, the sequential number of the first transfer will have "
+                "its lower 40 bits set to `0x0000000001`, and its higher 24 bits calculated from the "
+                "account's creation date (the number of days since Jan 1st, 2020). Note that when an "
+                "account has been removed from the database, and then recreated again, for this account, "
+                "a gap will occur in the generated sequence of `transfer_seqnum`s.",
+    )
+    last_update_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=get_now_utc,
+        comment='The moment at which the most recent change in the row happened.',
+    )
     __table_args__ = (
         db.Index(
             # This index is supposed to allow efficient merge joins
@@ -457,7 +483,7 @@ class AccountLedger(db.Model):
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(next_transfer_seqnum > 0),
         {
-            'comment': 'Contains status information about the ledger of a given account.',
+            'comment': 'Contains information about the ledger of a given account.',
         }
     )
 
@@ -467,8 +493,8 @@ class AccountIssue(db.Model):
     issue_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     debtor_id = db.Column(db.BigInteger, nullable=False)
     issue_type = db.Column(db.String(30), nullable=False)
-    issue_can_be_deleted = db.Column(db.BOOLEAN, nullable=False)
-    raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    issue_can_be_discarded = db.Column(db.BOOLEAN, nullable=False)
+    issue_raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     details = db.Column(pg.JSON, nullable=False, default={})
     __table_args__ = (
         db.ForeignKeyConstraint(
