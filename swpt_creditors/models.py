@@ -463,7 +463,7 @@ class AccountIssue(db.Model):
     issue_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     debtor_id = db.Column(db.BigInteger, nullable=False)
     issue_type = db.Column(db.String(30), nullable=False)
-    can_be_deleted = db.Column(db.BOOLEAN, nullable=False)
+    issue_can_be_deleted = db.Column(db.BOOLEAN, nullable=False)
     raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     details = db.Column(pg.JSON, nullable=False, default={})
     __table_args__ = (

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 053182930adf
+Revision ID: d4d4f70320c6
 Revises: 8d8c816257ce
-Create Date: 2020-01-29 20:05:04.373418
+Create Date: 2020-01-29 20:15:49.236815
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '053182930adf'
+revision = 'd4d4f70320c6'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -131,7 +131,7 @@ def upgrade():
     sa.Column('issue_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('issue_type', sa.String(length=30), nullable=False),
-    sa.Column('can_be_deleted', sa.BOOLEAN(), nullable=False),
+    sa.Column('issue_can_be_deleted', sa.BOOLEAN(), nullable=False),
     sa.Column('raised_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ondelete='CASCADE'),
