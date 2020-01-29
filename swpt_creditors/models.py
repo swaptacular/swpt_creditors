@@ -451,12 +451,13 @@ class AccountLedger(db.Model):
         db.BigInteger,
         nullable=False,
         default=1,
-        comment="Incremented for each transfer added to the ledger. For a newly created (or a purged, "
-                "and then recreated) account, the sequential number of the first transfer will have "
-                "its lower 40 bits set to `0x0000000001`, and its higher 24 bits calculated from the "
-                "account's creation date (the number of days since Jan 1st, 2020). Note that when an "
-                "account has been removed from the database, and then recreated again, for this account, "
-                "a gap will occur in the generated sequence of `transfer_seqnum`s.",
+        comment="The anticipated `transfer_seqnum` for the next transfer. It gets incremented when a "
+                "new transfer is added to the ledger. For a newly created (or purged, and then "
+                "recreated) account, the sequential number of the first transfer will have its lower "
+                "40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's "
+                "creation date (the number of days since Jan 1st, 2020). Note that when an account "
+                "has been removed from the database, and then recreated again, for this account, a "
+                "gap will occur in the generated sequence of `transfer_seqnum`s.",
     )
     last_update_ts = db.Column(
         db.TIMESTAMP(timezone=True),
