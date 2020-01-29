@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c6e27a36e417
+Revision ID: 053182930adf
 Revises: 8d8c816257ce
-Create Date: 2020-01-29 17:27:26.721339
+Create Date: 2020-01-29 20:05:04.373418
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c6e27a36e417'
+revision = '053182930adf'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -86,14 +86,15 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_config_change_seqnum', sa.Integer(), nullable=False),
-    sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False),
-    sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
+    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last change in the configuration. Must never decrease.'),
+    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last change in the configuration. It is incremented (with wrapping) on every change. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
+    sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='The maximum account balance that should be considered negligible. It is used to decide whether an account can be safely deleted.'),
+    sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='Whether the account is scheduled for deletion.'),
     sa.CheckConstraint('negligible_amount >= 2.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment="Represents a created account from users' perspecive. Note that the created account may still have no corresponding `Account` record."
+    comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will have no corresponding `account` record. Also, an `account_config` record must not be deleted, unless its `is_effectual` column is `true` and there is no corresponding `account` record."
     )
     op.create_table('initiated_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),

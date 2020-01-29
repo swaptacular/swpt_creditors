@@ -386,10 +386,36 @@ class AccountConfig(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_config_change_seqnum = db.Column(db.Integer, nullable=False)
-    is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
-    negligible_amount = db.Column(db.REAL, nullable=False)
+    is_effectual = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether the last change in the configuration has been successfully applied.'
+    )
+    last_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        comment='The timestamp of the last change in the configuration. Must never decrease.',
+    )
+    last_change_seqnum = db.Column(
+        db.Integer,
+        nullable=False,
+        comment='The sequential number of the last change in the configuration. It is incremented '
+                '(with wrapping) on every change. This column, along with the `last_change_ts` '
+                'column, allows to reliably determine the correct order of changes, even if '
+                'they occur in a very short period of time.',
+    )
+    is_scheduled_for_deletion = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        comment='The maximum account balance that should be considered negligible. It is used to '
+                'decide whether an account can be safely deleted.',
+    )
+    negligible_amount = db.Column(
+        db.REAL,
+        nullable=False,
+        comment='Whether the account is scheduled for deletion.',
+    )
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
@@ -398,8 +424,11 @@ class AccountConfig(db.Model):
         ),
         db.CheckConstraint(negligible_amount >= 2.0),
         {
-            'comment': "Represents a created account from users' perspecive. Note that the created "
-                       "account may still have no corresponding `Account` record.",
+            'comment': "Represents a configured (created) account from users' perspective. Note "
+                       "that a freshly inserted `account_config` record will have no corresponding "
+                       "`account` record. Also, an `account_config` record must not be deleted, "
+                       "unless its `is_effectual` column is `true` and there is no corresponding "
+                       "`account` record.",
         },
     )
 
