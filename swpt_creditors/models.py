@@ -355,15 +355,20 @@ class PendingCommittedTransfer(db.Model):
 #       `added_at_ts`).  We need to do this to free up disk space.
 class LedgerAddition(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
+
+    # Logically, this column is not be part of the primary key, but
+    # because we want ledger additions to be ordered chronologically,
+    # we include it in the index to for performance reasons.
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True, server_default=utcnow())
+
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
 
-    # TODO: Normally, this column is not part of the primary key, but
-    #       because we want it to be included in the index to allow
-    #       index-only scans, and SQLAlchemy does not support that yet
-    #       (2020-01-11), we include it in the primary key as a
-    #       temporary workaround.
+    # TODO: Normally, this column also is not part of the primary key,
+    #       but we want it to be included in the index to allow
+    #       index-only scans, and because SQLAlchemy does not support
+    #       that yet (2020-01-11), we include it in the primary key as
+    #       a temporary workaround.
     account_new_principal = db.Column(db.BigInteger, primary_key=True)
 
     __table_args__ = (
