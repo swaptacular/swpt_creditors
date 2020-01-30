@@ -248,10 +248,10 @@ class RunningTransfer(db.Model):
         db.CheckConstraint(amount > 0),
         {
             'comment': 'Represents a running direct transfer. Important note: The records for the '
-                       'finalized direct transfers (failed or successful) must not be deleted '
-                       'right away. Instead, after they have been finalized, they should stay in '
-                       'the database for at least few days. This is necessary in order to prevent '
-                       'problems caused by message re-delivery.',
+                       'successfully finalized direct transfers (those for which `direct_transfer_id` '
+                       'is not `null`), must not be deleted right away. Instead, after they have been '
+                       'finalized, they should stay in the database for at least few days. This is '
+                       'necessary in order to prevent problems caused by message re-delivery.',
         }
     )
 
@@ -308,7 +308,7 @@ class CommittedTransfer(db.Model):
         db.DATE,
         nullable=False,
         comment="The date on which the account was created. This is needed to detect when "
-                "an account has been deleted, and re-created again. (In that case the sequence "
+                "an account has been deleted, and recreated again. (In that case the sequence "
                 "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
                 "a brand new ledger created).",
     )
@@ -414,7 +414,7 @@ class AccountConfig(db.Model):
             'comment': "Represents a configured (created) account from users' perspective. Note "
                        "that a freshly inserted `account_config` record will have no corresponding "
                        "`account` record. Also, an `account_config` record must not be deleted, "
-                       "unless its `is_effectual` column is `True` and there is no corresponding "
+                       "unless its `is_effectual` column is `true` and there is no corresponding "
                        "`account` record.",
         },
     )
@@ -455,8 +455,10 @@ class AccountLedger(db.Model):
         db.DATE,
         nullable=False,
         default=DATE_2020_01_01,
-        comment='The date at which the account was created. This column allows to correctly recognize '
-                'the situation when the account has been purged, and then recreated.'
+        comment="The date on which the account was created. This is needed to detect when "
+                "an account has been deleted, and recreated again. (In that case the sequence "
+                "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
+                "a brand new ledger created).",
     )
     principal = db.Column(
         db.BigInteger,
