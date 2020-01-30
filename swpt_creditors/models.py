@@ -286,8 +286,17 @@ class CommittedTransfer(db.Model):
                 'positive, this is the sender. When `committed_amount` is negative, this is '
                 'the recipient.',
     )
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    committed_amount = db.Column(db.BigInteger, nullable=False)
+    committed_at_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        comment='The moment at which the transfer was committed.',
+    )
+    committed_amount = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment="This is the change in the account's principal that the transfer caused. Can "
+                "be positive or negative. Can not be zero.",
+    )
     transfer_info = db.Column(pg.JSON, nullable=False)
     account_creation_date = db.Column(
         db.DATE,
@@ -326,11 +335,12 @@ class PendingCommittedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
 
-    # TODO: Normally, this column is not part of the primary key, but
-    #       because we want it to be included in the index to allow
-    #       index-only scans, and SQLAlchemy does not support that yet
-    #       (2020-01-11), we include it in the primary key as a
-    #       temporary workaround.
+    # TODO: Normally, these columns are not part of the primary key,
+    #       but because we want them to be included in the index to
+    #       allow index-only scans, and SQLAlchemy does not support
+    #       that yet (2020-01-11), we include them in the primary key
+    #       as a temporary workaround.
+    committed_amount = db.Column(db.BigInteger, primary_key=True)
     account_new_principal = db.Column(db.BigInteger, primary_key=True)
 
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
@@ -340,6 +350,7 @@ class PendingCommittedTransfer(db.Model):
             ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
             ondelete='CASCADE',
         ),
+        db.CheckConstraint(committed_amount != 0),
         {
             'comment': 'Represents a committed transfer that has not been included in the account '
                        'ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. '
@@ -483,31 +494,33 @@ class AccountLedger(db.Model):
     )
 
 
-# TODO: Implement a daemon that periodically scan the `LedgerAddition`
+# TODO: Implement a daemon that periodically scan the `LedgerEntry`
 #       table and deletes old records (ones having an old
 #       `added_at_ts`).  We need to do this to free up disk space.
-class LedgerAddition(db.Model):
+class LedgerEntry(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
 
     # Semantically, this column is not be part of the primary key, but
-    # because we want ledger additions to be ordered chronologically,
-    # we include it in the index for performance reasons.
+    # because we want ledger entries to be ordered chronologically, we
+    # include it in the index for performance reasons.
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True, server_default=utcnow())
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
 
-    # TODO: Normally, this column also is not part of the primary key,
-    #       but we want it to be included in the index to allow
+    # TODO: Normally, these columns also are not part of the primary
+    #       key, but we want them to be included in the index to allow
     #       index-only scans, and because SQLAlchemy does not support
-    #       that yet (2020-01-11), we include it in the primary key as
-    #       a temporary workaround.
+    #       that yet (2020-01-11), we include them in the primary key
+    #       as a temporary workaround.
+    committed_amount = db.Column(db.BigInteger, primary_key=True)
     account_new_principal = db.Column(db.BigInteger, primary_key=True)
 
     __table_args__ = (
+        db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(account_new_principal > MIN_INT64),
         {
-            'comment': "Represents an addition to one of creditor's account ledgers. This table "
+            'comment': "Represents an entry in one of creditor's account ledgers. This table "
                        "allows users to ask only for transfers that have occurred after a given "
                        "moment in time.",
         }

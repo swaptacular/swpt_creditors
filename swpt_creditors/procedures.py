@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
-from .models import AccountLedger, LedgerAddition, CommittedTransfer, PendingCommittedTransfer, \
+from .models import AccountLedger, LedgerEntry, CommittedTransfer, PendingCommittedTransfer, \
     InitiatedTransfer, RunningTransfer, \
     MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID
 
@@ -80,7 +80,7 @@ def process_committed_transfer_signal(
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
         _update_ledger(ledger, account_new_principal, current_ts)
-        _insert_ledger_addition(creditor_id, debtor_id, transfer_seqnum, account_new_principal)
+        _insert_ledger_entry(creditor_id, debtor_id, transfer_seqnum, committed_amount, account_new_principal)
     elif transfer_seqnum >= ledger.next_transfer_seqnum:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_committed_transfers()`.)
@@ -90,6 +90,7 @@ def process_committed_transfer_signal(
             transfer_seqnum=transfer_seqnum,
             account_new_principal=account_new_principal,
             committed_at_ts=committed_at_ts,
+            committed_amount=committed_amount,
         ))
 
 
@@ -101,11 +102,11 @@ def process_pending_committed_transfers(creditor_id: int, debtor_id: int, max_co
     pks_to_delete = []
     ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
     pending_transfers = _get_ordered_pending_transfers(ledger, max_count)
-    for transfer_seqnum, account_new_principal in pending_transfers:
+    for transfer_seqnum, committed_amount, account_new_principal in pending_transfers:
         pk = (creditor_id, debtor_id, transfer_seqnum)
         if transfer_seqnum == ledger.next_transfer_seqnum:
             _update_ledger(ledger, account_new_principal)
-            _insert_ledger_addition(*pk, account_new_principal)
+            _insert_ledger_entry(*pk, committed_amount, account_new_principal)
         elif transfer_seqnum > ledger.next_transfer_seqnum:
             has_gaps = True
             break
@@ -132,11 +133,17 @@ def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) 
     return ledger or _create_ledger(debtor_id, creditor_id)
 
 
-def _insert_ledger_addition(creditor_id: int, debtor_id: int, transfer_seqnum: int, account_new_principal: int) -> None:
-    db.session.add(LedgerAddition(
+def _insert_ledger_entry(
+        creditor_id: int,
+        debtor_id: int,
+        transfer_seqnum: int,
+        committed_amount: int,
+        account_new_principal: int) -> None:
+    db.session.add(LedgerEntry(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         transfer_seqnum=transfer_seqnum,
+        committed_amount=committed_amount,
         account_new_principal=account_new_principal,
     ))
 
@@ -151,7 +158,11 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     creditor_id = ledger.creditor_id
     debtor_id = ledger.debtor_id
     query = db.session.\
-        query(PendingCommittedTransfer.transfer_seqnum, PendingCommittedTransfer.account_new_principal).\
+        query(
+            PendingCommittedTransfer.transfer_seqnum,
+            PendingCommittedTransfer.committed_amount,
+            PendingCommittedTransfer.account_new_principal,
+        ).\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
         order_by(PendingCommittedTransfer.transfer_seqnum)
     if max_count is not None:
