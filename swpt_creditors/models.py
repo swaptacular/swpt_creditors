@@ -133,7 +133,8 @@ class InitiatedTransfer(db.Model):
         pg.JSON,
         nullable=False,
         default={},
-        comment='Notes from the sender. Can be any object that the sender wants the recipient to see.',
+        comment='Notes from the sender. Can be any JSON object that the sender wants the '
+                'recipient to see.',
     )
     initiated_at_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -297,7 +298,12 @@ class CommittedTransfer(db.Model):
         comment="This is the change in the account's principal that the transfer caused. Can "
                 "be positive or negative. Can not be zero.",
     )
-    transfer_info = db.Column(pg.JSON, nullable=False)
+    transfer_info = db.Column(
+        pg.JSON,
+        nullable=False,
+        comment='Notes from the sender. Can be any JSON object that the sender wants the '
+                'recipient to see.',
+    )
     account_creation_date = db.Column(
         db.DATE,
         nullable=False,
@@ -356,7 +362,7 @@ class PendingCommittedTransfer(db.Model):
                        'ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. '
                        'Periodically, the pending rows are processed, added to account ledgers, and then '
                        'deleted. This intermediate storage is necessary, because committed transfers can '
-                       'be received out of order, but must be added to the ledgers in order.',
+                       'be received out-of-order, but must be added to the ledgers in-order.',
         }
     )
 
@@ -389,13 +395,13 @@ class AccountConfig(db.Model):
     is_scheduled_for_deletion = db.Column(
         db.BOOLEAN,
         nullable=False,
-        comment='The maximum account balance that should be considered negligible. It is used to '
-                'decide whether an account can be safely deleted.',
+        comment='Whether the account is scheduled for deletion.',
     )
     negligible_amount = db.Column(
         db.REAL,
         nullable=False,
-        comment='Whether the account is scheduled for deletion.',
+        comment='The maximum account balance that should be considered negligible. It is used to '
+                'decide whether an account can be safely deleted.',
     )
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -408,7 +414,7 @@ class AccountConfig(db.Model):
             'comment': "Represents a configured (created) account from users' perspective. Note "
                        "that a freshly inserted `account_config` record will have no corresponding "
                        "`account` record. Also, an `account_config` record must not be deleted, "
-                       "unless its `is_effectual` column is `true` and there is no corresponding "
+                       "unless its `is_effectual` column is `True` and there is no corresponding "
                        "`account` record.",
         },
     )
@@ -421,7 +427,7 @@ class AccountIssue(db.Model):
     issue_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     debtor_id = db.Column(db.BigInteger, nullable=False)
     issue_type = db.Column(db.String(30), nullable=False)
-    issue_can_be_discarded = db.Column(db.BOOLEAN, nullable=False)
+    issue_can_be_discarded = db.Column(db.BOOLEAN, nullable=False, default=False)
     issue_raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     details = db.Column(pg.JSON, nullable=False, default={})
     __table_args__ = (
@@ -489,7 +495,7 @@ class AccountLedger(db.Model):
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(next_transfer_seqnum > 0),
         {
-            'comment': 'Contains information about the ledger of a given account.',
+            'comment': 'Represents essential information about the ledger of a given account.',
         }
     )
 
@@ -508,8 +514,8 @@ class LedgerEntry(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
 
-    # TODO: Normally, these columns also are not part of the primary
-    #       key, but we want them to be included in the index to allow
+    # TODO: Normally, these columns are not part of the primary key,
+    #       but we want them to be included in the index to allow
     #       index-only scans, and because SQLAlchemy does not support
     #       that yet (2020-01-11), we include them in the primary key
     #       as a temporary workaround.
@@ -521,7 +527,7 @@ class LedgerEntry(db.Model):
         db.CheckConstraint(account_new_principal > MIN_INT64),
         {
             'comment': "Represents an entry in one of creditor's account ledgers. This table "
-                       "allows users to ask only for transfers that have occurred after a given "
-                       "moment in time.",
+                       "allows users to ask only for transfers that have occurred before or "
+                       "after a given moment in time.",
         }
     )
