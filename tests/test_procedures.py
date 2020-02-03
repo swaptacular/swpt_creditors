@@ -9,7 +9,7 @@ TEST_UUID2 = UUID('123e4567-e89b-12d3-a456-426655440001')
 RECIPIENT_URI = 'https://example.com/creditors/1'
 
 
-def test_process_pending_committed_transfers(db_session, current_ts):
+def test_process_pending_account_commits(db_session, current_ts):
     ny2020 = date(2020, 1, 1)
-    p.process_committed_transfer_signal(D_ID, C_ID, 1, 'direct', 666, current_ts, 1000, {}, ny2020, 1000)
-    assert p.process_pending_committed_transfers(C_ID, D_ID)
+    p.process_account_commit_signal(D_ID, C_ID, 1, 'direct', 666, current_ts, 1000, {}, ny2020, 1000)
+    assert p.process_pending_account_commits(C_ID, D_ID)

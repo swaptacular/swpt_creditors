@@ -259,18 +259,17 @@ class RunningTransfer(db.Model):
         return self.direct_transfer_id is not None
 
 
-# TODO: Implement a daemon that periodically scan the
-#       `CommittedTransfer` table and deletes old records (ones having
-#       an old `committed_at_ts`). We need to do this to free up disk
-#       space.
-class CommittedTransfer(db.Model):
+# TODO: Implement a daemon that periodically scan the `AccountCommit`
+#       table and deletes old records (ones having an old
+#       `committed_at_ts`). We need to do this to free up disk space.
+class AccountCommit(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(
         db.BigInteger,
         primary_key=True,
-        comment="Along with `creditor_id` and `debtor_id` uniquely identifies the committed "
-                "transfer. It gets incremented on each committed transfer. Initially, "
+        comment="Along with `creditor_id` and `debtor_id` uniquely identifies the account "
+                "commit. It gets incremented on each committed transfer. Initially, "
                 "`transfer_seqnum` has its lowest 40 bits set to zero, and its highest 24 "
                 "bits calculated from the value of `account_creation_date`.",
     )
@@ -321,21 +320,21 @@ class CommittedTransfer(db.Model):
         db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(account_new_principal > MIN_INT64),
         {
-            'comment': 'Represents a committed transfer. A new row is inserted when a '
-                       '`CommittedTransferSignal` is received. The row is deleted when '
+            'comment': 'Represents an account commit. A new row is inserted when a '
+                       '`AccountCommitSignal` is received. The row is deleted when '
                        'some time (few months for example) has passed.',
         }
     )
 
 
 # TODO: Implement a daemon that periodically scan the
-#       `PendingCommittedTransfer` table, finds staled records (ones
+#       `PendingAccountCommit` table, finds staled records (ones
 #       having an old `committed_at_ts`), deletes them, and mends the
 #       account ledger. When a transfer can not be added to the ledger
 #       for a long time, this should mean that a preceding transfer
 #       has been lost. This should happen very rarely, but still
 #       eventually we must be able to recover from such losses.
-class PendingCommittedTransfer(db.Model):
+class PendingAccountCommit(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
@@ -352,20 +351,20 @@ class PendingCommittedTransfer(db.Model):
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id', 'transfer_seqnum'],
-            ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.transfer_seqnum'],
+            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'],
             ondelete='CASCADE',
         ),
         db.CheckConstraint(committed_amount != 0),
         {
-            'comment': 'Represents a committed transfer that has not been included in the account '
-                       'ledger yet. A new row is inserted when a `CommittedTransferSignal` is received. '
+            'comment': 'Represents an account commit that has not been included in the account ledger '
+                       'yet. A new row is inserted when a `AccountCommitSignal` is received. '
                        'Periodically, the pending rows are processed, added to account ledgers, and then '
-                       'deleted. This intermediate storage is necessary, because committed transfers can '
+                       'deleted. This intermediate storage is necessary, because account commits can '
                        'be received out-of-order, but must be added to the ledgers in-order.',
         }
     )
 
-    committed_transfer = db.relationship('CommittedTransfer')
+    account_commit = db.relationship('AccountCommit')
 
 
 class AccountConfig(db.Model):
@@ -486,8 +485,8 @@ class AccountLedger(db.Model):
     __table_args__ = (
         db.Index(
             # This index is supposed to allow efficient merge joins
-            # with `PendingCommittedTransfer`. Not sure if it is
-            # really needed in practice.
+            # with `PendingAccountCommit`. Not sure if it is really
+            # beneficial in practice.
             'idx_next_transfer_seqnum',
             creditor_id,
             debtor_id,

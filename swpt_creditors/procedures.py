@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
-from .models import AccountLedger, LedgerEntry, CommittedTransfer, PendingCommittedTransfer, \
+from .models import AccountLedger, LedgerEntry, AccountCommit, PendingAccountCommit, \
     InitiatedTransfer, RunningTransfer, \
     MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID
 
@@ -14,15 +14,15 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 TD_5_SECONDS = timedelta(seconds=10)
-PENDING_COMMITTED_TRANSFER_PK = tuple_(
-    PendingCommittedTransfer.debtor_id,
-    PendingCommittedTransfer.creditor_id,
-    PendingCommittedTransfer.transfer_seqnum,
+PENDING_ACCOUNT_COMMIT_PK = tuple_(
+    PendingAccountCommit.debtor_id,
+    PendingAccountCommit.creditor_id,
+    PendingAccountCommit.transfer_seqnum,
 )
 
 
 @atomic
-def process_committed_transfer_signal(
+def process_account_commit_signal(
         debtor_id: int,
         creditor_id: int,
         transfer_seqnum: int,
@@ -42,7 +42,7 @@ def process_committed_transfer_signal(
     assert -MAX_INT64 <= committed_amount <= MAX_INT64
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
 
-    db.session.add(CommittedTransfer(
+    db.session.add(AccountCommit(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         transfer_seqnum=transfer_seqnum,
@@ -57,7 +57,7 @@ def process_committed_transfer_signal(
     try:
         db.session.flush()
     except IntegrityError:
-        # Normally, this can happen only when the committed transfer
+        # Normally, this can happen only when the account commit
         # message has been re-delivered. Therefore, no action should
         # be taken.
         db.session.rollback()
@@ -75,16 +75,16 @@ def process_committed_transfer_signal(
 
     ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
     if transfer_seqnum == ledger.next_transfer_seqnum and ledger_has_not_been_updated_soon:
-        # If committed transfers come in the right order, it is faster
-        # to update the account ledger right away. We must be careful,
+        # If account commits come in the right order, it is faster to
+        # update the account ledger right away. We must be careful,
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
         _update_ledger(ledger, account_new_principal, current_ts)
         _insert_ledger_entry(creditor_id, debtor_id, transfer_seqnum, committed_amount, account_new_principal)
     elif transfer_seqnum >= ledger.next_transfer_seqnum:
         # A dedicated asynchronous task will do the addition to the account
-        # ledger later. (See `process_pending_committed_transfers()`.)
-        db.session.add(PendingCommittedTransfer(
+        # ledger later. (See `process_pending_account_commits()`.)
+        db.session.add(PendingAccountCommit(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             transfer_seqnum=transfer_seqnum,
@@ -95,8 +95,8 @@ def process_committed_transfer_signal(
 
 
 @atomic
-def process_pending_committed_transfers(creditor_id: int, debtor_id: int, max_count: int = None) -> bool:
-    """Return `False` if some legible committed transfers remained unprocessed."""
+def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count: int = None) -> bool:
+    """Return `False` if some legible account commits remained unprocessed."""
 
     has_gaps = False
     pks_to_delete = []
@@ -112,8 +112,8 @@ def process_pending_committed_transfers(creditor_id: int, debtor_id: int, max_co
             break
         pks_to_delete.append(pk)
 
-    PendingCommittedTransfer.query.\
-        filter(PENDING_COMMITTED_TRANSFER_PK.in_(pks_to_delete)).\
+    PendingAccountCommit.query.\
+        filter(PENDING_ACCOUNT_COMMIT_PK.in_(pks_to_delete)).\
         delete(synchronize_session=False)
     return has_gaps or max_count is None or len(pending_transfers) < max_count
 
@@ -159,12 +159,12 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     debtor_id = ledger.debtor_id
     query = db.session.\
         query(
-            PendingCommittedTransfer.transfer_seqnum,
-            PendingCommittedTransfer.committed_amount,
-            PendingCommittedTransfer.account_new_principal,
+            PendingAccountCommit.transfer_seqnum,
+            PendingAccountCommit.committed_amount,
+            PendingAccountCommit.account_new_principal,
         ).\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        order_by(PendingCommittedTransfer.transfer_seqnum)
+        order_by(PendingAccountCommit.transfer_seqnum)
     if max_count is not None:
         query = query.limit(max_count)
     return query.all()

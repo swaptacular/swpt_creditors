@@ -5,7 +5,7 @@ from . import procedures
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
-def on_committed_transfer_signal(
+def on_account_commit_signal(
         debtor_id: int,
         creditor_id: int,
         transfer_seqnum: int,
@@ -16,7 +16,7 @@ def on_committed_transfer_signal(
         transfer_info: dict,
         account_creation_date: str,
         account_new_principal: int) -> None:
-    procedures.process_committed_transfer_signal(
+    procedures.process_account_commit_signal(
         debtor_id,
         creditor_id,
         transfer_seqnum,
