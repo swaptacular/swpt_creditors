@@ -118,6 +118,20 @@ def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count:
     return has_gaps or max_count is None or len(pending_transfers) < max_count
 
 
+@atomic
+def find_legible_pending_account_commits(max_count: int = None):
+    pac = PendingAccountCommit
+    al = AccountLedger
+    query = db.session.query(pac.creditor_id, pac.debtor_id).filter(
+        al.creditor_id == pac.creditor_id,
+        al.debtor_id == pac.debtor_id,
+        al.next_transfer_seqnum == pac.transfer_seqnum
+    )
+    if max_count is not None:
+        query = query.limit(max_count)
+    return query.all()
+
+
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
     ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
     with db.retry_on_integrity_error():
