@@ -69,7 +69,7 @@ def process_account_change_signal(
         account.negligible_amount = negligible_amount
         account.status = status
         account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
-        account_config = account.account_config
+        config = account.account_config
     else:
         account = Account(
             creditor_id=creditor_id,
@@ -86,11 +86,11 @@ def process_account_change_signal(
             negligible_amount=negligible_amount,
             status=status,
         )
-        account_config = _lock_or_create_account_config(creditor_id, debtor_id, account=account)
+        config = _lock_or_create_account_config(creditor_id, debtor_id, account=account)
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _refresh_account_config(account_config, account)
+    _refresh_account_config(config, account)
 
 
 @atomic
@@ -257,21 +257,21 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
 
 
 def _lock_or_create_account_config(creditor_id: int, debtor_id: int, account: Optional[Account]) -> AccountConfig:
-    account_config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    if account_config is None:
+    config = AccountConfig.lock_instance((creditor_id, debtor_id))
+    if config is None:
         # Normally, when an `AccountConfig` record does not exist, an
         # `AccountLedger` record does not exist as well. Nevertheless,
         # we want to be sure that this function works in all cases.
-        account_ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
-        if account_ledger is None:
-            account_ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
+        ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
+        if ledger is None:
+            ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
 
         if account:
-            account_ledger.account_creation_date = account.creation_date
-            account_ledger.principal = account.principal
-            account_ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
-            account_ledger.last_update_ts = datetime.now(tz=timezone.utc)
-            account_config = AccountConfig(
+            ledger.account_creation_date = account.creation_date
+            ledger.principal = account.principal
+            ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
+            ledger.last_update_ts = datetime.now(tz=timezone.utc)
+            config = AccountConfig(
                 creditor_id=creditor_id,
                 debtor_id=debtor_id,
                 is_effectual=True,
@@ -281,33 +281,33 @@ def _lock_or_create_account_config(creditor_id: int, debtor_id: int, account: Op
                 negligible_amount=account.negligible_amount,
             )
         else:
-            account_config = AccountConfig(
+            config = AccountConfig(
                 creditor_id=creditor_id,
                 debtor_id=debtor_id,
                 is_effectual=False,
                 last_change_ts=BEGINNING_OF_TIME,
                 last_change_seqnum=0,
             )
-            _insert_configure_account_signal(account_config)
+            _insert_configure_account_signal(config)
 
         with db.retry_on_integrity_error():
-            db.session.add(account_ledger)
-            db.session.add(account_config)
+            db.session.add(ledger)
+            db.session.add(config)
 
-    return account_config
+    return config
 
 
-def _insert_configure_account_signal(account_config: AccountConfig, current_ts: datetime = None) -> None:
+def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
-    account_config.last_change_ts = max(account_config.last_change_ts, current_ts)
-    account_config.last_change_seqnum = increment_seqnum(account_config.last_change_seqnum)
+    config.last_change_ts = max(config.last_change_ts, current_ts)
+    config.last_change_seqnum = increment_seqnum(config.last_change_seqnum)
     db.session.add(ConfigureAccountSignal(
-        creditor_id=account_config.creditor_id,
-        debtor_id=account_config.debtor_id,
-        change_ts=account_config.last_change_ts,
-        change_seqnum=account_config.last_change_seqnum,
-        negligible_amount=account_config.negligible_amount,
-        is_scheduled_for_deletion=account_config.is_scheduled_for_deletion,
+        creditor_id=config.creditor_id,
+        debtor_id=config.debtor_id,
+        change_ts=config.last_change_ts,
+        change_seqnum=config.last_change_seqnum,
+        negligible_amount=config.negligible_amount,
+        is_scheduled_for_deletion=config.is_scheduled_for_deletion,
     ))
 
 
