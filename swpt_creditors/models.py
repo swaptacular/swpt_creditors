@@ -534,3 +534,41 @@ class LedgerEntry(db.Model):
                        "after a given moment in time.",
         }
     )
+
+
+class Account(db.Model):
+    STATUS_DELETED_FLAG = 1
+    STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 2
+    STATUS_OVERFLOWN_FLAG = 4
+    STATUS_SCHEDULED_FOR_DELETION_FLAG = 8
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    change_seqnum = db.Column(db.Integer, nullable=False)
+    change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
+    interest = db.Column(db.FLOAT, nullable=False)
+    interest_rate = db.Column(db.REAL, nullable=False)
+    last_outgoing_transfer_date = db.Column(db.DATE, nullable=False)
+    creation_date = db.Column(db.DATE, nullable=False)
+    negligible_amount = db.Column(db.REAL, nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False)
+    last_heartbeat_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=get_now_utc,
+        comment='The moment at which the last `AccountChangeSignal` has been processed. It is '
+                'used to detect "dead" accounts. A "dead" account is an account that have been '
+                'removed from the `swpt_accounts` service, but still exist in this table.',
+    )
+    __table_args__ = (
+        db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
+        db.CheckConstraint(principal > MIN_INT64),
+        db.CheckConstraint(negligible_amount >= 2.0),
+        {
+            'comment': 'Tells who owes what to whom. This table is a replica of the table with the '
+                       'same name in the `swpt_accounts` service. It is used to perform maintenance '
+                       'routines like changing interest rates. Most of the columns get their values '
+                       'from the corresponding fields in the last applied `AccountChangeSignal`.',
+        }
+    )
