@@ -260,7 +260,7 @@ def _lock_or_create_account_config(creditor_id: int, debtor_id: int, account: Op
     config = AccountConfig.lock_instance((creditor_id, debtor_id))
     if config is None:
         # Normally, when an `AccountConfig` record does not exist, an
-        # `AccountLedger` record does not exist as well. Nevertheless,
+        # `AccountLedger` record does not exist either. Nevertheless,
         # we want to be sure that this function works in all cases.
         ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
         if ledger is None:
@@ -292,6 +292,7 @@ def _lock_or_create_account_config(creditor_id: int, debtor_id: int, account: Op
 
         with db.retry_on_integrity_error():
             db.session.add(ledger)
+        with db.retry_on_integrity_error():
             db.session.add(config)
 
     return config
