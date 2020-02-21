@@ -4,11 +4,13 @@ from typing import TypeVar, Optional, Callable, Tuple, List
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
-from swpt_lib.utils import date_to_int24
+from sqlalchemy.orm import joinedload
+from swpt_lib.utils import date_to_int24, is_later_event
 from .extensions import db
 from .models import AccountLedger, LedgerEntry, AccountCommit, PendingAccountCommit, \
-    InitiatedTransfer, RunningTransfer, \
-    MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID
+    InitiatedTransfer, RunningTransfer, Account, AccountConfig, ConfigureAccountSignal, \
+    MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID, \
+    increment_seqnum, BEGINNING_OF_TIME
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -19,6 +21,76 @@ PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.creditor_id,
     PendingAccountCommit.transfer_seqnum,
 )
+
+
+@atomic
+def process_account_change_signal(
+        debtor_id: int,
+        creditor_id: int,
+        change_ts: datetime,
+        change_seqnum: int,
+        principal: int,
+        interest: float,
+        interest_rate: float,
+        last_transfer_seqnum: int,
+        last_config_change_ts: datetime,
+        last_config_change_seqnum: int,
+        creation_date: date,
+        negligible_amount: float,
+        status: int) -> None:
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT32 <= change_seqnum <= MAX_INT32
+    assert -MAX_INT64 <= principal <= MAX_INT64
+    assert -100 < interest_rate <= 100.0
+    assert 0 <= last_transfer_seqnum <= MAX_INT64
+    assert MIN_INT32 <= last_config_change_seqnum <= MAX_INT32
+    assert negligible_amount >= 2.0
+    assert MIN_INT16 <= status <= MAX_INT16
+
+    account = Account.lock_instance((debtor_id, creditor_id), joinedload('account_config', innerjoin=True))
+    if account:
+        this_event = (change_ts, change_seqnum)
+        prev_event = (account.change_ts, account.change_seqnum)
+        if this_event == prev_event:
+            account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
+        if not is_later_event(this_event, prev_event):
+            return
+        account.change_seqnum = change_seqnum
+        account.change_ts = change_ts
+        account.principal = principal
+        account.interest = interest
+        account.interest_rate = interest_rate
+        account.last_transfer_seqnum = last_transfer_seqnum
+        account.last_config_change_ts = last_config_change_ts
+        account.last_config_change_seqnum = last_config_change_seqnum
+        account.creation_date = creation_date
+        account.negligible_amount = negligible_amount
+        account.status = status
+        account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
+        account_config = account.account_config
+    else:
+        account = Account(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            change_seqnum=change_seqnum,
+            change_ts=change_ts,
+            principal=principal,
+            interest=interest,
+            interest_rate=interest_rate,
+            last_transfer_seqnum=last_transfer_seqnum,
+            last_config_change_ts=last_config_change_ts,
+            last_config_change_seqnum=last_config_change_seqnum,
+            creation_date=creation_date,
+            negligible_amount=negligible_amount,
+            status=status,
+        )
+        account_config = _lock_or_create_account_config(creditor_id, debtor_id, account=account)
+        with db.retry_on_integrity_error():
+            db.session.add(account)
+
+    _refresh_account_config(account_config, account)
 
 
 @atomic
@@ -182,3 +254,69 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     if max_count is not None:
         query = query.limit(max_count)
     return query.all()
+
+
+def _lock_or_create_account_config(creditor_id: int, debtor_id: int, account: Optional[Account]) -> AccountConfig:
+    account_config = AccountConfig.lock_instance((creditor_id, debtor_id))
+    if account_config is None:
+        # Normally, when an `AccountConfig` record does not exist, an
+        # `AccountLedger` record does not exist as well. Nevertheless,
+        # we want to be sure that this function works in all cases.
+        account_ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
+        if account_ledger is None:
+            account_ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
+
+        if account:
+            account_ledger.account_creation_date = account.creation_date
+            account_ledger.principal = account.principal
+            account_ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
+            account_ledger.last_update_ts = datetime.now(tz=timezone.utc)
+            account_config = AccountConfig(
+                creditor_id=creditor_id,
+                debtor_id=debtor_id,
+                is_effectual=True,
+                last_change_ts=account.last_config_change_ts,
+                last_change_seqnum=account.last_config_change_seqnum,
+                is_scheduled_for_deletion=bool(account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG),
+                negligible_amount=account.negligible_amount,
+            )
+        else:
+            account_config = AccountConfig(
+                creditor_id=creditor_id,
+                debtor_id=debtor_id,
+                is_effectual=False,
+                last_change_ts=BEGINNING_OF_TIME,
+                last_change_seqnum=0,
+            )
+            _insert_configure_account_signal(account_config)
+
+        with db.retry_on_integrity_error():
+            db.session.add(account_ledger)
+            db.session.add(account_config)
+
+    return account_config
+
+
+def _insert_configure_account_signal(account_config: AccountConfig, current_ts: datetime = None) -> None:
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    account_config.last_change_ts = max(account_config.last_change_ts, current_ts)
+    account_config.last_change_seqnum = increment_seqnum(account_config.last_change_seqnum)
+    db.session.add(ConfigureAccountSignal(
+        creditor_id=account_config.creditor_id,
+        debtor_id=account_config.debtor_id,
+        change_ts=account_config.last_change_ts,
+        change_seqnum=account_config.last_change_seqnum,
+        negligible_amount=account_config.negligible_amount,
+        is_scheduled_for_deletion=account_config.is_scheduled_for_deletion,
+    ))
+
+
+def _refresh_account_config(config: AccountConfig, account: Account) -> None:
+    account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
+    config_event = (config.last_change_ts, config.last_change_seqnum)
+    if not is_later_event(config_event, account_event):
+        config.last_change_ts = account.last_config_change_ts
+        config.last_change_seqnum = account.last_config_change_seqnum
+        config.is_effectual = True
+        config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
+        config.negligible_amount = account.negligible_amount

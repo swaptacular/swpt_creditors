@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional
 from datetime import datetime, timezone, date
+from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, true, false, or_, FunctionElement
@@ -14,6 +15,7 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
+BEGINNING_OF_TIME = datetime(1900, 1, 1, tzinfo=timezone.utc)
 DATE_2020_01_01 = date(2020, 1, 1)
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
@@ -377,7 +379,6 @@ class AccountConfig(db.Model):
     is_effectual = db.Column(
         db.BOOLEAN,
         nullable=False,
-        default=False,
         comment='Whether the last change in the configuration has been successfully applied.'
     )
     last_change_ts = db.Column(
@@ -396,11 +397,13 @@ class AccountConfig(db.Model):
     is_scheduled_for_deletion = db.Column(
         db.BOOLEAN,
         nullable=False,
+        default=False,
         comment='Whether the account is scheduled for deletion.',
     )
     negligible_amount = db.Column(
         db.REAL,
         nullable=False,
+        default=2.0,
         comment='The maximum account balance that should be considered negligible. It is used to '
                 'decide whether an account can be safely deleted.',
     )
@@ -544,12 +547,14 @@ class Account(db.Model):
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    change_seqnum = db.Column(db.Integer, nullable=False)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    change_seqnum = db.Column(db.Integer, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
-    last_outgoing_transfer_date = db.Column(db.DATE, nullable=False)
+    last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    last_config_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_config_change_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)
@@ -562,6 +567,10 @@ class Account(db.Model):
                 'removed from the `swpt_accounts` service, but still exist in this table.',
     )
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_config.creditor_id', 'account_config.debtor_id'],
+        ),
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(negligible_amount >= 2.0),
@@ -572,3 +581,32 @@ class Account(db.Model):
                        'from the corresponding fields in the last applied `AccountChangeSignal`.',
         }
     )
+
+    account_config = db.relationship(
+        'AccountConfig',
+        backref=db.backref('account', uselist=False),
+    )
+
+    @property
+    def is_scheduled_for_deletion(self):
+        return bool(self.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG)
+
+
+class ConfigureAccountSignal(Signal):
+    queue_name = 'swpt_accounts'
+    actor_name = 'configure_account'
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Constant(ROOT_CREDITOR_ID)
+        change_ts = fields.DateTime()
+        change_seqnum = fields.Constant(0)
+        is_scheduled_for_deletion = fields.Float()
+        negligible_amount = fields.Boolean()
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    change_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
+    change_seqnum = db.Column(db.Integer, primary_key=True)
+    negligible_amount = db.Column(db.REAL, nullable=False)
+    is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
