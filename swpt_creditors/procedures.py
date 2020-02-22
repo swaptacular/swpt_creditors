@@ -90,7 +90,7 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _revise_account_config(config, account)
+    _check_account_config(account, config)
 
 
 @atomic
@@ -207,10 +207,11 @@ def find_legible_pending_account_commits(max_count: int = None):
 @atomic
 def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
     config, is_created = _touch_account_config(creditor_id, debtor_id)
-    if not is_created:
+    if is_created:
+        return config
+    else:
         config.reset()
         return None
-    return config
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
@@ -284,7 +285,7 @@ def _touch_account_config(
     if config_should_be_created:
         config = _create_account_config_instance(creditor_id, debtor_id)
         if account:
-            _effectuate_account_config(config, account)
+            _effectuate_account_config(account, config)
             reset_ledger = True
         with db.retry_on_integrity_error():
             db.session.add(config)
@@ -321,16 +322,16 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
-def _effectuate_account_config(config: AccountConfig, account: Account) -> None:
+def _check_account_config(account: Account, config: AccountConfig) -> None:
+    account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
+    config_event = (config.last_change_ts, config.last_change_seqnum)
+    if not is_later_event(config_event, account_event):
+        _effectuate_account_config(account, config)
+
+
+def _effectuate_account_config(account: Account, config: AccountConfig) -> None:
     config.is_effectual = True
     config.last_change_ts = account.last_config_change_ts
     config.last_change_seqnum = account.last_config_change_seqnum
     config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
     config.negligible_amount = account.negligible_amount
-
-
-def _revise_account_config(config: AccountConfig, account: Account) -> None:
-    account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
-    config_event = (config.last_change_ts, config.last_change_seqnum)
-    if not is_later_event(config_event, account_event):
-        _effectuate_account_config(config, account)

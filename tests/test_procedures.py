@@ -22,6 +22,7 @@ def test_find_legible_pending_account_commits(db_session):
 def test_configure_new_account(db_session):
     account_config = p.configure_new_account(C_ID, D_ID)
     assert account_config
+    assert p.configure_new_account(C_ID, D_ID) is None
 
 
 def test_process_account_change_signal(db_session, current_ts):
