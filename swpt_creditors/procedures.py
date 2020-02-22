@@ -228,6 +228,24 @@ def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
     return config_should_be_created
 
 
+def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
+    return AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
+
+
+def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    config.last_change_ts = max(config.last_change_ts, current_ts)
+    config.last_change_seqnum = increment_seqnum(config.last_change_seqnum)
+    db.session.add(ConfigureAccountSignal(
+        creditor_id=config.creditor_id,
+        debtor_id=config.debtor_id,
+        change_ts=config.last_change_ts,
+        change_seqnum=config.last_change_seqnum,
+        negligible_amount=config.negligible_amount,
+        is_scheduled_for_deletion=config.is_scheduled_for_deletion,
+    ))
+
+
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
     ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
     with db.retry_on_integrity_error():
@@ -307,24 +325,6 @@ def _touch_account_config(
         ledger.last_update_ts = datetime.now(tz=timezone.utc)
 
     return config
-
-
-def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
-    return AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
-
-
-def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    config.last_change_ts = max(config.last_change_ts, current_ts)
-    config.last_change_seqnum = increment_seqnum(config.last_change_seqnum)
-    db.session.add(ConfigureAccountSignal(
-        creditor_id=config.creditor_id,
-        debtor_id=config.debtor_id,
-        change_ts=config.last_change_ts,
-        change_seqnum=config.last_change_seqnum,
-        negligible_amount=config.negligible_amount,
-        is_scheduled_for_deletion=config.is_scheduled_for_deletion,
-    ))
 
 
 def _revise_account_config(account: Account, config: AccountConfig) -> None:
