@@ -3,12 +3,12 @@ from typing import TypeVar, Optional, Callable, Tuple, List
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from sqlalchemy.orm import joinedload
-from swpt_lib.utils import date_to_int24, is_later_event
+from swpt_lib.utils import date_to_int24, is_later_event, increment_seqnum
 from .extensions import db
 from .models import AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
-    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, increment_seqnum
+    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
