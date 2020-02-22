@@ -90,7 +90,7 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _refresh_account_config(config, account)
+    _revise_account_config(config, account)
 
 
 @atomic
@@ -284,11 +284,7 @@ def _touch_account_config(
     if config_should_be_created:
         config = _create_account_config_instance(creditor_id, debtor_id)
         if account:
-            config.is_effectual = True
-            config.last_change_ts = account.last_config_change_ts
-            config.last_change_seqnum = account.last_config_change_seqnum
-            config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
-            config.negligible_amount = account.negligible_amount
+            _effectuate_account_config(config, account)
             reset_ledger = True
         with db.retry_on_integrity_error():
             db.session.add(config)
@@ -325,12 +321,16 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
-def _refresh_account_config(config: AccountConfig, account: Account) -> None:
+def _effectuate_account_config(config: AccountConfig, account: Account) -> None:
+    config.is_effectual = True
+    config.last_change_ts = account.last_config_change_ts
+    config.last_change_seqnum = account.last_config_change_seqnum
+    config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
+    config.negligible_amount = account.negligible_amount
+
+
+def _revise_account_config(config: AccountConfig, account: Account) -> None:
     account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     config_event = (config.last_change_ts, config.last_change_seqnum)
     if not is_later_event(config_event, account_event):
-        config.last_change_ts = account.last_config_change_ts
-        config.last_change_seqnum = account.last_config_change_seqnum
-        config.is_effectual = True
-        config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
-        config.negligible_amount = account.negligible_amount
+        _effectuate_account_config(config, account)
