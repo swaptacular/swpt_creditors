@@ -87,7 +87,7 @@ def process_account_change_signal(
             negligible_amount=negligible_amount,
             status=status,
         )
-        config, _ = _touch_account_config(creditor_id, debtor_id, account=account)
+        config, is_created = _touch_account_config(creditor_id, debtor_id, account=account)
         with db.retry_on_integrity_error():
             db.session.add(account)
 
