@@ -298,14 +298,7 @@ def _touch_account_config(
 
 
 def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
-    # Normally, when an `AccountConfig` record does not exist, an
-    # `AccountLedger` record does not exist either. Nevertheless, we
-    # should handle correctly all possible cases.
-    ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
-    if ledger is None:
-        ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
-
-    return AccountConfig(account_ledger=ledger)
+    return AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
