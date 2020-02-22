@@ -8,7 +8,7 @@ from .extensions import db
 from .models import AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
-    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -325,17 +325,21 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
 
 
 def _check_account_config(account: Account, config: AccountConfig) -> None:
-    # TODO: This may update the config needlessly.
+    # TODO: This is ugly.
 
     account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     config_event = (config.last_change_ts, config.last_change_seqnum)
-    if not is_later_event(config_event, account_event):
+    old_config_event = is_later_event(account_event, config_event)
+    old_account_event = is_later_event(config_event, account_event)
+    config_is_ineffectual = not config.is_effectual
+    if not old_account_event and (old_config_event or config_is_ineffectual):
         _effectuate_account_config(account, config)
 
 
 def _effectuate_account_config(account: Account, config: AccountConfig) -> None:
+    last_change_ts = config.last_change_ts or BEGINNING_OF_TIME
     config.is_effectual = True
-    config.last_change_ts = account.last_config_change_ts
+    config.last_change_ts = max(last_change_ts, account.last_config_change_ts)
     config.last_change_seqnum = account.last_config_change_seqnum
     config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
     config.negligible_amount = account.negligible_amount
