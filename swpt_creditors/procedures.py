@@ -1,16 +1,14 @@
 from datetime import datetime, date, timedelta, timezone
-from uuid import UUID
 from typing import TypeVar, Optional, Callable, Tuple, List
-from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from sqlalchemy.orm import joinedload
 from swpt_lib.utils import date_to_int24, is_later_event
 from .extensions import db
-from .models import AccountLedger, LedgerEntry, AccountCommit, PendingAccountCommit, \
-    InitiatedTransfer, RunningTransfer, Account, AccountConfig, ConfigureAccountSignal, \
-    MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID, \
-    increment_seqnum, BEGINNING_OF_TIME
+from .models import AccountLedger, LedgerEntry, AccountCommit,  \
+    Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
+    MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
+    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, increment_seqnum
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -41,11 +39,14 @@ def process_account_change_signal(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert change_ts is not None
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert -MAX_INT64 <= principal <= MAX_INT64
-    assert -100 < interest_rate <= 100.0
+    assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
     assert 0 <= last_transfer_seqnum <= MAX_INT64
+    assert last_config_change_ts is not None
     assert MIN_INT32 <= last_config_change_seqnum <= MAX_INT32
+    assert creation_date is not None
     assert negligible_amount >= 2.0
     assert MIN_INT16 <= status <= MAX_INT16
 
@@ -105,6 +106,7 @@ def process_account_commit_signal(
         transfer_info: dict,
         account_creation_date: date,
         account_new_principal: int) -> None:
+
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert len(coordinator_type) <= 30
@@ -170,6 +172,9 @@ def process_account_commit_signal(
 def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count: int = None) -> bool:
     """Return `False` if some legible account commits remained unprocessed."""
 
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
     has_gaps = False
     pks_to_delete = []
     ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
@@ -206,6 +211,9 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 @atomic
 def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
     config, is_created = _touch_account_config(creditor_id, debtor_id)
     if is_created:
         return config
@@ -235,6 +243,7 @@ def _insert_ledger_entry(
         transfer_seqnum: int,
         committed_amount: int,
         account_new_principal: int) -> None:
+
     db.session.add(LedgerEntry(
         creditor_id=creditor_id,
         debtor_id=debtor_id,

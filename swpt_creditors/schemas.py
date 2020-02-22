@@ -1,9 +1,8 @@
 from datetime import datetime, timezone, timedelta
 from typing import NamedTuple, List
-from marshmallow import Schema, fields, validate, post_load
+from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
-from .models import ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MIN_INT64, MAX_INT64, \
-    Creditor, InitiatedTransfer
+from .models import MAX_INT64, Creditor, InitiatedTransfer
 from swpt_lib import endpoints
 
 
