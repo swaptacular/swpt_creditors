@@ -22,4 +22,51 @@ def test_find_legible_pending_account_commits(db_session):
 def test_configure_new_account(db_session):
     account_config = p.configure_new_account(C_ID, D_ID)
     assert account_config
-    assert 0
+
+
+def test_process_account_change_signal(db_session, current_ts):
+    p.process_account_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=1,
+        principal=1000,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=1,
+        last_config_change_ts=current_ts - timedelta(days=5),
+        last_config_change_seqnum=1,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=2.0,
+        status=0,
+    )
+    p.process_account_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=2,
+        principal=1100,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=1,
+        last_config_change_ts=current_ts - timedelta(days=5),
+        last_config_change_seqnum=1,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=2.0,
+        status=0,
+    )
+    p.process_account_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=2,
+        principal=1100,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=1,
+        last_config_change_ts=current_ts - timedelta(days=5),
+        last_config_change_seqnum=1,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=2.0,
+        status=0,
+    )
