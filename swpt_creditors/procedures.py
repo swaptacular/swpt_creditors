@@ -285,7 +285,7 @@ def _touch_account_config(
     config_should_be_created = config is None
 
     if config_should_be_created:
-        config = _create_account_config_instance(creditor_id, debtor_id)
+        config = AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
         if account:
             _revise_account_config(account, config)
             reset_ledger = True
@@ -304,10 +304,6 @@ def _touch_account_config(
         ledger.last_update_ts = datetime.now(tz=timezone.utc)
 
     return config, config_should_be_created
-
-
-def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
-    return AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
