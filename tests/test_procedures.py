@@ -17,4 +17,9 @@ def test_process_pending_account_commits(db_session, current_ts):
 
 def test_find_legible_pending_account_commits(db_session):
     p.find_legible_pending_account_commits(max_count=10)
+
+
+def test_configure_new_account(db_session):
+    account_config = p.configure_new_account(C_ID, D_ID)
+    assert account_config
     assert 0

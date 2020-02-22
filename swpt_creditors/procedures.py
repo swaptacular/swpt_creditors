@@ -86,7 +86,7 @@ def process_account_change_signal(
             negligible_amount=negligible_amount,
             status=status,
         )
-        config = _lock_or_create_account_config(creditor_id, debtor_id, account=account)
+        config, _ = _lock_or_create_account_config(creditor_id, debtor_id, account=account)
         with db.retry_on_integrity_error():
             db.session.add(account)
 
@@ -204,6 +204,15 @@ def find_legible_pending_account_commits(max_count: int = None):
     return query.all()
 
 
+@atomic
+def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
+    account_config, is_created = _lock_or_create_account_config(creditor_id, debtor_id)
+    if not is_created:
+        account_config.reset()
+        return None
+    return account_config
+
+
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
     ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
     with db.retry_on_integrity_error():
@@ -256,46 +265,43 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     return query.all()
 
 
-def _lock_or_create_account_config(creditor_id: int, debtor_id: int, account: Optional[Account]) -> AccountConfig:
-    config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    if config is None:
-        # Normally, when an `AccountConfig` record does not exist, an
-        # `AccountLedger` record does not exist either. Nevertheless,
-        # we want to be sure that this function works in all cases.
-        ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
-        if ledger is None:
-            ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
+def _lock_or_create_account_config(
+        creditor_id: int,
+        debtor_id: int,
+        account: Account = None) -> Tuple[AccountConfig, bool]:
 
+    config = AccountConfig.lock_instance((creditor_id, debtor_id))
+    config_should_be_created = config is None
+    if config_should_be_created:
+        config = _create_account_config_instance(creditor_id, debtor_id)
         if account:
+            ledger = config.account_ledger
             ledger.account_creation_date = account.creation_date
             ledger.principal = account.principal
             ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
             ledger.last_update_ts = datetime.now(tz=timezone.utc)
-            config = AccountConfig(
-                creditor_id=creditor_id,
-                debtor_id=debtor_id,
-                is_effectual=True,
-                last_change_ts=account.last_config_change_ts,
-                last_change_seqnum=account.last_config_change_seqnum,
-                is_scheduled_for_deletion=bool(account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG),
-                negligible_amount=account.negligible_amount,
-            )
-        else:
-            config = AccountConfig(
-                creditor_id=creditor_id,
-                debtor_id=debtor_id,
-                is_effectual=False,
-                last_change_ts=BEGINNING_OF_TIME,
-                last_change_seqnum=0,
-            )
-            _insert_configure_account_signal(config)
-
-        with db.retry_on_integrity_error():
-            db.session.add(ledger)
+            config.is_effectual = True
+            config.last_change_ts = account.last_config_change_ts
+            config.last_change_seqnum = account.last_config_change_seqnum
+            config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
+            config.negligible_amount = account.negligible_amount
         with db.retry_on_integrity_error():
             db.session.add(config)
+        if not config.is_effectual:
+            _insert_configure_account_signal(config)
 
-    return config
+    return config, config_should_be_created
+
+
+def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
+    # Normally, when an `AccountConfig` record does not exist, an
+    # `AccountLedger` record does not exist either. Nevertheless, we
+    # should handle correctly all possible cases.
+    ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
+    if ledger is None:
+        ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
+
+    return AccountConfig(account_ledger=ledger)
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:

@@ -379,16 +379,19 @@ class AccountConfig(db.Model):
     is_effectual = db.Column(
         db.BOOLEAN,
         nullable=False,
+        default=False,
         comment='Whether the last change in the configuration has been successfully applied.'
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
+        default=BEGINNING_OF_TIME,
         comment='The timestamp of the last change in the configuration. Must never decrease.',
     )
     last_change_seqnum = db.Column(
         db.Integer,
         nullable=False,
+        default=0,
         comment='The sequential number of the last change in the configuration. It is incremented '
                 '(with wrapping) on every change. This column, along with the `last_change_ts` '
                 'column, allows to reliably determine the correct order of changes, even if '
@@ -424,6 +427,11 @@ class AccountConfig(db.Model):
     )
 
     account_ledger = db.relationship('AccountLedger')
+
+    def reset(self):
+        self.is_effectual = False
+        self.is_scheduled_for_deletion = False
+        self.negligible_amount = 2.0
 
 
 class AccountIssue(db.Model):
