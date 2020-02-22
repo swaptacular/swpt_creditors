@@ -210,7 +210,9 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 
 @atomic
-def create_or_reset_account_config(creditor_id: int, debtor_id: int) -> Tuple[AccountConfig, bool]:
+def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
+    """"Return whether a new account has been created."""
+
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
@@ -223,7 +225,7 @@ def create_or_reset_account_config(creditor_id: int, debtor_id: int) -> Tuple[Ac
     else:
         config.reset()
     _insert_configure_account_signal(config)
-    return config, config_should_be_created
+    return config_should_be_created
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
