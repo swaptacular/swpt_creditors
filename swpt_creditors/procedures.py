@@ -285,6 +285,9 @@ def _touch_account_config(
         account: Account,
         reset_ledger: bool = False) -> AccountConfig:
 
+    # TODO: Can this be simplified? Perhaps some of the logic can be
+    #       moved in process_account_change_signal().
+
     config = AccountConfig.lock_instance((creditor_id, debtor_id))
     if config is None:
         config = _create_account_config_instance(creditor_id, debtor_id)
