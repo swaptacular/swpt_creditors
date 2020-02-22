@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta, timezone
-from typing import TypeVar, Optional, Callable, Tuple, List
+from typing import TypeVar, Callable, Tuple, List
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from sqlalchemy.orm import joinedload
@@ -210,22 +210,20 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 
 @atomic
-def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
-    """"Return a newly created `AccountConfig` instance, or `None` if one already exists."""
-
+def create_or_reset_account_config(creditor_id: int, debtor_id: int) -> Tuple[AccountConfig, bool]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    if config:
+    config_should_be_created = config is None
+    if config_should_be_created:
+        config = _create_account_config_instance(creditor_id, debtor_id)
+        with db.retry_on_integrity_error():
+            db.session.add(config)
+        _insert_configure_account_signal(config)
+    else:
         config.reset()
-        return None
-
-    config = _create_account_config_instance(creditor_id, debtor_id)
-    with db.retry_on_integrity_error():
-        db.session.add(config)
-    _insert_configure_account_signal(config)
-    return config
+    return config, config_should_be_created
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:

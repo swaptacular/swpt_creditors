@@ -19,10 +19,13 @@ def test_find_legible_pending_account_commits(db_session):
     p.find_legible_pending_account_commits(max_count=10)
 
 
-def test_configure_new_account(db_session):
-    account_config = p.configure_new_account(C_ID, D_ID)
+def test_create_or_reset_account_config(db_session):
+    account_config, is_created = p.create_or_reset_account_config(C_ID, D_ID)
     assert account_config
-    assert p.configure_new_account(C_ID, D_ID) is None
+    assert is_created
+    account_config, is_created = p.create_or_reset_account_config(C_ID, D_ID)
+    assert account_config
+    assert not is_created
 
 
 def test_process_account_change_signal(db_session, current_ts):
