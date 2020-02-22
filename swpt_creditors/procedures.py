@@ -86,7 +86,7 @@ def process_account_change_signal(
             negligible_amount=negligible_amount,
             status=status,
         )
-        config, _ = _lock_or_create_account_config(creditor_id, debtor_id, account=account)
+        config, _ = _touch_create_account_config(creditor_id, debtor_id, account=account)
         with db.retry_on_integrity_error():
             db.session.add(account)
 
@@ -206,11 +206,11 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 @atomic
 def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
-    account_config, is_created = _lock_or_create_account_config(creditor_id, debtor_id)
+    config, is_created = _touch_create_account_config(creditor_id, debtor_id)
     if not is_created:
-        account_config.reset()
+        config.reset()
         return None
-    return account_config
+    return config
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
@@ -265,31 +265,37 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     return query.all()
 
 
-def _lock_or_create_account_config(
+def _touch_create_account_config(
         creditor_id: int,
         debtor_id: int,
-        account: Account = None) -> Tuple[AccountConfig, bool]:
+        account: Account = None,
+        reset_ledger: bool = False) -> Tuple[AccountConfig, bool]:
+
+    def _reset_ledger(ledger: AccountLedger) -> None:
+        assert account, 'The ledger can not be reset without an account instance.'
+        ledger.account_creation_date = account.creation_date
+        ledger.principal = account.principal
+        ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
+        ledger.last_update_ts = datetime.now(tz=timezone.utc)
 
     config = AccountConfig.lock_instance((creditor_id, debtor_id))
     config_should_be_created = config is None
     if config_should_be_created:
         config = _create_account_config_instance(creditor_id, debtor_id)
         if account:
-            ledger = config.account_ledger
-            ledger.account_creation_date = account.creation_date
-            ledger.principal = account.principal
-            ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
-            ledger.last_update_ts = datetime.now(tz=timezone.utc)
             config.is_effectual = True
             config.last_change_ts = account.last_config_change_ts
             config.last_change_seqnum = account.last_config_change_seqnum
             config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
             config.negligible_amount = account.negligible_amount
+            reset_ledger = True
         with db.retry_on_integrity_error():
             db.session.add(config)
         if not config.is_effectual:
             _insert_configure_account_signal(config)
 
+    if reset_ledger:
+        _reset_ledger(config.account_ledger)
     return config, config_should_be_created
 
 
