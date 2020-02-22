@@ -325,6 +325,8 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
 
 
 def _check_account_config(account: Account, config: AccountConfig) -> None:
+    # TODO: This may update the config needlessly.
+
     account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     config_event = (config.last_change_ts, config.last_change_seqnum)
     if not is_later_event(config_event, account_event):
