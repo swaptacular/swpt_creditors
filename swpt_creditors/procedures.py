@@ -87,7 +87,7 @@ def process_account_change_signal(
             negligible_amount=negligible_amount,
             status=status,
         )
-        config, is_created = _touch_account_config(creditor_id, debtor_id, account=account)
+        config = _touch_account_config(creditor_id, debtor_id, account=account)
         with db.retry_on_integrity_error():
             db.session.add(account)
 
@@ -214,7 +214,7 @@ def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountC
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    config, is_created = _touch_account_config(creditor_id, debtor_id)
+    config, is_created = _configure_new_account(creditor_id, debtor_id)
     if is_created:
         return config
     else:
@@ -278,24 +278,18 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
 def _touch_account_config(
         creditor_id: int,
         debtor_id: int,
-        account: Account = None,
-        reset_ledger: bool = False) -> Tuple[AccountConfig, bool]:
+        account: Account,
+        reset_ledger: bool = False) -> AccountConfig:
 
     config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    config_should_be_created = config is None
-
-    if config_should_be_created:
-        config = AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
-        if account:
-            _revise_account_config(account, config)
-            reset_ledger = True
+    if config is None:
+        config = _create_account_config_instance(creditor_id, debtor_id)
+        _revise_account_config(account, config)
         with db.retry_on_integrity_error():
             db.session.add(config)
-        if not config.is_effectual:
-            _insert_configure_account_signal(config)
+        reset_ledger = True
 
     if reset_ledger:
-        assert account, 'The ledger can not be reset without an account instance.'
         assert account.creditor_id == creditor_id and account.debtor_id == debtor_id
         ledger = config.account_ledger
         ledger.account_creation_date = account.creation_date
@@ -303,7 +297,22 @@ def _touch_account_config(
         ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
         ledger.last_update_ts = datetime.now(tz=timezone.utc)
 
+    return config
+
+
+def _configure_new_account(creditor_id: int, debtor_id: int) -> Tuple[AccountConfig, bool]:
+    config = AccountConfig.lock_instance((creditor_id, debtor_id))
+    config_should_be_created = config is None
+    if config_should_be_created:
+        config = _create_account_config_instance(creditor_id, debtor_id)
+        with db.retry_on_integrity_error():
+            db.session.add(config)
+        _insert_configure_account_signal(config)
     return config, config_should_be_created
+
+
+def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
+    return AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
