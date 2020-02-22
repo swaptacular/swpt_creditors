@@ -86,7 +86,7 @@ def process_account_change_signal(
             negligible_amount=negligible_amount,
             status=status,
         )
-        config, _ = _touch_create_account_config(creditor_id, debtor_id, account=account)
+        config, _ = _touch_account_config(creditor_id, debtor_id, account=account)
         with db.retry_on_integrity_error():
             db.session.add(account)
 
@@ -206,7 +206,7 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 @atomic
 def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
-    config, is_created = _touch_create_account_config(creditor_id, debtor_id)
+    config, is_created = _touch_account_config(creditor_id, debtor_id)
     if not is_created:
         config.reset()
         return None
@@ -265,7 +265,7 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     return query.all()
 
 
-def _touch_create_account_config(
+def _touch_account_config(
         creditor_id: int,
         debtor_id: int,
         account: Account = None,
@@ -273,6 +273,7 @@ def _touch_create_account_config(
 
     def _reset_ledger(ledger: AccountLedger) -> None:
         assert account, 'The ledger can not be reset without an account instance.'
+        assert account.creditor_id == creditor_id and account.debtor_id == debtor_id
         ledger.account_creation_date = account.creation_date
         ledger.principal = account.principal
         ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
