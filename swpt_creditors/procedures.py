@@ -281,16 +281,9 @@ def _touch_account_config(
         account: Account = None,
         reset_ledger: bool = False) -> Tuple[AccountConfig, bool]:
 
-    def _reset_ledger(ledger: AccountLedger) -> None:
-        assert account, 'The ledger can not be reset without an account instance.'
-        assert account.creditor_id == creditor_id and account.debtor_id == debtor_id
-        ledger.account_creation_date = account.creation_date
-        ledger.principal = account.principal
-        ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
-        ledger.last_update_ts = datetime.now(tz=timezone.utc)
-
     config = AccountConfig.lock_instance((creditor_id, debtor_id))
     config_should_be_created = config is None
+
     if config_should_be_created:
         config = _create_account_config_instance(creditor_id, debtor_id)
         if account:
@@ -302,7 +295,14 @@ def _touch_account_config(
             _insert_configure_account_signal(config)
 
     if reset_ledger:
-        _reset_ledger(config.account_ledger)
+        assert account, 'The ledger can not be reset without an account instance.'
+        assert account.creditor_id == creditor_id and account.debtor_id == debtor_id
+        ledger = config.account_ledger
+        ledger.account_creation_date = account.creation_date
+        ledger.principal = account.principal
+        ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
+        ledger.last_update_ts = datetime.now(tz=timezone.utc)
+
     return config, config_should_be_created
 
 
