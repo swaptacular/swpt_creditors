@@ -220,9 +220,9 @@ def create_or_reset_account_config(creditor_id: int, debtor_id: int) -> Tuple[Ac
         config = _create_account_config_instance(creditor_id, debtor_id)
         with db.retry_on_integrity_error():
             db.session.add(config)
-        _insert_configure_account_signal(config)
     else:
         config.reset()
+    _insert_configure_account_signal(config)
     return config, config_should_be_created
 
 
