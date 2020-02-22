@@ -211,15 +211,21 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 @atomic
 def configure_new_account(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
+    """"Return a newly created `AccountConfig` instance, or `None` if one already exists."""
+
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    config, is_created = _configure_new_account(creditor_id, debtor_id)
-    if is_created:
-        return config
-    else:
+    config = AccountConfig.lock_instance((creditor_id, debtor_id))
+    if config:
         config.reset()
         return None
+
+    config = _create_account_config_instance(creditor_id, debtor_id)
+    with db.retry_on_integrity_error():
+        db.session.add(config)
+    _insert_configure_account_signal(config)
+    return config
 
 
 def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
@@ -298,17 +304,6 @@ def _touch_account_config(
         ledger.last_update_ts = datetime.now(tz=timezone.utc)
 
     return config
-
-
-def _configure_new_account(creditor_id: int, debtor_id: int) -> Tuple[AccountConfig, bool]:
-    config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    config_should_be_created = config is None
-    if config_should_be_created:
-        config = _create_account_config_instance(creditor_id, debtor_id)
-        with db.retry_on_integrity_error():
-            db.session.add(config)
-        _insert_configure_account_signal(config)
-    return config, config_should_be_created
 
 
 def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
