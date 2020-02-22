@@ -91,7 +91,7 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _check_account_config(account, config)
+    _revise_account_config(account, config)
 
 
 @atomic
@@ -294,7 +294,7 @@ def _touch_account_config(
     if config_should_be_created:
         config = _create_account_config_instance(creditor_id, debtor_id)
         if account:
-            _effectuate_account_config(account, config)
+            _revise_account_config(account, config)
             reset_ledger = True
         with db.retry_on_integrity_error():
             db.session.add(config)
@@ -324,22 +324,17 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
-def _check_account_config(account: Account, config: AccountConfig) -> None:
-    # TODO: This is ugly.
+def _revise_account_config(account: Account, config: AccountConfig) -> None:
+    # We should be careful here, because `config` could be a transient
+    # instance, in which case most of its attributes will be `None`.
 
     account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     config_event = (config.last_change_ts, config.last_change_seqnum)
-    old_config_event = is_later_event(account_event, config_event)
-    old_account_event = is_later_event(config_event, account_event)
-    config_is_ineffectual = not config.is_effectual
-    if not old_account_event and (old_config_event or config_is_ineffectual):
-        _effectuate_account_config(account, config)
-
-
-def _effectuate_account_config(account: Account, config: AccountConfig) -> None:
-    last_change_ts = config.last_change_ts or BEGINNING_OF_TIME
-    config.is_effectual = True
-    config.last_change_ts = max(last_change_ts, account.last_config_change_ts)
-    config.last_change_seqnum = account.last_config_change_seqnum
-    config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
-    config.negligible_amount = account.negligible_amount
+    config_is_inadequate = is_later_event(account_event, config_event)
+    if config_is_inadequate or not config.is_effectual and not is_later_event(config_event, account_event):
+        last_change_ts = config.last_change_ts or BEGINNING_OF_TIME
+        config.is_effectual = True
+        config.last_change_ts = max(last_change_ts, account.last_config_change_ts)
+        config.last_change_seqnum = account.last_config_change_seqnum
+        config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
+        config.negligible_amount = account.negligible_amount
