@@ -524,9 +524,6 @@ class AccountLedger(db.Model):
         self.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
-# TODO: Implement a daemon that periodically scan the `LedgerEntry`
-#       table and deletes old records (ones having an old
-#       `added_at_ts`).  We need to do this to free up disk space.
 class LedgerEntry(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
