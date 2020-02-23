@@ -8,7 +8,7 @@ from .extensions import db
 from .models import AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
-    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
+    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -72,7 +72,7 @@ def process_account_change_signal(
         account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
     else:
         account = Account(
-            account_config=_lock_or_create_account_config(creditor_id, debtor_id),
+            account_config=_get_or_create_account_config(creditor_id, debtor_id, lock=True, load_ledger=True),
             change_seqnum=change_seqnum,
             change_ts=change_ts,
             principal=principal,
@@ -240,11 +240,28 @@ def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
 
 
 def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountLedger:
-    if lock:
-        ledger = AccountLedger.lock_instance((debtor_id, creditor_id))
-    else:
-        ledger = AccountLedger.get_instance((debtor_id, creditor_id))
+    f = AccountLedger.lock_instance if lock else AccountLedger.get_instance
+    ledger = f((debtor_id, creditor_id))
     return ledger or _create_ledger(debtor_id, creditor_id)
+
+
+def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
+    config = AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
+    with db.retry_on_integrity_error():
+        db.session.add(config)
+    return config
+
+
+def _get_or_create_account_config(
+        creditor_id: int,
+        debtor_id: int,
+        lock: bool = False,
+        load_ledger: bool = False) -> AccountConfig:
+
+    f = AccountConfig.lock_instance if lock else AccountConfig.get_instance
+    options = [joinedload('account_ledger', innerjoin=True)] if load_ledger else []
+    config = f((debtor_id, creditor_id), *options)
+    return config or _create_account_config(creditor_id, debtor_id)
 
 
 def _insert_ledger_entry(
@@ -283,20 +300,6 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     if max_count is not None:
         query = query.limit(max_count)
     return query.all()
-
-
-def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
-    config = AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
-    with db.retry_on_integrity_error():
-        db.session.add(config)
-    return config
-
-
-def _lock_or_create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
-    config = AccountConfig.lock_instance((debtor_id, creditor_id), joinedload('account_ledger', innerjoin=True))
-    if config is None:
-        config = _create_account_config(creditor_id, debtor_id)
-    return config
 
 
 def _revise_account_config(account: Account) -> None:
