@@ -52,12 +52,15 @@ def process_account_change_signal(
 
     account = Account.lock_instance((debtor_id, creditor_id), joinedload('account_config', innerjoin=True))
     if account:
-        this_event = (change_ts, change_seqnum)
         prev_event = (account.change_ts, account.change_seqnum)
-        if this_event == prev_event:
+        this_event = (change_ts, change_seqnum)
+        this_event_is_not_old = not is_later_event(prev_event, this_event)
+        this_event_is_not_new = not is_later_event(this_event, prev_event)
+        if this_event_is_not_old:
             account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
-        if not is_later_event(this_event, prev_event):
+        if this_event_is_not_new:
             return
+        assert this_event_is_not_old
         account.change_ts = change_ts
         account.change_seqnum = change_seqnum
         account.principal = principal
@@ -69,7 +72,6 @@ def process_account_change_signal(
         account.creation_date = creation_date
         account.negligible_amount = negligible_amount
         account.status = status
-        account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
     else:
         account = Account(
             account_config=_get_or_create_account_config(creditor_id, debtor_id, lock=True),
@@ -306,12 +308,11 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
 
 def _revise_account_config(account: Account) -> None:
     config = account.account_config
-    account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     config_event = (config.last_change_ts, config.last_change_seqnum)
-    config_is_inadequate = is_later_event(account_event, config_event)
-    config_is_ineffectual = not config.is_effectual
-    account_config_is_up_to_date = not is_later_event(config_event, account_event)
-    if config_is_inadequate or (config_is_ineffectual and account_config_is_up_to_date):
+    account_config_event = (account.last_config_change_ts, account.last_config_change_seqnum)
+    account_config_event_is_new = is_later_event(account_config_event, config_event)
+    account_config_event_is_not_old = not is_later_event(config_event, account_config_event)
+    if account_config_event_is_new or (account_config_event_is_not_old and not config.is_effectual):
         config.is_effectual = True
         config.last_change_ts = max(config.last_change_ts, account.last_config_change_ts)
         config.last_change_seqnum = account.last_config_change_seqnum
