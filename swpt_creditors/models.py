@@ -546,6 +546,11 @@ class LedgerEntry(db.Model):
             committed_amount,
             account_new_principal,
         ),
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
+            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'],
+            ondelete='CASCADE',
+        ),
         db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(account_new_principal > MIN_INT64),
         {
@@ -554,6 +559,8 @@ class LedgerEntry(db.Model):
                        "after a given moment in time.",
         }
     )
+
+    account_commit = db.relationship('AccountCommit')
 
 
 class Account(db.Model):

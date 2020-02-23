@@ -116,7 +116,7 @@ def process_account_commit_signal(
     assert -MAX_INT64 <= committed_amount <= MAX_INT64
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
 
-    db.session.add(AccountCommit(
+    account_commit = AccountCommit(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         transfer_seqnum=transfer_seqnum,
@@ -127,8 +127,9 @@ def process_account_commit_signal(
         transfer_info=transfer_info,
         account_creation_date=account_creation_date,
         account_new_principal=account_new_principal,
-    ))
+    )
     try:
+        db.session.add(account_commit)
         db.session.flush()
     except IntegrityError:
         # Normally, this can happen only when the account commit
@@ -154,9 +155,7 @@ def process_account_commit_signal(
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_account_commits()`.)
         db.session.add(PendingAccountCommit(
-            creditor_id=creditor_id,
-            debtor_id=debtor_id,
-            transfer_seqnum=transfer_seqnum,
+            account_commit=account_commit,
             account_new_principal=account_new_principal,
             committed_at_ts=committed_at_ts,
             committed_amount=committed_amount,

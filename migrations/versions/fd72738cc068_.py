@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: eaa96e1d11d6
+Revision ID: fd72738cc068
 Revises: 8d8c816257ce
-Create Date: 2020-02-23 20:26:20.569521
+Create Date: 2020-02-23 22:01:24.158616
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'eaa96e1d11d6'
+revision = 'fd72738cc068'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -65,19 +65,6 @@ def upgrade():
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. A `null` means that the creditor has not been deactivated yet. Management operations (like making direct transfers) are not allowed on deactivated creditors. Once deactivated, a creditor stays deactivated until it is deleted. Important note: All creditors are created with their "is active" status bit set to `0`, and it gets set to `1` only after the first management operation has been performed.'),
     sa.PrimaryKeyConstraint('creditor_id')
     )
-    op.create_table('ledger_entry',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('committed_amount', sa.BigInteger(), nullable=False),
-    sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), server_default=sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)"), nullable=False),
-    sa.CheckConstraint('account_new_principal > -9223372036854775808'),
-    sa.CheckConstraint('committed_amount != 0'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
-    comment="Represents an entry in one of creditor's account ledgers. This table allows users to ask only for transfers that have occurred before or after a given moment in time."
-    )
-    op.create_index('idx_ledger_entry_added_at_ts', 'ledger_entry', ['creditor_id', 'added_at_ts', 'debtor_id', 'transfer_seqnum', 'committed_amount', 'account_new_principal'], unique=False)
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
@@ -127,6 +114,20 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
     comment='Represents an initiated direct transfer. A new row is inserted when a creditor creates a new direct transfer. The row is deleted when the creditor acknowledges (purges) the transfer.'
     )
+    op.create_table('ledger_entry',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
+    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), server_default=sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)"), nullable=False),
+    sa.CheckConstraint('account_new_principal > -9223372036854775808'),
+    sa.CheckConstraint('committed_amount != 0'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
+    comment="Represents an entry in one of creditor's account ledgers. This table allows users to ask only for transfers that have occurred before or after a given moment in time."
+    )
+    op.create_index('idx_ledger_entry_added_at_ts', 'ledger_entry', ['creditor_id', 'added_at_ts', 'debtor_id', 'transfer_seqnum', 'committed_amount', 'account_new_principal'], unique=False)
     op.create_table('pending_account_commit',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -183,12 +184,12 @@ def downgrade():
     op.drop_table('account_issue')
     op.drop_table('account')
     op.drop_table('pending_account_commit')
+    op.drop_index('idx_ledger_entry_added_at_ts', table_name='ledger_entry')
+    op.drop_table('ledger_entry')
     op.drop_table('initiated_transfer')
     op.drop_table('account_config')
     op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
-    op.drop_index('idx_ledger_entry_added_at_ts', table_name='ledger_entry')
-    op.drop_table('ledger_entry')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
     op.drop_index('idx_next_transfer_seqnum', table_name='account_ledger')
