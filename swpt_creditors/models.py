@@ -242,7 +242,7 @@ class RunningTransfer(db.Model):
     __table_args__ = (
         db.Index(
             'idx_direct_coordinator_request_id',
-            debtor_id,
+            creditor_id,
             direct_coordinator_request_id,
             unique=True,
         ),
@@ -529,24 +529,23 @@ class AccountLedger(db.Model):
 #       `added_at_ts`).  We need to do this to free up disk space.
 class LedgerEntry(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-
-    # Semantically, this column is not be part of the primary key, but
-    # because we want ledger entries to be ordered chronologically, we
-    # include it in the index for performance reasons.
-    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True, server_default=utcnow())
-
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-
-    # TODO: Normally, these columns are not part of the primary key,
-    #       but we want them to be included in the index to allow
-    #       index-only scans, and because SQLAlchemy does not support
-    #       that yet (2020-01-11), we include them in the primary key
-    #       as a temporary workaround.
-    committed_amount = db.Column(db.BigInteger, primary_key=True)
-    account_new_principal = db.Column(db.BigInteger, primary_key=True)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
+    account_new_principal = db.Column(db.BigInteger, nullable=False)
+    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, server_default=utcnow())
 
     __table_args__ = (
+        db.Index(
+            # Allows index-only scans in chronological order.
+            'idx_ledger_entry_added_at_ts',
+            creditor_id,
+            added_at_ts,
+            debtor_id,
+            transfer_seqnum,
+            committed_amount,
+            account_new_principal,
+        ),
         db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(account_new_principal > MIN_INT64),
         {

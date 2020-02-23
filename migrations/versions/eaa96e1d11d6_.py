@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ceb59ed82006
+Revision ID: eaa96e1d11d6
 Revises: 8d8c816257ce
-Create Date: 2020-02-21 22:17:25.789894
+Create Date: 2020-02-23 20:26:20.569521
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ceb59ed82006'
+revision = 'eaa96e1d11d6'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -67,16 +67,17 @@ def upgrade():
     )
     op.create_table('ledger_entry',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), server_default=sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)"), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
+    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), server_default=sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)"), nullable=False),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.PrimaryKeyConstraint('creditor_id', 'added_at_ts', 'debtor_id', 'transfer_seqnum', 'committed_amount', 'account_new_principal'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
     comment="Represents an entry in one of creditor's account ledgers. This table allows users to ask only for transfers that have occurred before or after a given moment in time."
     )
+    op.create_index('idx_ledger_entry_added_at_ts', 'ledger_entry', ['creditor_id', 'added_at_ts', 'debtor_id', 'transfer_seqnum', 'committed_amount', 'account_new_principal'], unique=False)
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
@@ -91,7 +92,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
     comment='Represents a running direct transfer. Important note: The records for the successfully finalized direct transfers (those for which `direct_transfer_id` is not `null`), must not be deleted right away. Instead, after they have been finalized, they should stay in the database for at least few days. This is necessary in order to prevent problems caused by message re-delivery.'
     )
-    op.create_index('idx_direct_coordinator_request_id', 'running_transfer', ['debtor_id', 'direct_coordinator_request_id'], unique=True)
+    op.create_index('idx_direct_coordinator_request_id', 'running_transfer', ['creditor_id', 'direct_coordinator_request_id'], unique=True)
     op.create_table('account_config',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -186,6 +187,7 @@ def downgrade():
     op.drop_table('account_config')
     op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
+    op.drop_index('idx_ledger_entry_added_at_ts', table_name='ledger_entry')
     op.drop_table('ledger_entry')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
