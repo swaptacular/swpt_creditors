@@ -72,7 +72,7 @@ def process_account_change_signal(
         account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
     else:
         account = Account(
-            account_config=_get_or_create_account_config(creditor_id, debtor_id, lock=True, load_ledger=True),
+            account_config=_get_or_create_account_config(creditor_id, debtor_id, lock=True),
             change_seqnum=change_seqnum,
             change_ts=change_ts,
             principal=principal,
@@ -257,6 +257,8 @@ def _get_or_create_account_config(
         debtor_id: int,
         lock: bool = False,
         load_ledger: bool = False) -> AccountConfig:
+
+    # TODO: Remove `load_ledger` if not needed.
 
     f = AccountConfig.lock_instance if lock else AccountConfig.get_instance
     options = [joinedload('account_ledger', innerjoin=True)] if load_ledger else []
