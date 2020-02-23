@@ -3,7 +3,7 @@ from typing import TypeVar, Callable, Tuple, List
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from sqlalchemy.orm import joinedload
-from swpt_lib.utils import date_to_int24, is_later_event, increment_seqnum
+from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
 from .models import AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
@@ -58,8 +58,8 @@ def process_account_change_signal(
             account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
         if not is_later_event(this_event, prev_event):
             return
-        account.change_seqnum = change_seqnum
         account.change_ts = change_ts
+        account.change_seqnum = change_seqnum
         account.principal = principal
         account.interest = interest
         account.interest_rate = interest_rate
@@ -70,11 +70,9 @@ def process_account_change_signal(
         account.negligible_amount = negligible_amount
         account.status = status
         account.last_heartbeat_ts = datetime.now(tz=timezone.utc)
-        config = account.account_config
     else:
         account = Account(
-            creditor_id=creditor_id,
-            debtor_id=debtor_id,
+            account_config=_lock_or_create_account_config(creditor_id, debtor_id),
             change_seqnum=change_seqnum,
             change_ts=change_ts,
             principal=principal,
@@ -87,11 +85,10 @@ def process_account_change_signal(
             negligible_amount=negligible_amount,
             status=status,
         )
-        config = _touch_account_config(creditor_id, debtor_id, account=account)
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _revise_account_config(account, config)
+    _revise_account_config(account)
 
 
 @atomic
@@ -214,17 +211,11 @@ def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
     config = AccountConfig.lock_instance((creditor_id, debtor_id))
     config_should_be_created = config is None
     if config_should_be_created:
-        config = _create_account_config_instance(creditor_id, debtor_id)
-        with db.retry_on_integrity_error():
-            db.session.add(config)
+        config = _create_account_config(creditor_id, debtor_id)
     else:
         config.reset()
     _insert_configure_account_signal(config)
     return config_should_be_created
-
-
-def _create_account_config_instance(creditor_id: int, debtor_id: int) -> AccountConfig:
-    return AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
@@ -294,40 +285,30 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     return query.all()
 
 
-def _touch_account_config(
-        creditor_id: int,
-        debtor_id: int,
-        account: Account,
-        reset_ledger: bool = False) -> AccountConfig:
-
-    # TODO: Can this be simplified? Perhaps some of the logic can be
-    #       moved in process_account_change_signal().
-
-    config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    if config is None:
-        config = _create_account_config_instance(creditor_id, debtor_id)
-        _revise_account_config(account, config)
-        with db.retry_on_integrity_error():
-            db.session.add(config)
-        reset_ledger = True
-
-    if reset_ledger:
-        config.account_ledger.reset(account=account)
-
+def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
+    config = AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
+    with db.retry_on_integrity_error():
+        db.session.add(config)
     return config
 
 
-def _revise_account_config(account: Account, config: AccountConfig) -> None:
-    # We should be careful here, because `config` could be a transient
-    # instance, in which case most of its attributes will be `None`.
+def _lock_or_create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
+    config = AccountConfig.lock_instance((debtor_id, creditor_id), joinedload('account_ledger', innerjoin=True))
+    if config is None:
+        config = _create_account_config(creditor_id, debtor_id)
+    return config
 
+
+def _revise_account_config(account: Account) -> None:
+    config = account.account_config
     account_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     config_event = (config.last_change_ts, config.last_change_seqnum)
     config_is_inadequate = is_later_event(account_event, config_event)
-    if config_is_inadequate or not config.is_effectual and not is_later_event(config_event, account_event):
-        last_change_ts = config.last_change_ts or BEGINNING_OF_TIME
+    config_is_ineffectual = not config.is_effectual
+    account_config_is_up_to_date = not is_later_event(config_event, account_event)
+    if config_is_inadequate or (config_is_ineffectual and account_config_is_up_to_date):
         config.is_effectual = True
-        config.last_change_ts = max(last_change_ts, account.last_config_change_ts)
+        config.last_change_ts = max(config.last_change_ts, account.last_config_change_ts)
         config.last_change_seqnum = account.last_config_change_seqnum
         config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
         config.negligible_amount = account.negligible_amount
