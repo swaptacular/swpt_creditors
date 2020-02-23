@@ -140,12 +140,7 @@ def process_account_commit_signal(
     ledger = _get_or_create_ledger(creditor_id, debtor_id)
     current_ts = datetime.now(tz=timezone.utc)
     if account_creation_date > ledger.account_creation_date:
-        # A new "epoch" has started -- the old ledger must be
-        # discarded, and a brand new ledger created.
-        ledger.account_creation_date = account_creation_date
-        ledger.principal = 0
-        ledger.next_transfer_seqnum = (date_to_int24(account_creation_date) << 40) + 1
-        ledger.last_update_ts = current_ts
+        ledger.reset(account_creation_date=account_creation_date, current_ts=current_ts)
 
     ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
     if transfer_seqnum == ledger.next_transfer_seqnum and ledger_has_not_been_updated_soon:
@@ -317,12 +312,7 @@ def _touch_account_config(
         reset_ledger = True
 
     if reset_ledger:
-        assert account.creditor_id == creditor_id and account.debtor_id == debtor_id
-        ledger = config.account_ledger
-        ledger.account_creation_date = account.creation_date
-        ledger.principal = account.principal
-        ledger.next_transfer_seqnum = account.last_transfer_seqnum + 1
-        ledger.last_update_ts = datetime.now(tz=timezone.utc)
+        config.account_ledger.reset(account=account)
 
     return config
 

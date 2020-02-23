@@ -7,6 +7,7 @@ from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, true, false, or_, FunctionElement
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
+from swpt_lib.utils import date_to_int24
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT16 = -1 << 15
@@ -508,6 +509,20 @@ class AccountLedger(db.Model):
             'comment': 'Represents essential information about the ledger of a given account.',
         }
     )
+
+    def reset(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
+        if account:
+            assert account_creation_date is None
+            assert account.creditor_id == self.creditor_id and account.debtor_id == self.debtor_id
+            self.account_creation_date = account.creation_date
+            self.principal = account.principal
+            self.next_transfer_seqnum = account.last_transfer_seqnum + 1
+        else:
+            account_creation_date = account_creation_date or DATE_2020_01_01
+            self.account_creation_date = account_creation_date
+            self.principal = 0
+            self.next_transfer_seqnum = (date_to_int24(account_creation_date) << 40) + 1
+        self.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
 # TODO: Implement a daemon that periodically scan the `LedgerEntry`
