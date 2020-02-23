@@ -547,6 +547,11 @@ class LedgerEntry(db.Model):
             account_new_principal,
         ),
         db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id', 'transfer_seqnum'],
             ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'],
             ondelete='CASCADE',

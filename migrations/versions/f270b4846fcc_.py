@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: fd72738cc068
+Revision ID: f270b4846fcc
 Revises: 8d8c816257ce
-Create Date: 2020-02-23 22:01:24.158616
+Create Date: 2020-02-23 22:35:38.612972
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'fd72738cc068'
+revision = 'f270b4846fcc'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -124,6 +124,7 @@ def upgrade():
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
     comment="Represents an entry in one of creditor's account ledgers. This table allows users to ask only for transfers that have occurred before or after a given moment in time."
     )
