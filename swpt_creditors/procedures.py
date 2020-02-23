@@ -75,8 +75,8 @@ def process_account_change_signal(
     else:
         account = Account(
             account_config=_get_or_create_account_config(creditor_id, debtor_id, lock=True),
-            change_seqnum=change_seqnum,
             change_ts=change_ts,
+            change_seqnum=change_seqnum,
             principal=principal,
             interest=interest,
             interest_rate=interest_rate,
@@ -90,6 +90,7 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
+    # TODO: Reset the ledger if it has been outdated for a long time.
     _revise_account_config(account)
 
 
@@ -222,6 +223,7 @@ def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
+    config.is_effectual = False
     config.last_change_ts = max(config.last_change_ts, current_ts)
     config.last_change_seqnum = increment_seqnum(config.last_change_seqnum)
     db.session.add(ConfigureAccountSignal(

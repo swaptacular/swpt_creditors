@@ -426,7 +426,6 @@ class AccountConfig(db.Model):
     account_ledger = db.relationship('AccountLedger')
 
     def reset(self):
-        self.is_effectual = False
         self.is_scheduled_for_deletion = False
         self.negligible_amount = 2.0
 
