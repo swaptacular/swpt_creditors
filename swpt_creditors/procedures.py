@@ -109,9 +109,9 @@ def process_account_commit_signal(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert 0 < transfer_seqnum <= MAX_INT64
     assert len(coordinator_type) <= 30
     assert MIN_INT64 <= other_creditor_id <= MAX_INT64
-    assert 0 < transfer_seqnum <= MAX_INT64
     assert committed_amount != 0
     assert -MAX_INT64 <= committed_amount <= MAX_INT64
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
@@ -172,12 +172,13 @@ def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count:
 
     has_gaps = False
     pks_to_delete = []
+    current_ts = datetime.now(tz=timezone.utc)
     ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
     pending_transfers = _get_ordered_pending_transfers(ledger, max_count)
     for transfer_seqnum, committed_amount, account_new_principal in pending_transfers:
         pk = (creditor_id, debtor_id, transfer_seqnum)
         if transfer_seqnum == ledger.next_transfer_seqnum:
-            _update_ledger(ledger, account_new_principal)
+            _update_ledger(ledger, account_new_principal, current_ts)
             _insert_ledger_entry(*pk, committed_amount, account_new_principal)
         elif transfer_seqnum > ledger.next_transfer_seqnum:
             has_gaps = True
