@@ -236,7 +236,7 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
-def _create_ledger(debtor_id: int, creditor_id: int) -> AccountLedger:
+def _create_ledger(creditor_id: int, debtor_id: int) -> AccountLedger:
     ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
     with db.retry_on_integrity_error():
         db.session.add(ledger)
