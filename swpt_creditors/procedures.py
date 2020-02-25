@@ -50,7 +50,7 @@ def process_account_change_signal(
     assert negligible_amount >= 2.0
     assert MIN_INT16 <= status <= MAX_INT16
 
-    account = Account.lock_instance((debtor_id, creditor_id), joinedload('account_config', innerjoin=True))
+    account = Account.lock_instance((creditor_id, debtor_id), joinedload('account_config', innerjoin=True))
     if account:
         prev_event = (account.change_ts, account.change_seqnum)
         this_event = (change_ts, change_seqnum)
@@ -237,22 +237,38 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
 
 
 def _create_ledger(creditor_id: int, debtor_id: int) -> AccountLedger:
-    ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id)
+    # To ensure that the newly created `AccountLedger` record can be
+    # seen, and eventually deleted by the user, we create a
+    # corresponding `AccountConfig` record as well.
+    ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id, account_config=AccountConfig())
+
     with db.retry_on_integrity_error():
         db.session.add(ledger)
     return ledger
 
 
 def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountLedger:
-    f = AccountLedger.lock_instance if lock else AccountLedger.get_instance
-    ledger = f((debtor_id, creditor_id))
-    return ledger or _create_ledger(debtor_id, creditor_id)
+    if lock:
+        ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
+    else:
+        ledger = AccountLedger.get_instance((creditor_id, debtor_id))
+    return ledger or _create_ledger(creditor_id, debtor_id)
 
 
 def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
-    config = AccountConfig(account_ledger=_get_or_create_ledger(creditor_id, debtor_id, lock=True))
-    with db.retry_on_integrity_error():
-        db.session.add(config)
+    # Normally, when we want to create a `AccountConfig` record, there
+    # will be no corresponding `AccountLedger` record. Nevertheless,
+    # it is good to be prepared for this eventuality.
+    ledger = AccountLedger.get_instance((creditor_id, debtor_id))
+
+    if ledger is None:
+        config = _create_ledger(creditor_id, debtor_id).account_config
+    else:
+        config = AccountConfig(account_ledger=ledger)
+        with db.retry_on_integrity_error():
+            db.session.add(config)
+
+    assert config
     return config
 
 
@@ -262,11 +278,13 @@ def _get_or_create_account_config(
         lock: bool = False,
         load_ledger: bool = False) -> AccountConfig:
 
-    # TODO: Remove `load_ledger` if not needed.
-
-    f = AccountConfig.lock_instance if lock else AccountConfig.get_instance
+    # TODO: Remove `load_ledger` and `options` if not needed.
     options = [joinedload('account_ledger', innerjoin=True)] if load_ledger else []
-    config = f((debtor_id, creditor_id), *options)
+
+    if lock:
+        config = AccountConfig.lock_instance((creditor_id, debtor_id), *options)
+    else:
+        config = AccountConfig.get_instance((creditor_id, debtor_id), *options)
     return config or _create_account_config(creditor_id, debtor_id)
 
 

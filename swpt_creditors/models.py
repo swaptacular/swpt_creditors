@@ -423,7 +423,10 @@ class AccountConfig(db.Model):
         },
     )
 
-    account_ledger = db.relationship('AccountLedger')
+    account_ledger = db.relationship(
+        'AccountLedger',
+        backref=db.backref('account_config', uselist=False),
+    )
 
     def reset(self):
         self.is_scheduled_for_deletion = False
@@ -571,8 +574,8 @@ class Account(db.Model):
     STATUS_OVERFLOWN_FLAG = 4
     STATUS_SCHEDULED_FOR_DELETION_FLAG = 8
 
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     change_seqnum = db.Column(db.Integer, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f270b4846fcc
+Revision ID: 74d0dae09d3e
 Revises: 8d8c816257ce
-Create Date: 2020-02-23 22:35:38.612972
+Create Date: 2020-02-25 15:09:04.123590
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f270b4846fcc'
+revision = '74d0dae09d3e'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -142,8 +142,8 @@ def upgrade():
     comment='Represents an account commit that has not been included in the account ledger yet. A new row is inserted when a `AccountCommitSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because account commits can be received out-of-order, but must be added to the ledgers in-order.'
     )
     op.create_table('account',
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('change_seqnum', sa.Integer(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
@@ -160,7 +160,7 @@ def upgrade():
     sa.CheckConstraint('negligible_amount >= 2.0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
     comment='Tells who owes what to whom. This table is a replica of the table with the same name in the `swpt_accounts` service. It is used to perform maintenance routines like changing interest rates. Most of the columns get their values from the corresponding fields in the last applied `AccountChangeSignal`.'
     )
     op.create_table('account_issue',
