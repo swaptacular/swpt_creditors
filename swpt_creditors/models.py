@@ -516,7 +516,12 @@ class AccountLedger(db.Model):
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(next_transfer_seqnum > 0),
         {
-            'comment': 'Represents essential information about the ledger of a given account.',
+            'comment': 'Represents essential information about the ledger of a given account. Logically '
+                       'those columns belong to the `account_config` table, but they are isolated '
+                       'here mainly for peformace reasons. The thing is that we want really fast '
+                       'index-only scans on the `account_config` table. Normally, the account config '
+                       'rarely changes (which is good for the index-only scans), while the account '
+                       'ledger information may change very frequently.',
         }
     )
 

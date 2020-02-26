@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5faf96875539
+Revision ID: f1e1029bfb9d
 Revises: 8d8c816257ce
-Create Date: 2020-02-26 22:50:33.362702
+Create Date: 2020-02-27 00:41:45.964711
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5faf96875539'
+revision = 'f1e1029bfb9d'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -61,7 +61,7 @@ def upgrade():
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment='Represents essential information about the ledger of a given account.'
+    comment='Represents essential information about the ledger of a given account. Logically those columns belong to the `account_config` table, but they are isolated here mainly for peformace reasons. The thing is that we want really fast index-only scans on the `account_config` table. Normally, the account config rarely changes (which is good for the index-only scans), while the account ledger information may change very frequently.'
     )
     op.create_index('idx_next_transfer_seqnum', 'account_ledger', ['creditor_id', 'debtor_id', 'next_transfer_seqnum'], unique=False)
     op.create_table('initiated_transfer',
