@@ -157,8 +157,7 @@ def process_account_commit_signal(
         return
 
     account_commit = AccountCommit(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
+        account_ledger=ledger,
         transfer_seqnum=transfer_seqnum,
         coordinator_type=coordinator_type,
         other_creditor_id=other_creditor_id,

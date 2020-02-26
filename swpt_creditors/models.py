@@ -318,6 +318,11 @@ class AccountCommit(db.Model):
         comment='The balance on the account after the transfer.',
     )
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
+            ondelete='CASCADE',
+        ),
         db.CheckConstraint(transfer_seqnum > 0),
         db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(account_new_principal > MIN_INT64),
@@ -327,6 +332,8 @@ class AccountCommit(db.Model):
                        'some time (few months for example) has passed.',
         }
     )
+
+    account_ledger = db.relationship('AccountLedger')
 
 
 # TODO: Implement a daemon that periodically scan the
