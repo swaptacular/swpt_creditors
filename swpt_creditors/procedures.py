@@ -277,6 +277,7 @@ def change_account_config(
         debtor_id: int,
         is_scheduled_for_deletion: bool,
         negligible_amount: float) -> None:
+
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert negligible_amount >= 2.0
