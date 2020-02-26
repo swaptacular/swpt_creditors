@@ -305,37 +305,10 @@ def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) 
     return _get_ledger(creditor_id, debtor_id, lock=lock) or _create_ledger(creditor_id, debtor_id)
 
 
-def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
-    ledger = _get_ledger(creditor_id, debtor_id)
-
-    # When this function is called, it is almost 100% certain that
-    # there will be no corresponding ledger record. Nevertheless, it
-    # is good to be prepared for this eventuality.
-    if ledger is None:
-        config = _create_ledger(creditor_id, debtor_id).account_config
-    else:
-        config = AccountConfig(account_ledger=ledger)
-        with db.retry_on_integrity_error():
-            db.session.add(config)
-
-    assert config
-    return config
-
-
-def _get_or_create_account_config(
-        creditor_id: int,
-        debtor_id: int,
-        lock: bool = False,
-        load_ledger: bool = False) -> AccountConfig:
-
-    # TODO: Remove `load_ledger` and `options` if not needed.
-    options = [joinedload('account_ledger', innerjoin=True)] if load_ledger else []
-
-    if lock:
-        config = AccountConfig.lock_instance((creditor_id, debtor_id), *options)
-    else:
-        config = AccountConfig.get_instance((creditor_id, debtor_id), *options)
-    return config or _create_account_config(creditor_id, debtor_id)
+def _update_ledger(ledger: AccountLedger, account_new_principal: int, current_ts: datetime = None) -> None:
+    ledger.principal = account_new_principal
+    ledger.next_transfer_seqnum += 1
+    ledger.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
 def _insert_ledger_entry(
@@ -354,10 +327,47 @@ def _insert_ledger_entry(
     ))
 
 
-def _update_ledger(ledger: AccountLedger, account_new_principal: int, current_ts: datetime = None) -> None:
-    ledger.principal = account_new_principal
-    ledger.next_transfer_seqnum += 1
-    ledger.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
+def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
+    ledger = _get_ledger(creditor_id, debtor_id)
+
+    # When this function is called, it is almost 100% certain that
+    # there will be no corresponding ledger record. Nevertheless, it
+    # is good to be prepared for this eventuality.
+    if ledger is None:
+        config = _create_ledger(creditor_id, debtor_id).account_config
+    else:
+        config = AccountConfig(account_ledger=ledger)
+        with db.retry_on_integrity_error():
+            db.session.add(config)
+
+    assert config
+    return config
+
+
+def _get_account_config(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[AccountConfig]:
+    if lock:
+        config = AccountConfig.lock_instance((creditor_id, debtor_id))
+    else:
+        config = AccountConfig.get_instance((creditor_id, debtor_id))
+    return config
+
+
+def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountConfig:
+    return _get_account_config(creditor_id, debtor_id, lock=lock) or _create_account_config(creditor_id, debtor_id)
+
+
+def _revise_account_config(account: Account) -> None:
+    config = account.account_config
+    config_event = (config.last_change_ts, config.last_change_seqnum)
+    account_config_event = (account.last_config_change_ts, account.last_config_change_seqnum)
+    account_config_event_is_new = is_later_event(account_config_event, config_event)
+    account_config_event_is_not_old = not is_later_event(config_event, account_config_event)
+    if account_config_event_is_new or (account_config_event_is_not_old and not config.is_effectual):
+        config.is_effectual = True
+        config.last_change_ts = max(config.last_change_ts, account.last_config_change_ts)
+        config.last_change_seqnum = account.last_config_change_seqnum
+        config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
+        config.negligible_amount = account.negligible_amount
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:
@@ -374,17 +384,3 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     if max_count is not None:
         query = query.limit(max_count)
     return query.all()
-
-
-def _revise_account_config(account: Account) -> None:
-    config = account.account_config
-    config_event = (config.last_change_ts, config.last_change_seqnum)
-    account_config_event = (account.last_config_change_ts, account.last_config_change_seqnum)
-    account_config_event_is_new = is_later_event(account_config_event, config_event)
-    account_config_event_is_not_old = not is_later_event(config_event, account_config_event)
-    if account_config_event_is_new or (account_config_event_is_not_old and not config.is_effectual):
-        config.is_effectual = True
-        config.last_change_ts = max(config.last_change_ts, account.last_config_change_ts)
-        config.last_change_seqnum = account.last_config_change_seqnum
-        config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
-        config.negligible_amount = account.negligible_amount
