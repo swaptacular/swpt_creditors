@@ -29,6 +29,10 @@ class CreditorExistsError(Exception):
     """The same creditor record already exists."""
 
 
+class AccountDoesNotExistError(Exception):
+    """The account does not exist."""
+
+
 @atomic
 def create_new_creditor(creditor_id: int) -> Optional[Creditor]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -256,14 +260,33 @@ def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    config_should_be_created = config is None
-    if config_should_be_created:
+    config = _get_account_config(creditor_id, debtor_id, lock=True)
+    if config is None:
         config = _create_account_config(creditor_id, debtor_id)
+        created = True
     else:
         config.reset()
+        created = False
     _insert_configure_account_signal(config)
-    return config_should_be_created
+    return created
+
+
+@atomic
+def change_account_config(
+        creditor_id: int,
+        debtor_id: int,
+        is_scheduled_for_deletion: bool,
+        negligible_amount: float) -> None:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert negligible_amount >= 2.0
+
+    config = _get_account_config(creditor_id, debtor_id, lock=True)
+    if config is None:
+        raise AccountDoesNotExistError()
+    config.is_scheduled_for_deletion = is_scheduled_for_deletion
+    config.negligible_amount = negligible_amount
+    _insert_configure_account_signal(config)
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
