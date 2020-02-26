@@ -600,6 +600,7 @@ class Account(db.Model):
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
             ['account_config.creditor_id', 'account_config.debtor_id'],
+            ondelete='CASCADE',
         ),
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
         db.CheckConstraint(principal > MIN_INT64),

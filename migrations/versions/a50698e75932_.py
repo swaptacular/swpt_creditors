@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 09aeb860df6d
+Revision ID: a50698e75932
 Revises: 8d8c816257ce
-Create Date: 2020-02-26 21:39:05.756236
+Create Date: 2020-02-26 22:33:41.884397
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '09aeb860df6d'
+revision = 'a50698e75932'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -160,7 +160,7 @@ def upgrade():
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('negligible_amount >= 2.0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
     comment='Tells who owes what to whom. This table is a replica of the table with the same name in the `swpt_accounts` service. It is used to perform maintenance routines like changing interest rates. Most of the columns get their values from the corresponding fields in the last applied `AccountChangeSignal`.'
     )
