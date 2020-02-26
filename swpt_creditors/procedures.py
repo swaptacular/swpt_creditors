@@ -290,6 +290,15 @@ def change_account_config(
     _insert_configure_account_signal(config)
 
 
+@atomic
+def try_to_remove_account(creditor_id: int, debtor_id: int) -> None:
+    # TODO: Delete the `AccountLedger`,and therefore the
+    # `AccountConfig` record as well, if: 1) a corresponding `Account`
+    # record does not exist; 2) is scheduled for deletion; 3) is
+    # effectual.
+    pass
+
+
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     config.is_effectual = False
