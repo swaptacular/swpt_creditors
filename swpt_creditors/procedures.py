@@ -306,11 +306,11 @@ def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) 
 
 
 def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
-    # Normally, when we want to create a `AccountConfig` record, there
-    # will be no corresponding `AccountLedger` record. Nevertheless,
-    # it is good to be prepared for this eventuality.
-    ledger = AccountLedger.get_instance((creditor_id, debtor_id))
+    ledger = _get_ledger(creditor_id, debtor_id)
 
+    # When this function is called, it is almost 100% certain that
+    # there will be no corresponding ledger record. Nevertheless, it
+    # is good to be prepared for this eventuality.
     if ledger is None:
         config = _create_ledger(creditor_id, debtor_id).account_config
     else:
