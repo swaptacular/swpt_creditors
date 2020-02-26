@@ -505,6 +505,7 @@ class AccountLedger(db.Model):
             debtor_id,
             next_transfer_seqnum,
         ),
+        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(next_transfer_seqnum > 0),
         {

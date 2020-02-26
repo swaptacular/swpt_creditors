@@ -1,11 +1,11 @@
 from datetime import datetime, date, timedelta, timezone
-from typing import TypeVar, Callable, Tuple, List
+from typing import TypeVar, Callable, Tuple, List, Optional
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from sqlalchemy.orm import joinedload
 from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
-from .models import AccountLedger, LedgerEntry, AccountCommit,  \
+from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
@@ -19,6 +19,37 @@ PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.creditor_id,
     PendingAccountCommit.transfer_seqnum,
 )
+
+
+class CreditorDoesNotExistError(Exception):
+    """The creditor does not exist."""
+
+
+class CreditorExistsError(Exception):
+    """The same creditor record already exists."""
+
+
+@atomic
+def create_new_creditor(creditor_id: int) -> Optional[Creditor]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    creditor = Creditor(creditor_id=creditor_id)
+    db.session.add(creditor)
+    try:
+        db.session.flush()
+    except IntegrityError:
+        raise CreditorExistsError()
+    return creditor
+
+
+@atomic
+def lock_or_create_creditor(creditor_id: int) -> Creditor:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    creditor = Creditor.lock_instance(creditor_id)
+    if creditor is None:
+        creditor = Creditor(creditor_id=creditor_id)
+        with db.retry_on_integrity_error():
+            db.session.add(creditor)
+    return creditor
 
 
 @atomic
@@ -73,8 +104,12 @@ def process_account_change_signal(
         account.negligible_amount = negligible_amount
         account.status = status
     else:
+        try:
+            config = _get_or_create_account_config(creditor_id, debtor_id, lock=True)
+        except CreditorDoesNotExistError:
+            return
         account = Account(
-            account_config=_get_or_create_account_config(creditor_id, debtor_id, lock=True),
+            account_config=config,
             change_ts=change_ts,
             change_seqnum=change_seqnum,
             principal=principal,
@@ -116,6 +151,11 @@ def process_account_commit_signal(
     assert -MAX_INT64 <= committed_amount <= MAX_INT64
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
 
+    try:
+        ledger = _get_or_create_ledger(creditor_id, debtor_id)
+    except CreditorDoesNotExistError:
+        return
+
     account_commit = AccountCommit(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
@@ -138,7 +178,6 @@ def process_account_commit_signal(
         db.session.rollback()
         return
 
-    ledger = _get_or_create_ledger(creditor_id, debtor_id)
     current_ts = datetime.now(tz=timezone.utc)
     if account_creation_date > ledger.account_creation_date:
         ledger.reset(account_creation_date=account_creation_date, current_ts=current_ts)
@@ -169,10 +208,13 @@ def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
+    ledger = _get_ledger(creditor_id, debtor_id, lock=True)
+    if ledger is None:
+        return True
+
     has_gaps = False
     pks_to_delete = []
     current_ts = datetime.now(tz=timezone.utc)
-    ledger = _get_or_create_ledger(debtor_id, creditor_id, lock=True)
     pending_transfers = _get_ordered_pending_transfers(ledger, max_count)
     for transfer_seqnum, committed_amount, account_new_principal in pending_transfers:
         pk = (creditor_id, debtor_id, transfer_seqnum)
@@ -206,7 +248,11 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 @atomic
 def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
-    """"Return whether a new account has been created."""
+    """"Return whether a new account has been created.
+
+    Raises `CreditorDoesNotExistError` if the creditor does not exist.
+
+    """
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -236,23 +282,28 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
-def _create_ledger(creditor_id: int, debtor_id: int) -> AccountLedger:
-    # To ensure that the newly created `AccountLedger` record can be
-    # seen, and eventually deleted by the user, we create a
-    # corresponding `AccountConfig` record as well.
-    ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id, account_config=AccountConfig())
+def _get_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[AccountLedger]:
+    if lock:
+        ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
+    else:
+        ledger = AccountLedger.get_instance((creditor_id, debtor_id))
+    return ledger
 
+
+def _create_ledger(creditor_id: int, debtor_id: int) -> AccountLedger:
+    """Insert an `AccountLedger` row with a corresponding `AccountConfig` row."""
+
+    if Creditor.get_instance(creditor_id) is None:
+        raise CreditorDoesNotExistError()
+
+    ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id, account_config=AccountConfig())
     with db.retry_on_integrity_error():
         db.session.add(ledger)
     return ledger
 
 
 def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountLedger:
-    if lock:
-        ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
-    else:
-        ledger = AccountLedger.get_instance((creditor_id, debtor_id))
-    return ledger or _create_ledger(creditor_id, debtor_id)
+    return _get_ledger(creditor_id, debtor_id, lock=lock) or _create_ledger(creditor_id, debtor_id)
 
 
 def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
