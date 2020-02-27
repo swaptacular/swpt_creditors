@@ -14,6 +14,7 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 TD_5_SECONDS = timedelta(seconds=10)
+HUGE_NEGLIGIBLE_AMOUNT = 1e30
 PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.debtor_id,
     PendingAccountCommit.creditor_id,
@@ -316,17 +317,16 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
 
 
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, status: int, negligible_amount: float) -> None:
-    huge_amount = 1e30
     is_deleted = status & Account.STATUS_DELETED_FLAG
     is_scheduled_for_deletion = status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    has_huge_negligible_amount = negligible_amount >= huge_amount
+    has_huge_negligible_amount = negligible_amount >= HUGE_NEGLIGIBLE_AMOUNT
     if not is_deleted and not (is_scheduled_for_deletion and has_huge_negligible_amount):
         db.session.add(ConfigureAccountSignal(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             change_ts=datetime.now(tz=timezone.utc),
             change_seqnum=0,
-            negligible_amount=huge_amount,
+            negligible_amount=HUGE_NEGLIGIBLE_AMOUNT,
             is_scheduled_for_deletion=True,
         ))
 
@@ -411,10 +411,8 @@ def _revise_account_config_effectuality(account: Account) -> None:
     config_event = (config.last_change_ts, config.last_change_seqnum)
     account_config_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     account_config_event_is_not_old = not is_later_event(config_event, account_config_event)
-    config_is_the_same = (
-        config.is_scheduled_for_deletion == account.is_scheduled_for_deletion
-        and config.negligible_amount == account.negligible_amount
-    )
+    config_is_the_same = (config.is_scheduled_for_deletion == account.is_scheduled_for_deletion
+                          and config.negligible_amount == account.negligible_amount)
     if account_config_event_is_not_old and config.is_effectual != config_is_the_same:
         config.is_effectual = config_is_the_same
 
