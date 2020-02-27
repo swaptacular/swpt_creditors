@@ -2,6 +2,7 @@ import pytest
 from datetime import date, timedelta
 from uuid import UUID
 from swpt_creditors import procedures as p
+from swpt_creditors.models import Account, AccountConfig, ConfigureAccountSignal
 
 D_ID = -1
 C_ID = 1
@@ -33,11 +34,19 @@ def test_find_legible_pending_account_commits(db_session):
 def test_setup_account(db_session, creditor):
     created = p.setup_account(C_ID, D_ID)
     assert created
+    assert AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     created = p.setup_account(C_ID, D_ID)
     assert not created
 
 
 def test_process_account_change_signal(db_session, creditor, current_ts):
+    p.setup_account(C_ID, D_ID)
+    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+    assert not ac.is_effectual
+    assert ac.negligible_amount == 2.0
+    last_change_ts = ac.last_change_ts
+    last_change_seqnum = ac.last_change_seqnum
+
     p.process_account_change_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -47,17 +56,66 @@ def test_process_account_change_signal(db_session, creditor, current_ts):
         interest=0.0,
         interest_rate=5.0,
         last_transfer_seqnum=1,
-        last_config_change_ts=current_ts - timedelta(days=5),
-        last_config_change_seqnum=1,
+        last_config_change_ts=last_change_ts,
+        last_config_change_seqnum=last_change_seqnum,
         creation_date=date(2020, 1, 1),
         negligible_amount=2.0,
         status=0,
     )
+    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+    assert last_change_ts == ac.last_change_ts
+    assert last_change_seqnum == ac.last_change_seqnum
+    assert ac.is_effectual
+    assert ac.negligible_amount == 2.0
+
     p.process_account_change_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         change_ts=current_ts,
         change_seqnum=2,
+        principal=1100,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=2,
+        last_config_change_ts=last_change_ts,
+        last_config_change_seqnum=last_change_seqnum,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=3.0,
+        status=0,
+    )
+    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+    assert last_change_ts == ac.last_change_ts
+    assert last_change_seqnum == ac.last_change_seqnum
+    assert not ac.is_effectual
+    assert ac.negligible_amount == 2.0
+
+    p.process_account_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=3,
+        principal=1100,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=2,
+        last_config_change_ts=last_change_ts,  # - timedelta(days=5),
+        last_config_change_seqnum=last_change_seqnum,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=2.0,
+        status=0,
+    )
+    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+    assert last_change_ts == ac.last_change_ts
+    assert last_change_seqnum == ac.last_change_seqnum
+    assert ac.is_effectual
+    assert ac.negligible_amount == 2.0
+
+    # Discard orphaned account.
+    p.process_account_change_signal(
+        debtor_id=1235,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=1,
         principal=1100,
         interest=0.0,
         interest_rate=5.0,
@@ -68,8 +126,11 @@ def test_process_account_change_signal(db_session, creditor, current_ts):
         negligible_amount=2.0,
         status=0,
     )
+    cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
+    assert cas.negligible_amount > 1e22
+    assert cas.is_scheduled_for_deletion
     p.process_account_change_signal(
-        debtor_id=D_ID,
+        debtor_id=1235,
         creditor_id=C_ID,
         change_ts=current_ts,
         change_seqnum=2,
@@ -80,6 +141,7 @@ def test_process_account_change_signal(db_session, creditor, current_ts):
         last_config_change_ts=current_ts - timedelta(days=5),
         last_config_change_seqnum=1,
         creation_date=date(2020, 1, 1),
-        negligible_amount=2.0,
-        status=0,
+        negligible_amount=1e30,
+        status=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG,
     )
+    assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()

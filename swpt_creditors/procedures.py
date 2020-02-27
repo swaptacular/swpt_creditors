@@ -36,6 +36,7 @@ class AccountDoesNotExistError(Exception):
 @atomic
 def create_new_creditor(creditor_id: int) -> Optional[Creditor]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+
     creditor = Creditor(creditor_id=creditor_id)
     db.session.add(creditor)
     try:
@@ -48,6 +49,7 @@ def create_new_creditor(creditor_id: int) -> Optional[Creditor]:
 @atomic
 def lock_or_create_creditor(creditor_id: int) -> Creditor:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+
     creditor = Creditor.lock_instance(creditor_id)
     if creditor is None:
         creditor = Creditor(creditor_id=creditor_id)
@@ -74,18 +76,19 @@ def process_account_change_signal(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert change_ts is not None
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
     assert 0 <= last_transfer_seqnum <= MAX_INT64
-    assert last_config_change_ts is not None
     assert MIN_INT32 <= last_config_change_seqnum <= MAX_INT32
-    assert creation_date is not None
     assert negligible_amount >= 2.0
     assert MIN_INT16 <= status <= MAX_INT16
 
-    account = Account.lock_instance((creditor_id, debtor_id), joinedload('account_config', innerjoin=True))
+    account = Account.lock_instance(
+        (creditor_id, debtor_id),
+        joinedload('account_config', innerjoin=True),
+        of=Account,
+    )
     if account:
         prev_event = (account.change_ts, account.change_seqnum)
         this_event = (change_ts, change_seqnum)
@@ -108,9 +111,12 @@ def process_account_change_signal(
         account.negligible_amount = negligible_amount
         account.status = status
     else:
-        try:
-            config = _get_or_create_account_config(creditor_id, debtor_id, lock=True)
-        except CreditorDoesNotExistError:
+        config = _get_account_config(creditor_id, debtor_id, lock=True)
+        if config is None:
+            # When there is no corresponding `AccountConfig` record
+            # (an "orphaned" account), we must make sure that the
+            # account is scheduled for deletion.
+            _discard_orphaned_account(creditor_id, debtor_id, status, negligible_amount)
             return
         account = Account(
             account_config=config,
@@ -130,7 +136,7 @@ def process_account_change_signal(
             db.session.add(account)
 
     # TODO: Reset the ledger if it has been outdated for a long time.
-    _revise_account_config(account)
+    _revise_account_config_effectuality(account)
 
 
 @atomic
@@ -309,6 +315,22 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
+def _discard_orphaned_account(creditor_id: int, debtor_id: int, status: int, negligible_amount: float) -> None:
+    huge_amount = 1e30
+    is_deleted = status & Account.STATUS_DELETED_FLAG
+    is_scheduled_for_deletion = status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    has_huge_negligible_amount = negligible_amount >= huge_amount
+    if not is_deleted and not (is_scheduled_for_deletion and has_huge_negligible_amount):
+        db.session.add(ConfigureAccountSignal(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            change_ts=datetime.now(tz=timezone.utc),
+            change_seqnum=0,
+            negligible_amount=huge_amount,
+            is_scheduled_for_deletion=True,
+        ))
+
+
 def _get_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[AccountLedger]:
     if lock:
         ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
@@ -384,18 +406,17 @@ def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool =
     return _get_account_config(creditor_id, debtor_id, lock=lock) or _create_account_config(creditor_id, debtor_id)
 
 
-def _revise_account_config(account: Account) -> None:
+def _revise_account_config_effectuality(account: Account) -> None:
     config = account.account_config
     config_event = (config.last_change_ts, config.last_change_seqnum)
     account_config_event = (account.last_config_change_ts, account.last_config_change_seqnum)
-    account_config_event_is_new = is_later_event(account_config_event, config_event)
     account_config_event_is_not_old = not is_later_event(config_event, account_config_event)
-    if account_config_event_is_new or (account_config_event_is_not_old and not config.is_effectual):
-        config.is_effectual = True
-        config.last_change_ts = max(config.last_change_ts, account.last_config_change_ts)
-        config.last_change_seqnum = account.last_config_change_seqnum
-        config.is_scheduled_for_deletion = account.is_scheduled_for_deletion
-        config.negligible_amount = account.negligible_amount
+    config_is_the_same = (
+        config.is_scheduled_for_deletion == account.is_scheduled_for_deletion
+        and config.negligible_amount == account.negligible_amount
+    )
+    if account_config_event_is_not_old and config.is_effectual != config_is_the_same:
+        config.is_effectual = config_is_the_same
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:
