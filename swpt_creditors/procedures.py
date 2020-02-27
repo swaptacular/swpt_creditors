@@ -250,7 +250,7 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 
 @atomic
-def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
+def setup_account(creditor_id: int, debtor_id: int) -> bool:
     """"Return whether a new account has been created.
 
     Raises `CreditorDoesNotExistError` if the creditor does not exist.
@@ -272,12 +272,7 @@ def create_or_reset_account(creditor_id: int, debtor_id: int) -> bool:
 
 
 @atomic
-def change_account_config(
-        creditor_id: int,
-        debtor_id: int,
-        is_scheduled_for_deletion: bool,
-        negligible_amount: float) -> None:
-
+def schedule_account_for_deletion(creditor_id: int, debtor_id: int, negligible_amount: float) -> None:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert negligible_amount >= 2.0
@@ -285,13 +280,13 @@ def change_account_config(
     config = _get_account_config(creditor_id, debtor_id, lock=True)
     if config is None:
         raise AccountDoesNotExistError()
-    config.is_scheduled_for_deletion = is_scheduled_for_deletion
+    config.is_scheduled_for_deletion = True
     config.negligible_amount = negligible_amount
     _insert_configure_account_signal(config)
 
 
 @atomic
-def try_to_remove_account(creditor_id: int, debtor_id: int) -> None:
+def remove_account(creditor_id: int, debtor_id: int) -> None:
     # TODO: Delete the `AccountLedger`,and therefore the
     # `AccountConfig` record as well, if: 1) a corresponding `Account`
     # record does not exist; 2) is scheduled for deletion; 3) is
