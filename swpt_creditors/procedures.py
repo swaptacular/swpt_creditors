@@ -155,6 +155,9 @@ def process_account_commit_signal(
         account_creation_date: date,
         account_new_principal: int) -> None:
 
+    # TODO: Receive `is_insignificant` and `previous_transfer_seqnum`
+    #       parameters.
+
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_seqnum <= MAX_INT64
