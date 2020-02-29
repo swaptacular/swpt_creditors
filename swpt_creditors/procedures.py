@@ -82,7 +82,7 @@ def process_account_change_signal(
     assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
     assert 0 <= last_transfer_seqnum <= MAX_INT64
     assert MIN_INT32 <= last_config_change_seqnum <= MAX_INT32
-    assert negligible_amount >= 2.0
+    assert negligible_amount >= 0.0
     assert MIN_INT16 <= status <= MAX_INT16
 
     account = Account.lock_instance(
@@ -284,7 +284,7 @@ def setup_account(creditor_id: int, debtor_id: int) -> bool:
 def schedule_account_for_deletion(creditor_id: int, debtor_id: int, negligible_amount: float) -> None:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert negligible_amount >= 2.0
+    assert negligible_amount >= 0.0
 
     config = _get_account_config(creditor_id, debtor_id, lock=True)
     if config is None:

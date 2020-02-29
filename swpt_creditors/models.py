@@ -410,9 +410,10 @@ class AccountConfig(db.Model):
     negligible_amount = db.Column(
         db.REAL,
         nullable=False,
-        default=2.0,
-        comment='The maximum account balance that should be considered negligible. It is used to '
-                'decide whether an account can be safely deleted.',
+        default=0.0,
+        comment='An amount that is considered negligible. It is used to: 1) '
+                'decide whether an account can be safely deleted; 2) decide '
+                'whether an incoming transfer is insignificant.',
     )
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -420,7 +421,7 @@ class AccountConfig(db.Model):
             ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
             ondelete='RESTRICT',
         ),
-        db.CheckConstraint(negligible_amount >= 2.0),
+        db.CheckConstraint(negligible_amount >= 0.0),
         {
             'comment': "Represents a configured (created) account from users' perspective. Note "
                        "that a freshly inserted `account_config` record will have no corresponding "
@@ -437,7 +438,7 @@ class AccountConfig(db.Model):
 
     def reset(self):
         self.is_scheduled_for_deletion = False
-        self.negligible_amount = 2.0
+        self.negligible_amount = 0.0
 
 
 class AccountIssue(db.Model):
@@ -616,7 +617,7 @@ class Account(db.Model):
         ),
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
         db.CheckConstraint(principal > MIN_INT64),
-        db.CheckConstraint(negligible_amount >= 2.0),
+        db.CheckConstraint(negligible_amount >= 0.0),
         {
             'comment': 'Tells who owes what to whom. This table is a replica of the table with the '
                        'same name in the `swpt_accounts` service. It is used to perform maintenance '

@@ -43,7 +43,7 @@ def test_process_account_change_signal(db_session, creditor, current_ts):
     p.setup_account(C_ID, D_ID)
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert not ac.is_effectual
-    assert ac.negligible_amount == 2.0
+    assert ac.negligible_amount == 0.0
     last_change_ts = ac.last_change_ts
     last_change_seqnum = ac.last_change_seqnum
 
@@ -59,14 +59,14 @@ def test_process_account_change_signal(db_session, creditor, current_ts):
         last_config_change_ts=last_change_ts,
         last_config_change_seqnum=last_change_seqnum,
         creation_date=date(2020, 1, 1),
-        negligible_amount=2.0,
+        negligible_amount=0.0,
         status=0,
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_change_ts == ac.last_change_ts
     assert last_change_seqnum == ac.last_change_seqnum
     assert ac.is_effectual
-    assert ac.negligible_amount == 2.0
+    assert ac.negligible_amount == 0.0
 
     p.process_account_change_signal(
         debtor_id=D_ID,
@@ -87,7 +87,7 @@ def test_process_account_change_signal(db_session, creditor, current_ts):
     assert last_change_ts == ac.last_change_ts
     assert last_change_seqnum == ac.last_change_seqnum
     assert not ac.is_effectual
-    assert ac.negligible_amount == 2.0
+    assert ac.negligible_amount == 0.0
 
     p.process_account_change_signal(
         debtor_id=D_ID,
@@ -101,14 +101,14 @@ def test_process_account_change_signal(db_session, creditor, current_ts):
         last_config_change_ts=last_change_ts,  # - timedelta(days=5),
         last_config_change_seqnum=last_change_seqnum,
         creation_date=date(2020, 1, 1),
-        negligible_amount=2.0,
+        negligible_amount=0.0,
         status=0,
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_change_ts == ac.last_change_ts
     assert last_change_seqnum == ac.last_change_seqnum
     assert ac.is_effectual
-    assert ac.negligible_amount == 2.0
+    assert ac.negligible_amount == 0.0
 
     # Discard orphaned account.
     p.process_account_change_signal(

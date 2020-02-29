@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f1e1029bfb9d
+Revision ID: 677d1b44ad5b
 Revises: 8d8c816257ce
-Create Date: 2020-02-27 00:41:45.964711
+Create Date: 2020-02-29 17:24:46.198969
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f1e1029bfb9d'
+revision = '677d1b44ad5b'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -110,8 +110,8 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last change in the configuration. Must never decrease.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last change in the configuration. It is incremented (with wrapping) on every change. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the account is scheduled for deletion.'),
-    sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='The maximum account balance that should be considered negligible. It is used to decide whether an account can be safely deleted.'),
-    sa.CheckConstraint('negligible_amount >= 2.0'),
+    sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
+    sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
     comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will have no corresponding `account` record. Also, an `account_config` record must not be deleted, unless its `is_effectual` column is `true` and there is no corresponding `account` record."
@@ -132,7 +132,7 @@ def upgrade():
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
-    sa.CheckConstraint('negligible_amount >= 2.0'),
+    sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
