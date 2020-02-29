@@ -91,6 +91,8 @@ def process_account_change_signal(
         of=Account,
     )
     if account:
+        # TODO: What if account.creation_date > creation_date?
+
         prev_event = (account.change_ts, account.change_seqnum)
         this_event = (change_ts, change_seqnum)
         this_event_is_not_old = not is_later_event(prev_event, this_event)
