@@ -1,5 +1,6 @@
 from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
+from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from sqlalchemy.orm import joinedload
@@ -119,10 +120,12 @@ def process_account_change_signal(
     else:
         config = _get_account_config(creditor_id, debtor_id, lock=True)
         if config is None:
-            # When there is no corresponding `AccountConfig` record
-            # (an "orphaned" account), we must make sure that the
-            # account is scheduled for deletion.
-            _discard_orphaned_account(creditor_id, debtor_id, status, negligible_amount)
+            # When there is no corresponding `AccountConfig` record,
+            # the "orphaned" account should be scheduled for
+            # deletion. However, because this can be quite dangerous,
+            # this behavior has to be configured explicitly.
+            if current_app.config['APP_DISCARD_ORPHANED_ACCOUNTS']:
+                _discard_orphaned_account(creditor_id, debtor_id, status, negligible_amount)
             return
         account = Account(
             account_config=config,

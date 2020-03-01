@@ -53,6 +53,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     OPENAPI_SWAGGER_UI_VERSION = '3.18.3'
     APP_TRANSFERS_FINALIZATION_AVG_SECONDS = 5.0
     APP_SIGNALBUS_MAX_DELAY_DAYS = 14
+    APP_DISCARD_ORPHANED_ACCOUNTS = False
 
 
 def create_app(config_dict={}):
