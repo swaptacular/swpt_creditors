@@ -21,6 +21,7 @@ def app():
 
     app = create_app({
         'TESTING': True,
+        'APP_DISCARD_ORPHANED_ACCOUNTS': True,
     })
     with app.app_context():
         flask_migrate.upgrade()

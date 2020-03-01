@@ -145,6 +145,8 @@ def process_account_change_signal(
             db.session.add(account)
 
     # TODO: Reset the ledger if it has been outdated for a long time.
+    #       Consider adding `Account.last_transfer_committed_at_ts`
+    #       and `Account.last_transfer_ts`.
     _revise_account_config_effectuality(account)
 
 

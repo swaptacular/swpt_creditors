@@ -344,6 +344,8 @@ class AccountCommit(db.Model):
 #       has been lost. This should happen very rarely, but still
 #       eventually we must be able to recover from such losses.
 class PendingAccountCommit(db.Model):
+    # TODO: Add `ReadyAccountCommit` model?
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
@@ -542,6 +544,11 @@ class AccountLedger(db.Model):
 
 
 class LedgerEntry(db.Model):
+    # TODO: This is totally wrong. Add a global entry seqnum here and
+    #       in `Creditor`, which is incremented for each added
+    #       `LedgerEntry`. Fix `process_account_commit_signal()`
+    #       accordingly. (Do we need `added_at_ts`?)
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
