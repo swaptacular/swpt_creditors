@@ -616,6 +616,7 @@ class Account(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
+        db.CheckConstraint(last_transfer_seqnum >= 0),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(negligible_amount >= 0.0),
         {

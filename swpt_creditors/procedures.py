@@ -91,8 +91,11 @@ def process_account_change_signal(
         of=Account,
     )
     if account:
-        # TODO: What if account.creation_date > creation_date?
-
+        if account.creation_date > creation_date:
+            # This should never happen, given that the `swpt_accounts`
+            # service behaves adequately. Nevertheless, it is good to
+            # be prepared for all eventualities.
+            return
         prev_event = (account.change_ts, account.change_seqnum)
         this_event = (change_ts, change_seqnum)
         this_event_is_not_old = not is_later_event(prev_event, this_event)
