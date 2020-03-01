@@ -91,7 +91,7 @@ def process_account_change_signal(
         of=Account,
     )
     if account:
-        if account.creation_date > creation_date:
+        if account.creation_date > creation_date:  # pragma: no cover
             # This should never happen, given that the `swpt_accounts`
             # service behaves adequately. Nevertheless, it is good to
             # be prepared for all eventualities.
