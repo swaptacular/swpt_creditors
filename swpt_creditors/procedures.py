@@ -455,15 +455,12 @@ def _revise_account_config_effectuality(
         last_config_change_seqnum: int) -> None:
 
     config = account.account_config
-    config_event = (config.last_change_ts, config.last_change_seqnum)
-    account_config_event = (last_config_change_ts, last_config_change_seqnum)
-    account_config_event_is_not_old = not is_later_event(config_event, account_config_event)
-    config_is_the_same = (
-        config.is_scheduled_for_deletion == account.is_scheduled_for_deletion
-        and config.negligible_amount == account.negligible_amount
-    )
-    if account_config_event_is_not_old and config.is_effectual != config_is_the_same:
-        config.is_effectual = config_is_the_same
+    config_is_effectual = account.check_if_config_is_effectual()
+    last_config_request = (config.last_change_ts, config.last_change_seqnum)
+    last_applied_config = (last_config_change_ts, last_config_change_seqnum)
+    applied_config_is_old = is_later_event(last_config_request, last_applied_config)
+    if not applied_config_is_old and config.is_effectual != config_is_effectual:
+        config.is_effectual = config_is_effectual
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:

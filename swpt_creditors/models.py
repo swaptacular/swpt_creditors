@@ -645,6 +645,13 @@ class Account(db.Model):
     def is_scheduled_for_deletion(self):
         return bool(self.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG)
 
+    def check_if_config_is_effectual(self):
+        config = self.account_config
+        return (
+            config.is_scheduled_for_deletion == self.is_scheduled_for_deletion
+            and config.negligible_amount == self.negligible_amount
+        )
+
 
 class ConfigureAccountSignal(Signal):
     queue_name = 'swpt_accounts'
