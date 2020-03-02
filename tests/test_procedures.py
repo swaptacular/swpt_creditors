@@ -21,15 +21,20 @@ def setup_account(creditor):
     p.create_account(C_ID, D_ID)
 
 
+def test_get_creditor(db_session, creditor):
+    creditor = p.get_creditor(C_ID)
+    assert creditor.creditor_id == C_ID
+
+
 def test_create_new_creditor(db_session):
     creditor = p.create_new_creditor(C_ID)
     assert creditor.creditor_id == C_ID
-    assert Creditor.query.one()
+    assert len(Creditor.query.all()) == 1
     with pytest.raises(p.CreditorExistsError):
         p.create_new_creditor(C_ID)
     creditor = p.lock_or_create_creditor(C_ID)
     assert creditor.creditor_id == C_ID
-    assert Creditor.query.one()
+    assert len(Creditor.query.all()) == 1
     creditor = p.lock_or_create_creditor(666)
     assert creditor.creditor_id == 666
     assert len(Creditor.query.all()) == 2

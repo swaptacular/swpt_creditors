@@ -36,6 +36,11 @@ class AccountDoesNotExistError(Exception):
 
 
 @atomic
+def get_creditor(creditor_id: int) -> Optional[Creditor]:
+    return Creditor.get_instance(creditor_id)
+
+
+@atomic
 def create_new_creditor(creditor_id: int) -> Optional[Creditor]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
