@@ -52,16 +52,32 @@ def test_change_account_config(db_session, setup_account):
     assert config.is_scheduled_for_deletion
 
 
-def test_try_to_remove_account(db_session, setup_account):
+def test_try_to_remove_account(db_session, setup_account, current_ts):
     assert p.try_to_remove_account(C_ID, 1234)
+    p.process_account_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=1,
+        principal=1000,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=1,
+        last_config_change_ts=current_ts,
+        last_config_change_seqnum=1,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=0.0,
+        status=0,
+    )
+    account = Account.query.one()
+    assert not account.account_config.is_scheduled_for_deletion
     assert not p.try_to_remove_account(C_ID, D_ID)
     assert AccountConfig.query.one()
     assert p.try_to_remove_account(C_ID, D_ID, force=True)
     assert AccountConfig.query.one_or_none() is None
 
 
-def test_process_account_change_signal(db_session, creditor, current_ts):
-    p.setup_account(C_ID, D_ID)
+def test_process_account_change_signal(db_session, creditor, setup_account, current_ts):
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert not ac.is_effectual
     assert ac.negligible_amount == 0.0
