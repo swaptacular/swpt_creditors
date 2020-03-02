@@ -382,11 +382,17 @@ class AccountConfig(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    has_account = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether a corresponding `account` record exists.',
+    )
     is_effectual = db.Column(
         db.BOOLEAN,
         nullable=False,
         default=False,
-        comment='Whether the last change in the configuration has been successfully applied.'
+        comment='Whether the last change in the configuration has been successfully applied.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -434,10 +440,10 @@ class AccountConfig(db.Model):
         db.CheckConstraint(negligible_amount >= 0.0),
         {
             'comment': "Represents a configured (created) account from users' perspective. Note "
-                       "that a freshly inserted `account_config` record will have no corresponding "
-                       "`account` record. Also, an `account_config` record must not be deleted, "
-                       "unless its `is_effectual` column is `true` and there is no corresponding "
-                       "`account` record.",
+                       "that a freshly inserted `account_config` record will not have a corresponding "
+                       "`account` record. Also, normally an `account_config` record can not be safely "
+                       "deleted, unless `is_effectual` is `true`, `is_scheduled_for_deletion` is "
+                       "`true`, and `has_account` is `false`.",
         },
     )
 

@@ -204,3 +204,59 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG,
     )
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
+
+
+def test_process_account_purge_signal(db_session, creditor, setup_account, current_ts):
+    config = AccountConfig.query.one()
+    assert config.debtor_id == D_ID
+    assert config.creditor_id == C_ID
+    assert not config.has_account
+    assert len(Account.query.all()) == 0
+    p.process_account_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=1,
+        principal=1000,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=1,
+        last_config_change_ts=current_ts,
+        last_config_change_seqnum=1,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=0.0,
+        status=0,
+    )
+    config = AccountConfig.query.one()
+    assert config.has_account
+    assert len(Account.query.all()) == 1
+
+    # Wrong creation date:
+    p.process_account_purge_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=date(2021, 1, 2),
+    )
+    config = AccountConfig.query.one()
+    assert config.has_account
+    assert len(Account.query.all()) == 1
+
+    # Wrong creditor_id:
+    p.process_account_purge_signal(
+        debtor_id=D_ID,
+        creditor_id=1234,
+        creation_date=date(2020, 1, 1),
+    )
+    config = AccountConfig.query.one()
+    assert config.has_account
+    assert len(Account.query.all()) == 1
+
+    # Everything is correct:
+    p.process_account_purge_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=date(2020, 1, 1),
+    )
+    config = AccountConfig.query.one()
+    assert not config.has_account
+    assert len(Account.query.all()) == 0

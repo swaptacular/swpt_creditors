@@ -122,12 +122,10 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
     config = _get_account_config(creditor_id, debtor_id)
     if config:
         if not config.allow_unsafe_removal:
-            account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
-            is_removal_safe = (
-                config.is_effectual
-                and config.is_scheduled_for_deletion
-                and not db.session.query(account_query.exists()).scalar()
-            )
+            # TODO: Isn't this too conservative? May be it is enough
+            #       to `not config.has_account`.
+
+            is_removal_safe = config.is_effectual and config.is_scheduled_for_deletion and not config.has_account
             if not is_removal_safe:
                 return False
 
@@ -139,6 +137,21 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
             delete(synchronize_session=False)
 
     return True
+
+
+@atomic
+def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date: date) -> None:
+    # TODO: Do not foget to do the same thing when the account is dead
+    #       (no heartbeat for a long time).
+
+    account = Account.lock_instance(
+        (creditor_id, debtor_id),
+        joinedload('account_config', innerjoin=True),
+    )
+    if account and account.creation_date == creation_date:
+        config = account.account_config
+        config.has_account = False
+        db.session.delete(account)
 
 
 @atomic
@@ -466,6 +479,8 @@ def _revise_account_config_effectuality(
     applied_config_is_old = is_later_event(last_config_request, last_applied_config)
     if not applied_config_is_old and config.is_effectual != config_is_effectual:
         config.is_effectual = config_is_effectual
+    if not config.has_account:
+        config.has_account = True
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 0d78a6704cec
+Revision ID: 8bb74cd4ea53
 Revises: 8d8c816257ce
-Create Date: 2020-03-02 17:22:45.550218
+Create Date: 2020-03-02 22:43:38.373531
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '0d78a6704cec'
+revision = '8bb74cd4ea53'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -106,6 +106,7 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('has_account', sa.BOOLEAN(), nullable=False, comment='Whether a corresponding `account` record exists.'),
     sa.Column('is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last change in the configuration. Must never decrease.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last change in the configuration. It is incremented (with wrapping) on every change. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
@@ -115,7 +116,7 @@ def upgrade():
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will have no corresponding `account` record. Also, an `account_config` record must not be deleted, unless its `is_effectual` column is `true` and there is no corresponding `account` record."
+    comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will not have a corresponding `account` record. Also, normally an `account_config` record can not be safely deleted, unless `is_effectual` is `true`, `is_scheduled_for_deletion` is `true`, and `has_account` is `false`."
     )
     op.create_table('account',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
