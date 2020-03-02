@@ -61,6 +61,82 @@ def lock_or_create_creditor(creditor_id: int) -> Creditor:
 
 
 @atomic
+def create_account(creditor_id: int, debtor_id: int) -> bool:
+    """"Make sure the account exists, return if a new account was created.
+
+    Raises `CreditorDoesNotExistError` if the creditor does not exist.
+
+    """
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    config_needs_to_be_created = _get_account_config(creditor_id, debtor_id) is None
+    if config_needs_to_be_created:
+        config = _create_account_config(creditor_id, debtor_id)
+        _insert_configure_account_signal(config)
+
+    return config_needs_to_be_created
+
+
+@atomic
+def change_account_config(
+        creditor_id: int,
+        debtor_id: int,
+        allow_unsafe_removal: bool,
+        negligible_amount: float,
+        is_scheduled_for_deletion: bool) -> None:
+
+    """Change account's configuration.
+
+    Raises `AccountDoesNotExistError` if the account does not exist.
+
+    """
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert negligible_amount >= 0.0
+
+    config = _get_account_config(creditor_id, debtor_id, lock=True)
+    if config is None:
+        raise AccountDoesNotExistError()
+
+    config.allow_unsafe_removal = allow_unsafe_removal
+    config.negligible_amount = negligible_amount
+    config.is_scheduled_for_deletion = is_scheduled_for_deletion
+    _insert_configure_account_signal(config)
+
+
+@atomic
+def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
+    """Try to remove an account, return if the account has been removed."""
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    config = _get_account_config(creditor_id, debtor_id)
+    if config:
+        if not config.allow_unsafe_removal:
+            account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+            is_removal_safe = (
+                config.is_effectual
+                and config.is_scheduled_for_deletion
+                and not db.session.query(account_query.exists()).scalar()
+            )
+            if not is_removal_safe:
+                return False
+
+        AccountConfig.query.\
+            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+            delete(synchronize_session=False)
+        AccountLedger.query.\
+            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+            delete(synchronize_session=False)
+
+    return True
+
+
+@atomic
 def process_account_change_signal(
         debtor_id: int,
         creditor_id: int,

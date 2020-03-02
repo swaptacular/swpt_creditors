@@ -2,7 +2,7 @@ import pytest
 from datetime import date, timedelta
 from uuid import UUID
 from swpt_creditors import procedures as p
-from swpt_creditors.models import Account, AccountConfig, ConfigureAccountSignal
+from swpt_creditors.models import Creditor, Account, AccountConfig, ConfigureAccountSignal
 
 D_ID = -1
 C_ID = 1
@@ -19,6 +19,20 @@ def creditor(db_session):
 @pytest.fixture
 def setup_account(creditor):
     p.create_account(C_ID, D_ID)
+
+
+def test_create_new_creditor(db_session):
+    creditor = p.create_new_creditor(C_ID)
+    assert creditor.creditor_id == C_ID
+    assert Creditor.query.one()
+    with pytest.raises(p.CreditorExistsError):
+        p.create_new_creditor(C_ID)
+    creditor = p.lock_or_create_creditor(C_ID)
+    assert creditor.creditor_id == C_ID
+    assert Creditor.query.one()
+    creditor = p.lock_or_create_creditor(666)
+    assert creditor.creditor_id == 666
+    assert len(Creditor.query.all()) == 2
 
 
 def test_process_pending_account_commits(db_session, setup_account, current_ts):
