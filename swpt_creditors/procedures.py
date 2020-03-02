@@ -345,7 +345,13 @@ def try_to_remove_account(creditor_id: int, debtor_id: int, force: bool = False)
                        and not db.session.query(account_query.exists()).scalar())
             if not is_safe:
                 return False
-        AccountLedger.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete()
+
+        AccountConfig.query.\
+            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+            delete(synchronize_session=False)
+        AccountLedger.query.\
+            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+            delete(synchronize_session=False)
 
     return True
 

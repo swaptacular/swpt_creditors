@@ -16,9 +16,13 @@ def creditor(db_session):
     return p.lock_or_create_creditor(C_ID)
 
 
-def test_process_pending_account_commits(db_session, creditor, current_ts):
-    ny2020 = date(2020, 1, 1)
+@pytest.fixture
+def setup_account(creditor):
     p.setup_account(C_ID, D_ID)
+
+
+def test_process_pending_account_commits(db_session, setup_account, current_ts):
+    ny2020 = date(2020, 1, 1)
     p.process_account_commit_signal(D_ID, C_ID, 1, 'direct', 666, current_ts, 1000, {}, ny2020, 1000)
     assert p.process_pending_account_commits(C_ID, D_ID)
 
@@ -37,6 +41,23 @@ def test_setup_account(db_session, creditor):
     assert AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     created = p.setup_account(C_ID, D_ID)
     assert not created
+
+
+def test_change_account_config(db_session, setup_account):
+    with pytest.raises(p.AccountDoesNotExistError):
+        p.change_account_config(C_ID, 1234, 0.0, False)
+    p.change_account_config(C_ID, D_ID, 100.0, True)
+    config = AccountConfig.query.one()
+    assert config.negligible_amount == 100.0
+    assert config.is_scheduled_for_deletion
+
+
+def test_try_to_remove_account(db_session, setup_account):
+    assert p.try_to_remove_account(C_ID, 1234)
+    assert not p.try_to_remove_account(C_ID, D_ID)
+    assert AccountConfig.query.one()
+    assert p.try_to_remove_account(C_ID, D_ID, force=True)
+    assert AccountConfig.query.one_or_none() is None
 
 
 def test_process_account_change_signal(db_session, creditor, current_ts):
