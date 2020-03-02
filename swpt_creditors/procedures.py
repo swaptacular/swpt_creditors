@@ -322,7 +322,7 @@ def try_to_remove_account(creditor_id: int, debtor_id: int, force: bool = False)
 
     """
 
-    config = _get_account_config(creditor_id, debtor_id, lock=True)
+    config = _get_account_config(creditor_id, debtor_id)
     if config:
         if not force:
             account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
