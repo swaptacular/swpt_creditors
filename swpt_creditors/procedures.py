@@ -273,7 +273,7 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 @atomic
 def setup_account(creditor_id: int, debtor_id: int) -> bool:
-    """"Return whether a new account has been created.
+    """"Make sure an account exists, return if a new account was created.
 
     Raises `CreditorDoesNotExistError` if the creditor does not exist.
 
@@ -287,8 +287,12 @@ def setup_account(creditor_id: int, debtor_id: int) -> bool:
         config = _create_account_config(creditor_id, debtor_id)
         created = True
     else:
+        # When the account already exists, we have to reset its
+        # configuration, so that it behaves like a newly created
+        # account.
         config.reset()
         created = False
+
     _insert_configure_account_signal(config)
     return created
 
@@ -300,6 +304,12 @@ def change_account_config(
         negligible_amount: float,
         is_scheduled_for_deletion: bool) -> None:
 
+    """Change account's configuration.
+
+    Raises `AccountDoesNotExistError` if the account does not exist.
+
+    """
+
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert negligible_amount >= 0.0
@@ -307,6 +317,7 @@ def change_account_config(
     config = _get_account_config(creditor_id, debtor_id, lock=True)
     if config is None:
         raise AccountDoesNotExistError()
+
     config.negligible_amount = negligible_amount
     config.is_scheduled_for_deletion = is_scheduled_for_deletion
     _insert_configure_account_signal(config)
@@ -321,6 +332,9 @@ def try_to_remove_account(creditor_id: int, debtor_id: int, force: bool = False)
     removed regardless of safety.
 
     """
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     config = _get_account_config(creditor_id, debtor_id)
     if config:
