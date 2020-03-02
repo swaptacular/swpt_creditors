@@ -269,8 +269,8 @@ def find_legible_pending_account_commits(max_count: int = None):
 
 
 @atomic
-def setup_account(creditor_id: int, debtor_id: int) -> bool:
-    """"Make sure an account exists, return if a new account was created.
+def create_account(creditor_id: int, debtor_id: int) -> bool:
+    """"Make sure the account exists, return if a new account was created.
 
     Raises `CreditorDoesNotExistError` if the creditor does not exist.
 

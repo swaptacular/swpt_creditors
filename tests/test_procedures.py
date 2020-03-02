@@ -18,7 +18,7 @@ def creditor(db_session):
 
 @pytest.fixture
 def setup_account(creditor):
-    p.setup_account(C_ID, D_ID)
+    p.create_account(C_ID, D_ID)
 
 
 def test_process_pending_account_commits(db_session, setup_account, current_ts):
@@ -35,13 +35,13 @@ def test_find_legible_pending_account_commits(db_session):
     p.find_legible_pending_account_commits(max_count=10)
 
 
-def test_setup_account(db_session, creditor):
+def test_create_account(db_session, creditor):
     with pytest.raises(p.CreditorDoesNotExistError):
-        p.setup_account(666, D_ID)
-    created = p.setup_account(C_ID, D_ID)
+        p.create_account(666, D_ID)
+    created = p.create_account(C_ID, D_ID)
     assert created
     assert AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    created = p.setup_account(C_ID, D_ID)
+    created = p.create_account(C_ID, D_ID)
     assert not created
 
 
