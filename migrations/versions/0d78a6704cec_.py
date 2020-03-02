@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4452a1595f04
+Revision ID: 0d78a6704cec
 Revises: 8d8c816257ce
-Create Date: 2020-03-02 14:51:43.592658
+Create Date: 2020-03-02 17:22:45.550218
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '4452a1595f04'
+revision = '0d78a6704cec'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -109,6 +109,7 @@ def upgrade():
     sa.Column('is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last change in the configuration. Must never decrease.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last change in the configuration. It is incremented (with wrapping) on every change. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
+    sa.Column('allow_unsafe_removal', sa.BOOLEAN(), nullable=False, comment='Whether the owner approved unsafe removal of the account. In extraordinary circumstances it might be necessary to forcefully remove an account, accepting the risk of losing the available amount.'),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the account is scheduled for deletion.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
@@ -125,8 +126,6 @@ def upgrade():
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('last_config_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_config_change_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),

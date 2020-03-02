@@ -403,6 +403,14 @@ class AccountConfig(db.Model):
                 'column, allows to reliably determine the correct order of changes, even if '
                 'they occur in a very short period of time.',
     )
+    allow_unsafe_removal = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether the owner approved unsafe removal of the account. In extraordinary '
+                'circumstances it might be necessary to forcefully remove an account, accepting '
+                'the risk of losing the available amount.',
+    )
     is_scheduled_for_deletion = db.Column(
         db.BOOLEAN,
         nullable=False,
@@ -599,8 +607,6 @@ class Account(db.Model):
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    last_config_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_config_change_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)

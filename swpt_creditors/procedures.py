@@ -112,8 +112,6 @@ def process_account_change_signal(
         account.interest = interest
         account.interest_rate = interest_rate
         account.last_transfer_seqnum = last_transfer_seqnum
-        account.last_config_change_ts = last_config_change_ts
-        account.last_config_change_seqnum = last_config_change_seqnum
         account.creation_date = creation_date
         account.negligible_amount = negligible_amount
         account.status = status
@@ -137,8 +135,6 @@ def process_account_change_signal(
             interest=interest,
             interest_rate=interest_rate,
             last_transfer_seqnum=last_transfer_seqnum,
-            last_config_change_ts=last_config_change_ts,
-            last_config_change_seqnum=last_config_change_seqnum,
             creation_date=creation_date,
             negligible_amount=negligible_amount,
             status=status,
@@ -146,10 +142,11 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
+    _revise_account_config_effectuality(account, last_config_change_ts, last_config_change_seqnum)
+
     # TODO: Reset the ledger if it has been outdated for a long time.
     #       Consider adding `Account.last_transfer_committed_at_ts`
     #       and `Account.last_transfer_ts`.
-    _revise_account_config_effectuality(account)
 
 
 @atomic
@@ -294,6 +291,7 @@ def setup_account(creditor_id: int, debtor_id: int) -> bool:
 def change_account_config(
         creditor_id: int,
         debtor_id: int,
+        allow_unsafe_removal: bool,
         negligible_amount: float,
         is_scheduled_for_deletion: bool) -> None:
 
@@ -311,32 +309,29 @@ def change_account_config(
     if config is None:
         raise AccountDoesNotExistError()
 
+    config.allow_unsafe_removal = allow_unsafe_removal
     config.negligible_amount = negligible_amount
     config.is_scheduled_for_deletion = is_scheduled_for_deletion
     _insert_configure_account_signal(config)
 
 
 @atomic
-def try_to_remove_account(creditor_id: int, debtor_id: int, force: bool = False) -> bool:
-    """Try to remove an account, return if the account has been removed.
-
-    If `force` is `False`, the account will be removed only if it is
-    safe or to do so. If `force` is `True`, the account will be
-    removed regardless of safety.
-
-    """
+def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
+    """Try to remove an account, return if the account has been removed."""
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     config = _get_account_config(creditor_id, debtor_id)
     if config:
-        if not force:
+        if not config.allow_unsafe_removal:
             account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
-            is_safe = (config.is_effectual
-                       and config.is_scheduled_for_deletion
-                       and not db.session.query(account_query.exists()).scalar())
-            if not is_safe:
+            is_removal_safe = (
+                config.is_effectual
+                and config.is_scheduled_for_deletion
+                and not db.session.query(account_query.exists()).scalar()
+            )
+            if not is_removal_safe:
                 return False
 
         AccountConfig.query.\
@@ -454,13 +449,19 @@ def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool =
     return _get_account_config(creditor_id, debtor_id, lock=lock) or _create_account_config(creditor_id, debtor_id)
 
 
-def _revise_account_config_effectuality(account: Account) -> None:
+def _revise_account_config_effectuality(
+        account: Account,
+        last_config_change_ts: datetime,
+        last_config_change_seqnum: int) -> None:
+
     config = account.account_config
     config_event = (config.last_change_ts, config.last_change_seqnum)
-    account_config_event = (account.last_config_change_ts, account.last_config_change_seqnum)
+    account_config_event = (last_config_change_ts, last_config_change_seqnum)
     account_config_event_is_not_old = not is_later_event(config_event, account_config_event)
-    config_is_the_same = (config.is_scheduled_for_deletion == account.is_scheduled_for_deletion
-                          and config.negligible_amount == account.negligible_amount)
+    config_is_the_same = (
+        config.is_scheduled_for_deletion == account.is_scheduled_for_deletion
+        and config.negligible_amount == account.negligible_amount
+    )
     if account_config_event_is_not_old and config.is_effectual != config_is_the_same:
         config.is_effectual = config_is_the_same
 

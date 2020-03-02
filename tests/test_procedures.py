@@ -47,8 +47,8 @@ def test_setup_account(db_session, creditor):
 
 def test_change_account_config(db_session, setup_account):
     with pytest.raises(p.AccountDoesNotExistError):
-        p.change_account_config(C_ID, 1234, 0.0, False)
-    p.change_account_config(C_ID, D_ID, 100.0, True)
+        p.change_account_config(C_ID, 1234, False, 0.0, False)
+    p.change_account_config(C_ID, D_ID, False, 100.0, True)
     config = AccountConfig.query.one()
     assert config.negligible_amount == 100.0
     assert config.is_scheduled_for_deletion
@@ -75,7 +75,8 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
     assert not account.account_config.is_scheduled_for_deletion
     assert not p.try_to_remove_account(C_ID, D_ID)
     assert AccountConfig.query.one()
-    assert p.try_to_remove_account(C_ID, D_ID, force=True)
+    p.change_account_config(C_ID, D_ID, True, 0.0, False)
+    assert p.try_to_remove_account(C_ID, D_ID)
     assert AccountConfig.query.one_or_none() is None
 
 
