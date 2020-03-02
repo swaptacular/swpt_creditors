@@ -36,6 +36,8 @@ def test_find_legible_pending_account_commits(db_session):
 
 
 def test_setup_account(db_session, creditor):
+    with pytest.raises(p.CreditorDoesNotExistError):
+        p.setup_account(666, D_ID)
     created = p.setup_account(C_ID, D_ID)
     assert created
     assert AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()

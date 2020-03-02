@@ -283,18 +283,12 @@ def setup_account(creditor_id: int, debtor_id: int) -> bool:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     config = _get_account_config(creditor_id, debtor_id, lock=True)
-    if config is None:
+    config_needs_to_be_created = config is None
+    if config_needs_to_be_created:
         config = _create_account_config(creditor_id, debtor_id)
-        created = True
-    else:
-        # When the account already exists, we have to reset its
-        # configuration, so that it behaves like a newly created
-        # account.
-        config.reset()
-        created = False
+        _insert_configure_account_signal(config)
 
-    _insert_configure_account_signal(config)
-    return created
+    return config_needs_to_be_created
 
 
 @atomic

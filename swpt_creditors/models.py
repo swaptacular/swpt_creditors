@@ -438,10 +438,6 @@ class AccountConfig(db.Model):
         backref=db.backref('account_config', uselist=False),
     )
 
-    def reset(self):
-        self.is_scheduled_for_deletion = False
-        self.negligible_amount = 0.0
-
 
 class AccountIssue(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
