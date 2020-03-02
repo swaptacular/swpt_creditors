@@ -41,7 +41,7 @@ def get_creditor(creditor_id: int) -> Optional[Creditor]:
 
 
 @atomic
-def create_new_creditor(creditor_id: int) -> Optional[Creditor]:
+def create_new_creditor(creditor_id: int) -> Creditor:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     creditor = Creditor(creditor_id=creditor_id)
