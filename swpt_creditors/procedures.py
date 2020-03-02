@@ -313,12 +313,27 @@ def change_account_config(
 
 
 @atomic
-def remove_account(creditor_id: int, debtor_id: int, force: bool = False) -> None:
-    # TODO: Delete the `AccountLedger`,and therefore the
-    # `AccountConfig` record as well. It is safe to delete an
-    # `AccountLedger` if: 1) a corresponding `Account` record does not
-    # exist; 2) is scheduled for deletion; 3) is effectual.
-    pass
+def try_to_remove_account(creditor_id: int, debtor_id: int, force: bool = False) -> bool:
+    """Try to remove an account, return if the account has been removed.
+
+    If `force` is `False`, the account will be removed only if it is
+    safe or to do so. If `force` is `True`, the account will be
+    removed regardless of safety.
+
+    """
+
+    config = _get_account_config(creditor_id, debtor_id, lock=True)
+    if config:
+        if not force:
+            account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+            is_safe = (config.is_effectual
+                       and config.is_scheduled_for_deletion
+                       and not db.session.query(account_query.exists()).scalar())
+            if not is_safe:
+                return False
+        AccountLedger.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete()
+
+    return True
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
