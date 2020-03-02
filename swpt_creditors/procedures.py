@@ -120,6 +120,8 @@ def process_account_change_signal(
     else:
         config = _get_account_config(creditor_id, debtor_id, lock=True)
         if config is None:
+            # TODO: Check CREDITORSPACE and CREDITORSPACE_MASK?!
+
             # When there is no corresponding `AccountConfig` record,
             # the "orphaned" account should be scheduled for
             # deletion. However, because this can be quite dangerous,
@@ -292,7 +294,12 @@ def setup_account(creditor_id: int, debtor_id: int) -> bool:
 
 
 @atomic
-def schedule_account_for_deletion(creditor_id: int, debtor_id: int, negligible_amount: float) -> None:
+def change_account_config(
+        creditor_id: int,
+        debtor_id: int,
+        negligible_amount: float,
+        is_scheduled_for_deletion: bool) -> None:
+
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert negligible_amount >= 0.0
@@ -300,17 +307,17 @@ def schedule_account_for_deletion(creditor_id: int, debtor_id: int, negligible_a
     config = _get_account_config(creditor_id, debtor_id, lock=True)
     if config is None:
         raise AccountDoesNotExistError()
-    config.is_scheduled_for_deletion = True
     config.negligible_amount = negligible_amount
+    config.is_scheduled_for_deletion = is_scheduled_for_deletion
     _insert_configure_account_signal(config)
 
 
 @atomic
-def remove_account(creditor_id: int, debtor_id: int) -> None:
+def remove_account(creditor_id: int, debtor_id: int, force: bool = False) -> None:
     # TODO: Delete the `AccountLedger`,and therefore the
-    # `AccountConfig` record as well, if: 1) a corresponding `Account`
-    # record does not exist; 2) is scheduled for deletion; 3) is
-    # effectual.
+    # `AccountConfig` record as well. It is safe to delete an
+    # `AccountLedger` if: 1) a corresponding `Account` record does not
+    # exist; 2) is scheduled for deletion; 3) is effectual.
     pass
 
 
