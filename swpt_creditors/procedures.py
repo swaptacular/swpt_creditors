@@ -89,7 +89,6 @@ def create_account(creditor_id: int, debtor_id: int) -> bool:
 def change_account_config(
         creditor_id: int,
         debtor_id: int,
-        allow_unsafe_removal: bool,
         negligible_amount: float,
         is_scheduled_for_deletion: bool) -> None:
 
@@ -107,7 +106,6 @@ def change_account_config(
     if config is None:
         raise AccountDoesNotExistError()
 
-    config.allow_unsafe_removal = allow_unsafe_removal
     config.negligible_amount = negligible_amount
     config.is_scheduled_for_deletion = is_scheduled_for_deletion
     _insert_configure_account_signal(config)
@@ -122,13 +120,12 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
 
     config = _get_account_config(creditor_id, debtor_id)
     if config:
-        if not config.allow_unsafe_removal:
-            days_since_last_config_change = (datetime.now(tz=timezone.utc) - config.last_change_ts).days
-            is_timed_out = days_since_last_config_change > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
-            is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and config.is_effectual
-            is_removal_safe = not config.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
-            if not is_removal_safe:
-                return False
+        days_since_last_config_change = (datetime.now(tz=timezone.utc) - config.last_change_ts).days
+        is_timed_out = days_since_last_config_change > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
+        is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and config.is_effectual
+        is_removal_safe = not config.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
+        if not is_removal_safe:
+            return False
 
         AccountConfig.query.\
             filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\

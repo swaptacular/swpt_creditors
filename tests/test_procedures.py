@@ -66,15 +66,19 @@ def test_create_account(db_session, creditor):
 
 def test_change_account_config(db_session, setup_account):
     with pytest.raises(p.AccountDoesNotExistError):
-        p.change_account_config(C_ID, 1234, False, 0.0, False)
-    p.change_account_config(C_ID, D_ID, False, 100.0, True)
+        p.change_account_config(C_ID, 1234, 0.0, False)
+    p.change_account_config(C_ID, D_ID, 100.0, True)
     config = AccountConfig.query.one()
     assert config.negligible_amount == 100.0
     assert config.is_scheduled_for_deletion
 
 
 def test_try_to_remove_account(db_session, setup_account, current_ts):
+    assert len(Account.query.all()) == 0
     assert p.try_to_remove_account(C_ID, 1234)
+    assert len(AccountConfig.query.all()) == 1
+
+    # Not safe to remove
     p.process_account_change_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -90,13 +94,35 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         negligible_amount=0.0,
         status=0,
     )
-    account = Account.query.one()
-    assert not account.account_config.is_scheduled_for_deletion
+    assert len(Account.query.all()) == 1
     assert not p.try_to_remove_account(C_ID, D_ID)
-    assert AccountConfig.query.one()
-    p.change_account_config(C_ID, D_ID, True, 0.0, False)
+    assert len(AccountConfig.query.all()) == 1
+
+    # Safe to remove
+    p.change_account_config(C_ID, D_ID, 5000.0, True)
+    p.process_account_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_ts=current_ts,
+        change_seqnum=2,
+        principal=1000,
+        interest=0.0,
+        interest_rate=5.0,
+        last_transfer_seqnum=1,
+        last_config_change_ts=current_ts,
+        last_config_change_seqnum=2,
+        creation_date=date(2020, 1, 1),
+        negligible_amount=5000.0,
+        status=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG,
+    )  # makes the config effectual
+    p.process_account_purge_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=date(2020, 1, 1),
+    )  # deletes the `Account` record
+    assert len(Account.query.all()) == 0
     assert p.try_to_remove_account(C_ID, D_ID)
-    assert AccountConfig.query.one_or_none() is None
+    assert len(AccountConfig.query.all()) == 0
 
 
 def test_process_account_change_signal(db_session, creditor, setup_account, current_ts):

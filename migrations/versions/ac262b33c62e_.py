@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8bb74cd4ea53
+Revision ID: ac262b33c62e
 Revises: 8d8c816257ce
-Create Date: 2020-03-02 22:43:38.373531
+Create Date: 2020-03-03 20:41:22.390105
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '8bb74cd4ea53'
+revision = 'ac262b33c62e'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -110,13 +110,12 @@ def upgrade():
     sa.Column('is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last change in the configuration. Must never decrease.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last change in the configuration. It is incremented (with wrapping) on every change. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
-    sa.Column('allow_unsafe_removal', sa.BOOLEAN(), nullable=False, comment='Whether the owner approved unsafe removal of the account. In extraordinary circumstances it might be necessary to forcefully remove an account, accepting the risk of losing the available amount.'),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the account is scheduled for deletion.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will not have a corresponding `account` record. Also, normally an `account_config` record can not be safely deleted, unless `is_effectual` is `true`, `is_scheduled_for_deletion` is `true`, and `has_account` is `false`."
+    comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will not have a corresponding `account` record."
     )
     op.create_table('account',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
