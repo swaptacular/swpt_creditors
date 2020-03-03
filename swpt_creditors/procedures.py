@@ -476,23 +476,25 @@ def _revise_account_config_effectuality(
         last_config_change_seqnum: int,
         new_account: bool) -> None:
 
-    # TODO: Simplify this.
-
     config = account.account_config
-    config_is_effectual = account.check_if_config_is_effectual()
-    last_config_request = (config.last_change_ts, config.last_change_seqnum)
-    last_applied_config = (last_config_change_ts, last_config_change_seqnum)
-    has_no_applied_config = last_config_change_ts - BEGINNING_OF_TIME < TD_SECOND
-    applied_config_is_old = is_later_event(last_config_request, last_applied_config)
-    if not applied_config_is_old and config.is_effectual != config_is_effectual:
-        config.is_effectual = config_is_effectual
     if not config.has_account:
         config.has_account = True
-    if new_account and has_no_applied_config:
+
+    no_applied_config = last_config_change_ts - BEGINNING_OF_TIME < TD_SECOND
+    if no_applied_config:
         # It looks like the account has been resurrected with the
-        # default configuration values. Therefore, it must be
-        # reconfigured with the current values.
-        _insert_configure_account_signal(config)
+        # default configuration values. Therefore it must be
+        # reconfigured. As an optimization, we do this reconfiguration
+        # only once (for new accounts).
+        if new_account:
+            _insert_configure_account_signal(config)
+    else:
+        last_config_request = (config.last_change_ts, config.last_change_seqnum)
+        last_applied_config = (last_config_change_ts, last_config_change_seqnum)
+        applied_config_is_old = is_later_event(last_config_request, last_applied_config)
+        config_is_effectual = account.check_if_config_is_effectual()
+        if not applied_config_is_old and config.is_effectual != config_is_effectual:
+            config.is_effectual = config_is_effectual
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:
