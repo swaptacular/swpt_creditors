@@ -397,7 +397,7 @@ class AccountConfig(db.Model):
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
-        default=BEGINNING_OF_TIME,
+        default=get_now_utc,
         comment='The timestamp of the last change in the configuration. Must never decrease.',
     )
     last_change_seqnum = db.Column(
