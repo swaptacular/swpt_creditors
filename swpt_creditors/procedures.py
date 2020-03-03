@@ -9,12 +9,13 @@ from .extensions import db
 from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
-    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
-TD_5_SECONDS = timedelta(seconds=10)
+TD_SECOND = timedelta(seconds=1)
+TD_5_SECONDS = timedelta(seconds=5)
 HUGE_NEGLIGIBLE_AMOUNT = 1e30
 PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.debtor_id,
@@ -200,6 +201,7 @@ def process_account_change_signal(
         if this_event_is_not_new:
             return
         assert this_event_is_not_old
+        new_account = account.creation_date < creation_date
         account.change_ts = change_ts
         account.change_seqnum = change_seqnum
         account.principal = principal
@@ -221,6 +223,7 @@ def process_account_change_signal(
             if current_app.config['APP_DISCARD_ORPHANED_ACCOUNTS']:
                 _discard_orphaned_account(creditor_id, debtor_id, status, negligible_amount)
             return
+        new_account = True
         account = Account(
             account_config=config,
             change_ts=change_ts,
@@ -236,7 +239,7 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _revise_account_config_effectuality(account, last_config_change_ts, last_config_change_seqnum)
+    _revise_account_config_effectuality(account, last_config_change_ts, last_config_change_seqnum, new_account)
 
     # TODO: Reset the ledger if it has been outdated for a long time.
     #       Consider adding `Account.last_transfer_committed_at_ts`
@@ -470,17 +473,26 @@ def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool =
 def _revise_account_config_effectuality(
         account: Account,
         last_config_change_ts: datetime,
-        last_config_change_seqnum: int) -> None:
+        last_config_change_seqnum: int,
+        new_account: bool) -> None:
+
+    # TODO: Simplify this.
 
     config = account.account_config
     config_is_effectual = account.check_if_config_is_effectual()
     last_config_request = (config.last_change_ts, config.last_change_seqnum)
     last_applied_config = (last_config_change_ts, last_config_change_seqnum)
+    has_no_applied_config = last_config_change_ts - BEGINNING_OF_TIME < TD_SECOND
     applied_config_is_old = is_later_event(last_config_request, last_applied_config)
     if not applied_config_is_old and config.is_effectual != config_is_effectual:
         config.is_effectual = config_is_effectual
     if not config.has_account:
         config.has_account = True
+    if new_account and has_no_applied_config:
+        # It looks like the account has been resurrected with the
+        # default configuration values. Therefore, it must be
+        # reconfigured with the current values.
+        _insert_configure_account_signal(config)
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:
