@@ -440,10 +440,8 @@ class AccountConfig(db.Model):
         db.CheckConstraint(negligible_amount >= 0.0),
         {
             'comment': "Represents a configured (created) account from users' perspective. Note "
-                       "that a freshly inserted `account_config` record will not have a corresponding "
-                       "`account` record. Also, normally an `account_config` record can not be safely "
-                       "deleted, unless `is_effectual` is `true`, `is_scheduled_for_deletion` is "
-                       "`true`, and `has_account` is `false`.",
+                       "that a freshly inserted `account_config` record will not have a "
+                       "corresponding `account` record.",
         },
     )
 

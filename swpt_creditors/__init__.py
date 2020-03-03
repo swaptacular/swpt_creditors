@@ -54,6 +54,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_TRANSFERS_FINALIZATION_AVG_SECONDS = 5.0
     APP_SIGNALBUS_MAX_DELAY_DAYS = 14
     APP_DISCARD_ORPHANED_ACCOUNTS = False
+    APP_DEAD_ACCOUNTS_ABANDON_DAYS = 365
 
 
 def create_app(config_dict={}):

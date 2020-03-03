@@ -123,10 +123,10 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
     config = _get_account_config(creditor_id, debtor_id)
     if config:
         if not config.allow_unsafe_removal:
-            # TODO: Isn't this too conservative? May be it is enough
-            #       to `not config.has_account`.
-
-            is_removal_safe = config.is_effectual and config.is_scheduled_for_deletion and not config.has_account
+            days_since_last_config_change = (datetime.now(tz=timezone.utc) - config.last_change_ts).days
+            is_timed_out = days_since_last_config_change > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
+            is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and config.is_effectual
+            is_removal_safe = not config.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
             if not is_removal_safe:
                 return False
 
