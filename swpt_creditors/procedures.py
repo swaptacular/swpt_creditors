@@ -480,9 +480,9 @@ def _revise_account_config_effectuality(
     no_applied_config = last_config_change_ts - BEGINNING_OF_TIME < TD_SECOND
     if no_applied_config:
         # It looks like the account has been resurrected with the
-        # default configuration values. Therefore it must be
-        # reconfigured. As an optimization, we do this reconfiguration
-        # only once (when the account is new).
+        # default configuration values, and must be reconfigured. As
+        # an optimization, we do this reconfiguration only once (when
+        # the account is new).
         if new_account:
             _insert_configure_account_signal(config)
     else:
@@ -492,6 +492,11 @@ def _revise_account_config_effectuality(
         config_is_effectual = account.check_if_config_is_effectual()
         if not applied_config_is_old and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
+
+    # TODO: Detect the situation when the account is scheduled for
+    #       deletion, but `config.negligible_amount` is smaller than
+    #       available amount. Make there is an `AccountIssue` record
+    #       informing for the event.
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:
