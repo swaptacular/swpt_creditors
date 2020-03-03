@@ -485,7 +485,7 @@ def _revise_account_config_effectuality(
         # It looks like the account has been resurrected with the
         # default configuration values. Therefore it must be
         # reconfigured. As an optimization, we do this reconfiguration
-        # only once (for new accounts).
+        # only once (when the account is new).
         if new_account:
             _insert_configure_account_signal(config)
     else:
