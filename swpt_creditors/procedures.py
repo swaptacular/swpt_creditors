@@ -117,6 +117,11 @@ def change_account_config(
 def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
     """Try to remove an account, return if the account has been removed."""
 
+    # TODO: Make sure users do not remove accounts unsafely too
+    #       often. For example, users may create and remove hundreds
+    #       of accounts per minute, significantly raising the cost for
+    #       the operator of the service.
+
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
