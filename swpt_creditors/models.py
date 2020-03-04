@@ -379,8 +379,9 @@ class PendingAccountCommit(db.Model):
 
 
 class AccountConfig(db.Model):
-    ISSUE_CONFIG_IS_NOT_EFFECTUAL_FLAG = 1
-    ISSUE_ACCOUNT_CAN_BE_REMOVED_FLAG = 2
+    ISSUE_ACCOUNT_IS_FUNCTIONAL_FLAG = 1
+    ISSUE_CONFIG_IS_NOT_EFFECTUAL_FLAG = 2
+    ISSUE_ACCOUNT_CAN_BE_REMOVED_FLAG = 4
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -417,6 +418,7 @@ class AccountConfig(db.Model):
         nullable=False,
         default=0,
         comment="Issues for which the user has been notified (status bits): "
+                f"{ISSUE_ACCOUNT_IS_FUNCTIONAL_FLAG} - the account is functional, "
                 f"{ISSUE_CONFIG_IS_NOT_EFFECTUAL_FLAG} - the configuration is not effectual, "
                 f"{ISSUE_ACCOUNT_CAN_BE_REMOVED_FLAG} - the account can be removed.",
     )
