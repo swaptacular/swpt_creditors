@@ -228,14 +228,12 @@ def process_account_change_signal(
     else:
         config = _get_account_config(creditor_id, debtor_id, lock=True)
         if config is None:
-            # TODO: Check CREDITORSPACE and CREDITORSPACE_MASK?!
+            # TODO: This is very dangerous. Ensure that `creditor_id`
+            #       matches the CREDITORSPACE/CREDITORSPACE_MASK.
 
-            # When there is no corresponding `AccountConfig` record,
-            # the "orphaned" account should be scheduled for
-            # deletion. However, because this can be quite dangerous,
-            # this behavior has to be configured explicitly.
-            if current_app.config['APP_DISCARD_ORPHANED_ACCOUNTS']:
-                _discard_orphaned_account(creditor_id, debtor_id, status, negligible_amount)
+            # The user have removed the account. The "orphaned"
+            # `Account` record should be scheduled for deletion.
+            _discard_orphaned_account(creditor_id, debtor_id, status, negligible_amount)
             return
         new_account = True
         account = Account(
