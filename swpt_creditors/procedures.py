@@ -89,9 +89,9 @@ def create_account(creditor_id: int, debtor_id: int) -> bool:
 def change_account_config(
         creditor_id: int,
         debtor_id: int,
-        allow_unsafe_removal: bool,
-        negligible_amount: float,
-        is_scheduled_for_deletion: bool) -> None:
+        allow_unsafe_removal: bool = None,
+        negligible_amount: float = None,
+        is_scheduled_for_deletion: bool = None) -> None:
 
     """Change account's configuration.
 
@@ -101,16 +101,25 @@ def change_account_config(
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert negligible_amount >= 0.0
 
     config = _get_account_config(creditor_id, debtor_id, lock=True)
     if config is None:
         raise AccountDoesNotExistError()
 
-    config.allow_unsafe_removal = allow_unsafe_removal
-    config.negligible_amount = negligible_amount
-    config.is_scheduled_for_deletion = is_scheduled_for_deletion
-    _insert_configure_account_signal(config)
+    if allow_unsafe_removal is not None and config.allow_unsafe_removal != allow_unsafe_removal:
+        config.allow_unsafe_removal = allow_unsafe_removal
+
+    if negligible_amount is not None and config.negligible_amount != negligible_amount:
+        assert negligible_amount >= 0.0
+        config.negligible_amount = negligible_amount
+        config.is_effectual = False
+
+    if is_scheduled_for_deletion is not None and config.is_scheduled_for_deletion != is_scheduled_for_deletion:
+        config.is_scheduled_for_deletion = is_scheduled_for_deletion
+        config.is_effectual = False
+
+    if not config.is_effectual:
+        _insert_configure_account_signal(config)
 
 
 @atomic
