@@ -614,7 +614,13 @@ class Account(db.Model):
     STATUS_OVERFLOWN_FLAG = 4
     STATUS_SCHEDULED_FOR_DELETION_FLAG = 8
 
+    # TODO: Do we need those flags? If the checking for issues is done
+    #       when the `AccountChangeSignal` is processed, we probably
+    #       can read the `AccountIssue` table directly. Also, the
+    #       change in the interest rate is tricky, because there might
+    #       be several of them, while the user acknowledges one.
     ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG = 1
+    ISSUE_CHANGED_INTEREST_RATE_FLAG = 2
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -640,7 +646,8 @@ class Account(db.Model):
         nullable=False,
         default=0,
         comment="Issues for which the user has been notified (status bits): "
-                f"{ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG} - the available amount is not negligible.",
+                f"{ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG} - the available amount is not negligible, "
+                f"{ISSUE_CHANGED_INTEREST_RATE_FLAG} - changed interest rate.",
     )
     __table_args__ = (
         db.ForeignKeyConstraint(
