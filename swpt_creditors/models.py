@@ -379,6 +379,9 @@ class PendingAccountCommit(db.Model):
 
 
 class AccountConfig(db.Model):
+    ISSUE_CONFIG_IS_NOT_EFFECTUAL_FLAG = 1
+    ISSUE_ACCOUNT_CAN_BE_REMOVED_FLAG = 2
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
@@ -408,6 +411,14 @@ class AccountConfig(db.Model):
                 '(with wrapping) on every change. This column, along with the `last_change_ts` '
                 'column, allows to reliably determine the correct order of changes, even if '
                 'they occur in a very short period of time.',
+    )
+    issues = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment="Issues for which the user has been notified (status bits): "
+                f"{ISSUE_CONFIG_IS_NOT_EFFECTUAL_FLAG} - the configuration is not effectual, "
+                f"{ISSUE_ACCOUNT_CAN_BE_REMOVED_FLAG} - the account can be removed.",
     )
     allow_unsafe_removal = db.Column(
         db.BOOLEAN,
@@ -603,6 +614,8 @@ class Account(db.Model):
     STATUS_OVERFLOWN_FLAG = 4
     STATUS_SCHEDULED_FOR_DELETION_FLAG = 8
 
+    ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG = 1
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
@@ -621,6 +634,13 @@ class Account(db.Model):
         comment='The moment at which the last `AccountChangeSignal` has been processed. It is '
                 'used to detect "dead" accounts. A "dead" account is an account that have been '
                 'removed from the `swpt_accounts` service, but still exist in this table.',
+    )
+    issues = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment="Issues for which the user has been notified (status bits): "
+                f"{ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG} - the available amount is not negligible.",
     )
     __table_args__ = (
         db.ForeignKeyConstraint(
