@@ -409,6 +409,14 @@ class AccountConfig(db.Model):
                 'column, allows to reliably determine the correct order of changes, even if '
                 'they occur in a very short period of time.',
     )
+    allow_unsafe_removal = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether the owner approved unsafe removal of the account. In extraordinary '
+                'circumstances it might be necessary to forcefully remove an account, accepting '
+                'the risk of losing the available amount.',
+    )
     is_scheduled_for_deletion = db.Column(
         db.BOOLEAN,
         nullable=False,
