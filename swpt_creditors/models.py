@@ -621,6 +621,7 @@ class Account(db.Model):
     #       be several of them, while the user acknowledges one.
     ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG = 1
     ISSUE_CHANGED_INTEREST_RATE_FLAG = 2
+    ISSUE_OVERFLOW_FLAG = 4
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
