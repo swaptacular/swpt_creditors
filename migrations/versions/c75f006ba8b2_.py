@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8bb74cd4ea53
+Revision ID: c75f006ba8b2
 Revises: 8d8c816257ce
-Create Date: 2020-03-02 22:43:38.373531
+Create Date: 2020-03-04 04:05:49.042679
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '8bb74cd4ea53'
+revision = 'c75f006ba8b2'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -116,7 +116,7 @@ def upgrade():
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will not have a corresponding `account` record. Also, normally an `account_config` record can not be safely deleted, unless `is_effectual` is `true`, `is_scheduled_for_deletion` is `true`, and `has_account` is `false`."
+    comment="Represents a configured (created) account from users' perspective. Note that a freshly inserted `account_config` record will not have a corresponding `account` record."
     )
     op.create_table('account',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
