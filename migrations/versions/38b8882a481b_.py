@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e7621d8a110f
+Revision ID: 38b8882a481b
 Revises: 8d8c816257ce
-Create Date: 2020-03-04 21:22:15.694574
+Create Date: 2020-03-06 14:49:12.747864
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'e7621d8a110f'
+revision = '38b8882a481b'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -22,11 +22,11 @@ def upgrade():
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('change_seqnum', sa.Integer(), nullable=False),
+    sa.Column('signal_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('signal_seqnum', sa.Integer(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'change_ts', 'change_seqnum')
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'signal_ts', 'signal_seqnum')
     )
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
@@ -108,9 +108,9 @@ def upgrade():
     sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('has_account', sa.BOOLEAN(), nullable=False, comment='Whether a corresponding `account` record exists.'),
     sa.Column('is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last change in the configuration. Must never decrease.'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last change in the configuration. It is incremented (with wrapping) on every change. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
-    sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the configuration is not effectual, 2 - the account can be removed.'),
+    sa.Column('last_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last sent `configure_account` signal. Must never decrease.'),
+    sa.Column('last_signal_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last sent `configure_account` signal. It is incremented (with wrapping) on every change. This column, along with the `last_signal_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
+    sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the account is functional, 2 - the configuration is not effectual, 4 - the account can be removed.'),
     sa.Column('allow_unsafe_removal', sa.BOOLEAN(), nullable=False, comment='Whether the owner approved unsafe removal of the account. In extraordinary circumstances it might be necessary to forcefully remove an account, accepting the risk of losing the available amount.'),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the account is scheduled for deletion.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
@@ -132,7 +132,7 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
-    sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the available amount is not negligible.'),
+    sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the available amount is not negligible, 2 - changed interest rate.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_seqnum >= 0'),
     sa.CheckConstraint('negligible_amount >= 0.0'),

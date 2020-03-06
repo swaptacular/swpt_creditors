@@ -16,6 +16,8 @@ def test_on_account_commit_signal(db_session):
         transfer_info={'message': 'test'},
         account_creation_date='2020-01-02',
         account_new_principal=1000,
+        is_insignificant=True,
+        previous_transfer_seqnum=(1 << 40),
     )
     a.on_account_commit_signal(
         debtor_id=D_ID,
@@ -28,4 +30,6 @@ def test_on_account_commit_signal(db_session):
         transfer_info={'message': 'test'},
         account_creation_date='2020-01-02',
         account_new_principal=1000,
+        is_insignificant=True,
+        previous_transfer_seqnum=(1 << 40),
     )

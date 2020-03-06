@@ -137,8 +137,8 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
     config = _get_account_config(creditor_id, debtor_id)
     if config:
         if not config.allow_unsafe_removal:
-            days_since_last_config_change = (datetime.now(tz=timezone.utc) - config.last_change_ts).days
-            is_timed_out = days_since_last_config_change > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
+            days_since_last_config_signal = (datetime.now(tz=timezone.utc) - config.last_signal_ts).days
+            is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
             is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and config.is_effectual
             is_removal_safe = not config.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
             if not is_removal_safe:
@@ -179,8 +179,8 @@ def process_account_change_signal(
         interest: float,
         interest_rate: float,
         last_transfer_seqnum: int,
-        last_config_change_ts: datetime,
-        last_config_change_seqnum: int,
+        last_config_signal_ts: datetime,
+        last_config_signal_seqnum: int,
         creation_date: date,
         negligible_amount: float,
         status: int) -> None:
@@ -191,7 +191,7 @@ def process_account_change_signal(
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
     assert 0 <= last_transfer_seqnum <= MAX_INT64
-    assert MIN_INT32 <= last_config_change_seqnum <= MAX_INT32
+    assert MIN_INT32 <= last_config_signal_seqnum <= MAX_INT32
     assert negligible_amount >= 0.0
     assert MIN_INT16 <= status <= MAX_INT16
 
@@ -251,7 +251,7 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _revise_account_config_effectuality(account, last_config_change_ts, last_config_change_seqnum, new_account)
+    _revise_account_config_effectuality(account, last_config_signal_ts, last_config_signal_seqnum, new_account)
 
     # TODO: Reset the ledger if it has been outdated for a long time.
     #       Consider adding `Account.last_transfer_committed_at_ts`
@@ -267,12 +267,14 @@ def process_account_commit_signal(
         creditor_id: int,
         transfer_seqnum: int,
         coordinator_type: str,
-        other_creditor_id: int,
         committed_at_ts: datetime,
         committed_amount: int,
+        other_creditor_id: int,
         transfer_info: dict,
         account_creation_date: date,
-        account_new_principal: int) -> None:
+        account_new_principal: int,
+        is_insignificant: bool,
+        previous_transfer_seqnum: int) -> None:
 
     # TODO: Receive `is_insignificant` and `previous_transfer_seqnum`
     #       parameters.
@@ -281,10 +283,12 @@ def process_account_commit_signal(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_seqnum <= MAX_INT64
     assert len(coordinator_type) <= 30
-    assert MIN_INT64 <= other_creditor_id <= MAX_INT64
     assert committed_amount != 0
     assert -MAX_INT64 <= committed_amount <= MAX_INT64
+    assert MIN_INT64 <= other_creditor_id <= MAX_INT64
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
+    assert 0 <= previous_transfer_seqnum <= MAX_INT64
+    assert previous_transfer_seqnum < transfer_seqnum
 
     try:
         ledger = _get_or_create_ledger(creditor_id, debtor_id)
@@ -383,13 +387,13 @@ def find_legible_pending_account_commits(max_count: int = None):
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     config.is_effectual = False
-    config.last_change_ts = max(config.last_change_ts, current_ts)
-    config.last_change_seqnum = increment_seqnum(config.last_change_seqnum)
+    config.last_signal_ts = max(config.last_signal_ts, current_ts)
+    config.last_signal_seqnum = increment_seqnum(config.last_signal_seqnum)
     db.session.add(ConfigureAccountSignal(
         creditor_id=config.creditor_id,
         debtor_id=config.debtor_id,
-        change_ts=config.last_change_ts,
-        change_seqnum=config.last_change_seqnum,
+        signal_ts=config.last_signal_ts,
+        signal_seqnum=config.last_signal_seqnum,
         negligible_amount=config.negligible_amount,
         is_scheduled_for_deletion=config.is_scheduled_for_deletion,
     ))
@@ -403,8 +407,8 @@ def _discard_orphaned_account(creditor_id: int, debtor_id: int, status: int, neg
         db.session.add(ConfigureAccountSignal(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
-            change_ts=datetime.now(tz=timezone.utc),
-            change_seqnum=0,
+            signal_ts=datetime.now(tz=timezone.utc),
+            signal_seqnum=0,
             negligible_amount=HUGE_NEGLIGIBLE_AMOUNT,
             is_scheduled_for_deletion=True,
         ))
@@ -487,15 +491,15 @@ def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool =
 
 def _revise_account_config_effectuality(
         account: Account,
-        last_config_change_ts: datetime,
-        last_config_change_seqnum: int,
+        last_config_signal_ts: datetime,
+        last_config_signal_seqnum: int,
         new_account: bool) -> None:
 
     config = account.account_config
     if not config.has_account:
         config.has_account = True
 
-    no_applied_config = last_config_change_ts - BEGINNING_OF_TIME < TD_SECOND
+    no_applied_config = last_config_signal_ts - BEGINNING_OF_TIME < TD_SECOND
     if no_applied_config:
         # It looks like the account has been resurrected with the
         # default configuration values, and must be reconfigured. As
@@ -504,8 +508,8 @@ def _revise_account_config_effectuality(
         if new_account:
             _insert_configure_account_signal(config)
     else:
-        last_config_request = (config.last_change_ts, config.last_change_seqnum)
-        last_applied_config = (last_config_change_ts, last_config_change_seqnum)
+        last_config_request = (config.last_signal_ts, config.last_signal_seqnum)
+        last_applied_config = (last_config_signal_ts, last_config_signal_seqnum)
         applied_config_is_old = is_later_event(last_config_request, last_applied_config)
         config_is_effectual = account.check_if_config_is_effectual()
         if not applied_config_is_old and config.is_effectual != config_is_effectual:

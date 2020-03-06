@@ -398,18 +398,18 @@ class AccountConfig(db.Model):
         default=False,
         comment='Whether the last change in the configuration has been successfully applied.',
     )
-    last_change_ts = db.Column(
+    last_signal_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=get_now_utc,
-        comment='The timestamp of the last change in the configuration. Must never decrease.',
+        comment='The timestamp of the last sent `configure_account` signal. Must never decrease.',
     )
-    last_change_seqnum = db.Column(
+    last_signal_seqnum = db.Column(
         db.Integer,
         nullable=False,
         default=0,
-        comment='The sequential number of the last change in the configuration. It is incremented '
-                '(with wrapping) on every change. This column, along with the `last_change_ts` '
+        comment='The sequential number of the last sent `configure_account` signal. It is incremented '
+                '(with wrapping) on every change. This column, along with the `last_signal_ts` '
                 'column, allows to reliably determine the correct order of changes, even if '
                 'they occur in a very short period of time.',
     )
@@ -694,14 +694,14 @@ class ConfigureAccountSignal(Signal):
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Constant(ROOT_CREDITOR_ID)
-        change_ts = fields.DateTime()
-        change_seqnum = fields.Constant(0)
+        signal_ts = fields.DateTime()
+        signal_seqnum = fields.Constant(0)
         is_scheduled_for_deletion = fields.Float()
         negligible_amount = fields.Boolean()
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    change_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
-    change_seqnum = db.Column(db.Integer, primary_key=True)
+    signal_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
+    signal_seqnum = db.Column(db.Integer, primary_key=True)
     negligible_amount = db.Column(db.REAL, nullable=False)
     is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
