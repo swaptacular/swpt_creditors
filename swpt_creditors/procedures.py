@@ -1,3 +1,5 @@
+import logging
+from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
@@ -8,6 +10,7 @@ from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
 from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
+    InitiatedTransfer, RunningTransfer, \
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
@@ -34,6 +37,18 @@ class CreditorExistsError(Exception):
 
 class AccountDoesNotExistError(Exception):
     """The account does not exist."""
+
+
+class TransferDoesNotExistError(Exception):
+    """The transfer does not exist."""
+
+
+class TransferUpdateConflictError(Exception):
+    """The requested transfer update is not possible."""
+
+
+class TransferCanNotBeCanceledError(Exception):
+    """The requested transfer cancellation is not possible."""
 
 
 @atomic
@@ -406,6 +421,64 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
+@atomic
+def process_finalized_direct_transfer_signal(
+        debtor_id: int,
+        sender_creditor_id: int,
+        transfer_id: int,
+        coordinator_id: int,
+        coordinator_request_id: int,
+        recipient_creditor_id: int,
+        committed_amount: int) -> None:
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert 0 <= committed_amount <= MAX_INT64
+
+    rt = _find_running_transfer(coordinator_id, coordinator_request_id)
+    rt_matches_the_signal = (
+        rt is not None
+        and rt.debtor_id == debtor_id
+        and rt.creditor_id == sender_creditor_id
+        and rt.issuing_transfer_id == transfer_id
+    )
+    if rt_matches_the_signal:
+        is_successfully_committed = rt.amount == committed_amount and rt.recipient_creditor_id == recipient_creditor_id
+        if is_successfully_committed:
+            error = None
+        elif committed_amount == 0 and recipient_creditor_id == rt.recipient_creditor_id:
+            error = {'errorCode': 'CRE002', 'message': 'Terminated due to insufficient available amount.'}
+        else:
+            logging.getLogger(__name__).warning(
+                'Incorrect finalization of <PreparedTransfer %(debtor_id)s, %(sender_creditor_id)s, %(transfer_id)s>',
+                dict(debtor_id=debtor_id, sender_creditor_id=sender_creditor_id, transfer_id=transfer_id),
+            )
+            error = {'errorCode': 'CRE003', 'message': 'Unexpected error.'}
+
+        _finalize_initiated_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
+        db.session.delete(rt)
+
+
+@atomic
+def update_transfer(debtor_id: int, transfer_uuid: UUID, should_be_finalized: bool) -> InitiatedTransfer:
+    initiated_transfer = InitiatedTransfer.lock_instance((debtor_id, transfer_uuid))
+    if not initiated_transfer:
+        raise TransferDoesNotExistError()
+    if not should_be_finalized:
+        raise TransferUpdateConflictError()
+    if not initiated_transfer.is_finalized:
+        rt = RunningTransfer.lock_instance((debtor_id, transfer_uuid))
+        if rt:
+            if rt.is_finalized:
+                raise TransferCanNotBeCanceledError()
+            db.session.delete(rt)
+        initiated_transfer.finalized_at_ts = datetime.now(tz=timezone.utc)
+        initiated_transfer.is_successful = False
+        initiated_transfer.error = {'errorCode': 'CRE001', 'message': 'Canceled transfer.'}
+    return initiated_transfer
+
+
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, status: int, negligible_amount: float) -> None:
     is_deleted = status & Account.STATUS_DELETED_FLAG
     is_scheduled_for_deletion = status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -542,3 +615,27 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     if max_count is not None:
         query = query.limit(max_count)
     return query.all()
+
+
+def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
+    assert MIN_INT64 <= coordinator_id <= MAX_INT64
+    assert MIN_INT64 < coordinator_request_id <= MAX_INT64
+
+    return RunningTransfer.query.\
+        filter_by(creditor_id=coordinator_id, direct_coordinator_request_id=coordinator_request_id).\
+        with_for_update().\
+        one_or_none()
+
+
+def _finalize_initiated_transfer(
+        debtor_id: int,
+        transfer_uuid: int,
+        finalized_at_ts: datetime = None,
+        error: dict = None) -> None:
+
+    initiated_transfer = InitiatedTransfer.lock_instance((debtor_id, transfer_uuid))
+    if initiated_transfer and initiated_transfer.finalized_at_ts is None:
+        initiated_transfer.finalized_at_ts = finalized_at_ts or datetime.now(tz=timezone.utc)
+        initiated_transfer.is_successful = error is None
+        if error is not None:
+            initiated_transfer.error = error
