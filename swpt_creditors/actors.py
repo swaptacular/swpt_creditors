@@ -17,7 +17,9 @@ def on_account_commit_signal(
         account_creation_date: str,
         account_new_principal: int,
         is_insignificant: bool,
-        previous_transfer_seqnum: int) -> None:
+        previous_transfer_seqnum: int,
+        *args, **kwargs) -> None:
+
     procedures.process_account_commit_signal(
         debtor_id,
         creditor_id,
