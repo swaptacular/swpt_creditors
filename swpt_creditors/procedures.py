@@ -406,21 +406,6 @@ def find_legible_pending_account_commits(max_count: int = None):
     return query.all()
 
 
-def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    config.is_effectual = False
-    config.last_signal_ts = max(config.last_signal_ts, current_ts)
-    config.last_signal_seqnum = increment_seqnum(config.last_signal_seqnum)
-    db.session.add(ConfigureAccountSignal(
-        creditor_id=config.creditor_id,
-        debtor_id=config.debtor_id,
-        signal_ts=config.last_signal_ts,
-        signal_seqnum=config.last_signal_seqnum,
-        negligible_amount=config.negligible_amount,
-        is_scheduled_for_deletion=config.is_scheduled_for_deletion,
-    ))
-
-
 @atomic
 def process_finalized_direct_transfer_signal(
         debtor_id: int,
@@ -480,6 +465,21 @@ def update_transfer(debtor_id: int, transfer_uuid: UUID, should_be_finalized: bo
         initiated_transfer.is_successful = False
         initiated_transfer.error = {'errorCode': 'CRE001', 'message': 'Canceled transfer.'}
     return initiated_transfer
+
+
+def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    config.is_effectual = False
+    config.last_signal_ts = max(config.last_signal_ts, current_ts)
+    config.last_signal_seqnum = increment_seqnum(config.last_signal_seqnum)
+    db.session.add(ConfigureAccountSignal(
+        creditor_id=config.creditor_id,
+        debtor_id=config.debtor_id,
+        signal_ts=config.last_signal_ts,
+        signal_seqnum=config.last_signal_seqnum,
+        negligible_amount=config.negligible_amount,
+        is_scheduled_for_deletion=config.is_scheduled_for_deletion,
+    ))
 
 
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, status: int, negligible_amount: float) -> None:
