@@ -462,6 +462,9 @@ def process_finalized_direct_transfer_signal(
 
 @atomic
 def update_transfer(debtor_id: int, transfer_uuid: UUID, should_be_finalized: bool) -> InitiatedTransfer:
+    # TODO: Is it worth it to support this, given that the
+    #       finalization is not guaranteed to succeed.
+
     initiated_transfer = InitiatedTransfer.lock_instance((debtor_id, transfer_uuid))
     if not initiated_transfer:
         raise TransferDoesNotExistError()
