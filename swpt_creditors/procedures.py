@@ -433,7 +433,7 @@ def process_finalized_direct_transfer_signal(
         if is_successfully_committed:
             error = None
         elif committed_amount == 0 and recipient_creditor_id == rt.recipient_creditor_id:
-            error = {'errorCode': 'CRE002', 'message': 'Terminated due to insufficient available amount.'}
+            error = {'errorCode': 'CRE002', 'message': 'Terminated due to timeout.'}
         else:
             logging.getLogger(__name__).warning(
                 'Incorrect finalization of <PreparedTransfer %(debtor_id)s, %(sender_creditor_id)s, %(transfer_id)s>',
