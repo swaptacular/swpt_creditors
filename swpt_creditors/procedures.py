@@ -448,7 +448,8 @@ def process_finalized_direct_transfer_signal(
 @atomic
 def update_transfer(debtor_id: int, transfer_uuid: UUID, should_be_finalized: bool) -> InitiatedTransfer:
     # TODO: Is it worth it to support this, given that the
-    #       finalization is not guaranteed to succeed.
+    #       finalization is not guaranteed to succeed. Consider adding
+    #       `APP_EXPECT_PREPARED_TRANSFER_TIMEOUTS`.
 
     initiated_transfer = InitiatedTransfer.lock_instance((debtor_id, transfer_uuid))
     if not initiated_transfer:
