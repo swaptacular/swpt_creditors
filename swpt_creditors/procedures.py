@@ -1,3 +1,4 @@
+from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
@@ -436,6 +437,28 @@ def process_finalized_direct_transfer_signal(
             error = {'errorCode': 'CRE003', 'message': 'Unexpected error.'}
         _finalize_initiated_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
         db.session.delete(rt)
+
+
+@atomic
+def delete_initiated_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
+    number_of_deleted_rows = InitiatedTransfer.query.\
+        filter_by(debtor_id=debtor_id, transfer_uuid=transfer_uuid).\
+        delete(synchronize_session=False)
+
+    assert number_of_deleted_rows in [0, 1]
+    if number_of_deleted_rows == 1:
+        # TODO: Update creditor's initiated transfers count.
+
+        # Note that deleting the `RunningTransfer` record may result
+        # in dismissing an already committed transfer. This is not a
+        # problem in this case, however, because the user has ordered
+        # the deletion of the `InitiatedTransfer` record, and
+        # therefore is not interested in the its outcome.
+        RunningTransfer.query.\
+            filter_by(debtor_id=debtor_id, transfer_uuid=transfer_uuid).\
+            delete(synchronize_session=False)
+
+    return number_of_deleted_rows == 1
 
 
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
