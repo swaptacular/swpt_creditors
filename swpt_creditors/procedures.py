@@ -445,29 +445,6 @@ def process_finalized_direct_transfer_signal(
         db.session.delete(rt)
 
 
-@atomic
-def update_transfer(debtor_id: int, transfer_uuid: UUID, should_be_finalized: bool) -> InitiatedTransfer:
-    # TODO: Is it worth it to support this, given that the
-    #       finalization is not guaranteed to succeed. Consider adding
-    #       `APP_EXPECT_PREPARED_TRANSFER_TIMEOUTS`.
-
-    initiated_transfer = InitiatedTransfer.lock_instance((debtor_id, transfer_uuid))
-    if not initiated_transfer:
-        raise TransferDoesNotExistError()
-    if not should_be_finalized:
-        raise TransferUpdateConflictError()
-    if not initiated_transfer.is_finalized:
-        rt = RunningTransfer.lock_instance((debtor_id, transfer_uuid))
-        if rt:
-            if rt.is_finalized:
-                raise TransferCanNotBeCanceledError()
-            db.session.delete(rt)
-        initiated_transfer.finalized_at_ts = datetime.now(tz=timezone.utc)
-        initiated_transfer.is_successful = False
-        initiated_transfer.error = {'errorCode': 'CRE001', 'message': 'Canceled transfer.'}
-    return initiated_transfer
-
-
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     config.is_effectual = False
