@@ -1,5 +1,3 @@
-import logging
-from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
@@ -419,6 +417,7 @@ def process_finalized_direct_transfer_signal(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
     assert 0 <= committed_amount <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
@@ -426,21 +425,15 @@ def process_finalized_direct_transfer_signal(
         rt is not None
         and rt.debtor_id == debtor_id
         and rt.creditor_id == sender_creditor_id
-        and rt.issuing_transfer_id == transfer_id
+        and rt.direct_transfer_id == transfer_id
     )
     if rt_matches_the_signal:
-        is_successfully_committed = rt.amount == committed_amount and rt.recipient_creditor_id == recipient_creditor_id
-        if is_successfully_committed:
+        if committed_amount == rt.amount and recipient_creditor_id == rt.recipient_creditor_id:
             error = None
         elif committed_amount == 0 and recipient_creditor_id == rt.recipient_creditor_id:
             error = {'errorCode': 'CRE002', 'message': 'Terminated due to timeout.'}
         else:
-            logging.getLogger(__name__).warning(
-                'Incorrect finalization of <PreparedTransfer %(debtor_id)s, %(sender_creditor_id)s, %(transfer_id)s>',
-                dict(debtor_id=debtor_id, sender_creditor_id=sender_creditor_id, transfer_id=transfer_id),
-            )
             error = {'errorCode': 'CRE003', 'message': 'Unexpected error.'}
-
         _finalize_initiated_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
         db.session.delete(rt)
 
