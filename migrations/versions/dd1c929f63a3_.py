@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 38b8882a481b
+Revision ID: dd1c929f63a3
 Revises: 8d8c816257ce
-Create Date: 2020-03-06 14:49:12.747864
+Create Date: 2020-03-14 18:24:24.412275
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '38b8882a481b'
+revision = 'dd1c929f63a3'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -74,11 +74,9 @@ def upgrade():
     sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was initiated.'),
     sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the transfer was finalized. A `null` means that the transfer has not been finalized yet.'),
     sa.Column('is_successful', sa.BOOLEAN(), nullable=False, comment='Whether the transfer has been successful or not.'),
-    sa.Column('error_code', sa.String(), nullable=True, comment='The error code, in case the transfer has not been successful.'),
-    sa.Column('error_message', sa.String(), nullable=True, comment='The error message, in case the transfer has not been successful.'),
+    sa.Column('error', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Describes the reason of the failure, in case the transfer has not been successful.'),
     sa.CheckConstraint('amount > 0'),
-    sa.CheckConstraint('error_code IS NULL OR error_message IS NOT NULL'),
-    sa.CheckConstraint('finalized_at_ts IS NULL OR is_successful = true OR error_code IS NOT NULL'),
+    sa.CheckConstraint('finalized_at_ts IS NULL OR is_successful = true OR error IS NOT NULL'),
     sa.CheckConstraint('is_successful = false OR finalized_at_ts IS NOT NULL'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),

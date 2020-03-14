@@ -432,9 +432,9 @@ def process_finalized_direct_transfer_signal(
         if committed_amount == rt.amount and recipient_creditor_id == rt.recipient_creditor_id:
             error = None
         elif committed_amount == 0 and recipient_creditor_id == rt.recipient_creditor_id:
-            error = {'errorCode': 'CRE002', 'message': 'Terminated due to timeout.'}
+            error = {'errorCode': 'TERMINATED_DUE_TO_TIMEOUT'}
         else:
-            error = {'errorCode': 'CRE003', 'message': 'Unexpected error.'}
+            error = {'errorCode': 'UNEXPECTED_ERROR'}
         _finalize_initiated_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
         db.session.delete(rt)
 
