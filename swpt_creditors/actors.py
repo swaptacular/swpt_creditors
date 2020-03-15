@@ -16,8 +16,8 @@ def on_account_commit_signal(
         transfer_info: dict,
         account_creation_date: str,
         account_new_principal: int,
-        is_insignificant: bool,
         previous_transfer_seqnum: int,
+        flags: int,
         *args, **kwargs) -> None:
 
     procedures.process_account_commit_signal(
@@ -31,6 +31,6 @@ def on_account_commit_signal(
         transfer_info,
         date.fromisoformat(account_creation_date),
         account_new_principal,
-        is_insignificant,
         previous_transfer_seqnum,
+        flags,
     )

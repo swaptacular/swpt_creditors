@@ -294,11 +294,8 @@ def process_account_commit_signal(
         transfer_info: dict,
         account_creation_date: date,
         account_new_principal: int,
-        is_insignificant: bool,
-        previous_transfer_seqnum: int) -> None:
-
-    # TODO: Receive `is_insignificant` and `previous_transfer_seqnum`
-    #       parameters.
+        previous_transfer_seqnum: int,
+        flags: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -310,6 +307,7 @@ def process_account_commit_signal(
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
     assert 0 <= previous_transfer_seqnum <= MAX_INT64
     assert previous_transfer_seqnum < transfer_seqnum
+    assert MIN_INT32 <= flags <= MAX_INT32
 
     try:
         ledger = _get_or_create_ledger(creditor_id, debtor_id)
