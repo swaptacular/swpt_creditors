@@ -199,7 +199,8 @@ def process_account_change_signal(
         negligible_amount: float,
         status: int,
         signal_ts: datetime,
-        signal_ttl: float) -> None:
+        signal_ttl: float,
+        real_creditor_id: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -211,6 +212,7 @@ def process_account_change_signal(
     assert negligible_amount >= 0.0
     assert MIN_INT16 <= status <= MAX_INT16
     assert signal_ttl > 0.0
+    assert MIN_INT64 <= real_creditor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - signal_ts).total_seconds() > signal_ttl:
@@ -272,7 +274,13 @@ def process_account_change_signal(
         with db.retry_on_integrity_error():
             db.session.add(account)
 
-    _revise_account_config_effectuality(account, last_config_signal_ts, last_config_signal_seqnum, new_account)
+    _revise_account_config_effectuality(
+        account,
+        last_config_signal_ts,
+        last_config_signal_seqnum,
+        new_account,
+        real_creditor_id,
+    )
 
     # TODO: Reset the ledger if it has been outdated for a long time.
     #       Consider adding `Account.last_transfer_committed_at_ts`
@@ -568,11 +576,16 @@ def _revise_account_config_effectuality(
         account: Account,
         last_config_signal_ts: datetime,
         last_config_signal_seqnum: int,
-        new_account: bool) -> None:
+        new_account: bool,
+        real_creditor_id: int) -> None:
 
     config = account.account_config
+
     if not config.has_account:
         config.has_account = True
+
+    if config.real_creditor_id is None:
+        config.real_creditor_id = real_creditor_id
 
     no_applied_config = last_config_signal_ts - BEGINNING_OF_TIME < TD_SECOND
     if no_applied_config:
@@ -586,7 +599,7 @@ def _revise_account_config_effectuality(
         last_config_request = (config.last_signal_ts, config.last_signal_seqnum)
         last_applied_config = (last_config_signal_ts, last_config_signal_seqnum)
         applied_config_is_old = is_later_event(last_config_request, last_applied_config)
-        config_is_effectual = account.check_if_config_is_effectual()
+        config_is_effectual = account.check_if_config_is_effectual() and real_creditor_id == config.real_creditor_id
         if not applied_config_is_old and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
 

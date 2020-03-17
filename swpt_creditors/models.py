@@ -439,6 +439,12 @@ class AccountConfig(db.Model):
                 'decide whether an account can be safely deleted; 2) decide '
                 'whether an incoming transfer is insignificant.',
     )
+    real_creditor_id = db.Column(
+        db.BigInteger,
+        comment='The value of the `real_creditor_id` field from the first received '
+                '`AccountChangeSignal` for the account. Once set, must never change.',
+    )
+
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],

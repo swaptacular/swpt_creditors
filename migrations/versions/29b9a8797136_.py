@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: dd1c929f63a3
+Revision ID: 29b9a8797136
 Revises: 8d8c816257ce
-Create Date: 2020-03-14 18:24:24.412275
+Create Date: 2020-03-17 18:12:51.178706
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'dd1c929f63a3'
+revision = '29b9a8797136'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -112,6 +112,7 @@ def upgrade():
     sa.Column('allow_unsafe_removal', sa.BOOLEAN(), nullable=False, comment='Whether the owner approved unsafe removal of the account. In extraordinary circumstances it might be necessary to forcefully remove an account, accepting the risk of losing the available amount.'),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the account is scheduled for deletion.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
+    sa.Column('real_creditor_id', sa.BigInteger(), nullable=True, comment='The value of the `real_creditor_id` field from the first received `AccountChangeSignal` for the account. Once set, must never change.'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
