@@ -19,6 +19,7 @@ def on_account_commit_signal(
         account_new_principal: int,
         previous_transfer_seqnum: int,
         system_flags: int,
+        real_creditor_id: int,
         *args, **kwargs) -> None:
 
     procedures.process_account_commit_signal(
@@ -35,4 +36,5 @@ def on_account_commit_signal(
         account_new_principal,
         previous_transfer_seqnum,
         system_flags,
+        real_creditor_id,
     )

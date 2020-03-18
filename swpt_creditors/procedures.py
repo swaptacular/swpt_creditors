@@ -304,7 +304,8 @@ def process_account_commit_signal(
         account_creation_date: date,
         account_new_principal: int,
         previous_transfer_seqnum: int,
-        system_flags: int) -> None:
+        system_flags: int,
+        real_creditor_id: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -318,6 +319,7 @@ def process_account_commit_signal(
     assert 0 <= previous_transfer_seqnum <= MAX_INT64
     assert previous_transfer_seqnum < transfer_seqnum
     assert MIN_INT32 <= system_flags <= MAX_INT32
+    assert MIN_INT64 <= real_creditor_id <= MAX_INT64
 
     try:
         ledger = _get_or_create_ledger(creditor_id, debtor_id)
@@ -336,6 +338,7 @@ def process_account_commit_signal(
         account_creation_date=account_creation_date,
         account_new_principal=account_new_principal,
         system_flags=system_flags,
+        real_creditor_id=real_creditor_id,
     )
     try:
         db.session.add(account_commit)

@@ -19,6 +19,7 @@ def test_on_account_commit_signal(db_session):
         account_new_principal=1000,
         previous_transfer_seqnum=(1 << 40),
         system_flags=0,
+        real_creditor_id=C_ID,
     )
     a.on_account_commit_signal(
         debtor_id=D_ID,
@@ -34,4 +35,5 @@ def test_on_account_commit_signal(db_session):
         account_new_principal=1000,
         previous_transfer_seqnum=(1 << 40),
         system_flags=0,
+        real_creditor_id=C_ID,
     )

@@ -328,6 +328,13 @@ class AccountCommit(db.Model):
         nullable=False,
         comment='Various bit-flags characterizing the transfer.',
     )
+    real_creditor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The original value of the `creditor_id` field, as it was when the signal was '
+                'generated. (Intermediaries may modify the `creditor_id`/`sender_creditor_id`'
+                'fields of signals, analogous to the way IP masquerading works.)',
+    )
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],

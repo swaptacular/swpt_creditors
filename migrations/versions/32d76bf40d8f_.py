@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: dc8a224753cb
+Revision ID: 32d76bf40d8f
 Revises: 8d8c816257ce
-Create Date: 2020-03-18 16:20:13.818384
+Create Date: 2020-03-18 23:15:26.095615
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'dc8a224753cb'
+revision = '32d76bf40d8f'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -95,6 +95,7 @@ def upgrade():
     sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False, comment='The balance on the account after the transfer.'),
     sa.Column('system_flags', sa.Integer(), nullable=False, comment='Various bit-flags characterizing the transfer.'),
+    sa.Column('real_creditor_id', sa.BigInteger(), nullable=False, comment='The original value of the `creditor_id` field, as it was when the signal was generated. (Intermediaries may modify the `creditor_id`/`sender_creditor_id`fields of signals, analogous to the way IP masquerading works.)'),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('transfer_seqnum > 0'),
