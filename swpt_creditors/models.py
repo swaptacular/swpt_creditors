@@ -260,6 +260,10 @@ class RunningTransfer(db.Model):
 #       table and deletes old records (ones having an old
 #       `committed_at_ts`). We need to do this to free up disk space.
 class AccountCommit(db.Model):
+    TRANSFER_FLAG_IS_PUBLIC = 1
+
+    SYSTEM_FLAG_IS_NEGLIGIBLE = 1
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(
@@ -293,11 +297,18 @@ class AccountCommit(db.Model):
         comment="This is the change in the account's principal that the transfer caused. Can "
                 "be positive or negative. Can not be zero.",
     )
-    transfer_info = db.Column(
-        pg.JSON,
+    transfer_message = db.Column(
+        pg.TEXT,
         nullable=False,
-        comment='Notes from the sender. Can be any JSON object that the sender wants the '
-                'recipient to see.',
+        comment='Notes from the sender. Can be any string that the sender wants the recipient '
+                'to see.',
+    )
+    transfer_flags = db.Column(
+        db.Integer,
+        nullable=False,
+        comment='Contains various flags set when the transfer was finalized. (This is the value '
+                'of the `transfer_flags parameter, with which the `finalize_prepared_transfer` '
+                'actor was called.)',
     )
     account_creation_date = db.Column(
         db.DATE,
@@ -311,6 +322,11 @@ class AccountCommit(db.Model):
         db.BigInteger,
         nullable=False,
         comment='The balance on the account after the transfer.',
+    )
+    system_flags = db.Column(
+        db.Integer,
+        nullable=False,
+        comment='Various bit-flags characterizing the transfer.',
     )
     __table_args__ = (
         db.ForeignKeyConstraint(

@@ -13,11 +13,12 @@ def test_on_account_commit_signal(db_session):
         other_creditor_id=666,
         committed_at_ts='2019-10-01T00:00:00Z',
         committed_amount=1000,
-        transfer_info={'message': 'test'},
+        transfer_message='{"message": "test"}',
+        transfer_flags=0,
         account_creation_date='2020-01-02',
         account_new_principal=1000,
         previous_transfer_seqnum=(1 << 40),
-        flags=0,
+        system_flags=0,
     )
     a.on_account_commit_signal(
         debtor_id=D_ID,
@@ -27,9 +28,10 @@ def test_on_account_commit_signal(db_session):
         other_creditor_id=666,
         committed_at_ts='2019-10-01T00:00:00Z',
         committed_amount=1000,
-        transfer_info={'message': 'test'},
+        transfer_message='test',
+        transfer_flags=0,
         account_creation_date='2020-01-02',
         account_new_principal=1000,
         previous_transfer_seqnum=(1 << 40),
-        flags=0,
+        system_flags=0,
     )

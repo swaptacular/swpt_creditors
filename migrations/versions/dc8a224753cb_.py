@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 29b9a8797136
+Revision ID: dc8a224753cb
 Revises: 8d8c816257ce
-Create Date: 2020-03-17 18:12:51.178706
+Create Date: 2020-03-18 16:20:13.818384
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '29b9a8797136'
+revision = 'dc8a224753cb'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -90,9 +90,11 @@ def upgrade():
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='The creditor ID of other party in the transfer. When `committed_amount` is positive, this is the sender. When `committed_amount` is negative, this is the recipient.'),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was committed.'),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False, comment="This is the change in the account's principal that the transfer caused. Can be positive or negative. Can not be zero."),
-    sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False, comment='Notes from the sender. Can be any JSON object that the sender wants the recipient to see.'),
+    sa.Column('transfer_message', sa.TEXT(), nullable=False, comment='Notes from the sender. Can be any string that the sender wants the recipient to see.'),
+    sa.Column('transfer_flags', sa.Integer(), nullable=False, comment='Contains various flags set when the transfer was finalized. (This is the value of the `transfer_flags parameter, with which the `finalize_prepared_transfer` actor was called.)'),
     sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False, comment='The balance on the account after the transfer.'),
+    sa.Column('system_flags', sa.Integer(), nullable=False, comment='Various bit-flags characterizing the transfer.'),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('transfer_seqnum > 0'),

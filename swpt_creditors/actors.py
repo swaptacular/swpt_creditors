@@ -13,11 +13,12 @@ def on_account_commit_signal(
         committed_at_ts: str,
         committed_amount: int,
         other_creditor_id: int,
-        transfer_info: dict,
+        transfer_message: str,
+        transfer_flags: int,
         account_creation_date: str,
         account_new_principal: int,
         previous_transfer_seqnum: int,
-        flags: int,
+        system_flags: int,
         *args, **kwargs) -> None:
 
     procedures.process_account_commit_signal(
@@ -28,9 +29,10 @@ def on_account_commit_signal(
         iso8601.parse_date(committed_at_ts),
         committed_amount,
         other_creditor_id,
-        transfer_info,
+        transfer_message,
+        transfer_flags,
         date.fromisoformat(account_creation_date),
         account_new_principal,
         previous_transfer_seqnum,
-        flags,
+        system_flags,
     )
