@@ -16,8 +16,7 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
-BEGINNING_OF_TIME = datetime(1900, 1, 1, tzinfo=timezone.utc)
-DATE_2020_01_01 = date(2020, 1, 1)
+BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
@@ -520,7 +519,7 @@ class AccountLedger(db.Model):
     account_creation_date = db.Column(
         db.DATE,
         nullable=False,
-        default=DATE_2020_01_01,
+        default=BEGINNING_OF_TIME.date(),
         comment="The date on which the account was created. This is needed to detect when "
                 "an account has been deleted, and recreated again. (In that case the sequence "
                 "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
@@ -540,7 +539,7 @@ class AccountLedger(db.Model):
                 "new transfer is added to the ledger. For a newly created (or purged, and then "
                 "recreated) account, the sequential number of the first transfer will have its lower "
                 "40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's "
-                "creation date (the number of days since Jan 1st, 2020). Note that when an account "
+                "creation date (the number of days since Jan 1st, 1970). Note that when an account "
                 "has been removed from the database, and then recreated again, for this account, a "
                 "gap will occur in the generated sequence of `transfer_seqnum`s.",
     )
@@ -581,7 +580,7 @@ class AccountLedger(db.Model):
             self.principal = account.principal
             self.next_transfer_seqnum = account.last_transfer_seqnum + 1
         else:
-            account_creation_date = account_creation_date or DATE_2020_01_01
+            account_creation_date = account_creation_date or BEGINNING_OF_TIME.date()
             self.account_creation_date = account_creation_date
             self.principal = 0
             self.next_transfer_seqnum = (date_to_int24(account_creation_date) << 40) + 1

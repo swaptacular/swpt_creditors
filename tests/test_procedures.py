@@ -41,8 +41,8 @@ def test_create_new_creditor(db_session):
 
 
 def test_process_pending_account_commits(db_session, setup_account, current_ts):
-    ny2020 = date(2020, 1, 1)
-    p.process_account_commit_signal(D_ID, C_ID, 1, 'direct', current_ts, 1000, 666, '', 0, ny2020, 1000, 0, 0, C_ID)
+    ny2019 = date(2019, 1, 1)
+    p.process_account_commit_signal(D_ID, C_ID, 1, 'direct', current_ts, 1000, 666, '', 0, ny2019, 1000, 0, 0, C_ID)
     assert p.process_pending_account_commits(C_ID, D_ID)
 
 
@@ -86,7 +86,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         last_transfer_seqnum=1,
         last_config_signal_ts=current_ts,
         last_config_signal_seqnum=1,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
         negligible_amount=0.0,
         status=0,
         signal_ts=current_ts,
@@ -120,7 +120,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         last_transfer_seqnum=1,
         last_config_signal_ts=last_signal_ts,
         last_config_signal_seqnum=last_signal_seqnum,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
         negligible_amount=0.0,
         status=0,
         signal_ts=current_ts,
@@ -144,7 +144,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         last_transfer_seqnum=2,
         last_config_signal_ts=last_signal_ts,
         last_config_signal_seqnum=last_signal_seqnum,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
         negligible_amount=3.0,
         status=0,
         signal_ts=current_ts,
@@ -168,7 +168,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         last_transfer_seqnum=2,
         last_config_signal_ts=last_signal_ts,
         last_config_signal_seqnum=last_signal_seqnum,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
         negligible_amount=0.0,
         status=0,
         signal_ts=current_ts,
@@ -193,7 +193,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         last_transfer_seqnum=1,
         last_config_signal_ts=current_ts - timedelta(days=5),
         last_config_signal_seqnum=1,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
         negligible_amount=2.0,
         status=0,
         signal_ts=current_ts,
@@ -214,7 +214,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         last_transfer_seqnum=1,
         last_config_signal_ts=current_ts - timedelta(days=5),
         last_config_signal_seqnum=1,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
         negligible_amount=1e30,
         status=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG,
         signal_ts=current_ts,
@@ -241,7 +241,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         last_transfer_seqnum=1,
         last_config_signal_ts=current_ts,
         last_config_signal_seqnum=1,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
         negligible_amount=0.0,
         status=0,
         signal_ts=current_ts,
@@ -266,7 +266,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     p.process_account_purge_signal(
         debtor_id=D_ID,
         creditor_id=1234,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
     )
     config = AccountConfig.query.one()
     assert config.has_account
@@ -276,7 +276,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     p.process_account_purge_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(2020, 1, 15),
     )
     config = AccountConfig.query.one()
     assert not config.has_account
