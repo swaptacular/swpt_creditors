@@ -210,7 +210,7 @@ def process_account_change_signal(
     assert 0 <= last_transfer_seqnum <= MAX_INT64
     assert MIN_INT32 <= last_config_signal_seqnum <= MAX_INT32
     assert negligible_amount >= 0.0
-    assert MIN_INT16 <= status <= MAX_INT16
+    assert MIN_INT32 <= status <= MAX_INT32
     assert signal_ttl > 0.0
     assert MIN_INT64 <= real_creditor_id <= MAX_INT64
 

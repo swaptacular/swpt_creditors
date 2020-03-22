@@ -634,10 +634,10 @@ class LedgerEntry(db.Model):
 
 
 class Account(db.Model):
-    STATUS_DELETED_FLAG = 1
-    STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 2
-    STATUS_OVERFLOWN_FLAG = 4
-    STATUS_SCHEDULED_FOR_DELETION_FLAG = 8
+    STATUS_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
+    STATUS_DELETED_FLAG = 1 << 16
+    STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
+    STATUS_OVERFLOWN_FLAG = 1 << 18
 
     # TODO: Do we need those flags? If the checking for issues is done
     #       when the `AccountChangeSignal` is processed, we probably
@@ -658,7 +658,7 @@ class Account(db.Model):
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False)
+    status = db.Column(db.Integer, nullable=False)
     last_heartbeat_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
@@ -719,7 +719,7 @@ class ConfigureAccountSignal(Signal):
         creditor_id = fields.Constant(ROOT_CREDITOR_ID)
         signal_ts = fields.DateTime()
         signal_seqnum = fields.Constant(0)
-        is_scheduled_for_deletion = fields.Float()
+        status_flags = fields.Method('get_status_flags')
         negligible_amount = fields.Boolean()
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -728,3 +728,8 @@ class ConfigureAccountSignal(Signal):
     signal_seqnum = db.Column(db.Integer, primary_key=True)
     negligible_amount = db.Column(db.REAL, nullable=False)
     is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
+
+    def get_status_flags(self, obj):
+        if self.is_scheduled_for_deletion:
+            return Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        return 0

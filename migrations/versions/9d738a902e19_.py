@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 32d76bf40d8f
+Revision ID: 9d738a902e19
 Revises: 8d8c816257ce
-Create Date: 2020-03-18 23:15:26.095615
+Create Date: 2020-03-22 16:04:49.213200
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '32d76bf40d8f'
+revision = '9d738a902e19'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -55,7 +55,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The account principal, as it is after the last transfer has been added to the ledger.'),
-    sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False, comment="The anticipated `transfer_seqnum` for the next transfer. It gets incremented when a new transfer is added to the ledger. For a newly created (or purged, and then recreated) account, the sequential number of the first transfer will have its lower 40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's creation date (the number of days since Jan 1st, 2020). Note that when an account has been removed from the database, and then recreated again, for this account, a gap will occur in the generated sequence of `transfer_seqnum`s."),
+    sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False, comment="The anticipated `transfer_seqnum` for the next transfer. It gets incremented when a new transfer is added to the ledger. For a newly created (or purged, and then recreated) account, the sequential number of the first transfer will have its lower 40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's creation date (the number of days since Jan 1st, 1970). Note that when an account has been removed from the database, and then recreated again, for this account, a gap will occur in the generated sequence of `transfer_seqnum`s."),
     sa.Column('last_update_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the most recent change in the row happened.'),
     sa.CheckConstraint('next_transfer_seqnum > 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
@@ -132,7 +132,7 @@ def upgrade():
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
-    sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('status', sa.Integer(), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
     sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the available amount is not negligible, 2 - changed interest rate.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
