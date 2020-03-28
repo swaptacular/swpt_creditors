@@ -96,3 +96,7 @@ ACCOUNT_EXISTS = {
     'description': 'The same account entry already exists.',
     'headers': LOCATION_HEADER,
 }
+
+ACCOUNT_CAN_NOT_BE_CREATED = {
+    'description': "The account can not be created. The debtor's URI might be wrong.",
+}

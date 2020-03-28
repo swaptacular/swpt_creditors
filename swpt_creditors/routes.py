@@ -26,13 +26,6 @@ creditors_api = Blueprint(
     description="Obtain public information about creditors and create new creditors.",
 )
 
-accounts_api = Blueprint(
-    'accounts',
-    __name__,
-    url_prefix='/accounts',
-    description="View, create and delete creditors' accounts.",
-)
-
 
 @creditors_api.route('/<i64:creditorId>', parameters=[specs.CREDITOR_ID])
 class CreditorEndpoint(MethodView):
@@ -64,6 +57,14 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
+accounts_api = Blueprint(
+    'accounts',
+    __name__,
+    url_prefix='/creditors',
+    description="View, create and delete creditors' accounts.",
+)
+
+
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
 class AccountCollectionEndpoint(MethodView):
     @accounts_api.response(AccountsCollectionSchema(context=CONTEXT))
@@ -82,7 +83,8 @@ class AccountCollectionEndpoint(MethodView):
     @accounts_api.doc(responses={303: specs.ACCOUNT_EXISTS,
                                  403: specs.TOO_MANY_ACCOUNTS,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
-                                 409: specs.ACCOUNT_CONFLICT})
+                                 409: specs.ACCOUNT_CONFLICT,
+                                 422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
     def post(self, account_creation_request, creditorId):
         """Create a new account."""
 
@@ -105,7 +107,7 @@ class AccountCollectionEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
-class TransferEndpoint(MethodView):
+class AccountEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, debtorId, transferUuid):
@@ -127,7 +129,7 @@ class TransferEndpoint(MethodView):
         pass
 
     @accounts_api.response(code=204)
-    @accounts_api.doc(responses={403: specs.ACCOUNT_UPDATE_CONFLICT})
+    @accounts_api.doc(responses={409: specs.ACCOUNT_UPDATE_CONFLICT})
     def delete(self, debtorId, transferUuid):
         """Try to delete an account."""
 
