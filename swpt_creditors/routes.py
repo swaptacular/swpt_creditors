@@ -5,7 +5,7 @@ from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountsCollectionSchema, AccountCreationRequestSchema,
-    AccountSchema,
+    AccountSchema, AccountUpdateRequestSchema
 )
 from . import specs
 from . import procedures
@@ -102,3 +102,33 @@ class AccountCollectionEndpoint(MethodView):
         except procedures.AccountExistsError:
             return redirect(location, code=303)
         return transfer, {'Location': location}
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+class TransferEndpoint(MethodView):
+    @accounts_api.response(AccountSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, debtorId, transferUuid):
+        """Return information about an account."""
+
+        pass
+
+    @accounts_api.arguments(AccountUpdateRequestSchema)
+    @accounts_api.response(AccountSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
+                                 409: specs.ACCOUNT_UPDATE_CONFLICT})
+    def patch(self, transfer_update_request, debtorId, transferUuid):
+        """Update account's configuration.
+
+        This operation is **idempotent**!
+
+        """
+
+        pass
+
+    @accounts_api.response(code=204)
+    @accounts_api.doc(responses={403: specs.ACCOUNT_UPDATE_CONFLICT})
+    def delete(self, debtorId, transferUuid):
+        """Try to delete an account."""
+
+        pass

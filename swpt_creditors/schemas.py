@@ -317,3 +317,7 @@ class AccountCreationRequestSchema(Schema):
 
 class AccountSchema(Schema):
     pass
+
+
+class AccountUpdateRequestSchema(Schema):
+    pass
