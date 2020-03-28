@@ -58,3 +58,16 @@ TRANSFER_EXISTS = {
     'description': 'The same transfer entry already exists.',
     'headers': LOCATION_HEADER,
 }
+
+ACCOUNT_CONFLICT = {
+    'description': 'A different account entry with the same debtor ID already exists.',
+}
+
+TOO_MANY_ACCOUNTS = {
+    'description': 'Too many existing accounts.',
+}
+
+ACCOUNT_EXISTS = {
+    'description': 'The same account entry already exists.',
+    'headers': LOCATION_HEADER,
+}

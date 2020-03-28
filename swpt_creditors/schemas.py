@@ -222,7 +222,7 @@ class TransfersCollectionSchema(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/1/transfers',
+        example='https://example.com/creditors/1/transfers/',
     )
     type = fields.Constant(
         'TransfersCollection',
@@ -257,3 +257,63 @@ class TransfersCollectionSchema(Schema):
 
     def get_uri(self, obj):
         return url_for(self.context['TransfersCollection'], _external=True, creditorId=obj.creditor_id)
+
+
+class AccountsCollectionSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/1/accounts/',
+    )
+    type = fields.Constant(
+        'AccountsCollection',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountsCollection',
+    )
+    creditorUri = fields.Function(
+        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The creditor's URI.",
+        example='https://example.com/creditor/1',
+    )
+    totalItems = fields.Function(
+        lambda obj: len(obj.items),
+        required=True,
+        type='integer',
+        description="The number of items in the `items` array.",
+        example=2,
+    )
+    items = fields.List(
+        fields.Str(format='uri-reference'),
+        required=True,
+        dump_only=True,
+        description="An unordered set of *relative* URIs for creditor accounts.",
+        example=['1234', '5678'],
+    )
+
+    def get_uri(self, obj):
+        return url_for(self.context['AccountsCollection'], _external=True, debtorId=obj.debtor_id)
+
+
+class AccountCreationRequestSchema(Schema):
+    debtor_uri = fields.Url(
+        required=True,
+        relative=True,
+        schemes=[endpoints.get_url_scheme()],
+        data_key='debtorUri',
+        format='uri',
+        description="The debtor's URI.",
+        example='https://example.com/debtors/1',
+    )
+
+
+class AccountSchema(Schema):
+    pass

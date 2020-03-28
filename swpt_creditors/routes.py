@@ -3,14 +3,19 @@ from flask import redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
-from .schemas import CreditorCreationOptionsSchema, CreditorSchema
+from .schemas import (
+    CreditorCreationOptionsSchema, CreditorSchema, AccountsCollectionSchema, AccountCreationRequestSchema,
+    AccountSchema,
+)
 from . import specs
 from . import procedures
 
 CONTEXT = {
     'Creditor': 'creditors.CreditorEndpoint',
     'TransfersCollection': 'transfers.TransfersCollectionEndpoint',
-    'Transfer': 'transfers.TransferEndpoint'
+    'Transfer': 'transfers.TransferEndpoint',
+    'AccountsCollection': 'accounts.AccountCollectionEndpoint',
+    'Account': 'accounts.AccountEndpoint',
 }
 
 
@@ -19,6 +24,13 @@ creditors_api = Blueprint(
     __name__,
     url_prefix='/creditors',
     description="Obtain public information about creditors and create new creditors.",
+)
+
+accounts_api = Blueprint(
+    'accounts',
+    __name__,
+    url_prefix='/accounts',
+    description="View, create and delete creditors' accounts.",
 )
 
 
@@ -50,3 +62,43 @@ class CreditorEndpoint(MethodView):
         except procedures.CreditorExistsError:
             abort(409)
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
+class AccountCollectionEndpoint(MethodView):
+    @accounts_api.response(AccountsCollectionSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def get(self, creditorId):
+        """Return the creditor's collection of accounts."""
+
+        try:
+            debtor_ids = procedures.get_account_dedtor_ids(creditorId)
+        except procedures.CreditorDoesNotExistError:
+            abort(404)
+        return AccountsCollectionSchema(creditor_id=creditorId, items=debtor_ids)
+
+    @accounts_api.arguments(AccountCreationRequestSchema)
+    @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @accounts_api.doc(responses={303: specs.ACCOUNT_EXISTS,
+                                 403: specs.TOO_MANY_ACCOUNTS,
+                                 404: specs.CREDITOR_DOES_NOT_EXIST,
+                                 409: specs.ACCOUNT_CONFLICT})
+    def post(self, account_creation_request, creditorId):
+        """Create a new account."""
+
+        debtor_uri = account_creation_request['debtor_uri']
+        try:
+            debtor_id = endpoints.match_url('debtor', debtor_uri)['debtorId']
+            location = url_for('accounts.AccountEndpoint', _external=True, creditorId=creditorId, debtorId=debtor_id)
+            transfer = procedures.create_account(creditorId, debtor_id)
+        except endpoints.MatchError:
+            abort(422)
+        except procedures.TooManyManagementActionsError:
+            abort(403)
+        except procedures.CreditorDoesNotExistError:
+            abort(404)
+        except procedures.AccountsConflictError:
+            abort(409)
+        except procedures.AccountExistsError:
+            return redirect(location, code=303)
+        return transfer, {'Location': location}

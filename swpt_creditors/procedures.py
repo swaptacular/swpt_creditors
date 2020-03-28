@@ -50,6 +50,17 @@ class TransferCanNotBeCanceledError(Exception):
     """The requested transfer cancellation is not possible."""
 
 
+class AccountExistsError(Exception):
+    """The same account record already exists."""
+
+    def __init__(self, account_config: AccountConfig):
+        self.account_config = account_config
+
+
+class AccountsConflictError(Exception):
+    """A different account with the same debtor ID already exists."""
+
+
 @atomic
 def get_creditor(creditor_id: int) -> Optional[Creditor]:
     return Creditor.get_instance(creditor_id)
