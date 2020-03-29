@@ -359,11 +359,34 @@ class AccountConfigSchema(Schema):
         'get_interest_rate',
         required=True,
         dump_only=True,
+        validate=validate.Range(min=0.0),
         data_key='negligibleAmount',
         format="float",
-        description='The maximum amount that is considered negligible. It can be used '
-                    'to decide whether the account can be safely deleted, or whether a '
-                    'transfer should be considered as insignificant. Must be non-negative.',
+        description='The maximum amount that is considered negligible. It can be used, for '
+                    'example, to decide whether the account can be safely deleted, or whether '
+                    'a transfer should be considered as insignificant. Must be non-negative.',
+        example=0.0,
+    )
+
+
+class AccountConfigChangeRequestSchema(Schema):
+    is_scheduled_for_deletion = fields.Boolean(
+        data_key='isScheduledForDeletion',
+        description='Whether the account is scheduled for deletion.',
+        example=False,
+    )
+    allow_unsafe_deletion = fields.Boolean(
+        data_key='allowUnsafeDeletion',
+        description='Whether the account record can be forcefully deleted, potentially '
+                    'losing a non-negligible amount of money on the account.',
+        example=False,
+    )
+    negligible_amount = fields.Float(
+        validate=validate.Range(min=0.0),
+        data_key='negligibleAmount',
+        description='The maximum amount that is considered negligible. It can be used, for '
+                    'example, to decide whether the account can be safely deleted, or whether '
+                    'a transfer should be considered as insignificant. Must be non-negative.',
         example=0.0,
     )
 
@@ -457,7 +480,3 @@ class AccountRecordSchema(Schema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
-
-
-class AccountUpdateRequestSchema(Schema):
-    pass

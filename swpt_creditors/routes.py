@@ -5,7 +5,7 @@ from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountsCollectionSchema, AccountCreationRequestSchema,
-    AccountRecordSchema, AccountUpdateRequestSchema
+    AccountRecordSchema, AccountConfigSchema, AccountConfigChangeRequestSchema
 )
 from . import specs
 from . import procedures
@@ -116,20 +116,7 @@ class AccountRecordEndpoint(MethodView):
     @account_records_api.response(AccountRecordSchema(context=CONTEXT))
     @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, debtorId, transferUuid):
-        """Return information about an account."""
-
-        pass
-
-    @account_records_api.arguments(AccountUpdateRequestSchema)
-    @account_records_api.response(AccountRecordSchema(context=CONTEXT))
-    @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                        409: specs.ACCOUNT_UPDATE_CONFLICT})
-    def patch(self, transfer_update_request, debtorId, transferUuid):
-        """Update account's configuration.
-
-        This operation is **idempotent**!
-
-        """
+        """Return information about an account record."""
 
         pass
 
@@ -137,5 +124,29 @@ class AccountRecordEndpoint(MethodView):
     @account_records_api.doc(responses={409: specs.ACCOUNT_UPDATE_CONFLICT})
     def delete(self, debtorId, transferUuid):
         """Try to delete an account record."""
+
+        pass
+
+
+@account_records_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config',
+                           parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+class AccountConfigEndpoint(MethodView):
+    @account_records_api.response(AccountConfigSchema(context=CONTEXT))
+    @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId):
+        """Return account record's configuration."""
+
+        pass
+
+    @account_records_api.arguments(AccountConfigChangeRequestSchema)
+    @account_records_api.response(AccountConfigSchema(context=CONTEXT))
+    @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
+                                        409: specs.ACCOUNT_UPDATE_CONFLICT})
+    def patch(self, config_update_request, creditorId, debtorId):
+        """Update account record's configuration.
+
+        This operation is **idempotent**!
+
+        """
 
         pass
