@@ -116,14 +116,20 @@ class AccountRecordEndpoint(MethodView):
     @account_records_api.response(AccountRecordSchema(context=CONTEXT))
     @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, debtorId, transferUuid):
-        """Return information about an account record."""
+        """Return an account record."""
 
         pass
 
     @account_records_api.response(code=204)
     @account_records_api.doc(responses={409: specs.ACCOUNT_UPDATE_CONFLICT})
     def delete(self, debtorId, transferUuid):
-        """Try to delete an account record."""
+        """Try to delete an account record.
+
+        The deletion attempt will fail if the deletion of the account
+        record is not safe, and unsafe deletion is not allowed in the
+        account's configuration.
+
+        """
 
         pass
 
@@ -134,7 +140,7 @@ class AccountConfigEndpoint(MethodView):
     @account_records_api.response(AccountConfigSchema(context=CONTEXT))
     @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
-        """Return account record's configuration."""
+        """Return account's configuration."""
 
         pass
 
@@ -143,7 +149,7 @@ class AccountConfigEndpoint(MethodView):
     @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                         409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account record's configuration.
+        """Update account's configuration.
 
         This operation is **idempotent**!
 
