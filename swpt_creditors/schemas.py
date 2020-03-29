@@ -439,7 +439,7 @@ class AccountRecordSchema(Schema):
         example='AccountRecord',
     )
     accountUri = fields.Function(
-        lambda obj: endpoints.build_url('account', debtor_id=obj.debtor_id, creditorId=obj.real_creditor_id),
+        lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
         required=True,
         type='string',
         format="uri",
@@ -450,14 +450,14 @@ class AccountRecordSchema(Schema):
         required=True,
         dump_only=True,
         data_key='createdAt',
-        description='The moment at which the account record was created.',
+        description='The moment at which the account was created.',
     )
     principal = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
         format="int64",
-        description='The principal amount.',
+        description='The principal amount on the account.',
         example=0,
     )
     interestRate = fields.Method(
@@ -473,7 +473,7 @@ class AccountRecordSchema(Schema):
         required=True,
         type='string',
         format="uri",
-        description="The URI for the account transfers.",
+        description="The URI for the list of recent account transfers.",
         example='https://example.com/creditors/2/accounts/1/transfers/',
     )
     config = fields.Nested(
@@ -486,7 +486,7 @@ class AccountRecordSchema(Schema):
         required=True,
         dump_only=True,
         data_key='isDeletionSafe',
-        description='Whether it is safe to delete the account record.',
+        description='Whether it is safe to delete this account record.',
         example=False,
     )
 
