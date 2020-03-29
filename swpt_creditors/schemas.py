@@ -373,6 +373,41 @@ class AccountConfigChangeRequestSchema(AccountConfigSchema):
         exclude = ['uri', 'type', 'accountRecordUri']
 
 
+class AccountSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/accounts/1/2',
+    )
+    type = fields.Constant(
+        'Account',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='Account',
+    )
+    debtorUri = fields.Function(
+        lambda obj: endpoints.build_url('debtor', debtorId=obj.debtor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The debtor's URI.",
+        example='https://example.com/debtors/1',
+    )
+    creditorUri = fields.Function(
+        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The debtor's URI.",
+        example='https://example.com/creditors/2',
+    )
+
+
 class AccountRecordSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -449,7 +484,7 @@ class AccountRecordSchema(Schema):
         example=True,
     )
     config = fields.Nested(
-        AccountConfigSchema(many=False, exclude=['type', 'accountRecordUri']),
+        AccountConfigSchema(exclude=['type', 'accountRecordUri']),
         dump_only=True,
         required=True,
         description="The account's configuration. Can be changed by the owner of the account.",
