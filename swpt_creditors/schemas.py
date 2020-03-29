@@ -462,8 +462,8 @@ class AccountRecordSchema(Schema):
     )
     interestRate = fields.Method(
         'get_interest_rate',
-        required=True,
         dump_only=True,
+        type='number',
         format="float",
         description='Annual rate (in percents) at which interest accumulates on the account.',
         example=0.0,
