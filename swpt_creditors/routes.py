@@ -71,20 +71,20 @@ class AccountEndpoint(MethodView):
         return account, {'Cache-Control': 'max-age=86400'}
 
 
-account_records_api = Blueprint(
-    'account_records',
+accounts_api = Blueprint(
+    'accounts',
     __name__,
     url_prefix='/creditors',
-    description="View, create and delete creditors' accounts.",
+    description="View, create, update and delete creditors' accounts.",
 )
 
 
-@account_records_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
 class AccountCollectionEndpoint(MethodView):
-    @account_records_api.response(AccountsCollectionSchema(context=CONTEXT))
-    @account_records_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @accounts_api.response(AccountsCollectionSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
-        """Return the creditor's collection of accounts."""
+        """Return the creditor's collection of account records."""
 
         try:
             debtor_ids = procedures.get_account_dedtor_ids(creditorId)
@@ -92,15 +92,15 @@ class AccountCollectionEndpoint(MethodView):
             abort(404)
         return AccountsCollectionSchema(creditor_id=creditorId, items=debtor_ids)
 
-    @account_records_api.arguments(AccountCreationRequestSchema)
-    @account_records_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
-    @account_records_api.doc(responses={303: specs.ACCOUNT_EXISTS,
-                                        403: specs.TOO_MANY_ACCOUNTS,
-                                        404: specs.CREDITOR_DOES_NOT_EXIST,
-                                        409: specs.ACCOUNT_CONFLICT,
-                                        422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
+    @accounts_api.arguments(AccountCreationRequestSchema)
+    @accounts_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @accounts_api.doc(responses={303: specs.ACCOUNT_EXISTS,
+                                 403: specs.TOO_MANY_ACCOUNTS,
+                                 404: specs.CREDITOR_DOES_NOT_EXIST,
+                                 409: specs.ACCOUNT_CONFLICT,
+                                 422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
     def post(self, account_creation_request, creditorId):
-        """Create a new account."""
+        """Create a new account record."""
 
         debtor_uri = account_creation_request['debtor_uri']
         try:
@@ -125,17 +125,17 @@ class AccountCollectionEndpoint(MethodView):
         return transfer, {'Location': location}
 
 
-@account_records_api.route('/<i64:creditorId>/accounts/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
 class AccountRecordEndpoint(MethodView):
-    @account_records_api.response(AccountRecordSchema(context=CONTEXT))
-    @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    @accounts_api.response(AccountRecordSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, debtorId, transferUuid):
         """Return an account record."""
 
         pass
 
-    @account_records_api.response(code=204)
-    @account_records_api.doc(responses={409: specs.ACCOUNT_UPDATE_CONFLICT})
+    @accounts_api.response(code=204)
+    @accounts_api.doc(responses={409: specs.ACCOUNT_UPDATE_CONFLICT})
     def delete(self, debtorId, transferUuid):
         """Try to delete an account record.
 
@@ -148,20 +148,19 @@ class AccountRecordEndpoint(MethodView):
         pass
 
 
-@account_records_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config',
-                           parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
 class AccountConfigEndpoint(MethodView):
-    @account_records_api.response(AccountConfigSchema(context=CONTEXT))
-    @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    @accounts_api.response(AccountConfigSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
         """Return account's configuration."""
 
         pass
 
-    @account_records_api.arguments(AccountConfigChangeRequestSchema)
-    @account_records_api.response(AccountConfigSchema(context=CONTEXT))
-    @account_records_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                        409: specs.ACCOUNT_UPDATE_CONFLICT})
+    @accounts_api.arguments(AccountConfigChangeRequestSchema)
+    @accounts_api.response(AccountConfigSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
+                                 409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's configuration.
 
