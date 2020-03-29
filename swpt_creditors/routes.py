@@ -58,7 +58,7 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
-@creditors_api.route('/accounts/<i64:debtorId>/<i64:creditorId>', parameters=[specs.DEBTOR_ID, specs.CREDITOR_ID])
+@creditors_api.route('/accounts/<i64:creditorId>/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
 class AccountEndpoint(MethodView):
     @creditors_api.response(AccountSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
