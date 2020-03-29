@@ -315,8 +315,148 @@ class AccountCreationRequestSchema(Schema):
     )
 
 
-class AccountSchema(Schema):
-    pass
+class AccountConfigSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/accounts/1/config',
+    )
+    type = fields.Constant(
+        'AccountConfig',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountConfig',
+    )
+    accountRecordUri = fields.Method(
+        'get_account_record_uri',
+        required=True,
+        type='string',
+        format="uri",
+        description="The URI of the corresponding account record.",
+        example='https://example.com/creditors/2/accounts/1',
+    )
+    is_scheduled_for_deletion = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='isScheduledForDeletion',
+        description='Whether the account is scheduled for deletion.',
+        example=False,
+    )
+    allow_unsafe_deletion = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='allowUnsafeDeletion',
+        description='Whether the account record can be forcefully deleted, potentially '
+                    'losing a non-negligible amount of money on the account.',
+        example=False,
+    )
+    negligible_amount = fields.Method(
+        'get_interest_rate',
+        required=True,
+        dump_only=True,
+        data_key='negligibleAmount',
+        format="float",
+        description='The maximum amount that is considered negligible. It can be used '
+                    'to decide whether the account can be safely deleted, or whether a '
+                    'transfer should be considered as insignificant. Must be non-negative.',
+        example=0.0,
+    )
+
+
+class AccountRecordSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/accounts/1',
+    )
+    type = fields.Constant(
+        'AccountRecord',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountRecord',
+    )
+    accountUri = fields.Function(
+        lambda obj: endpoints.build_url('account', debtor_id=obj.debtor_id, creditorId=obj.real_creditor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The account URI.",
+        example='https://example.com/accounts/1/2',
+    )
+    principal = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format="int64",
+        description='The principal amount.',
+        example=0,
+    )
+    interestRate = fields.Method(
+        'get_interest_rate',
+        required=True,
+        dump_only=True,
+        format="float",
+        description='Annual rate (in percents) at which interest accumulates on the account.',
+        example=0.0,
+    )
+    transfersUri = fields.Method(
+        'get_transfers_uri',
+        required=True,
+        type='string',
+        format="uri",
+        description="The URI for the account transfers.",
+        example='https://example.com/creditors/2/accounts/1/transfers/',
+    )
+    created_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='createdAt',
+        description='The moment at which the account record was created.',
+    )
+    is_deletion_safe = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='isDeletionSafe',
+        description='Whether it is safe to delete the account record.',
+        example=False,
+    )
+    config_changed_at = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='configChangedAt',
+        description='The last time at which the configuration was changed.',
+    )
+    config_is_effectual = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='configIsEffectual',
+        description='Whether the configuration is currently effectual.',
+        example=True,
+    )
+    config = fields.Nested(
+        AccountConfigSchema(many=False, exclude=['type', 'accountRecordUri']),
+        dump_only=True,
+        required=True,
+        description="The account's configuration. Can be changed by the owner of the account.",
+    )
+
+    def get_uri(self, obj):
+        return url_for(
+            self.context['AccountRecord'],
+            _external=True,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
 
 
 class AccountUpdateRequestSchema(Schema):
