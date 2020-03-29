@@ -340,6 +340,19 @@ class AccountConfigSchema(Schema):
         description="The URI of the corresponding account record.",
         example='https://example.com/creditors/2/accounts/1',
     )
+    last_change_at = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='lastChangeAt',
+        description='The last time at which the configuration was changed.',
+    )
+    last_change_is_effectual = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='lastChangeIsEffectual',
+        description='Whether the configuration is currently effectual.',
+        example=True,
+    )
     is_scheduled_for_deletion = fields.Boolean(
         required=True,
         data_key='isScheduledForDeletion',
@@ -370,7 +383,7 @@ class AccountConfigSchema(Schema):
 
 class AccountConfigChangeRequestSchema(AccountConfigSchema):
     class Meta:
-        exclude = ['uri', 'type', 'accountRecordUri']
+        exclude = ['uri', 'type', 'accountRecordUri', 'last_change_at', 'last_change_is_effectual']
 
 
 class AccountSchema(Schema):
@@ -433,6 +446,12 @@ class AccountRecordSchema(Schema):
         description="The account URI.",
         example='https://example.com/creditors/2/debtors/1',
     )
+    created_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='createdAt',
+        description='The moment at which the account record was created.',
+    )
     principal = fields.Integer(
         required=True,
         dump_only=True,
@@ -457,11 +476,11 @@ class AccountRecordSchema(Schema):
         description="The URI for the account transfers.",
         example='https://example.com/creditors/2/accounts/1/transfers/',
     )
-    created_at_ts = fields.DateTime(
-        required=True,
+    config = fields.Nested(
+        AccountConfigSchema(exclude=['type', 'accountRecordUri']),
         dump_only=True,
-        data_key='createdAt',
-        description='The moment at which the account record was created.',
+        required=True,
+        description="The account's configuration. Can be changed by the owner of the account.",
     )
     is_deletion_safe = fields.Boolean(
         required=True,
@@ -469,25 +488,6 @@ class AccountRecordSchema(Schema):
         data_key='isDeletionSafe',
         description='Whether it is safe to delete the account record.',
         example=False,
-    )
-    config_changed_at = fields.DateTime(
-        required=True,
-        dump_only=True,
-        data_key='configChangedAt',
-        description='The last time at which the configuration was changed.',
-    )
-    config_is_effectual = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='configIsEffectual',
-        description='Whether the configuration is currently effectual.',
-        example=True,
-    )
-    config = fields.Nested(
-        AccountConfigSchema(exclude=['type', 'accountRecordUri']),
-        dump_only=True,
-        required=True,
-        description="The account's configuration. Can be changed by the owner of the account.",
     )
 
     def get_uri(self, obj):
