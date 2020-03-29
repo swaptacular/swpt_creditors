@@ -23,12 +23,12 @@ CONTEXT = {
 creditors_api = Blueprint(
     'creditors',
     __name__,
-    url_prefix='',
+    url_prefix='/creditors',
     description="Obtain public information about accounts and creditors, create new creditors.",
 )
 
 
-@creditors_api.route('/creditors/<i64:creditorId>', parameters=[specs.CREDITOR_ID])
+@creditors_api.route('/<i64:creditorId>', parameters=[specs.CREDITOR_ID])
 class CreditorEndpoint(MethodView):
     @creditors_api.response(CreditorSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -58,7 +58,7 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
-@creditors_api.route('/accounts/<i64:creditorId>/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@creditors_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
 class AccountEndpoint(MethodView):
     @creditors_api.response(AccountSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})

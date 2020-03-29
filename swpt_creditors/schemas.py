@@ -380,7 +380,7 @@ class AccountSchema(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/accounts/2/1',
+        example='https://example.com/creditors/2/debtors/1',
     )
     type = fields.Constant(
         'Account',
@@ -431,7 +431,7 @@ class AccountRecordSchema(Schema):
         type='string',
         format="uri",
         description="The account URI.",
-        example='https://example.com/accounts/2/1',
+        example='https://example.com/creditors/2/debtors/1',
     )
     principal = fields.Integer(
         required=True,
