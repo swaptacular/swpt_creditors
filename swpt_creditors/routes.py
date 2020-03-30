@@ -5,7 +5,7 @@ from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountsCollectionSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountRecordSchema, AccountConfigSchema, AccountConfigChangeRequestSchema
+    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, AccountRecordConfigChangeRequestSchema
 )
 from . import specs
 from . import procedures
@@ -148,16 +148,16 @@ class AccountRecordEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
-class AccountConfigEndpoint(MethodView):
-    @accounts_api.response(AccountConfigSchema(context=CONTEXT))
+class AccountRecordConfigEndpoint(MethodView):
+    @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
         """Return account's configuration."""
 
         pass
 
-    @accounts_api.arguments(AccountConfigChangeRequestSchema)
-    @accounts_api.response(AccountConfigSchema(context=CONTEXT))
+    @accounts_api.arguments(AccountRecordConfigChangeRequestSchema)
+    @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):

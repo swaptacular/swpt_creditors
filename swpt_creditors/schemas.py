@@ -315,7 +315,7 @@ class AccountCreationRequestSchema(Schema):
     )
 
 
-class AccountConfigSchema(Schema):
+class AccountRecordConfigSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -325,12 +325,12 @@ class AccountConfigSchema(Schema):
         example='https://example.com/creditors/2/accounts/1/config',
     )
     type = fields.Constant(
-        'AccountConfig',
+        'AccountRecordConfig',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountConfig',
+        example='AccountRecordConfig',
     )
     accountRecordUri = fields.Method(
         'get_account_record_uri',
@@ -373,7 +373,7 @@ class AccountConfigSchema(Schema):
     )
 
 
-class AccountConfigChangeRequestSchema(Schema):
+class AccountRecordConfigChangeRequestSchema(Schema):
     is_scheduled_for_deletion = fields.Boolean(
         missing=False,
         data_key='isScheduledForDeletion',
@@ -490,7 +490,7 @@ class AccountRecordSchema(Schema):
         example='https://example.com/creditors/2/accounts/1/transfers/',
     )
     config = fields.Nested(
-        AccountConfigSchema(exclude=['type', 'accountRecordUri']),
+        AccountRecordConfigSchema,
         dump_only=True,
         required=True,
         description="The account's configuration. Can be changed by the owner of the account.",
