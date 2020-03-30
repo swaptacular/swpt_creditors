@@ -5,7 +5,8 @@ from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountsCollectionSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, AccountRecordConfigChangeRequestSchema
+    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, AccountRecordConfigChangeRequestSchema,
+    CommittedTransferSchema
 )
 from . import specs
 from . import procedures
@@ -166,5 +167,16 @@ class AccountRecordConfigEndpoint(MethodView):
         **Note:** This operation is idempotent.
 
         """
+
+        pass
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:transferSeqnum>',
+                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+class AccountTransferEndpoint(MethodView):
+    @accounts_api.response(CommittedTransferSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId, transferSeqnum):
+        """Return information about a committed transfer."""
 
         pass

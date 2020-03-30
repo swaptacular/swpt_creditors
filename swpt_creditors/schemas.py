@@ -512,3 +512,66 @@ class AccountRecordSchema(Schema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
+
+
+class CommittedTransferSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/accounts/1/transfers/54321',
+    )
+    type = fields.Constant(
+        'CommittedTransfer',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='CommittedTransfer',
+    )
+    senderAccountUri = fields.Function(
+        lambda obj: endpoints.build_url('account', creditorId=obj.sender_creditor_id, debtorId=obj.debtor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The sender's account URI.",
+        example='https://example.com/creditors/2/debtors/1',
+    )
+    recipientAccountUri = fields.Function(
+        lambda obj: endpoints.build_url('account', creditorId=obj.sender_creditor_id, debtorId=obj.debtor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The recipient's account URI.",
+        example='https://example.com/creditors/3/debtors/1',
+    )
+    committed_amount = fields.Integer(
+        required=True,
+        dump_only=True,
+        data_key='committedAmount',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format="int64",
+        description='The transferred amount.',
+        example=1000,
+    )
+    committed_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='committedAt',
+        description='The moment at which the transfer was committed.',
+    )
+    coordinator_type = fields.String(
+        required=True,
+        dump_only=True,
+        data_key='transferClass',
+        description='The transfer class.',
+        example='direct',
+    )
+    transfer_info = fields.Dict(
+        required=True,
+        dump_only=True,
+        data_key='transferInfo',
+        description=InitiatedTransfer.transfer_info.comment,
+    )
