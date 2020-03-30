@@ -350,7 +350,7 @@ class AccountConfigSchema(Schema):
         required=True,
         dump_only=True,
         data_key='configIsEffectual',
-        description='Whether the configuration is currently effectual.',
+        description='Whether the current configuration is effectual.',
         example=True,
     )
     is_scheduled_for_deletion = fields.Boolean(
@@ -453,14 +453,15 @@ class AccountRecordSchema(Schema):
         required=True,
         type='string',
         format="uri",
-        description="The account URI.",
+        description="The account's URI. Uniquely identifies the account when it participates "
+                    "in a transfer as sender or recipient.",
         example='https://example.com/creditors/2/debtors/1',
     )
     created_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='createdAt',
-        description='The moment at which the account was created.',
+        description='The moment at which the account record was created.',
     )
     principal = fields.Integer(
         required=True,
@@ -475,7 +476,8 @@ class AccountRecordSchema(Schema):
         dump_only=True,
         type='number',
         format="float",
-        description='Annual rate (in percents) at which interest accumulates on the account.',
+        description='Annual rate (in percents) at which interest accumulates on the account. When '
+                    'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
     transfersUri = fields.Method(
@@ -483,7 +485,8 @@ class AccountRecordSchema(Schema):
         required=True,
         type='string',
         format="uri",
-        description="The URI for the list of recent account transfers.",
+        description='The URI for the list of recent account transfers. That is: transfers for '
+                    'which the account is either the sender or the recipient.',
         example='https://example.com/creditors/2/accounts/1/transfers/',
     )
     config = fields.Nested(
@@ -496,9 +499,9 @@ class AccountRecordSchema(Schema):
         required=True,
         dump_only=True,
         data_key='isDeletionSafe',
-        description='Whether it is safe to delete this object. When `false`, deleting this '
-                    'account record may result in losing a non-negligible amount of money on '
-                    'the account.',
+        description='Whether it is safe to delete this account record. When `false`, deleting '
+                    'the account record may result in losing a non-negligible amount of money '
+                    'on the account.',
         example=False,
     )
 

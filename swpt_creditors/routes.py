@@ -135,13 +135,12 @@ class AccountRecordEndpoint(MethodView):
         pass
 
     @accounts_api.response(code=204)
-    @accounts_api.doc(responses={409: specs.ACCOUNT_UPDATE_CONFLICT})
     def delete(self, debtorId, transferUuid):
-        """Try to delete an account record.
+        """Delete an account record.
 
-        The deletion attempt will fail if the deletion of the account
-        record is not safe, and unsafe deletion is not allowed in the
-        account's configuration.
+        **Important note:** If the account record is not marked as
+        safe for deletion, deleting it may result in losing a
+        non-negligible amount of money on the account.
 
         """
 
@@ -164,7 +163,7 @@ class AccountConfigEndpoint(MethodView):
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's configuration.
 
-        This operation is **idempotent**!
+        **Note:** This operation is idempotent.
 
         """
 
