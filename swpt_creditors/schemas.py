@@ -340,16 +340,16 @@ class AccountConfigSchema(Schema):
         description="The URI of the corresponding account record.",
         example='https://example.com/creditors/2/accounts/1',
     )
-    last_change_at = fields.DateTime(
+    config_changed_at = fields.DateTime(
         required=True,
         dump_only=True,
-        data_key='lastChangeAt',
-        description='The last time at which the configuration was changed.',
+        data_key='configChangedAt',
+        description='The last moment at which the configuration was changed.',
     )
-    last_change_is_effectual = fields.Boolean(
+    config_is_effectual = fields.Boolean(
         required=True,
         dump_only=True,
-        data_key='lastChangeIsEffectual',
+        data_key='configIsEffectual',
         description='Whether the configuration is currently effectual.',
         example=True,
     )
@@ -360,14 +360,6 @@ class AccountConfigSchema(Schema):
                     'acount, it should be first scheduled for deletion, and deleted only '
                     'after the corresponding account record has been marked as safe for '
                     'deletion.',
-        example=False,
-    )
-    allow_unsafe_deletion = fields.Boolean(
-        required=True,
-        data_key='allowUnsafeDeletion',
-        description='Whether the account record can be forcefully deleted, potentially '
-                    'losing a non-negligible amount of money on the account. Normally, it '
-                    'should be `false`.',
         example=False,
     )
     negligible_amount = fields.Float(
@@ -383,7 +375,7 @@ class AccountConfigSchema(Schema):
 
 class AccountConfigChangeRequestSchema(AccountConfigSchema):
     class Meta:
-        exclude = ['uri', 'type', 'accountRecordUri', 'last_change_at', 'last_change_is_effectual']
+        exclude = ['uri', 'type', 'accountRecordUri', 'config_changed_at', 'config_is_effectual']
 
 
 class AccountSchema(Schema):
