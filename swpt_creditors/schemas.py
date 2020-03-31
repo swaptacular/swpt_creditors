@@ -459,14 +459,17 @@ class AccountRecordSchema(Schema):
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
-    ledgerUri = fields.Method(
-        'get_ledger_uri',
+    ledgerEntriesUri = fields.Method(
+        'get_ledger_entries_uri',
         required=True,
         type='string',
         format="uri-reference",
-        description='The URI for the list of account ledger entries. That is: transfers '
-                    'for which the account is either the sender or the recipient. This '
-                    'could be a relative URI.',
+        description='An URI for a paginated list of account ledger entries. That is: transfers '
+                    'for which the account is either the sender or the recipient. The paginated '
+                    'list will be sorted in reverse-chronological order (bigger entry IDs go '
+                    'first). The entries will constitute a singly linked list, each entry '
+                    '(except the most ancient one) referring to its ancestor. This could be a '
+                    'relative URI.',
         example='entries?first=123',
     )
     config = fields.Nested(
@@ -617,7 +620,7 @@ class LedgerEntrySchema(Schema):
     )
 
 
-class AccountLedgerEntriesSchema(Schema):
+class LedgerEntryListSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -627,29 +630,19 @@ class AccountLedgerEntriesSchema(Schema):
         example='https://example.com/creditors/2/accounts/1/entries?first=123',
     )
     type = fields.Constant(
-        'AccountLedgerEntries',
+        'LedgerEntryList',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountLedgerEntries',
-    )
-    accountRecordUri = fields.Method(
-        'get_account_record_uri',
-        required=True,
-        type='string',
-        format="uri",
-        description='The URI of the corresponding account record.',
-        example='https://example.com/creditors/2/accounts/1/',
+        example='LedgerEntryList',
     )
     items = fields.Nested(
         LedgerEntrySchema(many=True),
         required=True,
         dump_only=True,
-        description='A list of ledger entries. The list is sorted in reverse-chronological order (bigger '
-                    'entry IDs go first). Entries constitute a singly linked list, each entry (except the '
-                    'most ancient one) referring to its ancestor. The last entry in the list refers to '
-                    'the first entry in the subsequent list specified by the `next` field.',
+        description='A list of ledger entries. The list is sorted by the ID of the entries. Depending '
+                    'on the case smaller or bigger IDs might go first',
     )
     totalItems = fields.Method(
         'get_total_items',
@@ -665,14 +658,14 @@ class AccountLedgerEntriesSchema(Schema):
         required=True,
         type='string',
         format="uri-reference",
-        description='A *relative* URI for obtaining the latest entries.',
+        description='A *relative* URI for obtaining ledger entries, starting at the beginning.',
         example='?first=123',
     )
     next = fields.Method(
         'get_next_uri',
         type='string',
         format="uri-reference",
-        description='A *relative* URI for obtaining earlier ledger entries. When this field is not '
-                    'present, this means that thre are no earlier entries.',
+        description='A *relative* URI for obtaining more ledger entries. When this field is not '
+                    'present, this means that there are no more entries.',
         example='?first=123&after=123',
     )
