@@ -338,7 +338,7 @@ class AccountRecordConfigSchema(Schema):
         type='string',
         format="uri",
         description="The URI of the corresponding account record.",
-        example='https://example.com/creditors/2/accounts/1',
+        example='https://example.com/creditors/2/accounts/1/',
     )
     config_changed_at = fields.DateTime(
         required=True,
@@ -417,7 +417,7 @@ class AccountRecordSchema(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1',
+        example='https://example.com/creditors/2/accounts/1/',
     )
     type = fields.Constant(
         'AccountRecord',
@@ -463,10 +463,11 @@ class AccountRecordSchema(Schema):
         'get_ledger_uri',
         required=True,
         type='string',
-        format="uri",
-        description='The URI for the list of recent account ledger entries. That is: recent '
-                    'transfers for which the account is either the sender or the recipient.',
-        example='https://example.com/creditors/2/accounts/1/entries?first=123',
+        format="uri-reference",
+        description='The URI for the list of account ledger entries. That is: transfers '
+                    'for which the account is either the sender or the recipient. This '
+                    'could be a relative URI.',
+        example='entries?first=123',
     )
     config = fields.Nested(
         AccountRecordConfigSchema,
@@ -570,7 +571,7 @@ class LedgerEntrySchema(Schema):
         type='string',
         format="uri",
         description="The URI of the corresponding account record.",
-        example='https://example.com/creditors/2/accounts/1',
+        example='https://example.com/creditors/2/accounts/1/',
     )
     amount = fields.Integer(
         required=True,
@@ -639,7 +640,7 @@ class AccountLedgerEntriesSchema(Schema):
         type='string',
         format="uri",
         description='The URI of the corresponding account record.',
-        example='https://example.com/creditors/2/accounts/1',
+        example='https://example.com/creditors/2/accounts/1/',
     )
     items = fields.Nested(
         LedgerEntrySchema(many=True),
