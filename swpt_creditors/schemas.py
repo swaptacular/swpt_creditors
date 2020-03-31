@@ -616,26 +616,52 @@ class LedgerEntrySchema(Schema):
     )
 
 
-class AccountLedgerStream(Schema):
+class AccountLedgerEntriesSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/ledger/',
+        example='https://example.com/creditors/2/accounts/1/entries/666',
     )
     type = fields.Constant(
-        'AccountLedgerStream',
+        'AccountLedgerEntries',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountLedgerStream',
+        example='AccountLedgerEntries',
+    )
+    accountRecordUri = fields.Method(
+        'get_account_record_uri',
+        required=True,
+        type='string',
+        format="uri",
+        description="The URI of the corresponding account record.",
+        example='https://example.com/creditors/2/accounts/1',
+    )
+    latest_entry_id = fields.Integer(
+        required=True,
+        dump_only=True,
+        data_key='latestEntryId',
+        format="int64",
+        description="The ID of the latest entry in the `entries` list. Previous entries have smaller IDs.",
+        example='666',
     )
     entries = fields.Nested(
         LedgerEntrySchema(many=True),
         dump_only=True,
         required=True,
-        description='A list of ledger entries.',
+        description='A list of ledger entries. The list is sorted in reverse-chronological order (bigger '
+                    'entry IDs go first). Entries constitute a singly linked list, each entry (except the '
+                    'most ancient one) referring to its ancestor. The last entry in the list refers to '
+                    'the first entry in the successive list specified by the `earlierEntriesUri` field.',
+    )
+    earlierEntriesUri = fields.Method(
+        'get_earlier_entries_uri',
+        type='string',
+        format="uri-reference",
+        description="A *relative* URI for obtaining earlier ledger entries.",
+        example='https://example.com/creditors/2/accounts/1/entries/666?prev=555',
     )
