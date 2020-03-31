@@ -641,22 +641,33 @@ class AccountLedgerEntriesSchema(Schema):
         description="The URI of the corresponding account record.",
         example='https://example.com/creditors/2/accounts/1',
     )
-    latest_entry_id = fields.Integer(
-        required=True,
-        dump_only=True,
-        data_key='latestEntryId',
-        format="int64",
-        description="The ID of the latest entry in the `entries` list. Previous entries have smaller IDs.",
-        example='666',
-    )
     entries = fields.Nested(
         LedgerEntrySchema(many=True),
-        dump_only=True,
         required=True,
+        dump_only=True,
         description='A list of ledger entries. The list is sorted in reverse-chronological order (bigger '
                     'entry IDs go first). Entries constitute a singly linked list, each entry (except the '
                     'most ancient one) referring to its ancestor. The last entry in the list refers to '
                     'the first entry in the successive list specified by the `earlierEntriesUri` field.',
+    )
+    entriesPerPage = fields.Method(
+        'get_entries_per_page',
+        required=True,
+        dump_only=True,
+        type='integer',
+        description='The maximum number of entries that will be included in subsequent pages. This '
+                    'is useful when showing paginated results. (The length of `entries` will never '
+                    'exceed this number.)',
+        example=10,
+    )
+    totalEntries = fields.Method(
+        'get_total_entries',
+        dump_only=True,
+        type='integer',
+        description='The total number of entries in the ledger. This is useful when showing paginated '
+                    'results. When this field is not present, this means that the total number of '
+                    'entries is unknown.',
+        example=1,
     )
     earlierEntriesUri = fields.Method(
         'get_earlier_entries_uri',
