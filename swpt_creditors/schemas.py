@@ -562,7 +562,7 @@ class LedgerEntrySchema(Schema):
         dump_only=True,
         format="int64",
         description="The ID of this entry. Later entries have bigger IDs.",
-        example='12345',
+        example='123',
     )
     accountRecordUri = fields.Method(
         'get_account_record_uri',
@@ -612,7 +612,7 @@ class LedgerEntrySchema(Schema):
         description="The ID of the previous entry in the account's ledger. Previous entries have "
                     "smaller IDs. When this field is not present, this means that there are no "
                     "previous entries.",
-        example='12344',
+        example='122',
     )
 
 
@@ -622,7 +622,7 @@ class AccountLedgerEntriesSchema(Schema):
         required=True,
         type='string',
         format='uri',
-        description="The URI of this object.",
+        description='The URI of this object.',
         example='https://example.com/creditors/2/accounts/1/entries/666',
     )
     type = fields.Constant(
@@ -638,41 +638,40 @@ class AccountLedgerEntriesSchema(Schema):
         required=True,
         type='string',
         format="uri",
-        description="The URI of the corresponding account record.",
+        description='The URI of the corresponding account record.',
         example='https://example.com/creditors/2/accounts/1',
     )
-    entries = fields.Nested(
+    items = fields.Nested(
         LedgerEntrySchema(many=True),
         required=True,
         dump_only=True,
         description='A list of ledger entries. The list is sorted in reverse-chronological order (bigger '
                     'entry IDs go first). Entries constitute a singly linked list, each entry (except the '
                     'most ancient one) referring to its ancestor. The last entry in the list refers to '
-                    'the first entry in the successive list specified by the `earlierEntriesUri` field.',
+                    'the first entry in the subsequent list specified by the `next` field.',
     )
-    entriesPerPage = fields.Method(
-        'get_entries_per_page',
-        required=True,
-        dump_only=True,
-        type='integer',
-        description='The maximum number of entries that will be included in subsequent pages. This '
-                    'is useful when showing paginated results. (The length of `entries` will never '
-                    'exceed this number.)',
-        example=10,
-    )
-    totalEntries = fields.Method(
-        'get_total_entries',
+    totalItems = fields.Method(
+        'get_total_items',
         dump_only=True,
         type='integer',
         description='The total number of entries in the ledger. This is useful when showing paginated '
                     'results. When this field is not present, this means that the total number of '
                     'entries is unknown.',
-        example=1,
+        example=200,
     )
-    earlierEntriesUri = fields.Method(
-        'get_earlier_entries_uri',
+    first = fields.Method(
+        'get_first_uri',
+        required=True,
         type='string',
         format="uri-reference",
-        description="A *relative* URI for obtaining earlier ledger entries.",
-        example='https://example.com/creditors/2/accounts/1/entries/666?prev=555',
+        description='A *relative* URI for obtaining the latest ledger entries.',
+        example='?after=0',
+    )
+    next = fields.Method(
+        'get_next_uri',
+        type='string',
+        format="uri-reference",
+        description='A *relative* URI for obtaining earlier ledger entries. When this field is not '
+                    'present, this means that thre are no earlier entries.',
+        example='?after=123',
     )
