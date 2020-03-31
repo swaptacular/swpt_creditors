@@ -5,7 +5,7 @@ from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountsCollectionSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, AccountRecordConfigChangeRequestSchema,
+    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema,
     CommittedTransferSchema, AccountLedgerStream
 )
 from . import specs
@@ -157,7 +157,7 @@ class AccountRecordConfigEndpoint(MethodView):
 
         pass
 
-    @accounts_api.arguments(AccountRecordConfigChangeRequestSchema)
+    @accounts_api.arguments(AccountRecordConfigSchema)
     @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
