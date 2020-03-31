@@ -172,7 +172,7 @@ class AccountRecordConfigEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries',
-                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.FIRST_ENTRY_ID, specs.AFTER_ENTRY_ID])
+                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.FIRST, specs.AFTER])
 class AccountLedgerEntryListEndpoint(MethodView):
     @accounts_api.response(LedgerEntryListSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})

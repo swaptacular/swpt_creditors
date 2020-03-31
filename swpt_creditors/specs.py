@@ -26,12 +26,11 @@ CREDITOR_ID = {
     },
 }
 
-FIRST_ENTRY_ID = {
+FIRST = {
     'in': 'query',
     'name': 'first',
     'required': True,
-    'description': "Will return only ledger entries with IDs smaller or equal to this value. This "
-                   "parameter is used to implement pagination of results.",
+    'description': "Will return only ledger entries with IDs smaller or equal to this value.",
     'schema': {
         'type': 'integer',
         'format': 'uint64',
@@ -40,12 +39,11 @@ FIRST_ENTRY_ID = {
     },
 }
 
-AFTER_ENTRY_ID = {
+AFTER = {
     'in': 'query',
     'name': 'after',
     'required': False,
-    'description': "Will return only ledger entries with IDs smaller that this value. This "
-                   "parameter is used to implement pagination of results.",
+    'description': "Will return only ledger entries with IDs smaller that this value.",
     'schema': {
         'type': 'integer',
         'format': 'uint64',

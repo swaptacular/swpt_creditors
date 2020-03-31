@@ -375,6 +375,110 @@ class AccountRecordConfigSchema(Schema):
     )
 
 
+class LedgerEntrySchema(Schema):
+    entryId = fields.Integer(
+        required=True,
+        dump_only=True,
+        format="int64",
+        description="The ID of this entry. Later entries have bigger IDs.",
+        example='123',
+    )
+    accountRecordUri = fields.Method(
+        'get_account_record_uri',
+        required=True,
+        type='string',
+        format="uri",
+        description="The URI of the corresponding account record.",
+        example='https://example.com/creditors/2/accounts/1/',
+    )
+    amount = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format="int64",
+        description="The amount added to account's principal. Can be positive (an increase) or "
+                    "negative (a decrease). Can not be zero.",
+        example=1000,
+    )
+    balance = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format="int64",
+        description='The new principal amount on the account, as it is after the transfer. Unless '
+                    'a principal overflow has occurred, the new principal amount will be equal to '
+                    '`amount` plus the old principal amount.',
+        example=1500,
+    )
+    transferUri = fields.Method(
+        'get_transfer_uri',
+        required=True,
+        type='string',
+        format="uri-reference",
+        description='The URI of the corresponding transfer. It could be a relative URI.',
+        example='https://example.com/creditors/2/accounts/1/transfers/',
+    )
+    posted_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='postedAt',
+        description='The moment at which this entry was added to the ledger.',
+    )
+    previous_entry_id = fields.Integer(
+        dump_only=True,
+        data_key='previousEntryId',
+        format="int64",
+        description="The ID of the previous entry in the account's ledger. Previous entries have "
+                    "smaller IDs. When this field is not present, this means that there are no "
+                    "previous entries.",
+        example='122',
+    )
+
+
+class LedgerEntryListSchema(Schema):
+    type = fields.Constant(
+        'LedgerEntryList',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='LedgerEntryList',
+    )
+    items = fields.Nested(
+        LedgerEntrySchema(many=True),
+        required=True,
+        dump_only=True,
+        description='An array of ledger entries. Can be empty.',
+    )
+    totalItems = fields.Method(
+        'get_total_items',
+        dump_only=True,
+        type='integer',
+        description='The total number of entries. When the total number of entries is unknown, '
+                    'this field will not be present.',
+        example=123,
+    )
+    first = fields.Method(
+        'get_first_uri',
+        required=True,
+        type='string',
+        format="uri-reference",
+        description='URI of another `LedgerEntryList` object which iterates over the ledger '
+                    'entries, starting at the beginning. This can be a relative URI.',
+        example='https://example.com/creditors/2/accounts/1/entries?first=123',
+    )
+    next = fields.Method(
+        'get_next_uri',
+        type='string',
+        format="uri-reference",
+        description='URI of another `LedgerEntryList` object which contains more ledger entries. '
+                    'When there are no remaining entries, this field will not be present. If this '
+                    'field is present, *there might be remaining entries*, even when the `items` '
+                    'array is empty. This can be a relative URI.',
+        example='https://example.com/creditors/2/accounts/1/entries?first=123&after=123',
+    )
+
+
 class AccountSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -459,18 +563,15 @@ class AccountRecordSchema(Schema):
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
-    ledgerEntriesUri = fields.Method(
-        'get_ledger_entries_uri',
+    ledgerEntries = fields.Nested(
+        LedgerEntryListSchema(many=False),
         required=True,
-        type='string',
-        format="uri-reference",
-        description='An URI for a paginated list of account ledger entries. That is: transfers '
-                    'for which the account is either the sender or the recipient. The paginated '
+        description='A paginated list of account ledger entries. That is: transfers for '
+                    'which the account is either the sender or the recipient. The paginated '
                     'list will be sorted in reverse-chronological order (bigger entry IDs go '
                     'first). The entries will constitute a singly linked list, each entry '
                     '(except the most ancient one) referring to its ancestor. This could be a '
                     'relative URI.',
-        example='entries?first=123',
     )
     config = fields.Nested(
         AccountRecordConfigSchema,
@@ -557,115 +658,4 @@ class CommittedTransferSchema(Schema):
         dump_only=True,
         data_key='transferInfo',
         description=InitiatedTransfer.transfer_info.comment,
-    )
-
-
-class LedgerEntrySchema(Schema):
-    entryId = fields.Integer(
-        required=True,
-        dump_only=True,
-        format="int64",
-        description="The ID of this entry. Later entries have bigger IDs.",
-        example='123',
-    )
-    accountRecordUri = fields.Method(
-        'get_account_record_uri',
-        required=True,
-        type='string',
-        format="uri",
-        description="The URI of the corresponding account record.",
-        example='https://example.com/creditors/2/accounts/1/',
-    )
-    amount = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format="int64",
-        description="The amount added to account's principal. Can be positive (an increase) or "
-                    "negative (a decrease). Can not be zero.",
-        example=1000,
-    )
-    balance = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format="int64",
-        description='The new principal amount on the account, as it is after the transfer. Unless '
-                    'a principal overflow has occurred, the new principal amount will be equal to '
-                    '`amount` plus the old principal amount.',
-        example=1500,
-    )
-    transferUri = fields.Method(
-        'get_transfer_uri',
-        required=True,
-        type='string',
-        format="uri-reference",
-        description='The URI of the corresponding transfer. It could be a relative URI.',
-        example='https://example.com/creditors/2/accounts/1/transfers/',
-    )
-    posted_at_ts = fields.DateTime(
-        required=True,
-        dump_only=True,
-        data_key='postedAt',
-        description='The moment at which this entry was added to the ledger.',
-    )
-    previous_entry_id = fields.Integer(
-        dump_only=True,
-        data_key='previousEntryId',
-        format="int64",
-        description="The ID of the previous entry in the account's ledger. Previous entries have "
-                    "smaller IDs. When this field is not present, this means that there are no "
-                    "previous entries.",
-        example='122',
-    )
-
-
-class LedgerEntryListSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
-        required=True,
-        type='string',
-        format='uri',
-        description='The URI of this object.',
-        example='https://example.com/creditors/2/accounts/1/entries?first=123',
-    )
-    type = fields.Constant(
-        'LedgerEntryList',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='LedgerEntryList',
-    )
-    items = fields.Nested(
-        LedgerEntrySchema(many=True),
-        required=True,
-        dump_only=True,
-        description='A sorted list of ledger entries. The list will be sorted by the ID of the '
-                    'entries. Depending on the case, smaller or bigger IDs might go first.',
-    )
-    totalItems = fields.Method(
-        'get_total_items',
-        dump_only=True,
-        type='integer',
-        description='The total number of entries. This is useful when showing paginated '
-                    'results. When this field is not present, this means that the total '
-                    'number of entries is unknown.',
-        example=199,
-    )
-    first = fields.Method(
-        'get_first_uri',
-        required=True,
-        type='string',
-        format="uri-reference",
-        description='A *relative* URI for obtaining ledger entries, starting at the beginning.',
-        example='?first=123',
-    )
-    next = fields.Method(
-        'get_next_uri',
-        type='string',
-        format="uri-reference",
-        description='A *relative* URI for obtaining more ledger entries. When this field is not '
-                    'present, this means that there are no more entries.',
-        example='?first=123&after=123',
     )
