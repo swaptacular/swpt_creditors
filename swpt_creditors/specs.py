@@ -26,11 +26,26 @@ CREDITOR_ID = {
     },
 }
 
-LEDGER_ENTRY_ID = {
-    'in': 'path',
-    'name': 'entryId',
+FIRST_ENTRY_ID = {
+    'in': 'query',
+    'name': 'first',
     'required': True,
-    'description': "The ledger entry's ID",
+    'description': "Will return only ledger entries with IDs smaller or equal to this value. This "
+                   "parameter is used to implement pagination of results.",
+    'schema': {
+        'type': 'integer',
+        'format': 'uint64',
+        'minimum': 0,
+        'maximum': (1 << 64) - 1,
+    },
+}
+
+AFTER_ENTRY_ID = {
+    'in': 'query',
+    'name': 'after',
+    'required': False,
+    'description': "Will return only ledger entries with IDs smaller that this value. This "
+                   "parameter is used to implement pagination of results.",
     'schema': {
         'type': 'integer',
         'format': 'uint64',

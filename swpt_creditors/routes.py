@@ -29,7 +29,7 @@ creditors_api = Blueprint(
 )
 
 
-@creditors_api.route('/<i64:creditorId>', parameters=[specs.CREDITOR_ID])
+@creditors_api.route('/<i64:creditorId>/', parameters=[specs.CREDITOR_ID])
 class CreditorEndpoint(MethodView):
     @creditors_api.response(CreditorSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -126,14 +126,14 @@ class AccountCollectionEndpoint(MethodView):
         return transfer, {'Location': location}
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
 class AccountRecordEndpoint(MethodView):
     @accounts_api.response(AccountRecordSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, debtorId, transferUuid):
+    def get(self, debtorId, creditorId):
         """Return an account record."""
 
-        pass
+        abort(500)
 
     @accounts_api.response(code=204)
     def delete(self, debtorId, transferUuid):
@@ -145,7 +145,7 @@ class AccountRecordEndpoint(MethodView):
 
         """
 
-        pass
+        abort(500)
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
@@ -155,7 +155,7 @@ class AccountRecordConfigEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's configuration."""
 
-        pass
+        abort(500)
 
     @accounts_api.arguments(AccountRecordConfigSchema)
     @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
@@ -168,18 +168,18 @@ class AccountRecordConfigEndpoint(MethodView):
 
         """
 
-        pass
+        abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries/<i64:entryId>',
-                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.LEDGER_ENTRY_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries',
+                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.FIRST_ENTRY_ID, specs.AFTER_ENTRY_ID])
 class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.response(AccountLedgerEntriesSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId, entryId):
+    def get(self, creditorId, debtorId, first, after):
         """Return account ledger entries."""
 
-        pass
+        abort(500)
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:transferSeqnum>',
@@ -190,4 +190,4 @@ class AccountTransferEndpoint(MethodView):
     def get(self, creditorId, debtorId, transferSeqnum):
         """Return information about a committed transfer."""
 
-        pass
+        abort(500)

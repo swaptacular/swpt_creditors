@@ -466,7 +466,7 @@ class AccountRecordSchema(Schema):
         format="uri",
         description='The URI for the list of recent account ledger entries. That is: recent '
                     'transfers for which the account is either the sender or the recipient.',
-        example='https://example.com/creditors/2/accounts/1/entries/666',
+        example='https://example.com/creditors/2/accounts/1/entries?first=123',
     )
     config = fields.Nested(
         AccountRecordConfigSchema,
@@ -623,7 +623,7 @@ class AccountLedgerEntriesSchema(Schema):
         type='string',
         format='uri',
         description='The URI of this object.',
-        example='https://example.com/creditors/2/accounts/1/entries/666',
+        example='https://example.com/creditors/2/accounts/1/entries?first=123',
     )
     type = fields.Constant(
         'AccountLedgerEntries',
@@ -657,7 +657,7 @@ class AccountLedgerEntriesSchema(Schema):
         description='The total number of entries in the ledger. This is useful when showing paginated '
                     'results. When this field is not present, this means that the total number of '
                     'entries is unknown.',
-        example=200,
+        example=199,
     )
     first = fields.Method(
         'get_first_uri',
@@ -665,7 +665,7 @@ class AccountLedgerEntriesSchema(Schema):
         type='string',
         format="uri-reference",
         description='A *relative* URI for obtaining the latest ledger entries.',
-        example='?after=0',
+        example='?first=123',
     )
     next = fields.Method(
         'get_next_uri',
@@ -673,5 +673,5 @@ class AccountLedgerEntriesSchema(Schema):
         format="uri-reference",
         description='A *relative* URI for obtaining earlier ledger entries. When this field is not '
                     'present, this means that thre are no earlier entries.',
-        example='?after=123',
+        example='?first=123&after=123',
     )
