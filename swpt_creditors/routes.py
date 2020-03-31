@@ -177,7 +177,14 @@ class AccountLedgerEntryListEndpoint(MethodView):
     @accounts_api.response(LedgerEntryListSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId, first, after):
-        """Return account ledger entries."""
+        """Return a paginated list of ledger entries for a given account.
+
+        The paginated list will be sorted in reverse-chronological
+        order (bigger entry IDs go first). The entries will constitute
+        a singly linked list, each entry (except the most ancient one)
+        referring to its ancestor.
+
+        """
 
         abort(500)
 

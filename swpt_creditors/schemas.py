@@ -641,8 +641,8 @@ class LedgerEntryListSchema(Schema):
         LedgerEntrySchema(many=True),
         required=True,
         dump_only=True,
-        description='A list of ledger entries. The list is sorted by the ID of the entries. Depending '
-                    'on the case smaller or bigger IDs might go first',
+        description='A sorted list of ledger entries. The list will be sorted by the ID of the '
+                    'entries. Depending on the case, smaller or bigger IDs might go first.',
     )
     totalItems = fields.Method(
         'get_total_items',
