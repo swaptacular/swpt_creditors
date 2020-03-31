@@ -26,6 +26,19 @@ CREDITOR_ID = {
     },
 }
 
+LEDGER_ENTRY_ID = {
+    'in': 'path',
+    'name': 'entryId',
+    'required': True,
+    'description': "The ledger entry's ID",
+    'schema': {
+        'type': 'integer',
+        'format': 'uint64',
+        'minimum': 0,
+        'maximum': (1 << 64) - 1,
+    },
+}
+
 TRANSFER_UUID = {
     'in': 'path',
     'name': 'transferUuid',

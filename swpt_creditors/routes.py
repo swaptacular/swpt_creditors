@@ -171,12 +171,12 @@ class AccountRecordConfigEndpoint(MethodView):
         pass
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/ledger/',
-                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries/<i64:entryId>',
+                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.LEDGER_ENTRY_ID])
 class AccountLedgerEndpoint(MethodView):
     @accounts_api.response(AccountLedgerStream(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId):
+    def get(self, creditorId, debtorId, entryId):
         """Return account ledger entries."""
 
         pass

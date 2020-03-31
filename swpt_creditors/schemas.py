@@ -459,14 +459,14 @@ class AccountRecordSchema(Schema):
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
-    transfersUri = fields.Method(
-        'get_transfers_uri',
+    ledgerUri = fields.Method(
+        'get_ledger_uri',
         required=True,
         type='string',
         format="uri",
-        description='The URI for the list of recent account transfers. That is: transfers for '
-                    'which the account is either the sender or the recipient.',
-        example='https://example.com/creditors/2/accounts/1/transfers/',
+        description='The URI for the list of recent account ledger entries. That is: recent '
+                    'transfers for which the account is either the sender or the recipient.',
+        example='https://example.com/creditors/2/accounts/1/entries/666',
     )
     config = fields.Nested(
         AccountRecordConfigSchema,
