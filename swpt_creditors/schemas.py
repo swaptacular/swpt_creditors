@@ -654,9 +654,9 @@ class AccountLedgerEntriesSchema(Schema):
         'get_total_items',
         dump_only=True,
         type='integer',
-        description='The total number of entries in the ledger. This is useful when showing paginated '
-                    'results. When this field is not present, this means that the total number of '
-                    'entries is unknown.',
+        description='The total number of entries. This is useful when showing paginated '
+                    'results. When this field is not present, this means that the total '
+                    'number of entries is unknown.',
         example=199,
     )
     first = fields.Method(
@@ -664,7 +664,7 @@ class AccountLedgerEntriesSchema(Schema):
         required=True,
         type='string',
         format="uri-reference",
-        description='A *relative* URI for obtaining the latest ledger entries.',
+        description='A *relative* URI for obtaining the latest entries.',
         example='?first=123',
     )
     next = fields.Method(
