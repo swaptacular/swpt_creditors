@@ -18,11 +18,9 @@ class CreditorCreationOptionsSchema(Schema):
 class PaginatedListSchema(Schema):
     type = fields.Constant(
         'PaginatedList',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='PaginatedList',
     )
     itemsType = fields.Method(
         'get_items_type',
@@ -36,7 +34,11 @@ class PaginatedListSchema(Schema):
         required=True,
         type='string',
         format="uri",
-        description='The URI of the first page of the paginated list.',
+        description='The URI of the first page in the paginated list. The object retrieved from '
+                    'this URI will have an `items` property (an array), which will contain the '
+                    'first items of the paginated list. The retrieved object could also have a '
+                    '`next` property (a string), which would contain the URI of the next page '
+                    'in the paginated list.',
         example='https://example.com/list?page=1',
     )
     length = fields.Method(
@@ -61,11 +63,9 @@ class CreditorSchema(Schema):
     )
     type = fields.Constant(
         'Creditor',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='Creditor',
     )
     created_at_date = fields.Date(
         required=True,
@@ -151,11 +151,9 @@ class TransferSchema(Schema):
     )
     type = fields.Constant(
         'Transfer',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='Transfer',
     )
     debtor_uri = fields.String(
         required=True,
@@ -261,11 +259,9 @@ class TransfersCollectionSchema(Schema):
     )
     type = fields.Constant(
         'TransfersCollection',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='TransfersCollection',
     )
     creditorUri = fields.Function(
         lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
@@ -317,11 +313,9 @@ class AccountRecordConfigSchema(Schema):
     )
     type = fields.Constant(
         'AccountRecordConfig',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountRecordConfig',
     )
     accountRecordUri = fields.Method(
         'get_account_record_uri',
@@ -437,11 +431,9 @@ class LedgerEntriesPage(Schema):
     )
     type = fields.Constant(
         'LedgerEntriesPage',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='LedgerEntriesPage',
     )
     items = fields.Nested(
         LedgerEntrySchema(many=True),
@@ -472,11 +464,9 @@ class AccountSchema(Schema):
     )
     type = fields.Constant(
         'Account',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='Account',
     )
     debtorUri = fields.Function(
         lambda obj: endpoints.build_url('debtor', debtorId=obj.debtor_id),
@@ -507,11 +497,9 @@ class AccountRecordSchema(Schema):
     )
     type = fields.Constant(
         'AccountRecord',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountRecord',
     )
     accountUri = fields.Function(
         lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
@@ -590,11 +578,9 @@ class CommittedTransferSchema(Schema):
     )
     type = fields.Constant(
         'CommittedTransfer',
-        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='CommittedTransfer',
     )
     senderAccountUri = fields.Function(
         lambda obj: endpoints.build_url('account', creditorId=obj.sender_creditor_id, debtorId=obj.debtor_id),
