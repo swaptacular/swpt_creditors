@@ -15,6 +15,41 @@ class CreditorCreationOptionsSchema(Schema):
     pass
 
 
+class PaginatedListSchema(Schema):
+    type = fields.Constant(
+        'PaginatedList',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='PaginatedList',
+    )
+    itemsType = fields.Method(
+        'get_items_type',
+        required=True,
+        type='string',
+        description='The type of the items in the paginated list.',
+        example='object',
+    )
+    first = fields.Method(
+        'get_first',
+        required=True,
+        type='string',
+        format="uri",
+        description='The URI of the first page of the paginated list.',
+        example='https://example.com/list?page=1',
+    )
+    length = fields.Method(
+        'get_length',
+        dump_only=True,
+        type='integer',
+        format='uint64',
+        description='The total number of items in the paginated list. Will not be present '
+                    'if the total number of items is unknown.',
+        example=123,
+    )
+
+
 class CreditorSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -259,69 +294,6 @@ class TransfersCollectionSchema(Schema):
         return url_for(self.context['TransfersCollection'], _external=True, creditorId=obj.creditor_id)
 
 
-class AccountRecordUriListSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
-        required=True,
-        type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/1/accounts/',
-    )
-    type = fields.Constant(
-        'AccountRecordUriList',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountRecordUriList',
-    )
-    creditorUri = fields.Function(
-        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
-        required=True,
-        type='string',
-        format="uri",
-        description="The creditor's URI.",
-        example='https://example.com/creditors/2',
-    )
-    items = fields.List(
-        fields.Str(format='uri-reference'),
-        required=True,
-        dump_only=True,
-        description='An array of relative account record URIs. Can be empty.',
-        example=['1/', '11/', '111/'],
-    )
-    totalItems = fields.Method(
-        'get_total_items',
-        dump_only=True,
-        type='integer',
-        description='The total number of URIs. Will not be present if the total number is unknown.',
-        example=3,
-    )
-    first = fields.Method(
-        'get_first_uri',
-        required=True,
-        type='string',
-        format="uri-reference",
-        description='URI of another `AccountRecordUriList` object which iterates over the URIs, '
-                    'starting at the beginning. This can be a relative URI.',
-        example='',
-    )
-    next = fields.Method(
-        'get_next_uri',
-        type='string',
-        format="uri-reference",
-        description='URI of another `AccountRecordUriList` object which contains more URIs. When '
-                    'there are no remaining URIs, this field will not be present. If this field '
-                    'is present, *there might be remaining URIs*, even when the `items` array '
-                    'is empty. This can be a relative URI.',
-        example='?after=111',
-    )
-
-    def get_uri(self, obj):
-        return url_for(self.context['AccountList'], _external=True, debtorId=obj.debtor_id)
-
-
 class AccountCreationRequestSchema(Schema):
     debtor_uri = fields.Url(
         required=True,
@@ -454,14 +426,22 @@ class LedgerEntrySchema(Schema):
     )
 
 
-class LedgerEntryListSchema(Schema):
+class LedgerEntriesPage(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/accounts/1/entries?first=123',
+    )
     type = fields.Constant(
-        'LedgerEntryList',
+        'LedgerEntriesPage',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='LedgerEntryList',
+        example='LedgerEntriesPage',
     )
     items = fields.Nested(
         LedgerEntrySchema(many=True),
@@ -469,32 +449,15 @@ class LedgerEntryListSchema(Schema):
         dump_only=True,
         description='An array of ledger entries. Can be empty.',
     )
-    totalItems = fields.Method(
-        'get_total_items',
-        dump_only=True,
-        type='integer',
-        description='The total number of entries. When the total number of entries is unknown, '
-                    'this field will not be present.',
-        example=123,
-    )
-    first = fields.Method(
-        'get_first_uri',
-        required=True,
-        type='string',
-        format="uri",
-        description='URI of another `LedgerEntryList` object which iterates over the ledger '
-                    'entries, starting at the beginning.',
-        example='https://example.com/creditors/2/accounts/1/entries?first=123',
-    )
     next = fields.Method(
         'get_next_uri',
         type='string',
-        format="uri",
-        description='URI of another `LedgerEntryList` object which contains more ledger entries. '
-                    'When there are no remaining entries, this field will not be present. If this '
-                    'field is present, *there might be remaining entries*, even when the `items` '
-                    'array is empty.',
-        example='https://example.com/creditors/2/accounts/1/entries?first=123&after=123',
+        format='uri-reference',
+        description='URI of another `LedgerEntriesPage` object which contains more ledger '
+                    'entries. When there are no remaining entries, this field will not be '
+                    'present. If this field is present, there might be remaining entries, '
+                    'even when the `items` array is empty. This can be a relative URI.',
+        example='?first=122',
     )
 
 
@@ -583,23 +546,13 @@ class AccountRecordSchema(Schema):
         example=0.0,
     )
     ledgerEntries = fields.Nested(
-        LedgerEntryListSchema(many=False),
+        PaginatedListSchema(many=False),
         required=True,
         description='A paginated list of account ledger entries. That is: transfers for '
                     'which the account is either the sender or the recipient. The paginated '
                     'list will be sorted in reverse-chronological order (bigger entry IDs go '
                     'first). The entries will constitute a singly linked list, each entry '
-                    '(except the most ancient one) referring to its ancestor. This could be a '
-                    'relative URI.',
-    )
-    latest_entry_id = fields.Integer(
-        dump_only=True,
-        data_key='latestEntryId',
-        format="int64",
-        description='The ID of the latest ledger entry on the account. When this field is not '
-                    'present, this means that there have been no ledger entries on the '
-                    'account yet.',
-        example=123,
+                    '(except the most ancient one) referring to its ancestor.',
     )
     config = fields.Nested(
         AccountRecordConfigSchema,

@@ -4,8 +4,9 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
-    CreditorCreationOptionsSchema, CreditorSchema, AccountRecordUriListSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema, LedgerEntryListSchema,
+    CreditorCreationOptionsSchema, CreditorSchema, PaginatedListSchema, AccountCreationRequestSchema,
+    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
+    LedgerEntriesPage,
 )
 from . import specs
 from . import procedures
@@ -81,7 +82,7 @@ accounts_api = Blueprint(
 
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
 class AccountRecordListEndpoint(MethodView):
-    @accounts_api.response(AccountRecordUriListSchema(context=CONTEXT))
+    @accounts_api.response(PaginatedListSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
         """Return the creditor's list of account records."""
@@ -90,7 +91,7 @@ class AccountRecordListEndpoint(MethodView):
             debtor_ids = procedures.get_account_dedtor_ids(creditorId)
         except procedures.CreditorDoesNotExistError:
             abort(404)
-        return AccountRecordUriListSchema(creditor_id=creditorId, items=debtor_ids)
+        return debtor_ids
 
     @accounts_api.arguments(AccountCreationRequestSchema)
     @accounts_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
@@ -179,17 +180,17 @@ utils_api = Blueprint(
 
 
 @utils_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries',
-                 parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.FIRST, specs.AFTER])
-class AccountLedgerEntryListEndpoint(MethodView):
-    @utils_api.response(LedgerEntryListSchema(context=CONTEXT))
+                 parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.FIRST])
+class AccountLedgerEntriesPageEndpoint(MethodView):
+    @utils_api.response(LedgerEntriesPage(context=CONTEXT))
     @utils_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId, first, after):
-        """Return a paginated list of ledger entries for a given account.
+    def get(self, creditorId, debtorId, first):
+        """Return a fragment of a paginated list of account ledger entries.
 
-        The paginated list will be sorted in reverse-chronological
-        order (bigger entry IDs go first). The entries will constitute
-        a singly linked list, each entry (except the most ancient one)
-        referring to its ancestor.
+        The returned list fragment will be sorted in
+        reverse-chronological order (bigger entry IDs go first). The
+        entries will constitute a singly linked list, each entry
+        (except the most ancient one) referring to its ancestor.
 
         """
 

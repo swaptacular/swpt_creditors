@@ -39,19 +39,6 @@ FIRST = {
     },
 }
 
-AFTER = {
-    'in': 'query',
-    'name': 'after',
-    'required': False,
-    'description': "Will return only ledger entries with IDs smaller that this value.",
-    'schema': {
-        'type': 'integer',
-        'format': 'uint64',
-        'minimum': 0,
-        'maximum': (1 << 64) - 1,
-    },
-}
-
 TRANSFER_UUID = {
     'in': 'path',
     'name': 'transferUuid',
