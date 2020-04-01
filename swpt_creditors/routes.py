@@ -4,9 +4,8 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
-    CreditorCreationOptionsSchema, CreditorSchema, AccountListSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema,
-    CommittedTransferSchema, LedgerEntryListSchema,
+    CreditorCreationOptionsSchema, CreditorSchema, AccountRecordUriListSchema, AccountCreationRequestSchema,
+    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema, LedgerEntryListSchema,
 )
 from . import specs
 from . import procedures
@@ -81,8 +80,8 @@ accounts_api = Blueprint(
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
-class AccountListEndpoint(MethodView):
-    @accounts_api.response(AccountListSchema(context=CONTEXT))
+class AccountRecordListEndpoint(MethodView):
+    @accounts_api.response(AccountRecordUriListSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
         """Return the creditor's list of account records."""
@@ -91,7 +90,7 @@ class AccountListEndpoint(MethodView):
             debtor_ids = procedures.get_account_dedtor_ids(creditorId)
         except procedures.CreditorDoesNotExistError:
             abort(404)
-        return AccountListSchema(creditor_id=creditorId, items=debtor_ids)
+        return AccountRecordUriListSchema(creditor_id=creditorId, items=debtor_ids)
 
     @accounts_api.arguments(AccountCreationRequestSchema)
     @accounts_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)

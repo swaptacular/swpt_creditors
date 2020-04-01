@@ -259,7 +259,7 @@ class TransfersCollectionSchema(Schema):
         return url_for(self.context['TransfersCollection'], _external=True, creditorId=obj.creditor_id)
 
 
-class AccountListSchema(Schema):
+class AccountRecordUriListSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -269,12 +269,12 @@ class AccountListSchema(Schema):
         example='https://example.com/creditors/1/accounts/',
     )
     type = fields.Constant(
-        'AccountList',
+        'AccountRecordUriList',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountList',
+        example='AccountRecordUriList',
     )
     creditorUri = fields.Function(
         lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
@@ -282,21 +282,40 @@ class AccountListSchema(Schema):
         type='string',
         format="uri",
         description="The creditor's URI.",
-        example='https://example.com/creditor/1',
-    )
-    totalItems = fields.Function(
-        lambda obj: len(obj.items),
-        required=True,
-        type='integer',
-        description="The number of items in the `items` array.",
-        example=2,
+        example='https://example.com/creditors/2',
     )
     items = fields.List(
         fields.Str(format='uri-reference'),
         required=True,
         dump_only=True,
-        description="An unordered set of *relative* URIs for creditor accounts.",
-        example=['1234', '5678'],
+        description='An array of relative account record URIs. Can be empty.',
+        example=['1/', '11/', '111/'],
+    )
+    totalItems = fields.Method(
+        'get_total_items',
+        dump_only=True,
+        type='integer',
+        description='The total number of URIs. Will not be present if the total number is unknown.',
+        example=3,
+    )
+    first = fields.Method(
+        'get_first_uri',
+        required=True,
+        type='string',
+        format="uri-reference",
+        description='URI of another `AccountRecordUriList` object which iterates over the URIs, '
+                    'starting at the beginning. This can be a relative URI.',
+        example='',
+    )
+    next = fields.Method(
+        'get_next_uri',
+        type='string',
+        format="uri-reference",
+        description='URI of another `AccountRecordUriList` object which contains more URIs. When '
+                    'there are no remaining URIs, this field will not be present. If this field '
+                    'is present, *there might be remaining URIs*, even when the `items` array '
+                    'is empty. This can be a relative URI.',
+        example='?after=111',
     )
 
     def get_uri(self, obj):
@@ -414,8 +433,8 @@ class LedgerEntrySchema(Schema):
         'get_transfer_uri',
         required=True,
         type='string',
-        format="uri-reference",
-        description='The URI of the corresponding transfer. It could be a relative URI.',
+        format="uri",
+        description='The URI of the corresponding transfer.',
         example='https://example.com/creditors/2/accounts/1/transfers/',
     )
     posted_at_ts = fields.DateTime(
@@ -462,19 +481,19 @@ class LedgerEntryListSchema(Schema):
         'get_first_uri',
         required=True,
         type='string',
-        format="uri-reference",
+        format="uri",
         description='URI of another `LedgerEntryList` object which iterates over the ledger '
-                    'entries, starting at the beginning. This can be a relative URI.',
+                    'entries, starting at the beginning.',
         example='https://example.com/creditors/2/accounts/1/entries?first=123',
     )
     next = fields.Method(
         'get_next_uri',
         type='string',
-        format="uri-reference",
+        format="uri",
         description='URI of another `LedgerEntryList` object which contains more ledger entries. '
                     'When there are no remaining entries, this field will not be present. If this '
                     'field is present, *there might be remaining entries*, even when the `items` '
-                    'array is empty. This can be a relative URI.',
+                    'array is empty.',
         example='https://example.com/creditors/2/accounts/1/entries?first=123&after=123',
     )
 
