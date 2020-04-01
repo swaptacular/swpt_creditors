@@ -29,7 +29,7 @@ class PaginatedListSchema(Schema):
         required=True,
         type='string',
         description='The type of the items in the paginated list.',
-        example='object',
+        example='string',
     )
     first = fields.Method(
         'get_first',

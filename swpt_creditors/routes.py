@@ -85,7 +85,7 @@ class AccountRecordListEndpoint(MethodView):
     @accounts_api.response(PaginatedListSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
-        """Return the creditor's list of account records."""
+        """Return a paginated list of URIs for creditor's account records."""
 
         try:
             debtor_ids = procedures.get_account_dedtor_ids(creditorId)
