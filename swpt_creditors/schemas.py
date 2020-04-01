@@ -259,7 +259,7 @@ class TransfersCollectionSchema(Schema):
         return url_for(self.context['TransfersCollection'], _external=True, creditorId=obj.creditor_id)
 
 
-class AccountsCollectionSchema(Schema):
+class AccountListSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -269,12 +269,12 @@ class AccountsCollectionSchema(Schema):
         example='https://example.com/creditors/1/accounts/',
     )
     type = fields.Constant(
-        'AccountsCollection',
+        'AccountList',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountsCollection',
+        example='AccountList',
     )
     creditorUri = fields.Function(
         lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
@@ -300,7 +300,7 @@ class AccountsCollectionSchema(Schema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['AccountsCollection'], _external=True, debtorId=obj.debtor_id)
+        return url_for(self.context['AccountList'], _external=True, debtorId=obj.debtor_id)
 
 
 class AccountCreationRequestSchema(Schema):
@@ -572,6 +572,15 @@ class AccountRecordSchema(Schema):
                     'first). The entries will constitute a singly linked list, each entry '
                     '(except the most ancient one) referring to its ancestor. This could be a '
                     'relative URI.',
+    )
+    latest_entry_id = fields.Integer(
+        dump_only=True,
+        data_key='latestEntryId',
+        format="int64",
+        description='The ID of the latest ledger entry on the account. When this field is not '
+                    'present, this means that there have been no ledger entries on the '
+                    'account yet.',
+        example=123,
     )
     config = fields.Nested(
         AccountRecordConfigSchema,

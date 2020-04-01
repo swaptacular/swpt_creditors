@@ -60,7 +60,7 @@ def create_app(config_dict={}):
     from flask import Flask
     from swpt_lib.utils import Int64Converter
     from .extensions import db, migrate, broker, api
-    from .routes import creditors_api, accounts_api
+    from .routes import creditors_api, accounts_api, utils_api
     from .cli import swpt_creditors
     from . import models  # noqa
 
@@ -78,5 +78,6 @@ def create_app(config_dict={}):
     api.init_app(app)
     api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
+    api.register_blueprint(utils_api)
     app.cli.add_command(swpt_creditors)
     return app

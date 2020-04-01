@@ -4,7 +4,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
 from .schemas import (
-    CreditorCreationOptionsSchema, CreditorSchema, AccountsCollectionSchema, AccountCreationRequestSchema,
+    CreditorCreationOptionsSchema, CreditorSchema, AccountListSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema,
     CommittedTransferSchema, LedgerEntryListSchema,
 )
@@ -16,7 +16,7 @@ CONTEXT = {
     'Account': 'creditors.AccountEndpoint',
     'TransfersCollection': 'transfers.TransfersCollectionEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
-    'AccountsCollection': 'accounts.AccountCollectionEndpoint',
+    'AccountList': 'accounts.AccountListEndpoint',
     'AccountRecord': 'accounts.AccountRecordEndpoint',
 }
 
@@ -81,17 +81,17 @@ accounts_api = Blueprint(
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
-class AccountCollectionEndpoint(MethodView):
-    @accounts_api.response(AccountsCollectionSchema(context=CONTEXT))
+class AccountListEndpoint(MethodView):
+    @accounts_api.response(AccountListSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
-        """Return the creditor's collection of account records."""
+        """Return the creditor's list of account records."""
 
         try:
             debtor_ids = procedures.get_account_dedtor_ids(creditorId)
         except procedures.CreditorDoesNotExistError:
             abort(404)
-        return AccountsCollectionSchema(creditor_id=creditorId, items=debtor_ids)
+        return AccountListSchema(creditor_id=creditorId, items=debtor_ids)
 
     @accounts_api.arguments(AccountCreationRequestSchema)
     @accounts_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
@@ -131,7 +131,7 @@ class AccountRecordEndpoint(MethodView):
     @accounts_api.response(AccountRecordSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, debtorId, creditorId):
-        """Return an account record."""
+        """Return information about an account record."""
 
         abort(500)
 
@@ -153,7 +153,7 @@ class AccountRecordConfigEndpoint(MethodView):
     @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
-        """Return account's configuration."""
+        """Return account configuration."""
 
         abort(500)
 
@@ -162,7 +162,7 @@ class AccountRecordConfigEndpoint(MethodView):
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account's configuration.
+        """Update account configuration.
 
         **Note:** This operation is idempotent.
 
@@ -171,11 +171,19 @@ class AccountRecordConfigEndpoint(MethodView):
         abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries',
-                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.FIRST, specs.AFTER])
+utils_api = Blueprint(
+    'utils',
+    __name__,
+    url_prefix='/creditors',
+    description="Miscellaneous utilities.",
+)
+
+
+@utils_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries',
+                 parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID, specs.FIRST, specs.AFTER])
 class AccountLedgerEntryListEndpoint(MethodView):
-    @accounts_api.response(LedgerEntryListSchema(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    @utils_api.response(LedgerEntryListSchema(context=CONTEXT))
+    @utils_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId, first, after):
         """Return a paginated list of ledger entries for a given account.
 
@@ -189,11 +197,11 @@ class AccountLedgerEntryListEndpoint(MethodView):
         abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:transferSeqnum>',
-                    parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@utils_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:transferSeqnum>',
+                 parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
 class AccountTransferEndpoint(MethodView):
-    @accounts_api.response(CommittedTransferSchema(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    @utils_api.response(CommittedTransferSchema(context=CONTEXT))
+    @utils_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId, transferSeqnum):
         """Return information about a committed transfer."""
 
