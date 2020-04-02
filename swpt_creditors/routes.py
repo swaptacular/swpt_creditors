@@ -29,7 +29,7 @@ creditors_api = Blueprint(
 )
 
 
-@creditors_api.route('/<i64:creditorId>/', parameters=[specs.CREDITOR_ID])
+@creditors_api.route('/<i64:creditorId>/', parameters=[specs.CID])
 class CreditorEndpoint(MethodView):
     @creditors_api.response(CreditorSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -59,7 +59,7 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
-@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[specs.CREDITOR_ID])
+@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[specs.CID])
 class PortfolioEndpoint(MethodView):
     @creditors_api.response(PortfolioSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -77,7 +77,7 @@ accounts_api = Blueprint(
 )
 
 
-@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[specs.CID, specs.DID])
 class AccountEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
@@ -90,7 +90,7 @@ class AccountEndpoint(MethodView):
         return account, {'Cache-Control': 'max-age=86400'}
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CID])
 class AccountRecordsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
     @accounts_api.response(LinksPage(context=CONTEXT))
@@ -143,7 +143,7 @@ class AccountRecordsEndpoint(MethodView):
         return transfer, {'Location': location}
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[specs.CID, specs.DID])
 class AccountRecordEndpoint(MethodView):
     @accounts_api.response(AccountRecordSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
@@ -165,7 +165,7 @@ class AccountRecordEndpoint(MethodView):
         abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[specs.CID, specs.DID])
 class AccountRecordConfigEndpoint(MethodView):
     @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
@@ -188,6 +188,26 @@ class AccountRecordConfigEndpoint(MethodView):
         abort(500)
 
 
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[specs.CID, specs.DID])
+class AccountLedgerEntriesEndpoint(MethodView):
+    @accounts_api.arguments(PaginationParametersSchema, location='query')
+    @accounts_api.response(LedgerEntriesPage(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
+    def get(self, pagination_parameters, creditorId, debtorId):
+        """Return a collection of  account ledger entries.
+
+        The returned object will be a fragment (a page) of a paginated
+        list. The paginated list contains all recent ledger entries
+        for a given account record. The returned fragment will be
+        sorted in reverse-chronological order (bigger entry IDs go
+        first). The entries will constitute a singly linked list, each
+        entry (except the most ancient one) referring to its ancestor.
+
+        """
+
+        abort(500)
+
+
 utils_api = Blueprint(
     'utils',
     __name__,
@@ -196,26 +216,8 @@ utils_api = Blueprint(
 )
 
 
-@utils_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
-class AccountLedgerEntriesPageEndpoint(MethodView):
-    @utils_api.arguments(PaginationParametersSchema, location='query')
-    @utils_api.response(LedgerEntriesPage(context=CONTEXT))
-    @utils_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
-    def get(self, pagination_parameters, creditorId, debtorId):
-        """Return a fragment of a paginated list of account ledger entries.
-
-        The returned list fragment will be sorted in
-        reverse-chronological order (bigger entry IDs go first). The
-        entries will constitute a singly linked list, each entry
-        (except the most ancient one) referring to its ancestor.
-
-        """
-
-        abort(500)
-
-
 @utils_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:transferSeqnum>',
-                 parameters=[specs.CREDITOR_ID, specs.DEBTOR_ID])
+                 parameters=[specs.CID, specs.DID])
 class AccountTransferEndpoint(MethodView):
     @utils_api.response(CommittedTransferSchema(context=CONTEXT))
     @utils_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})

@@ -1,6 +1,6 @@
 """JSON snippets to be included in the OpenAPI specification file."""
 
-DEBTOR_ID = {
+DID = {
     'in': 'path',
     'name': 'debtorId',
     'required': True,
@@ -13,7 +13,7 @@ DEBTOR_ID = {
     },
 }
 
-CREDITOR_ID = {
+CID = {
     'in': 'path',
     'name': 'creditorId',
     'required': True,
