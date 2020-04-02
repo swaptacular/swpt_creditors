@@ -8,6 +8,7 @@ from .schemas import (
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
     LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema,
 )
+from .specs import DID, CID
 from . import specs
 from . import procedures
 
@@ -29,7 +30,7 @@ creditors_api = Blueprint(
 )
 
 
-@creditors_api.route('/<i64:creditorId>/', parameters=[specs.CID])
+@creditors_api.route('/<i64:creditorId>/', parameters=[CID])
 class CreditorEndpoint(MethodView):
     @creditors_api.response(CreditorSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -59,7 +60,7 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
-@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[specs.CID])
+@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[CID])
 class PortfolioEndpoint(MethodView):
     @creditors_api.response(PortfolioSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -77,7 +78,7 @@ accounts_api = Blueprint(
 )
 
 
-@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[specs.CID, specs.DID])
+@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
 class AccountEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
@@ -90,7 +91,7 @@ class AccountEndpoint(MethodView):
         return account, {'Cache-Control': 'max-age=86400'}
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CID])
+@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountRecordsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
     @accounts_api.response(LinksPage(context=CONTEXT))
@@ -143,7 +144,7 @@ class AccountRecordsEndpoint(MethodView):
         return transfer, {'Location': location}
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[specs.CID, specs.DID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[CID, DID])
 class AccountRecordEndpoint(MethodView):
     @accounts_api.response(AccountRecordSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
@@ -165,7 +166,7 @@ class AccountRecordEndpoint(MethodView):
         abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[specs.CID, specs.DID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])
 class AccountRecordConfigEndpoint(MethodView):
     @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
@@ -189,7 +190,7 @@ class AccountRecordConfigEndpoint(MethodView):
         abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[specs.CID, specs.DID])
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
 class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
     @accounts_api.response(LedgerEntriesPage(context=CONTEXT))
@@ -209,20 +210,19 @@ class AccountLedgerEntriesEndpoint(MethodView):
         abort(500)
 
 
-utils_api = Blueprint(
-    'utils',
+transfers_api = Blueprint(
+    'transfers',
     __name__,
     url_prefix='/creditors',
     description="Miscellaneous utilities.",
 )
 
 
-@utils_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:transferSeqnum>',
-                 parameters=[specs.CID, specs.DID])
+@transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID])
 class AccountTransferEndpoint(MethodView):
-    @utils_api.response(CommittedTransferSchema(context=CONTEXT))
-    @utils_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId, transferSeqnum):
+    @transfers_api.response(CommittedTransferSchema(context=CONTEXT))
+    @transfers_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId, seqnum):
         """Return information about a committed transfer."""
 
         abort(500)
