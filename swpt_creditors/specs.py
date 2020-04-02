@@ -26,32 +26,6 @@ CREDITOR_ID = {
     },
 }
 
-FIRST = {
-    'in': 'query',
-    'name': 'first',
-    'required': True,
-    'description': "Will return only ledger entries with IDs smaller or equal to this value.",
-    'schema': {
-        'type': 'integer',
-        'format': 'uint64',
-        'minimum': 0,
-        'maximum': (1 << 64) - 1,
-    },
-}
-
-FIRST_DEBTOR_ID = {
-    'in': 'query',
-    'name': 'first',
-    'required': True,
-    'description': "Will return only URIs of account records with debtors IDs bigger or equal to this value.",
-    'schema': {
-        'type': 'integer',
-        'format': 'uint64',
-        'minimum': 0,
-        'maximum': (1 << 64) - 1,
-    },
-}
-
 TRANSFER_UUID = {
     'in': 'path',
     'name': 'transferUuid',

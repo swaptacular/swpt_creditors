@@ -15,6 +15,15 @@ class CreditorCreationOptionsSchema(Schema):
     pass
 
 
+class PaginationParametersSchema(Schema):
+    first = fields.Integer(
+        format='uint64',
+        validate=validate.Range(min=0, max=(1 << 64) - 1),
+        description='Return only items that have equal or greater index than this value.',
+        example=0,
+    )
+
+
 class PaginatedListSchema(Schema):
     type = fields.Constant(
         'PaginatedList',
@@ -36,18 +45,19 @@ class PaginatedListSchema(Schema):
         format="uri",
         description='The URI of the first page in the paginated list. The object retrieved from '
                     'this URI will have an `items` property (an array), which will contain the '
-                    'first items of the paginated list. The retrieved object could also have a '
+                    'first items of the paginated list. The retrieved object may also have a '
                     '`next` property (a string), which would contain the URI of the next page '
                     'in the paginated list.',
         example='https://example.com/list?page=1',
     )
-    length = fields.Method(
+    totalItems = fields.Method(
         'get_length',
         dump_only=True,
         type='integer',
         format='uint64',
-        description='The total number of items in the paginated list. Will not be present '
-                    'if the total number of items is unknown.',
+        description='An approximation for the total number of items in the paginated list. Will '
+                    'not be present if the total number of items can not, or should not be '
+                    'approximated.',
         example=123,
     )
 
@@ -59,13 +69,14 @@ class RelativeLinksPage(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/?first=1',
+        example='https://example.com/creditors/2/accounts/?first=0',
     )
     type = fields.Constant(
         'RelativeLinksPage',
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='RelativeLinksPage',
     )
     items = fields.List(
         fields.String(format='uri-reference'),
@@ -81,7 +92,7 @@ class RelativeLinksPage(Schema):
                     'there are no remaining items, this field will not be present. If this field '
                     'is present, there might be remaining items, even when the `items` array is '
                     'empty. This can be a relative URI.',
-        example='?first=101',
+        example='?first=1234567890',
     )
 
 
@@ -99,6 +110,7 @@ class CreditorSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='Creditor',
     )
     created_at_date = fields.Date(
         required=True,
@@ -187,6 +199,7 @@ class TransferSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='Transfer',
     )
     debtor_uri = fields.String(
         required=True,
@@ -295,6 +308,7 @@ class TransfersCollectionSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='TransfersCollection',
     )
     creditorUri = fields.Function(
         lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
@@ -337,11 +351,12 @@ class PortfolioSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='Portfolio',
     )
     accountRecords = fields.Nested(
         PaginatedListSchema(many=False),
         required=True,
-        description='A paginated list of account record URIs.',
+        description='A paginated list of URIs for all account records that belong to the creditor.',
     )
 
 
@@ -371,6 +386,7 @@ class AccountRecordConfigSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='AccountRecordConfig',
     )
     accountRecordUri = fields.Method(
         'get_account_record_uri',
@@ -489,6 +505,7 @@ class LedgerEntriesPage(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='LedgerEntriesPage',
     )
     items = fields.Nested(
         LedgerEntrySchema(many=True),
@@ -522,6 +539,7 @@ class AccountSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='Account',
     )
     debtorUri = fields.Function(
         lambda obj: endpoints.build_url('debtor', debtorId=obj.debtor_id),
@@ -555,6 +573,7 @@ class AccountRecordSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='AccountRecord',
     )
     accountUri = fields.Function(
         lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
@@ -636,6 +655,7 @@ class CommittedTransferSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='CommittedTransfer',
     )
     senderAccountUri = fields.Function(
         lambda obj: endpoints.build_url('account', creditorId=obj.sender_creditor_id, debtorId=obj.debtor_id),
