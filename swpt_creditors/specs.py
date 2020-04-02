@@ -77,7 +77,7 @@ TRANSFER_EXISTS = {
 }
 
 ACCOUNT_DOES_NOT_EXIST = {
-    'description': 'The account entry does not exist.',
+    'description': 'The account does not exist.',
 }
 
 ACCOUNT_CONFLICT = {
@@ -99,4 +99,8 @@ ACCOUNT_EXISTS = {
 
 ACCOUNT_CAN_NOT_BE_CREATED = {
     'description': "The account can not be created. The debtor's URI might be wrong.",
+}
+
+ACCOUNT_RECORD_DOES_NOT_EXIST = {
+    'description': 'The account record does not exist.',
 }

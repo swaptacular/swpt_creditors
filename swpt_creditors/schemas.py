@@ -19,7 +19,7 @@ class PaginationParametersSchema(Schema):
     first = fields.Integer(
         format='uint64',
         validate=validate.Range(min=0, max=(1 << 64) - 1),
-        description='Start from the item which index equals this value.',
+        description='Return starting from the item which index equals this value.',
         example=0,
     )
 
