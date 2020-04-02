@@ -39,6 +39,19 @@ FIRST = {
     },
 }
 
+FIRST_DEBTOR_ID = {
+    'in': 'query',
+    'name': 'first',
+    'required': True,
+    'description': "Will return only URIs of account records with debtors IDs bigger or equal to this value.",
+    'schema': {
+        'type': 'integer',
+        'format': 'uint64',
+        'minimum': 0,
+        'maximum': (1 << 64) - 1,
+    },
+}
+
 TRANSFER_UUID = {
     'in': 'path',
     'name': 'transferUuid',
@@ -58,6 +71,10 @@ LOCATION_HEADER = {
             'format': 'uri',
         },
     },
+}
+
+PAGE_DOES_NOT_EXIST = {
+    'description': 'The page does not exist.',
 }
 
 CREDITOR_DOES_NOT_EXIST = {

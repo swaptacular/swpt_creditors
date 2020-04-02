@@ -6,7 +6,7 @@ from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, PaginatedListSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
-    LedgerEntriesPage,
+    LedgerEntriesPage, PortfolioSchema, RelativeLinksPage
 )
 from . import specs
 from . import procedures
@@ -72,6 +72,16 @@ class AccountEndpoint(MethodView):
         return account, {'Cache-Control': 'max-age=86400'}
 
 
+@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[specs.CREDITOR_ID])
+class PortfolioEndpoint(MethodView):
+    @creditors_api.response(PortfolioSchema(context=CONTEXT))
+    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def get(self, creditorId):
+        """Return creditor's portfolio of account records."""
+
+        abort(500)
+
+
 accounts_api = Blueprint(
     'accounts',
     __name__,
@@ -80,12 +90,12 @@ accounts_api = Blueprint(
 )
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
-class AccountRecordListEndpoint(MethodView):
-    @accounts_api.response(PaginatedListSchema(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
-    def get(self, creditorId):
-        """Return a paginated list of URIs for creditor's account records."""
+@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID, specs.FIRST_DEBTOR_ID])
+class AccountRecordsEndpoint(MethodView):
+    @accounts_api.response(RelativeLinksPage(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.PAGE_DOES_NOT_EXIST})
+    def get(self, creditorId, first):
+        """Return a fragment of a paginated list of account record URIs."""
 
         try:
             debtor_ids = procedures.get_account_dedtor_ids(creditorId)

@@ -52,6 +52,39 @@ class PaginatedListSchema(Schema):
     )
 
 
+class RelativeLinksPage(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/accounts/?first=1',
+    )
+    type = fields.Constant(
+        'RelativeLinksPage',
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+    )
+    items = fields.List(
+        fields.String(format='uri-reference'),
+        required=True,
+        dump_only=True,
+        description='An array of possibly relative URIs. Can be empty.',
+    )
+    next = fields.Method(
+        'get_next_uri',
+        type='string',
+        format='uri-reference',
+        description='An URI of another `RelativeLinksPage` object which contains more items. When '
+                    'there are no remaining items, this field will not be present. If this field '
+                    'is present, there might be remaining items, even when the `items` array is '
+                    'empty. This can be a relative URI.',
+        example='?first=101',
+    )
+
+
 class CreditorSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -279,7 +312,7 @@ class TransfersCollectionSchema(Schema):
         example=2,
     )
     items = fields.List(
-        fields.Str(format='uri-reference'),
+        fields.String(format='uri-reference'),
         required=True,
         dump_only=True,
         description="An unordered set of *relative* URIs for creditor's remaining credit-issuing transfers.",
@@ -288,6 +321,28 @@ class TransfersCollectionSchema(Schema):
 
     def get_uri(self, obj):
         return url_for(self.context['TransfersCollection'], _external=True, creditorId=obj.creditor_id)
+
+
+class PortfolioSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/portfolio',
+    )
+    type = fields.Constant(
+        'Portfolio',
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+    )
+    accountRecords = fields.Nested(
+        PaginatedListSchema(many=False),
+        required=True,
+        description='A paginated list of account record URIs.',
+    )
 
 
 class AccountCreationRequestSchema(Schema):
@@ -445,10 +500,10 @@ class LedgerEntriesPage(Schema):
         'get_next_uri',
         type='string',
         format='uri-reference',
-        description='URI of another `LedgerEntriesPage` object which contains more ledger '
-                    'entries. When there are no remaining entries, this field will not be '
-                    'present. If this field is present, there might be remaining entries, '
-                    'even when the `items` array is empty. This can be a relative URI.',
+        description='An URI of another `LedgerEntriesPage` object which contains more items. When '
+                    'there are no remaining items, this field will not be present. If this field '
+                    'is present, there might be remaining items, even when the `items` array is '
+                    'empty. This can be a relative URI.',
         example='?first=122',
     )
 
