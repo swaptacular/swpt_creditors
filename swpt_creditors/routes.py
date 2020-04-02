@@ -181,7 +181,8 @@ class AccountRecordConfigEndpoint(MethodView):
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account record's configuration.
 
-        **Note:** This operation is idempotent.
+        **Note:** For practical purposes, this operation is can be
+        treated as idempotent.
 
         """
 
