@@ -6,7 +6,7 @@ from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
-    LedgerEntriesPage, PortfolioSchema, RelativeLinksPage, PaginationParametersSchema,
+    LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema,
 )
 from . import specs
 from . import procedures
@@ -64,7 +64,7 @@ class PortfolioEndpoint(MethodView):
     @creditors_api.response(PortfolioSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
-        """Return information about creditor's portfolio."""
+        """Return creditor's portfolio."""
 
         abort(500)
 
@@ -80,14 +80,14 @@ accounts_api = Blueprint(
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[specs.CREDITOR_ID])
 class AccountRecordsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(RelativeLinksPage(context=CONTEXT))
+    @accounts_api.response(LinksPage(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.PAGE_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of account record URIs.
 
-        **Note:** The returned object is a fragment (a page) of a
-        paginated list. The paginated list contains all account
-        records belonging to the given creditor.
+        The returned object is a fragment (a page) of a paginated
+        list. The paginated list contains all account records
+        belonging to the given creditor.
 
         """
 

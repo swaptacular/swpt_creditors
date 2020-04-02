@@ -30,6 +30,7 @@ class PaginatedListSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
+        example='PaginatedList',
     )
     itemsType = fields.Method(
         'get_items_type',
@@ -62,7 +63,7 @@ class PaginatedListSchema(Schema):
     )
 
 
-class RelativeLinksPage(Schema):
+class LinksPage(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -72,11 +73,11 @@ class RelativeLinksPage(Schema):
         example='https://example.com/creditors/2/accounts/?first=0',
     )
     type = fields.Constant(
-        'RelativeLinksPage',
+        'LinksPage',
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='RelativeLinksPage',
+        example='LinksPage',
     )
     items = fields.List(
         fields.String(format='uri-reference'),
@@ -103,7 +104,7 @@ class CreditorSchema(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/1',
+        example='https://example.com/creditors/1/',
     )
     type = fields.Constant(
         'Creditor',
@@ -316,7 +317,7 @@ class TransfersCollectionSchema(Schema):
         type='string',
         format="uri",
         description="The creditor's URI.",
-        example='https://example.com/creditor/1',
+        example='https://example.com/creditors/2/',
     )
     totalItems = fields.Function(
         lambda obj: len(obj.items),
@@ -353,10 +354,18 @@ class PortfolioSchema(Schema):
         description='The type of this object.',
         example='Portfolio',
     )
-    accountRecords = fields.Nested(
+    creditorUri = fields.Function(
+        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The creditor's URI.",
+        example='https://example.com/creditors/2/',
+    )
+    accountRecordUris = fields.Nested(
         PaginatedListSchema(many=False),
         required=True,
-        description='A paginated list of URIs for all account records that belong to the creditor.',
+        description='A paginated list of URIs for all account records belonging to the creditor.',
     )
 
 
@@ -554,8 +563,8 @@ class AccountSchema(Schema):
         required=True,
         type='string',
         format="uri",
-        description="The debtor's URI.",
-        example='https://example.com/creditors/2',
+        description="The creditor's URI.",
+        example='https://example.com/creditors/2/',
     )
 
 
@@ -615,6 +624,12 @@ class AccountRecordSchema(Schema):
                     'list will be sorted in reverse-chronological order (bigger entry IDs go '
                     'first). The entries will constitute a singly linked list, each entry '
                     '(except the most ancient one) referring to its ancestor.',
+        example={
+            "itemsType": "LedgerEntry",
+            "totalItems": 123,
+            "type": "PaginatedList",
+            "first": "https://example.com/list?page=1",
+        },
     )
     config = fields.Nested(
         AccountRecordConfigSchema,
