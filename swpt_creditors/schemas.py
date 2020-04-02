@@ -19,7 +19,7 @@ class PaginationParametersSchema(Schema):
     first = fields.Integer(
         format='uint64',
         validate=validate.Range(min=0, max=(1 << 64) - 1),
-        description='Return only items that have equal or greater index than this value.',
+        description='Start from the item which index equals this value.',
         example=0,
     )
 
@@ -70,7 +70,7 @@ class LinksPage(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/?first=0',
+        example='https://example.com/creditors/2/accounts/',
     )
     type = fields.Constant(
         'LinksPage',
@@ -84,6 +84,7 @@ class LinksPage(Schema):
         required=True,
         dump_only=True,
         description='An array of possibly relative URIs. Can be empty.',
+        example=['1/', '11/', '111/'],
     )
     next = fields.Method(
         'get_next_uri',
@@ -161,7 +162,7 @@ class DirectTransferCreationRequestSchema(Schema):
         data_key='debtorUri',
         format='uri',
         description="The debtor's URI.",
-        example='https://example.com/debtors/1',
+        example='https://example.com/debtors/1/',
     )
     recipient_uri = fields.Url(
         required=True,
@@ -170,7 +171,7 @@ class DirectTransferCreationRequestSchema(Schema):
         data_key='recipientUri',
         format='uri',
         description="The recipient's URI.",
-        example='https://example.com/creditors/1111',
+        example='https://example.com/creditors/1111/',
     )
     amount = fields.Integer(
         required=True,
@@ -208,7 +209,7 @@ class TransferSchema(Schema):
         data_key='debtorUri',
         format="uri",
         description="The debtor's URI.",
-        example='https://example.com/debtors/1',
+        example='https://example.com/debtors/1/',
     )
     senderUri = fields.Function(
         lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
@@ -216,7 +217,7 @@ class TransferSchema(Schema):
         type='string',
         format="uri",
         description="The sender's URI.",
-        example='https://example.com/creditors/1',
+        example='https://example.com/creditors/1/',
     )
     recipient_uri = fields.String(
         required=True,
@@ -224,7 +225,7 @@ class TransferSchema(Schema):
         data_key='recipientUri',
         format="uri",
         description="The recipient's URI.",
-        example='https://example.com/creditors/1111',
+        example='https://example.com/creditors/1111/',
     )
     amount = fields.Integer(
         required=True,
@@ -366,6 +367,12 @@ class PortfolioSchema(Schema):
         PaginatedListSchema(many=False),
         required=True,
         description='A paginated list of URIs for all account records belonging to the creditor.',
+        example={
+            'totalItems': 20,
+            'first': 'https://example.com/creditors/2/accounts/',
+            'itemsType': 'string',
+            'type': 'PaginatedList',
+        },
     )
 
 
@@ -377,7 +384,7 @@ class AccountCreationRequestSchema(Schema):
         data_key='debtorUri',
         format='uri',
         description="The debtor's URI.",
-        example='https://example.com/debtors/1',
+        example='https://example.com/debtors/1/',
     )
 
 
@@ -556,7 +563,7 @@ class AccountSchema(Schema):
         type='string',
         format="uri",
         description="The debtor's URI.",
-        example='https://example.com/debtors/1',
+        example='https://example.com/debtors/1/',
     )
     creditorUri = fields.Function(
         lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
@@ -628,7 +635,7 @@ class AccountRecordSchema(Schema):
             "itemsType": "LedgerEntry",
             "totalItems": 123,
             "type": "PaginatedList",
-            "first": "https://example.com/list?page=1",
+            "first": "https://example.com/creditors/2/accounts/1/entries?first=123",
         },
     )
     config = fields.Nested(

@@ -81,13 +81,13 @@ accounts_api = Blueprint(
 class AccountRecordsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
     @accounts_api.response(LinksPage(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.PAGE_DOES_NOT_EXIST})
+    @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of account record URIs.
 
         The returned object is a fragment (a page) of a paginated
-        list. The paginated list contains all account records
-        belonging to the given creditor.
+        list. The paginated list contains the relative URIs of all
+        account records belonging to the given creditor.
 
         """
 

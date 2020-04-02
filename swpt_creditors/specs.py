@@ -47,10 +47,6 @@ LOCATION_HEADER = {
     },
 }
 
-PAGE_DOES_NOT_EXIST = {
-    'description': 'The page does not exist.',
-}
-
 CREDITOR_DOES_NOT_EXIST = {
     'description': 'The creditor does not exist.',
 }
