@@ -61,6 +61,16 @@ class PaginatedListSchema(Schema):
                     'approximated.',
         example=123,
     )
+    forthcoming = fields.Method(
+        'get_forthcoming_uri',
+        type='string',
+        format='uri',
+        description='An URI for obtaining items that might be added to the paginated list in the '
+                    'future. This is useful when we want to skip all items currently in the list, '
+                    'but follow the forthcoming stream of new items. The object retrieved from '
+                    'this URI will be of the same type as the one retrieved from the `first` field.',
+        example='https://example.com/list?page=1000',
+    )
 
 
 class LinksPage(Schema):
@@ -539,8 +549,8 @@ class LedgerEntriesPage(Schema):
                     'empty. This can be a relative URI.',
         example='?first=122',
     )
-    coming = fields.Method(
-        'get_coming_uri',
+    forthcoming = fields.Method(
+        'get_forthcoming_uri',
         type='string',
         format='uri-reference',
         description='An URI of another `LedgerEntriesPage` object which would contain items that '
@@ -643,7 +653,6 @@ class AccountRecordSchema(Schema):
                     '(except the most ancient one) referring to its ancestor.',
         example={
             "itemsType": "LedgerEntry",
-            "totalItems": 123,
             "type": "PaginatedList",
             "first": "https://example.com/creditors/2/accounts/1/entries?first=123",
         },
