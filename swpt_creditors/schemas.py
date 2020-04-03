@@ -440,9 +440,10 @@ class AccountRecordConfigSchema(Schema):
         missing=False,
         data_key='isScheduledForDeletion',
         description='Whether the account is scheduled for deletion. Most of the time, to safely '
-                    'delete an acount, it should be first scheduled for deletion, and deleted '
+                    'delete an account, it should be first scheduled for deletion, and deleted '
                     'only after the corresponding account record has been marked as safe for '
-                    'deletion. Not passing this field has the same effect as passing `false`.',
+                    'deletion. If this field is not present, this means that this configuration '
+                    'option is *not supported*.',
         example=False,
     )
     negligible_amount = fields.Float(
@@ -452,8 +453,8 @@ class AccountRecordConfigSchema(Schema):
         description='The maximum amount that is considered negligible. It is used to '
                     'decide whether the account can be safely deleted, and whether a '
                     'transfer should be considered as insignificant. Must be '
-                    'non-negative. Not passing this field has the same effect as '
-                    'passing `0`.',
+                    'non-negative. If this field is not present, this means that this '
+                    'configuration option is *not supported*.',
         example=0.0,
     )
 
