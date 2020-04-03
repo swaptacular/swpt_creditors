@@ -78,19 +78,6 @@ accounts_api = Blueprint(
 )
 
 
-@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
-class AccountEndpoint(MethodView):
-    @accounts_api.response(AccountSchema(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId):
-        """Return public information about an account."""
-
-        account = None
-        if not account:
-            abort(404)
-        return account, {'Cache-Control': 'max-age=86400'}
-
-
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountRecordsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
@@ -218,6 +205,19 @@ class AccountTransferEndpoint(MethodView):
         """Return information about sent or received transfer."""
 
         abort(500)
+
+
+@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
+class AccountEndpoint(MethodView):
+    @accounts_api.response(AccountSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId):
+        """Return public information about existing account."""
+
+        account = None
+        if not account:
+            abort(404)
+        return account, {'Cache-Control': 'max-age=86400'}
 
 
 transfers_api = Blueprint(
