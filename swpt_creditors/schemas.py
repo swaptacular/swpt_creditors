@@ -45,10 +45,11 @@ class PaginatedListSchema(Schema):
         type='string',
         format="uri",
         description='The URI of the first page in the paginated list. The object retrieved from '
-                    'this URI will have an `items` property (an array), which will contain the '
-                    'first items of the paginated list. The retrieved object may also have a '
-                    '`next` property (a string), which would contain the URI of the next page '
-                    'in the paginated list.',
+                    'this URI will have: 1) An `items` property (an array), which will contain the '
+                    'first items of the paginated list; 2) May have a `next` property (a string), '
+                    'which would contain the URI of the next page in the list; 3) May itself have '
+                    'a `forthcoming` property, for obtaining items that might be added to the '
+                    'paginated list in the future.',
         example='https://example.com/list?page=1',
     )
     totalItems = fields.Method(
