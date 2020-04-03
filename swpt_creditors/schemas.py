@@ -453,7 +453,7 @@ class LedgerEntrySchema(Schema):
         dump_only=True,
         format="int64",
         description="The ID of this entry. Later entries have bigger IDs.",
-        example='123',
+        example=123,
     )
     accountRecordUri = fields.Method(
         'get_account_record_uri',
@@ -488,7 +488,7 @@ class LedgerEntrySchema(Schema):
         type='string',
         format="uri",
         description='The URI of the corresponding transfer.',
-        example='https://example.com/creditors/2/accounts/1/transfers/',
+        example='https://example.com/creditors/2/accounts/1/transfers/999',
     )
     posted_at_ts = fields.DateTime(
         required=True,
@@ -503,7 +503,7 @@ class LedgerEntrySchema(Schema):
         description="The ID of the previous entry in the account's ledger. Previous entries have "
                     "smaller IDs. When this field is not present, this means that there are no "
                     "previous entries.",
-        example='122',
+        example=122,
     )
 
 
@@ -538,6 +538,16 @@ class LedgerEntriesPage(Schema):
                     'is present, there might be remaining items, even when the `items` array is '
                     'empty. This can be a relative URI.',
         example='?first=122',
+    )
+    coming = fields.Method(
+        'get_coming_uri',
+        type='string',
+        format='uri-reference',
+        description='An URI of another `LedgerEntriesPage` object which would contain items that '
+                    'might be added in the future. That is: items that are not currently available, '
+                    'but may become available in the future. This is useful when we want to follow '
+                    'a continuous stream of new items. This field will not be present when the '
+                    '`next` field is present. This can be a relative URI.',
     )
 
 
@@ -670,7 +680,7 @@ class CommittedTransferSchema(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/transfers/54321',
+        example='https://example.com/creditors/2/accounts/1/transfers/999',
     )
     type = fields.Constant(
         'CommittedTransfer',

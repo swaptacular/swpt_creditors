@@ -8,7 +8,7 @@ from .schemas import (
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
     LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema,
 )
-from .specs import DID, CID
+from .specs import DID, CID, SEQNUM
 from . import specs
 from . import procedures
 
@@ -193,7 +193,7 @@ class AccountRecordConfigEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
 class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(LedgerEntriesPage(context=CONTEXT))
+    @accounts_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
     @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
         """Return a collection of  account ledger entries.
@@ -210,19 +210,19 @@ class AccountLedgerEntriesEndpoint(MethodView):
         abort(500)
 
 
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID, SEQNUM])
+class AccountTransferEndpoint(MethodView):
+    @accounts_api.response(CommittedTransferSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId, seqnum):
+        """Return information about sent or received transfer."""
+
+        abort(500)
+
+
 transfers_api = Blueprint(
     'transfers',
     __name__,
     url_prefix='/creditors',
-    description="Miscellaneous utilities.",
+    description="Initiating transfers.",
 )
-
-
-@transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID])
-class AccountTransferEndpoint(MethodView):
-    @transfers_api.response(CommittedTransferSchema(context=CONTEXT))
-    @transfers_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId, seqnum):
-        """Return information about a committed transfer."""
-
-        abort(500)

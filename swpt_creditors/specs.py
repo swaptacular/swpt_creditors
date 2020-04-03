@@ -26,6 +26,19 @@ CID = {
     },
 }
 
+SEQNUM = {
+    'in': 'path',
+    'name': 'seqnum',
+    'required': True,
+    'description': "The sequential number of the transfer",
+    'schema': {
+        'type': 'integer',
+        'format': 'uint64',
+        'minimum': 0,
+        'maximum': (1 << 64) - 1,
+    },
+}
+
 TRANSFER_UUID = {
     'in': 'path',
     'name': 'transferUuid',
@@ -103,4 +116,21 @@ ACCOUNT_CAN_NOT_BE_CREATED = {
 
 ACCOUNT_RECORD_DOES_NOT_EXIST = {
     'description': 'The account record does not exist.',
+}
+
+ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
+    'uri': 'https://example.com/creditors/2/accounts/1/entries?first=123',
+    'type': 'LedgerEntriesPage',
+    'items': [
+        {
+            'accountRecordUri': 'https://example.com/creditors/2/accounts/1/',
+            'transferUri': 'https://example.com/creditors/2/accounts/1/transfers/999',
+            'entryId': 123,
+            'postedAt': '2020-04-03T18:42:44Z',
+            'balance': 1500,
+            'previousEntryId': 122,
+            'amount': 1000
+        },
+    ],
+    'next': '?first=122',
 }
