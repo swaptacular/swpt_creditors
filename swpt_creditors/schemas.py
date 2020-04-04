@@ -25,8 +25,9 @@ class PaginationParametersSchema(Schema):
 
 
 class PaginatedListSchema(Schema):
-    type = fields.Constant(
-        'PaginatedList',
+    type = fields.Function(
+        lambda: 'PaginatedList',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -83,8 +84,9 @@ class LinksPage(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/2/accounts/',
     )
-    type = fields.Constant(
-        'LinksPage',
+    type = fields.Function(
+        lambda: 'LinksPage',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -118,8 +120,9 @@ class CreditorSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/1/',
     )
-    type = fields.Constant(
-        'Creditor',
+    type = fields.Function(
+        lambda: 'Creditor',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -207,8 +210,9 @@ class TransferSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/1/transfers/123e4567-e89b-12d3-a456-426655440000',
     )
-    type = fields.Constant(
-        'Transfer',
+    type = fields.Function(
+        lambda: 'Transfer',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -316,8 +320,9 @@ class TransfersCollectionSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/1/transfers/',
     )
-    type = fields.Constant(
-        'TransfersCollection',
+    type = fields.Function(
+        lambda: 'TransfersCollection',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -359,8 +364,9 @@ class PortfolioSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/2/portfolio',
     )
-    type = fields.Constant(
-        'Portfolio',
+    type = fields.Function(
+        lambda: 'Portfolio',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -408,8 +414,9 @@ class AccountRecordConfigSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/2/accounts/1/config',
     )
-    type = fields.Constant(
-        'AccountRecordConfig',
+    type = fields.Function(
+        lambda: 'AccountRecordConfig',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -528,8 +535,9 @@ class LedgerEntriesPage(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/2/accounts/1/entries?first=123',
     )
-    type = fields.Constant(
-        'LedgerEntriesPage',
+    type = fields.Function(
+        lambda: 'LedgerEntriesPage',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -572,8 +580,9 @@ class AccountSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/2/debtors/1',
     )
-    type = fields.Constant(
-        'Account',
+    type = fields.Function(
+        lambda: 'Account',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -606,8 +615,9 @@ class AccountRecordSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/2/accounts/1/',
     )
-    type = fields.Constant(
-        'AccountRecord',
+    type = fields.Function(
+        lambda: 'AccountRecord',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
@@ -693,8 +703,9 @@ class CommittedTransferSchema(Schema):
         description="The URI of this object.",
         example='https://example.com/creditors/2/accounts/1/transfers/999',
     )
-    type = fields.Constant(
-        'CommittedTransfer',
+    type = fields.Function(
+        lambda: 'CommittedTransfer',
+        required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
