@@ -340,7 +340,7 @@ class PortfolioSchema(Schema):
         example='https://example.com/creditors/2/',
     )
     accountRecordUris = fields.Nested(
-        PaginatedListSchema(many=False),
+        PaginatedListSchema,
         required=True,
         description='A paginated list of URIs for all account records belonging to the creditor.',
         example={
@@ -351,7 +351,7 @@ class PortfolioSchema(Schema):
         },
     )
     journal = fields.Nested(
-        PaginatedListSchema(many=False),
+        PaginatedListSchema,
         required=True,
         description="A paginated list of recently posted ledger entries (for any of creditor's "
                     "accounts). The paginated list will be sorted in chronological order "
@@ -376,6 +376,10 @@ class AccountCreationRequestSchema(Schema):
         description="The debtor's URI.",
         example='https://example.com/debtors/1/',
     )
+
+
+class AccountRecordStatusSchema(Schema):
+    pass
 
 
 class AccountRecordConfigSchema(Schema):
@@ -408,13 +412,6 @@ class AccountRecordConfigSchema(Schema):
         dump_only=True,
         data_key='configChangedAt',
         description='The moment at which the last change in the account configuration was made.',
-    )
-    config_is_effectual = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='configIsEffectual',
-        description='Whether the current configuration is effectual.',
-        example=True,
     )
     is_scheduled_for_deletion = fields.Boolean(
         missing=False,
@@ -631,7 +628,7 @@ class AccountRecordSchema(Schema):
         example=0.0,
     )
     ledgerEntries = fields.Nested(
-        PaginatedListSchema(many=False),
+        PaginatedListSchema,
         required=True,
         description='A paginated list of account ledger entries. That is: transfers for '
                     'which the account is either the sender or the recipient. The paginated '
@@ -643,6 +640,12 @@ class AccountRecordSchema(Schema):
             "type": "PaginatedList",
             "first": "https://example.com/creditors/2/accounts/1/entries?first=123",
         },
+    )
+    status = fields.Nested(
+        AccountRecordStatusSchema,
+        dump_only=True,
+        required=True,
+        description="Account status information.",
     )
     config = fields.Nested(
         AccountRecordConfigSchema,
