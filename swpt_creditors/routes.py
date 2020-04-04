@@ -26,7 +26,7 @@ creditors_api = Blueprint(
     'creditors',
     __name__,
     url_prefix='/creditors',
-    description="Obtain information about creditors, create new creditors.",
+    description="Obtain information about creditors, create new creditors, create new accounts.",
 )
 
 
@@ -107,21 +107,13 @@ class CreditorLogEndpoint(MethodView):
         abort(500)
 
 
-accounts_api = Blueprint(
-    'accounts',
-    __name__,
-    url_prefix='/creditors',
-    description="View, create, update and delete creditors' accounts.",
-)
-
-
-@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
+@creditors_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountRecordsEndpoint(MethodView):
-    @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(LinksPage(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @creditors_api.arguments(PaginationParametersSchema, location='query')
+    @creditors_api.response(LinksPage(context=CONTEXT))
+    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of account record URIs.
+        """Return a collection of creditor's account record URIs.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains the relative URIs of all
@@ -135,15 +127,15 @@ class AccountRecordsEndpoint(MethodView):
             abort(404)
         return debtor_ids
 
-    @accounts_api.arguments(AccountCreationRequestSchema)
-    @accounts_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
-    @accounts_api.doc(responses={303: specs.ACCOUNT_EXISTS,
-                                 403: specs.TOO_MANY_ACCOUNTS,
-                                 404: specs.CREDITOR_DOES_NOT_EXIST,
-                                 409: specs.ACCOUNT_CONFLICT,
-                                 422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
+    @creditors_api.arguments(AccountCreationRequestSchema)
+    @creditors_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @creditors_api.doc(responses={303: specs.ACCOUNT_EXISTS,
+                                  403: specs.TOO_MANY_ACCOUNTS,
+                                  404: specs.CREDITOR_DOES_NOT_EXIST,
+                                  409: specs.ACCOUNT_CONFLICT,
+                                  422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
     def post(self, account_creation_request, creditorId):
-        """Create a new account record."""
+        """Create a new account record, belonging to a creditor."""
 
         debtor_uri = account_creation_request['debtor_uri']
         try:
@@ -166,6 +158,27 @@ class AccountRecordsEndpoint(MethodView):
         except procedures.AccountExistsError:
             return redirect(location, code=303)
         return transfer, {'Location': location}
+
+
+accounts_api = Blueprint(
+    'accounts',
+    __name__,
+    url_prefix='/creditors',
+    description="View, update and delete creditors' accounts.",
+)
+
+
+@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
+class AccountEndpoint(MethodView):
+    @accounts_api.response(AccountSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId):
+        """Return public information about existing account."""
+
+        account = None
+        if not account:
+            abort(404)
+        return account, {'Cache-Control': 'max-age=86400'}
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[CID, DID])
@@ -220,7 +233,7 @@ class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
     @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
-        """Return a collection of ledger entries for a given account.
+        """Return a collection of ledger entries for a given account record.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recent ledger entries
@@ -242,19 +255,6 @@ class AccountTransferEndpoint(MethodView):
         """Return information about sent or received transfer."""
 
         abort(500)
-
-
-@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
-class AccountEndpoint(MethodView):
-    @accounts_api.response(AccountSchema(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId):
-        """Return public information about existing account."""
-
-        account = None
-        if not account:
-            abort(404)
-        return account, {'Cache-Control': 'max-age=86400'}
 
 
 transfers_api = Blueprint(
