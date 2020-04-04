@@ -53,7 +53,14 @@ class AccountSchema(Schema):
 
 
 class AccountRecordStatusSchema(Schema):
-    pass
+    type = fields.Function(
+        lambda: 'AccountRecordStatus',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountRecordStatus',
+    )
 
 
 class AccountRecordConfigSchema(Schema):
@@ -126,6 +133,14 @@ class AccountRecordSchema(Schema):
         type='string',
         description='The type of this object.',
         example='AccountRecord',
+    )
+    creditorUri = fields.Function(
+        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The URI of the creditor to which this account record belongs.",
+        example='https://example.com/creditors/2/',
     )
     accountUri = fields.Function(
         lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
