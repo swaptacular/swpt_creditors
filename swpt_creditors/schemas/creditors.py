@@ -97,7 +97,8 @@ class PortfolioSchema(Schema):
         PaginatedListSchema,
         required=True,
         description="A paginated list of recently posted messages. The paginated list will "
-                    "be sorted in chronological order (smaller message IDs go first).",
+                    "be sorted in chronological order (smaller message IDs go first). This allows "
+                    "creditors to obtain the new messages, simply by looking at the \"log\".",
         example={
             'first': 'https://example.com/creditors/2/log',
             'forthcoming': 'https://example.com/creditors/2/log?first=1234567890',
