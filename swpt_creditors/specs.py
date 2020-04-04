@@ -134,3 +134,21 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
     ],
     'next': '?first=122',
 }
+
+JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
+    'uri': 'https://example.com/creditors/2/journal',
+    'type': 'LedgerEntriesPage',
+    'items': [
+        {
+            'accountRecordUri': 'https://example.com/creditors/2/accounts/1/',
+            'transferUri': 'https://example.com/creditors/2/accounts/1/transfers/999',
+            'entryId': 123,
+            'postedAt': '2020-04-03T18:42:44Z',
+            'principal': 1500,
+            'previousEntryId': 122,
+            'amount': 1000
+        },
+    ],
+    'next': '?first=124',
+    'forthcoming': '?first=1234567890',
+}

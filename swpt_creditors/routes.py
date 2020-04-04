@@ -6,7 +6,7 @@ from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
-    LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPage,
+    LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPageSchema,
 )
 from .specs import DID, CID, SEQNUM
 from . import specs
@@ -73,7 +73,7 @@ class PortfolioEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/journal', parameters=[CID])
 class CreditorJournalEndpoint(MethodView):
     @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(LinksPage(context=CONTEXT))
+    @creditors_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of recently posted ledger entries.
@@ -92,7 +92,7 @@ class CreditorJournalEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
 class CreditorLogEndpoint(MethodView):
     @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(MessagesPage(context=CONTEXT))
+    @creditors_api.response(MessagesPageSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of recently posted messages.
