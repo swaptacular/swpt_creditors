@@ -127,7 +127,7 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
             'transferUri': 'https://example.com/creditors/2/accounts/1/transfers/999',
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',
-            'balance': 1500,
+            'principal': 1500,
             'previousEntryId': 122,
             'amount': 1000
         },

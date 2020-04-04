@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9d738a902e19
+Revision ID: b76dcc8e7a73
 Revises: 8d8c816257ce
-Create Date: 2020-03-22 16:04:49.213200
+Create Date: 2020-04-04 14:21:58.467938
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9d738a902e19'
+revision = 'b76dcc8e7a73'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -93,7 +93,7 @@ def upgrade():
     sa.Column('transfer_message', sa.TEXT(), nullable=False, comment='Notes from the sender. Can be any string that the sender wants the recipient to see.'),
     sa.Column('transfer_flags', sa.Integer(), nullable=False, comment='Contains various flags set when the transfer was finalized. (This is the value of the `transfer_flags parameter, with which the `finalize_prepared_transfer` actor was called.)'),
     sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
-    sa.Column('account_new_principal', sa.BigInteger(), nullable=False, comment='The balance on the account after the transfer.'),
+    sa.Column('account_new_principal', sa.BigInteger(), nullable=False, comment='The principal on the account after the transfer.'),
     sa.Column('system_flags', sa.Integer(), nullable=False, comment='Various bit-flags characterizing the transfer.'),
     sa.Column('real_creditor_id', sa.BigInteger(), nullable=False, comment='The original value of the `creditor_id` field, as it was when the signal was generated. (Intermediaries may modify the `creditor_id`/`sender_creditor_id`fields of signals, analogous to the way IP masquerading works.)'),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),

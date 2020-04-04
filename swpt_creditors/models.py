@@ -320,7 +320,7 @@ class AccountCommit(db.Model):
     account_new_principal = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='The balance on the account after the transfer.',
+        comment='The principal on the account after the transfer.',
     )
     system_flags = db.Column(
         db.Integer,

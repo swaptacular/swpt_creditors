@@ -465,7 +465,7 @@ class LedgerEntrySchema(Schema):
                     "negative (a decrease). Can not be zero.",
         example=1000,
     )
-    balance = fields.Integer(
+    principal = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
