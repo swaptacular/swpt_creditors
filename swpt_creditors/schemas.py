@@ -69,8 +69,10 @@ class PaginatedListSchema(Schema):
         format='uri',
         description='An URI for obtaining items that might be added to the paginated list in the '
                     'future. This is useful when we want to skip all items currently in the list, '
-                    'but follow the forthcoming stream of new items. The object retrieved from '
-                    'this URI will be of the same type as the one retrieved from the `first` field.',
+                    'but follow the forthcoming stream of new items. If this field is not '
+                    'present, this means that the "streaming" feature is not supported by the '
+                    'paginated list. The object retrieved from this URI will be of the same type '
+                    'as the one retrieved from the `first` field.',
         example='https://example.com/list?page=1000',
     )
 
