@@ -6,7 +6,7 @@ from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
-    LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema,
+    LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPage,
 )
 from .specs import DID, CID, SEQNUM
 from . import specs
@@ -83,6 +83,24 @@ class CreditorJournalEndpoint(MethodView):
         entries (for any of creditor's accounts). The returned
         fragment will be sorted in chronological order (smaller entry
         IDs go first).
+
+        """
+
+        abort(500)
+
+
+@creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
+class CreditorLogEndpoint(MethodView):
+    @creditors_api.arguments(PaginationParametersSchema, location='query')
+    @creditors_api.response(MessagesPage(context=CONTEXT))
+    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def get(self, pagination_parameters, creditorId):
+        """Return a collection of recently posted messages.
+
+        The returned object will be a fragment (a page) of a paginated
+        list. The paginated list contains all recently posted
+        messages. The returned fragment will be sorted in
+        chronological order (smaller message IDs go first).
 
         """
 

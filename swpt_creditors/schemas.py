@@ -11,6 +11,39 @@ class TransfersCollection(NamedTuple):
     items: List[str]
 
 
+class MessageSchema(Schema):
+    type = fields.Function(
+        lambda: 'Message',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='Message',
+    )
+    messageId = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=(1 << 64) - 1),
+        format="uint64",
+        description="The ID of this message. Later messages have bigger IDs.",
+        example=12345,
+    )
+    creditorUri = fields.Function(
+        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+        required=True,
+        type='string',
+        format="uri",
+        description="The creditor's URI.",
+        example='https://example.com/creditors/2/',
+    )
+    posted_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='postedAt',
+        description='The moment at which this message was added to the log.',
+    )
+
+
 class CreditorCreationOptionsSchema(Schema):
     pass
 
@@ -75,6 +108,52 @@ class PaginatedListSchema(Schema):
                     'paginated list. The object retrieved from this URI will be of the same type '
                     'as the one retrieved from the `first` field.',
         example='https://example.com/list?page=1000',
+    )
+
+
+class MessagesPage(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/log',
+    )
+    type = fields.Function(
+        lambda: 'MessagesPage',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='MessagesPage',
+    )
+    items = fields.Nested(
+        MessageSchema(many=True),
+        required=True,
+        dump_only=True,
+        description='An array of messages. Can be empty.',
+    )
+    next = fields.Method(
+        'get_next_uri',
+        type='string',
+        format='uri-reference',
+        description='An URI of another `MessagesPage` object which contains more items. When '
+                    'there are no remaining items, this field will not be present. If this field '
+                    'is present, there might be remaining items, even when the `items` array is '
+                    'empty. This can be a relative URI.',
+        example='?first=12346',
+    )
+    forthcoming = fields.Method(
+        'get_forthcoming_uri',
+        type='string',
+        format='uri-reference',
+        description='An URI of another `MessagesPage` object which would contain items that '
+                    'might be added in the future. That is: items that are not currently available, '
+                    'but may become available in the future. This is useful when we want to follow '
+                    'a continuous stream of new items. This field will not be present when the '
+                    '`next` field is present. This can be a relative URI.',
+        example='?first=1234567890',
     )
 
 
@@ -361,6 +440,18 @@ class PortfolioSchema(Schema):
             'first': 'https://example.com/creditors/2/journal',
             'forthcoming': 'https://example.com/creditors/2/journal?first=1234567890',
             'itemsType': 'LedgerEntry',
+            'type': 'PaginatedList',
+        },
+    )
+    log = fields.Nested(
+        PaginatedListSchema,
+        required=True,
+        description="A paginated list of recently posted messages. The paginated list will "
+                    "be sorted in chronological order (smaller message IDs go first).",
+        example={
+            'first': 'https://example.com/creditors/2/log',
+            'forthcoming': 'https://example.com/creditors/2/log?first=1234567890',
+            'itemsType': 'Message',
             'type': 'PaginatedList',
         },
     )
