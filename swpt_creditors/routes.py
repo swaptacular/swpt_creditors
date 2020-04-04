@@ -70,6 +70,23 @@ class PortfolioEndpoint(MethodView):
         abort(500)
 
 
+@creditors_api.route('/<i64:creditorId>/journal', parameters=[CID])
+class CreditorJournalEndpoint(MethodView):
+    @creditors_api.arguments(PaginationParametersSchema, location='query')
+    @creditors_api.response(LinksPage(context=CONTEXT))
+    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def get(self, pagination_parameters, creditorId):
+        """Return a collection of recently posted ledger entries.
+
+        The returned object will be a fragment (a page) of a paginated
+        list. The paginated list contains all recently posted ledger
+        entries (for any of creditor's accounts).
+
+        """
+
+        abort(500)
+
+
 accounts_api = Blueprint(
     'accounts',
     __name__,
@@ -183,7 +200,7 @@ class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
     @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
-        """Return a collection of  account ledger entries.
+        """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recent ledger entries
