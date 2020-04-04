@@ -134,13 +134,13 @@ class AccountRecordSchema(Schema):
         description='The type of this object.',
         example='AccountRecord',
     )
-    creditorUri = fields.Function(
-        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+    portfolioUri = fields.Method(
+        'get_portfolio_uri',
         required=True,
         type='string',
         format="uri",
-        description="The URI of the creditor to which this account record belongs.",
-        example='https://example.com/creditors/2/',
+        description="The URI of the portfolio that contains this account record.",
+        example='https://example.com/creditors/2/portfolio',
     )
     accountUri = fields.Function(
         lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
