@@ -26,7 +26,7 @@ creditors_api = Blueprint(
     'creditors',
     __name__,
     url_prefix='/creditors',
-    description="Obtain public information about accounts and creditors, create new creditors.",
+    description="Obtain information about creditors, create new creditors.",
 )
 
 
@@ -76,7 +76,7 @@ class CreditorJournalEndpoint(MethodView):
     @creditors_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of recently posted ledger entries.
+        """Return a collection of creditor's recently posted ledger entries.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recently posted ledger
@@ -95,7 +95,7 @@ class CreditorLogEndpoint(MethodView):
     @creditors_api.response(MessagesPageSchema(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of recently posted messages.
+        """Return a collection of creditor's recently posted messages.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recently posted
@@ -261,5 +261,5 @@ transfers_api = Blueprint(
     'transfers',
     __name__,
     url_prefix='/creditors',
-    description="Initiating transfers.",
+    description="Make direct transfers from one creditor to another creditor.",
 )
