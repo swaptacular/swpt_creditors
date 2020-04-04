@@ -56,6 +56,7 @@ class PaginatedListSchema(Schema):
     totalItems = fields.Method(
         'get_length',
         dump_only=True,
+        validate=validate.Range(min=0, max=(1 << 64) - 1),
         type='integer',
         format='uint64',
         description='An approximation for the total number of items in the paginated list. Will '
@@ -313,50 +314,6 @@ class TransferSchema(Schema):
         return finalized_at_ts.isoformat()
 
 
-class TransfersCollectionSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
-        required=True,
-        type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/1/transfers/',
-    )
-    type = fields.Function(
-        lambda: 'TransfersCollection',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='TransfersCollection',
-    )
-    creditorUri = fields.Function(
-        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
-        required=True,
-        type='string',
-        format="uri",
-        description="The creditor's URI.",
-        example='https://example.com/creditors/2/',
-    )
-    totalItems = fields.Function(
-        lambda obj: len(obj.items),
-        required=True,
-        type='integer',
-        description="The number of items in the `items` array.",
-        example=2,
-    )
-    items = fields.List(
-        fields.String(format='uri-reference'),
-        required=True,
-        dump_only=True,
-        description="An unordered set of *relative* URIs for creditor's remaining credit-issuing transfers.",
-        example=['123e4567-e89b-12d3-a456-426655440000', '183ea7c7-7a96-4ed7-a50a-a2b069687d23'],
-    )
-
-    def get_uri(self, obj):
-        return url_for(self.context['TransfersCollection'], _external=True, creditorId=obj.creditor_id)
-
-
 class PortfolioSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -486,7 +443,8 @@ class LedgerEntrySchema(Schema):
     entryId = fields.Integer(
         required=True,
         dump_only=True,
-        format="int64",
+        validate=validate.Range(min=0, max=(1 << 64) - 1),
+        format="uint64",
         description="The ID of this entry. Later entries have bigger IDs.",
         example=123,
     )
@@ -534,7 +492,8 @@ class LedgerEntrySchema(Schema):
     previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
-        format="int64",
+        validate=validate.Range(min=0, max=(1 << 64) - 1),
+        format="uint64",
         description="The ID of the previous entry in the account's ledger. Previous entries have "
                     "smaller IDs. When this field is not present, this means that there are no "
                     "previous entries.",

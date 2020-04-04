@@ -80,7 +80,9 @@ class CreditorJournalEndpoint(MethodView):
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recently posted ledger
-        entries (for any of creditor's accounts).
+        entries (for any of creditor's accounts). The returned
+        fragment will be sorted in chronological order (smaller entry
+        IDs go first).
 
         """
 
