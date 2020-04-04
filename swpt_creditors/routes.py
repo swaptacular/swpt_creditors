@@ -113,7 +113,7 @@ class AccountRecordsEndpoint(MethodView):
     @creditors_api.response(LinksPage(context=CONTEXT))
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of creditor's account record URIs.
+        """Return a collection of account records, belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains the relative URIs of all
@@ -135,7 +135,7 @@ class AccountRecordsEndpoint(MethodView):
                                   409: specs.ACCOUNT_CONFLICT,
                                   422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
     def post(self, account_creation_request, creditorId):
-        """Create a new account record, belonging to a creditor."""
+        """Create a new account record, belonging to a given creditor."""
 
         debtor_uri = account_creation_request['debtor_uri']
         try:
