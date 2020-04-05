@@ -590,7 +590,7 @@ class AccountLedger(db.Model):
 class LedgerEntry(db.Model):
     # TODO: This is totally wrong. Add a global entry seqnum here and
     #       in `Creditor`, which is incremented for each added
-    #       `LedgerEntry`. Fix `process_account_commit_signal()`
+    #       `LedgerEntry`. Fix `process_account_transfer_signal()`
     #       accordingly. (Do we need `added_at_ts`?)
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)

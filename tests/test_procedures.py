@@ -42,7 +42,7 @@ def test_create_new_creditor(db_session):
 
 def test_process_pending_account_commits(db_session, setup_account, current_ts):
     ny2019 = date(2019, 1, 1)
-    p.process_account_commit_signal(D_ID, C_ID, 1, 'direct', current_ts, 1000, 666, '', 0, ny2019, 1000, 0, 0, C_ID)
+    p.process_account_transfer_signal(D_ID, C_ID, 1, 'direct', current_ts, 1000, 666, '', 0, ny2019, 1000, 0, 0, C_ID)
     assert p.process_pending_account_commits(C_ID, D_ID)
 
 

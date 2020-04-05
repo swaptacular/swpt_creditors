@@ -302,7 +302,7 @@ def process_account_change_signal(
 
 
 @atomic
-def process_account_commit_signal(
+def process_account_transfer_signal(
         debtor_id: int,
         creditor_id: int,
         transfer_seqnum: int,

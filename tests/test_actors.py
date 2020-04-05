@@ -4,8 +4,8 @@ D_ID = -1
 C_ID = 1
 
 
-def test_on_account_commit_signal(db_session):
-    a.on_account_commit_signal(
+def test_on_account_transfer_signal(db_session):
+    a.on_account_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_seqnum=(1 << 40) + 1,
@@ -21,7 +21,7 @@ def test_on_account_commit_signal(db_session):
         system_flags=0,
         real_creditor_id=C_ID,
     )
-    a.on_account_commit_signal(
+    a.on_account_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_seqnum=(1 << 40) + 1,
