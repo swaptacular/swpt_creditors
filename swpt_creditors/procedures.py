@@ -437,13 +437,15 @@ def process_finalized_direct_transfer_signal(
         coordinator_id: int,
         coordinator_request_id: int,
         recipient_creditor_id: int,
-        committed_amount: int) -> None:
+        committed_amount: int,
+        status_code: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
     assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
     assert 0 <= committed_amount <= MAX_INT64
+    assert 0 <= len(status_code.encode('ascii')) <= 30
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
     rt_matches_the_signal = (
@@ -456,7 +458,7 @@ def process_finalized_direct_transfer_signal(
         if committed_amount == rt.amount and recipient_creditor_id == rt.recipient_creditor_id:
             error = None
         elif committed_amount == 0 and recipient_creditor_id == rt.recipient_creditor_id:
-            error = {'errorCode': 'TERMINATED_DUE_TO_TIMEOUT'}
+            error = {'errorCode': status_code}
         else:
             error = {'errorCode': 'UNEXPECTED_ERROR'}
         _finalize_initiated_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
