@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
-from .common import MAX_INT64
+from .common import MAX_INT64, MAX_UINT64
 from .paginated_lists import PaginatedListSchema
 
 
@@ -187,6 +187,14 @@ class AccountRecordSchema(Schema):
             "type": "PaginatedList",
             "first": "https://example.com/creditors/2/accounts/1/entries?first=123",
         },
+    )
+    latestEntryId = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description="The ID of the latest entry in the account ledger.",
+        example=123,
     )
     status = fields.Nested(
         AccountRecordStatusSchema,
