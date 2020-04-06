@@ -164,5 +164,5 @@ JOURNAL_MESSAGES_EXAMPLE = {
             "text": "Hi!",
         },
     ],
-    'next': '?first=12346',
+    'forthcoming': '?first=12346',
 }
