@@ -92,7 +92,7 @@ class CreditorJournalEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
 class CreditorLogEndpoint(MethodView):
     @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(MessagesPageSchema(context=CONTEXT))
+    @creditors_api.response(MessagesPageSchema(context=CONTEXT), example=specs.JOURNAL_MESSAGES_EXAMPLE)
     @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of creditor's recently posted messages.

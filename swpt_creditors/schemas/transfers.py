@@ -238,16 +238,10 @@ class CommittedTransferSchema(Schema):
         data_key='committedAt',
         description='The moment at which the transfer was committed.',
     )
-    coordinator_type = fields.String(
-        required=True,
+    commitMessage = fields.Dict(
         dump_only=True,
-        data_key='transferClass',
-        description='The transfer class.',
-        example='direct',
-    )
-    transfer_info = fields.Dict(
-        required=True,
-        dump_only=True,
-        data_key='transferInfo',
-        description=_TRANSFER_INFO_DESCRIPTION,
+        description='An optional JSON object containing additional information about the '
+                    'transfer, notably -- notes from the sender. Different implementations '
+                    'may use different schemas for this object. A `type` field must always '
+                    'be present, containing the name of the used schema.',
     )

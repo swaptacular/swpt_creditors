@@ -150,5 +150,19 @@ JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
         },
     ],
     'next': '?first=124',
-    'forthcoming': '?first=1234567890',
+}
+
+JOURNAL_MESSAGES_EXAMPLE = {
+    'uri': 'https://example.com/creditors/2/log',
+    'type': 'MessagesPage',
+    'items': [
+        {
+            "messageId": 12345,
+            "postedAt": "2020-04-06T14:22:11Z",
+            "creditorUri": "https://example.com/creditors/2/",
+            "type": "Message",
+            "text": "Hi!",
+        },
+    ],
+    'next': '?first=12346',
 }
