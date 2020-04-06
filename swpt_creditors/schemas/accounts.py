@@ -88,10 +88,10 @@ class AccountRecordConfigSchema(Schema):
         description="The URI of the corresponding account record.",
         example='https://example.com/creditors/2/accounts/1/',
     )
-    config_changed_at = fields.DateTime(
+    changed_at = fields.DateTime(
         required=True,
         dump_only=True,
-        data_key='configChangedAt',
+        data_key='changedAt',
         description='The moment at which the last change in the account configuration was made.',
     )
     is_scheduled_for_deletion = fields.Boolean(
