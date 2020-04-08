@@ -18,7 +18,7 @@ class CreditorSchema(Schema):
         example='https://example.com/creditors/1/',
     )
     type = fields.Function(
-        lambda: 'Creditor',
+        lambda obj: 'Creditor',
         required=True,
         dump_only=True,
         type='string',
@@ -53,7 +53,7 @@ class PortfolioSchema(Schema):
         example='https://example.com/creditors/2/portfolio',
     )
     type = fields.Function(
-        lambda: 'Portfolio',
+        lambda obj: 'Portfolio',
         required=True,
         dump_only=True,
         type='string',

@@ -90,7 +90,7 @@ class TransferSchema(Schema):
         example='https://example.com/creditors/1/transfers/123e4567-e89b-12d3-a456-426655440000',
     )
     type = fields.Function(
-        lambda: 'Transfer',
+        lambda obj: 'Transfer',
         required=True,
         dump_only=True,
         type='string',
@@ -200,7 +200,7 @@ class CommittedTransferSchema(Schema):
         example='https://example.com/creditors/2/accounts/1/transfers/999',
     )
     type = fields.Function(
-        lambda: 'CommittedTransfer',
+        lambda obj: 'CommittedTransfer',
         required=True,
         dump_only=True,
         type='string',

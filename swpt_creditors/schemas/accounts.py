@@ -27,7 +27,7 @@ class AccountSchema(Schema):
         example='https://example.com/creditors/2/debtors/1',
     )
     type = fields.Function(
-        lambda: 'Account',
+        lambda obj: 'Account',
         required=True,
         dump_only=True,
         type='string',
@@ -54,7 +54,7 @@ class AccountSchema(Schema):
 
 class AccountRecordStatusSchema(Schema):
     type = fields.Function(
-        lambda: 'AccountRecordStatus',
+        lambda obj: 'AccountRecordStatus',
         required=True,
         dump_only=True,
         type='string',
@@ -73,7 +73,7 @@ class AccountRecordConfigSchema(Schema):
         example='https://example.com/creditors/2/accounts/1/config',
     )
     type = fields.Function(
-        lambda: 'AccountRecordConfig',
+        lambda obj: 'AccountRecordConfig',
         required=True,
         dump_only=True,
         type='string',
@@ -127,7 +127,7 @@ class AccountRecordSchema(Schema):
         example='https://example.com/creditors/2/accounts/1/',
     )
     type = fields.Function(
-        lambda: 'AccountRecord',
+        lambda obj: 'AccountRecord',
         required=True,
         dump_only=True,
         type='string',

@@ -28,7 +28,7 @@ class PaginationParametersSchema(Schema):
 
 class PaginatedListSchema(Schema):
     type = fields.Function(
-        lambda: 'PaginatedList',
+        lambda obj: 'PaginatedList',
         required=True,
         dump_only=True,
         type='string',
@@ -82,7 +82,7 @@ class PaginatedListSchema(Schema):
 
 class MessageSchema(Schema):
     type = fields.Function(
-        lambda: 'Message',
+        lambda obj: 'Message',
         required=True,
         dump_only=True,
         type='string',
@@ -123,7 +123,7 @@ class MessagesPageSchema(Schema):
         example='https://example.com/creditors/2/log',
     )
     type = fields.Function(
-        lambda: 'MessagesPage',
+        lambda obj: 'MessagesPage',
         required=True,
         dump_only=True,
         type='string',
@@ -162,7 +162,7 @@ class LinksPage(Schema):
         example='https://example.com/creditors/2/accounts/',
     )
     type = fields.Function(
-        lambda: 'LinksPage',
+        lambda obj: 'LinksPage',
         required=True,
         dump_only=True,
         type='string',
@@ -257,7 +257,7 @@ class LedgerEntriesPage(Schema):
         example='https://example.com/creditors/2/accounts/1/entries?first=123',
     )
     type = fields.Function(
-        lambda: 'LedgerEntriesPage',
+        lambda obj: 'LedgerEntriesPage',
         required=True,
         dump_only=True,
         type='string',
