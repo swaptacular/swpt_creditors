@@ -46,13 +46,13 @@ class PaginatedListSchema(Schema):
         'get_first',
         required=True,
         type='string',
-        format="uri",
+        format="uri-reference",
         description='The URI of the first page in the paginated list. The object retrieved from '
                     'this URI will have: 1) An `items` property (an array), which will contain the '
                     'first items of the paginated list; 2) May have a `next` property (a string), '
                     'which would contain the URI of the next page in the list; 3) May itself have '
                     'a `forthcoming` property, for obtaining items that might be added to the '
-                    'paginated list in the future.',
+                    'paginated list in the future. This can be a relative URI.',
         example='https://example.com/list?page=1',
     )
     totalItems = fields.Method(
@@ -69,13 +69,13 @@ class PaginatedListSchema(Schema):
     forthcoming = fields.Method(
         'get_forthcoming_uri',
         type='string',
-        format='uri',
+        format='uri-reference',
         description='An URI for obtaining items that might be added to the paginated list in the '
                     'future. This is useful when we want to skip all items currently in the list, '
                     'but follow the forthcoming stream of new items. If this field is not '
                     'present, this means that the "streaming" feature is not supported by the '
                     'paginated list. The object retrieved from this URI will be of the same type '
-                    'as the one retrieved from the `first` field.',
+                    'as the one retrieved from the `first` field. This can be a relative URI.',
         example='https://example.com/list?page=1000',
     )
 
