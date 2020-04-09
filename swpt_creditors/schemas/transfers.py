@@ -23,7 +23,7 @@ The URI of the debtor through which the transfer should go. This is analogous to
 the currency code in "normal" bank transfers.'
 
 
-class TransferErrorSchema(Schema):
+class DirectTransferErrorSchema(Schema):
     errorCode = fields.String(
         required=True,
         dump_only=True,
@@ -162,7 +162,7 @@ class DirectTransferSchema(Schema):
         example=False,
     )
     errors = fields.Nested(
-        TransferErrorSchema(many=True),
+        DirectTransferErrorSchema(many=True),
         dump_only=True,
         required=True,
         description='Errors that occurred during the transfer.'
@@ -187,7 +187,7 @@ class DirectTransferSchema(Schema):
         return finalized_at_ts.isoformat()
 
 
-class TransferUpdateRequestSchema(Schema):
+class DirectTransferUpdateRequestSchema(Schema):
     is_finalized = fields.Boolean(
         required=True,
         data_key='isFinalized',

@@ -7,7 +7,7 @@ from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
     LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPageSchema,
-    DirectTransferCreationRequestSchema, DirectTransferSchema, TransferUpdateRequestSchema,
+    DirectTransferCreationRequestSchema, DirectTransferSchema, DirectTransferUpdateRequestSchema,
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -341,7 +341,7 @@ class DirectTransferEndpoint(MethodView):
 
         return procedures.get_initiated_transfer(creditorId, transferUuid) or abort(404)
 
-    @transfers_api.arguments(TransferUpdateRequestSchema)
+    @transfers_api.arguments(DirectTransferUpdateRequestSchema)
     @transfers_api.response(DirectTransferSchema(context=CONTEXT))
     @transfers_api.doc(responses={404: specs.TRANSFER_DOES_NOT_EXIST,
                                   409: specs.TRANSFER_UPDATE_CONFLICT})
