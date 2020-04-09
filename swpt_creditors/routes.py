@@ -7,8 +7,10 @@ from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
     LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPageSchema,
+    DirectTransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
+    TransfersCollectionSchema, TransfersCollection
 )
-from .specs import DID, CID, SEQNUM
+from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
 from . import procedures
 
@@ -261,5 +263,100 @@ transfers_api = Blueprint(
     'transfers',
     __name__,
     url_prefix='/creditors',
-    description="Make direct transfers from one creditor to another creditor.",
+    description="Make direct transfers from one account to another account.",
 )
+
+
+@transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
+class TransfersCollectionEndpoint(MethodView):
+    # TODO: Consider implementing pagination. This might be needed in
+    #       case the executed a query turns out to be too costly.
+
+    @transfers_api.response(TransfersCollectionSchema(context=CONTEXT))
+    @transfers_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def get(self, debtorId):
+        """Return the creditors's collection of direct transfers."""
+
+        try:
+            transfer_uuids = procedures.get_debtor_transfer_uuids(debtorId)
+        except procedures.DebtorDoesNotExistError:
+            abort(404)
+        return TransfersCollection(debtor_id=debtorId, items=transfer_uuids)
+
+    @transfers_api.arguments(DirectTransferCreationRequestSchema)
+    @transfers_api.response(TransferSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @transfers_api.doc(responses={303: specs.TRANSFER_EXISTS,
+                                  403: specs.TOO_MANY_TRANSFERS,
+                                  404: specs.CREDITOR_DOES_NOT_EXIST,
+                                  409: specs.TRANSFER_CONFLICT})
+    def post(self, transfer_creation_request, debtorId):
+        """Create a new direct transfer."""
+
+        transfer_uuid = transfer_creation_request['transfer_uuid']
+        recipient_uri = urljoin(request.base_url, transfer_creation_request['recipient_uri'])
+        location = url_for('transfers.TransferEndpoint', _external=True, debtorId=debtorId, transferUuid=transfer_uuid)
+        try:
+            recipient_creditor_id = endpoints.match_url('account', recipient_uri)['creditorId']
+        except endpoints.MatchError:
+            recipient_creditor_id = None
+        location = url_for('transfers.TransferEndpoint', _external=True, debtorId=debtorId, transferUuid=transfer_uuid)
+        try:
+            transfer = procedures.initiate_transfer(
+                debtor_id=debtorId,
+                transfer_uuid=transfer_uuid,
+                recipient_creditor_id=recipient_creditor_id,
+                amount=transfer_creation_request['amount'],
+                transfer_info=transfer_creation_request['transfer_info'],
+            )
+        except procedures.TooManyManagementActionsError:
+            abort(403)
+        except procedures.DebtorDoesNotExistError:
+            abort(404)
+        except procedures.TransfersConflictError:
+            abort(409)
+        except procedures.TransferExistsError:
+            return redirect(location, code=303)
+        return transfer, {'Location': location}
+
+
+@transfers_api.route('/<i64:creditorId>/transfers/<uuid:transferUuid>', parameters=[CID, TRANSFER_UUID])
+class TransferEndpoint(MethodView):
+    @transfers_api.response(TransferSchema(context=CONTEXT))
+    @transfers_api.doc(responses={404: specs.TRANSFER_DOES_NOT_EXIST})
+    def get(self, debtorId, transferUuid):
+        """Return information about a direct transfer."""
+
+        return procedures.get_initiated_transfer(debtorId, transferUuid) or abort(404)
+
+    @transfers_api.arguments(TransferUpdateRequestSchema)
+    @transfers_api.response(TransferSchema(context=CONTEXT))
+    @transfers_api.doc(responses={404: specs.TRANSFER_DOES_NOT_EXIST,
+                                  409: specs.TRANSFER_UPDATE_CONFLICT})
+    def patch(self, transfer_update_request, debtorId, transferUuid):
+        """Cancel a direct transfer, if possible.
+
+        This operation is **idempotent**!
+
+        """
+
+        try:
+            if not (transfer_update_request['is_finalized'] and not transfer_update_request['is_successful']):
+                raise procedures.TransferUpdateConflictError()
+            transfer = procedures.cancel_transfer(debtorId, transferUuid)
+        except procedures.TransferDoesNotExistError:
+            abort(404)
+        except procedures.TransferUpdateConflictError:
+            abort(409)
+        return transfer
+
+    @transfers_api.response(code=204)
+    def delete(self, debtorId, transferUuid):
+        """Delete a direct transfer.
+
+        Note that deleting a running (not finalized) transfer does not
+        cancel it. To ensure that a running transfer has not been
+        successful, it must be canceled before deletion.
+
+        """
+
+        procedures.delete_initiated_transfer(debtorId, transferUuid)
