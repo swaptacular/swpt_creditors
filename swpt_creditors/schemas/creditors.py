@@ -114,7 +114,7 @@ class PortfolioSchema(Schema):
                     'the creditor, which have not been deleted yet. The paginated list will not '
                     'be sorted in any particular order.',
         example={
-            'totalItems': 1,
+            'totalItems': 5,
             'first': 'https://example.com/creditors/2/transfers/',
             'itemsType': 'string',
             'type': 'PaginatedList',

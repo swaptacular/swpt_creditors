@@ -166,3 +166,13 @@ JOURNAL_MESSAGES_EXAMPLE = {
     ],
     'forthcoming': '?first=12346',
 }
+
+DIRECT_TRANSFER_LINKS_EXAMPLE = {
+    'next': '?first=3',
+    'items': [
+        '123e4567-e89b-12d3-a456-426655440000',
+        '00112233-4455-6677-8899-aabbccddeeff',
+    ],
+    'uri': 'https://example.com/creditors/2/transfers/',
+    'type': 'LinksPage',
+}

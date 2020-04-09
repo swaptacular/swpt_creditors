@@ -1,10 +1,8 @@
 from datetime import datetime, timezone, timedelta
-from typing import NamedTuple, List
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
 from swpt_lib import endpoints
 from .common import MAX_INT64
-
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -19,6 +17,10 @@ The moment at which the transfer was initiated.'
 
 _TRANSFER_IS_SUCCESSFUL_DESCRIPTION = '\
 Whether the transfer has been successful or not.'
+
+_TRANSFER_DEBTOR_URI_DESCRIPTION = '\
+The URI of the debtor through which the transfer should go. This is analogous to \
+the currency code in "normal" bank transfers.'
 
 
 class TransferErrorSchema(Schema):
@@ -50,7 +52,7 @@ class DirectTransferCreationRequestSchema(Schema):
         schemes=[endpoints.get_url_scheme()],
         data_key='debtorUri',
         format='uri',
-        description="The debtor's URI.",
+        description=_TRANSFER_DEBTOR_URI_DESCRIPTION,
         example='https://example.com/debtors/1/',
     )
     recipient_account_uri = fields.Url(
@@ -91,14 +93,14 @@ class DirectTransferSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='Transfer',
+        example='DirectTransfer',
     )
     debtor_uri = fields.String(
         required=True,
         dump_only=True,
         data_key='debtorUri',
         format="uri",
-        description="The debtor's URI.",
+        description=_TRANSFER_DEBTOR_URI_DESCRIPTION,
         example='https://example.com/debtors/1/',
     )
     senderAccountUri = fields.Function(

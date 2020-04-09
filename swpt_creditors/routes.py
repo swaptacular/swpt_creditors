@@ -268,7 +268,8 @@ transfers_api = Blueprint(
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
 class DirectTransfersEndpoint(MethodView):
-    @transfers_api.response(LinksPage(context=CONTEXT))
+    @accounts_api.arguments(PaginationParametersSchema, location='query')
+    @transfers_api.response(LinksPage(context=CONTEXT), example=specs.DIRECT_TRANSFER_LINKS_EXAMPLE)
     @transfers_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, debtorId):
         """Return a collection of direct transfers, initiated by a given creditor.
