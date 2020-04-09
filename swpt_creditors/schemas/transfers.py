@@ -10,7 +10,9 @@ _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
 
 _TRANSFER_INFO_DESCRIPTION = '\
-Notes from the sender. Can be any JSON object that the sender wants the recipient to see.'
+Notes from the sender. Can be any JSON object that the sender wants the \
+recipient to see. Different implementations may impose different restrictions \
+on the schema of this JSON object.'
 
 _TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
 The moment at which the transfer was initiated.'
@@ -68,11 +70,9 @@ class DirectTransferCreationRequestSchema(Schema):
         description='The amount to be transferred. Must be positive.',
         example=1000,
     )
-    transfer_info = fields.Dict(
+    info = fields.Dict(
         missing={},
-        data_key='transferInfo',
-        description='Notes from the sender. Can be any JSON object that the sender wants the '
-                    'recipient to see.',
+        description=_TRANSFER_INFO_DESCRIPTION,
     )
 
 
@@ -125,10 +125,9 @@ class DirectTransferSchema(Schema):
         description=_TRANSFER_AMOUNT_DESCRIPTION,
         example=1000,
     )
-    transfer_info = fields.Dict(
+    info = fields.Dict(
         required=True,
         dump_only=True,
-        data_key='transferInfo',
         description=_TRANSFER_INFO_DESCRIPTION,
     )
     initiated_at_ts = fields.DateTime(
