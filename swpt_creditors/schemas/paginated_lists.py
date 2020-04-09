@@ -18,11 +18,9 @@ a continuous stream of new items. This field will not be present when the \
 
 
 class PaginationParametersSchema(Schema):
-    first = fields.Integer(
-        format='uint64',
-        validate=validate.Range(min=0, max=MAX_UINT64),
+    first = fields.String(
         description='Return starting from the item which index equals this value.',
-        example=0,
+        example='0',
     )
 
 
