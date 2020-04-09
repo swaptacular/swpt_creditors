@@ -250,7 +250,7 @@ class CommittedTransferSchema(Schema):
         data_key='committedAt',
         description='The moment at which the transfer was committed.',
     )
-    commitMessage = fields.Dict(
+    details = fields.Dict(
         dump_only=True,
         description='An optional JSON object containing additional information about the '
                     'transfer, notably -- notes from the sender. Different implementations '
