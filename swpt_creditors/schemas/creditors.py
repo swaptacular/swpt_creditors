@@ -89,7 +89,7 @@ class PortfolioSchema(Schema):
                     "position of all their accounts, simply by looking at the \"journal\".",
         example={
             'first': 'https://example.com/creditors/2/journal',
-            'forthcoming': 'https://example.com/creditors/2/journal?first=1234567890',
+            'forthcoming': 'https://example.com/creditors/2/journal?prev=1234567890',
             'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',
         },
@@ -102,7 +102,7 @@ class PortfolioSchema(Schema):
                     "creditors to obtain the new messages, simply by looking at the \"log\".",
         example={
             'first': 'https://example.com/creditors/2/log',
-            'forthcoming': 'https://example.com/creditors/2/log?first=1234567890',
+            'forthcoming': 'https://example.com/creditors/2/log?prev=1234567890',
             'itemsType': 'Message',
             'type': 'PaginatedList',
         },

@@ -183,9 +183,9 @@ class AccountRecordSchema(Schema):
                     'first). The entries will constitute a singly linked list, each entry '
                     '(except the most ancient one) referring to its ancestor.',
         example={
-            "itemsType": "LedgerEntry",
-            "type": "PaginatedList",
-            "first": "https://example.com/creditors/2/accounts/1/entries?first=123",
+            'itemsType': 'LedgerEntry',
+            'type': 'PaginatedList',
+            'first': 'https://example.com/creditors/2/accounts/1/entries?prev=124',
         },
     )
     latestEntryId = fields.Integer(

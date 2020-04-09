@@ -119,7 +119,7 @@ ACCOUNT_RECORD_DOES_NOT_EXIST = {
 }
 
 ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
-    'uri': 'https://example.com/creditors/2/accounts/1/entries?first=123',
+    'uri': 'https://example.com/creditors/2/accounts/1/entries?prev=124',
     'type': 'LedgerEntriesPage',
     'items': [
         {
@@ -132,7 +132,7 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
             'amount': 1000
         },
     ],
-    'next': '?first=122',
+    'next': '?prev=123',
 }
 
 JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
@@ -149,7 +149,7 @@ JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
             'amount': 1000
         },
     ],
-    'next': '?first=124',
+    'next': '?prev=123',
 }
 
 JOURNAL_MESSAGES_EXAMPLE = {
@@ -164,11 +164,11 @@ JOURNAL_MESSAGES_EXAMPLE = {
             "text": "Hi!",
         },
     ],
-    'forthcoming': '?first=12346',
+    'forthcoming': '?prev=12345',
 }
 
 DIRECT_TRANSFER_LINKS_EXAMPLE = {
-    'next': '?first=3',
+    'next': '?prev=00112233-4455-6677-8899-aabbccddeeff',
     'items': [
         '123e4567-e89b-12d3-a456-426655440000',
         '00112233-4455-6677-8899-aabbccddeeff',

@@ -18,8 +18,8 @@ a continuous stream of new items. This field will not be present when the \
 
 
 class PaginationParametersSchema(Schema):
-    first = fields.String(
-        description='Return starting from the item which index equals this value.',
+    prev = fields.String(
+        description='Return items which follow the item with this index.',
         example='0',
     )
 
@@ -139,14 +139,14 @@ class MessagesPageSchema(Schema):
         type='string',
         format='uri-reference',
         description=_PAGE_NEXT_DESCRIPTION.format(type='MessagesPage'),
-        example='?first=12346',
+        example='?prev=12345',
     )
     forthcoming = fields.Method(
         'get_forthcoming_uri',
         type='string',
         format='uri-reference',
         description=_PAGE_FORTHCOMING_DESCRIPTION.format(type='MessagesPage'),
-        example='?first=1234567890',
+        example='?prev=1234567890',
     )
 
 
@@ -179,7 +179,7 @@ class LinksPage(Schema):
         type='string',
         format='uri-reference',
         description=_PAGE_NEXT_DESCRIPTION.format(type='LinksPage'),
-        example='?first=1234567890',
+        example='?prev=111',
     )
 
 
@@ -252,7 +252,7 @@ class LedgerEntriesPage(Schema):
         type='string',
         format='uri',
         description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/entries?first=123',
+        example='https://example.com/creditors/2/accounts/1/entries?prev=124',
     )
     type = fields.Function(
         lambda obj: 'LedgerEntriesPage',
@@ -273,7 +273,6 @@ class LedgerEntriesPage(Schema):
         type='string',
         format='uri-reference',
         description=_PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
-        example='?first=122',
     )
     forthcoming = fields.Method(
         'get_forthcoming_uri',
