@@ -19,11 +19,6 @@ _TRANSFER_IS_SUCCESSFUL_DESCRIPTION = '\
 Whether the transfer has been successful or not.'
 
 
-class TransfersCollection(NamedTuple):
-    creditor_id: int
-    items: List[str]
-
-
 class TransferErrorSchema(Schema):
     errorCode = fields.String(
         required=True,
@@ -81,7 +76,7 @@ class DirectTransferCreationRequestSchema(Schema):
     )
 
 
-class TransferSchema(Schema):
+class DirectTransferSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -204,71 +199,6 @@ class TransferUpdateRequestSchema(Schema):
         description='Should be `false`.',
         example=False,
     )
-
-
-class TransfersCollectionSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
-        required=True,
-        type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/debtors/1/transfers/',
-    )
-    type = fields.Function(
-        lambda obj: 'TransfersCollection',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='TransfersCollection',
-    )
-    debtorUri = fields.Function(
-        lambda obj: endpoints.build_url('debtor', debtorId=obj.debtor_id),
-        required=True,
-        type='string',
-        format="uri",
-        description="The debtor's URI.",
-        example='https://example.com/debtors/1/',
-    )
-    totalItems = fields.Function(
-        lambda obj: len(obj.items),
-        required=True,
-        type='integer',
-        description="The total number of items in the collection.",
-        example=2,
-    )
-    items = fields.List(
-        fields.Str(format='uri-reference'),
-        dump_only=True,
-        description="When the total number of items in the collection is small enough, this field "
-                    "will contain all of them (in an array), so that in such cases it would be "
-                    "unnecessary to follow the `first` link.",
-        example=['123e4567-e89b-12d3-a456-426655440000', '183ea7c7-7a96-4ed7-a50a-a2b069687d23'],
-    )
-    itemsType = fields.Function(
-        lambda obj: 'string',
-        required=True,
-        type='string',
-        description='The type of the items in the collection. In this particular case the items '
-                    'are relative URIs, so the type will be `"string"`.',
-        example='string',
-    )
-    first = fields.Function(
-        lambda obj: '',
-        required=True,
-        type='string',
-        format="uri-reference",
-        description='The URI of the first page in the paginated collection. The object retrieved '
-                    'from this URI will have: 1) An `items` property (an array), which will contain '
-                    'the first items of the collection; 2) May have a `next` property (a string), '
-                    'which would contain the URI of the next page in the collection. This can be '
-                    'a relative URI.',
-        example='',
-    )
-
-    def get_uri(self, obj):
-        return url_for(self.context['TransfersCollection'], _external=True, debtorId=obj.debtor_id)
 
 
 class CommittedTransferSchema(Schema):

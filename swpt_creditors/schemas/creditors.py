@@ -71,7 +71,8 @@ class PortfolioSchema(Schema):
     accountRecordUris = fields.Nested(
         PaginatedListSchema,
         required=True,
-        description='A paginated list of URIs for all account records belonging to the creditor.',
+        description='A paginated list of relative URIs for all account records belonging to '
+                    'the creditor.',
         example={
             'totalItems': 20,
             'first': 'https://example.com/creditors/2/accounts/',
@@ -103,6 +104,19 @@ class PortfolioSchema(Schema):
             'first': 'https://example.com/creditors/2/log',
             'forthcoming': 'https://example.com/creditors/2/log?first=1234567890',
             'itemsType': 'Message',
+            'type': 'PaginatedList',
+        },
+    )
+    transferUris = fields.Nested(
+        PaginatedListSchema,
+        required=True,
+        description='A paginated list of relative URIs for all direct transfers initiated by '
+                    'the creditor, which have not been deleted yet. The paginated list will not '
+                    'be sorted in any particular order.',
+        example={
+            'totalItems': 1,
+            'first': 'https://example.com/creditors/2/transfers/',
+            'itemsType': 'string',
             'type': 'PaginatedList',
         },
     )

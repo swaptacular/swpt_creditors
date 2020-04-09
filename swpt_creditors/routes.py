@@ -7,8 +7,7 @@ from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
     LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPageSchema,
-    DirectTransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
-    TransfersCollectionSchema, TransfersCollection
+    DirectTransferCreationRequestSchema, DirectTransferSchema, TransferUpdateRequestSchema,
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -17,7 +16,6 @@ from . import procedures
 CONTEXT = {
     'Creditor': 'creditors.CreditorEndpoint',
     'Account': 'creditors.AccountEndpoint',
-    'TransfersCollection': 'transfers.TransfersCollectionEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'AccountList': 'accounts.AccountListEndpoint',
     'AccountRecord': 'accounts.AccountRecordEndpoint',
@@ -119,7 +117,8 @@ class AccountRecordsEndpoint(MethodView):
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains the relative URIs of all
-        account records belonging to a given creditor.
+        account records belonging to a given creditor. The returned
+        fragment will not be sorted in any particular order.
 
         """
 
@@ -268,23 +267,28 @@ transfers_api = Blueprint(
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
-class TransfersCollectionEndpoint(MethodView):
-    # TODO: Consider implementing pagination. This might be needed in
-    #       case the executed a query turns out to be too costly.
-
-    @transfers_api.response(TransfersCollectionSchema(context=CONTEXT))
+class DirectTransfersEndpoint(MethodView):
+    @transfers_api.response(LinksPage(context=CONTEXT))
     @transfers_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, debtorId):
-        """Return the creditors's collection of direct transfers."""
+        """Return a collection of direct transfers, initiated by a given creditor.
+
+        The returned object will be a fragment (a page) of a paginated
+        list. The paginated list contains the relative URIs of all
+        direct transfers initiated by a given creditor, which have not
+        been deleted yet. The returned fragment will not be sorted in
+        any particular order.
+
+        """
 
         try:
             transfer_uuids = procedures.get_debtor_transfer_uuids(debtorId)
         except procedures.DebtorDoesNotExistError:
             abort(404)
-        return TransfersCollection(debtor_id=debtorId, items=transfer_uuids)
+        return transfer_uuids
 
     @transfers_api.arguments(DirectTransferCreationRequestSchema)
-    @transfers_api.response(TransferSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @transfers_api.response(DirectTransferSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @transfers_api.doc(responses={303: specs.TRANSFER_EXISTS,
                                   403: specs.TOO_MANY_TRANSFERS,
                                   404: specs.CREDITOR_DOES_NOT_EXIST,
@@ -320,8 +324,8 @@ class TransfersCollectionEndpoint(MethodView):
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/<uuid:transferUuid>', parameters=[CID, TRANSFER_UUID])
-class TransferEndpoint(MethodView):
-    @transfers_api.response(TransferSchema(context=CONTEXT))
+class DirectTransferEndpoint(MethodView):
+    @transfers_api.response(DirectTransferSchema(context=CONTEXT))
     @transfers_api.doc(responses={404: specs.TRANSFER_DOES_NOT_EXIST})
     def get(self, debtorId, transferUuid):
         """Return information about a direct transfer."""
@@ -329,7 +333,7 @@ class TransferEndpoint(MethodView):
         return procedures.get_initiated_transfer(debtorId, transferUuid) or abort(404)
 
     @transfers_api.arguments(TransferUpdateRequestSchema)
-    @transfers_api.response(TransferSchema(context=CONTEXT))
+    @transfers_api.response(DirectTransferSchema(context=CONTEXT))
     @transfers_api.doc(responses={404: specs.TRANSFER_DOES_NOT_EXIST,
                                   409: specs.TRANSFER_UPDATE_CONFLICT})
     def patch(self, transfer_update_request, debtorId, transferUuid):
