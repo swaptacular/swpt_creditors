@@ -60,6 +60,19 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
+@creditors_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
+class AccountEndpoint(MethodView):
+    @creditors_api.response(AccountSchema(context=CONTEXT))
+    @creditors_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId):
+        """Return public information about an account."""
+
+        account = None
+        if not account:
+            abort(404)
+        return account, {'Cache-Control': 'max-age=86400'}
+
+
 @creditors_api.route('/<i64:creditorId>/portfolio', parameters=[CID])
 class PortfolioEndpoint(MethodView):
     @creditors_api.response(PortfolioSchema(context=CONTEXT))
@@ -107,11 +120,19 @@ class CreditorLogEndpoint(MethodView):
         abort(500)
 
 
-@creditors_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
+accounts_api = Blueprint(
+    'accounts',
+    __name__,
+    url_prefix='/creditors',
+    description="View, update and delete creditors' accounts.",
+)
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountRecordsEndpoint(MethodView):
-    @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(LinksPage(context=CONTEXT))
-    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @accounts_api.arguments(PaginationParametersSchema, location='query')
+    @accounts_api.response(LinksPage(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of account records, belonging to a given creditor.
 
@@ -128,13 +149,13 @@ class AccountRecordsEndpoint(MethodView):
             abort(404)
         return debtor_ids
 
-    @creditors_api.arguments(AccountCreationRequestSchema)
-    @creditors_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
-    @creditors_api.doc(responses={303: specs.ACCOUNT_EXISTS,
-                                  403: specs.TOO_MANY_ACCOUNTS,
-                                  404: specs.CREDITOR_DOES_NOT_EXIST,
-                                  409: specs.ACCOUNT_CONFLICT,
-                                  422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
+    @accounts_api.arguments(AccountCreationRequestSchema)
+    @accounts_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @accounts_api.doc(responses={303: specs.ACCOUNT_EXISTS,
+                                 403: specs.TOO_MANY_ACCOUNTS,
+                                 404: specs.CREDITOR_DOES_NOT_EXIST,
+                                 409: specs.ACCOUNT_CONFLICT,
+                                 422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
     def post(self, account_creation_request, creditorId):
         """Create a new account record, belonging to a given creditor."""
 
@@ -159,27 +180,6 @@ class AccountRecordsEndpoint(MethodView):
         except procedures.AccountExistsError:
             return redirect(location, code=303)
         return transfer, {'Location': location}
-
-
-accounts_api = Blueprint(
-    'accounts',
-    __name__,
-    url_prefix='/creditors',
-    description="View, update and delete creditors' accounts.",
-)
-
-
-@accounts_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
-class AccountEndpoint(MethodView):
-    @accounts_api.response(AccountSchema(context=CONTEXT))
-    @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId):
-        """Return public information about existing account."""
-
-        account = None
-        if not account:
-            abort(404)
-        return account, {'Cache-Control': 'max-age=86400'}
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[CID, DID])
