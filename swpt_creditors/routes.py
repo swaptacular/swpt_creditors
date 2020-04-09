@@ -22,18 +22,18 @@ CONTEXT = {
 }
 
 
-creditors_api = Blueprint(
-    'creditors',
+public_api = Blueprint(
+    'public',
     __name__,
     url_prefix='/creditors',
-    description="Obtain information about creditors, create new creditors, create new accounts.",
+    description="Obtain public information about creditors and accounts, create new creditors.",
 )
 
 
-@creditors_api.route('/<i64:creditorId>/', parameters=[CID])
+@public_api.route('/<i64:creditorId>/', parameters=[CID])
 class CreditorEndpoint(MethodView):
-    @creditors_api.response(CreditorSchema(context=CONTEXT))
-    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @public_api.response(CreditorSchema(context=CONTEXT))
+    @public_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
         """Return public information about a creditor."""
 
@@ -42,11 +42,11 @@ class CreditorEndpoint(MethodView):
             abort(404)
         return creditor, {'Cache-Control': 'max-age=86400'}
 
-    @creditors_api.arguments(CreditorCreationOptionsSchema)
-    @creditors_api.response(CreditorSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
-    @creditors_api.doc(responses={409: specs.CONFLICTING_CREDITOR})
+    @public_api.arguments(CreditorCreationOptionsSchema)
+    @public_api.response(CreditorSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @public_api.doc(responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_creation_options, creditorId):
-        """Try to create a new creditor. Requires special privileges
+        """Try to create a new creditor. Requires special privileges.
 
         ---
         Must fail if the creditor already exists.
@@ -60,10 +60,10 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
-@creditors_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
+@public_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
 class AccountEndpoint(MethodView):
-    @creditors_api.response(AccountSchema(context=CONTEXT))
-    @creditors_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    @public_api.response(AccountSchema(context=CONTEXT))
+    @public_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
         """Return public information about an account."""
 
@@ -73,21 +73,29 @@ class AccountEndpoint(MethodView):
         return account, {'Cache-Control': 'max-age=86400'}
 
 
-@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[CID])
+portfolio_api = Blueprint(
+    'portfolio',
+    __name__,
+    url_prefix='/creditors',
+    description="View creditors' portfolios.",
+)
+
+
+@portfolio_api.route('/<i64:creditorId>/portfolio', parameters=[CID])
 class PortfolioEndpoint(MethodView):
-    @creditors_api.response(PortfolioSchema(context=CONTEXT))
-    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @portfolio_api.response(PortfolioSchema(context=CONTEXT))
+    @portfolio_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
         """Return creditor's portfolio."""
 
         abort(500)
 
 
-@creditors_api.route('/<i64:creditorId>/journal', parameters=[CID])
+@portfolio_api.route('/<i64:creditorId>/journal', parameters=[CID])
 class CreditorJournalEndpoint(MethodView):
-    @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
-    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @portfolio_api.arguments(PaginationParametersSchema, location='query')
+    @portfolio_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
+    @portfolio_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of creditor's recently posted ledger entries.
 
@@ -102,11 +110,11 @@ class CreditorJournalEndpoint(MethodView):
         abort(500)
 
 
-@creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
+@portfolio_api.route('/<i64:creditorId>/log', parameters=[CID])
 class CreditorLogEndpoint(MethodView):
-    @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(MessagesPageSchema(context=CONTEXT), example=specs.JOURNAL_MESSAGES_EXAMPLE)
-    @creditors_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @portfolio_api.arguments(PaginationParametersSchema, location='query')
+    @portfolio_api.response(MessagesPageSchema(context=CONTEXT), example=specs.JOURNAL_MESSAGES_EXAMPLE)
+    @portfolio_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of creditor's recently posted messages.
 
@@ -124,7 +132,7 @@ accounts_api = Blueprint(
     'accounts',
     __name__,
     url_prefix='/creditors',
-    description="View, update and delete creditors' accounts.",
+    description="View, update and delete creditors' account records.",
 )
 
 
@@ -134,7 +142,7 @@ class AccountRecordsEndpoint(MethodView):
     @accounts_api.response(LinksPage(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of account records, belonging to a given creditor.
+        """Return a collection of account records belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains the relative URIs of all
@@ -157,7 +165,7 @@ class AccountRecordsEndpoint(MethodView):
                                  409: specs.ACCOUNT_CONFLICT,
                                  422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
     def post(self, account_creation_request, creditorId):
-        """Create a new account record, belonging to a given creditor."""
+        """Create a new account record belonging to a given creditor."""
 
         debtor_uri = account_creation_request['debtor_uri']
         try:
