@@ -1,5 +1,5 @@
 from typing import NamedTuple
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
 from flask import redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
@@ -103,25 +103,30 @@ class PortfolioEndpoint(MethodView):
         if not creditor:
             abort(404)
 
+        journal_url = url_for('.JournalEntriesEndpoint', creditorId=creditorId)
+        jouranl_forthcoming_query = urlencode({'prev': getattr(creditor, 'latest_journal_entry_id', 0)})
+        log_url = url_for('.LogMessagesEndpoint', creditorId=creditorId)
+        log_forthcoming_query = urlencode({'prev': getattr(creditor, 'latest_log_message_id', 0)})
+
         creditor.journal = PaginatedList(
-            'LedgerEntry',
-            url_for('.JournalEntriesEndpoint', creditorId=creditorId),
-            forthcoming='5',
+            itemsType='LedgerEntry',
+            first=journal_url,
+            forthcoming=f'{journal_url}?{jouranl_forthcoming_query}',
         )
         creditor.log = PaginatedList(
-            'Message',
-            url_for('.LogMessagesEndpoint', creditorId=creditorId),
-            forthcoming='5',
+            itemsType='Message',
+            first=log_url,
+            forthcoming=f'{log_url}?{log_forthcoming_query}',
         )
         creditor.transferUris = PaginatedList(
-            'string',
-            url_for('transfers.DirectTransfersEndpoint', creditorId=creditorId),
-            totalItems=5,
+            itemsType='string',
+            first=url_for('transfers.DirectTransfersEndpoint', creditorId=creditorId),
+            totalItems=getattr(creditor, 'initiated_transfers_count', 0),
         )
         creditor.accountRecordUris = PaginatedList(
-            'string',
-            url_for('accounts.AccountRecordsEndpoint', creditorId=creditorId),
-            totalItems=5,
+            itemsType='string',
+            first=url_for('accounts.AccountRecordsEndpoint', creditorId=creditorId),
+            totalItems=getattr(creditor, 'account_records_count', 0),
         )
         return creditor
 

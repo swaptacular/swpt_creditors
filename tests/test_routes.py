@@ -49,5 +49,6 @@ def test_get_portfolio(client, creditor):
     data = r.get_json()
     assert data['type'] == 'Portfolio'
     assert data['uri'] == 'http://example.com/creditors/2/portfolio'
-    print(data)
+    from pprint import pprint
+    pprint(data)
     assert 0
