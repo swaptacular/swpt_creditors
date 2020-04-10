@@ -9,7 +9,7 @@ from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
 from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
-    InitiatedTransfer, RunningTransfer, \
+    DirectTransfer, RunningTransfer, \
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
@@ -461,25 +461,25 @@ def process_finalized_direct_transfer_signal(
             error = {'errorCode': status_code}
         else:
             error = {'errorCode': 'UNEXPECTED_ERROR'}
-        _finalize_initiated_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
+        _finalize_direct_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
         db.session.delete(rt)
 
 
 @atomic
-def delete_initiated_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
-    number_of_deleted_rows = InitiatedTransfer.query.\
+def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
+    number_of_deleted_rows = DirectTransfer.query.\
         filter_by(debtor_id=debtor_id, transfer_uuid=transfer_uuid).\
         delete(synchronize_session=False)
 
     assert number_of_deleted_rows in [0, 1]
     if number_of_deleted_rows == 1:
-        # TODO: Update creditor's initiated transfers count.
+        # TODO: Update creditor's direct transfers count.
 
         # Note that deleting the `RunningTransfer` record may result
         # in dismissing an already committed transfer. This is not a
         # problem in this case, however, because the user has ordered
-        # the deletion of the `InitiatedTransfer` record, and
-        # therefore is not interested in the its outcome.
+        # the deletion of the `DirectTransfer` record, and therefore
+        # is not interested in the its outcome.
         RunningTransfer.query.\
             filter_by(debtor_id=debtor_id, transfer_uuid=transfer_uuid).\
             delete(synchronize_session=False)
@@ -655,15 +655,15 @@ def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> 
         one_or_none()
 
 
-def _finalize_initiated_transfer(
+def _finalize_direct_transfer(
         debtor_id: int,
         transfer_uuid: int,
         finalized_at_ts: datetime = None,
         error: dict = None) -> None:
 
-    initiated_transfer = InitiatedTransfer.lock_instance((debtor_id, transfer_uuid))
-    if initiated_transfer and initiated_transfer.finalized_at_ts is None:
-        initiated_transfer.finalized_at_ts = finalized_at_ts or datetime.now(tz=timezone.utc)
-        initiated_transfer.is_successful = error is None
+    direct_transfer = DirectTransfer.lock_instance((debtor_id, transfer_uuid))
+    if direct_transfer and direct_transfer.finalized_at_ts is None:
+        direct_transfer.finalized_at_ts = finalized_at_ts or datetime.now(tz=timezone.utc)
+        direct_transfer.is_successful = error is None
         if error is not None:
-            initiated_transfer.error = error
+            direct_transfer.error = error

@@ -76,7 +76,7 @@ class PortfolioSchema(Schema):
                     'the creditor.',
         example={
             'totalItems': 20,
-            'first': 'https://example.com/creditors/2/accounts/',
+            'first': '/creditors/2/accounts/',
             'itemsType': 'string',
             'type': 'PaginatedList',
         },
@@ -90,8 +90,8 @@ class PortfolioSchema(Schema):
                     "(smaller entry IDs go first). This allows creditors to update the "
                     "position of all their accounts, simply by looking at the \"journal\".",
         example={
-            'first': 'https://example.com/creditors/2/journal',
-            'forthcoming': 'https://example.com/creditors/2/journal?prev=1234567890',
+            'first': '/creditors/2/journal',
+            'forthcoming': '/creditors/2/journal?prev=1234567890',
             'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',
         },
@@ -104,8 +104,8 @@ class PortfolioSchema(Schema):
                     "be sorted in chronological order (smaller message IDs go first). This allows "
                     "creditors to obtain the new messages, simply by looking at the \"log\".",
         example={
-            'first': 'https://example.com/creditors/2/log',
-            'forthcoming': 'https://example.com/creditors/2/log?prev=1234567890',
+            'first': '/creditors/2/log',
+            'forthcoming': '/creditors/2/log?prev=1234567890',
             'itemsType': 'Message',
             'type': 'PaginatedList',
         },
@@ -119,7 +119,7 @@ class PortfolioSchema(Schema):
                     'be sorted in any particular order.',
         example={
             'totalItems': 5,
-            'first': 'https://example.com/creditors/2/transfers/',
+            'first': '/creditors/2/transfers/',
             'itemsType': 'string',
             'type': 'PaginatedList',
         },

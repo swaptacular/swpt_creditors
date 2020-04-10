@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b76dcc8e7a73
+Revision ID: 1ffef19ba6ea
 Revises: 8d8c816257ce
-Create Date: 2020-04-04 14:21:58.467938
+Create Date: 2020-04-10 17:57:39.937471
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b76dcc8e7a73'
+revision = '1ffef19ba6ea'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -33,7 +33,16 @@ def upgrade():
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is active."),
     sa.Column('created_at_date', sa.DATE(), nullable=False, comment='The date on which the creditor was created.'),
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. A `null` means that the creditor has not been deactivated yet. Management operations (like making direct transfers) are not allowed on deactivated creditors. Once deactivated, a creditor stays deactivated until it is deleted. Important note: All creditors are created with their "is active" status bit set to `0`, and it gets set to `1` only after the first management operation has been performed.'),
-    sa.PrimaryKeyConstraint('creditor_id')
+    sa.Column('latest_journal_entry_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_log_message_id', sa.BigInteger(), nullable=False),
+    sa.Column('direct_transfers_count', sa.Integer(), nullable=False),
+    sa.Column('account_records_count', sa.Integer(), nullable=False),
+    sa.CheckConstraint('account_records_count >= 0'),
+    sa.CheckConstraint('direct_transfers_count >= 0'),
+    sa.CheckConstraint('latest_journal_entry_id >= 0'),
+    sa.CheckConstraint('latest_log_message_id >= 0'),
+    sa.PrimaryKeyConstraint('creditor_id'),
+    comment="Represents creditor's principal information."
     )
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -64,7 +73,7 @@ def upgrade():
     comment='Represents essential information about the ledger of a given account. Logically those columns belong to the `account_config` table, but they are isolated here mainly for peformace reasons. The thing is that we want really fast index-only scans on the `account_config` table. Normally, the account config rarely changes (which is good for the index-only scans), while the account ledger information may change very frequently.'
     )
     op.create_index('idx_next_transfer_seqnum', 'account_ledger', ['creditor_id', 'debtor_id', 'next_transfer_seqnum'], unique=False)
-    op.create_table('initiated_transfer',
+    op.create_table('direct_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
     sa.Column('debtor_uri', sa.String(), nullable=False, comment="The debtor's URI."),
@@ -196,7 +205,7 @@ def downgrade():
     op.drop_table('account')
     op.drop_table('account_config')
     op.drop_table('account_commit')
-    op.drop_table('initiated_transfer')
+    op.drop_table('direct_transfer')
     op.drop_index('idx_next_transfer_seqnum', table_name='account_ledger')
     op.drop_table('account_ledger')
     op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')

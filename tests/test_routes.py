@@ -49,6 +49,24 @@ def test_get_portfolio(client, creditor):
     data = r.get_json()
     assert data['type'] == 'Portfolio'
     assert data['uri'] == 'http://example.com/creditors/2/portfolio'
-    from pprint import pprint
-    pprint(data)
-    assert 0
+    assert data['creditorUri'] == 'http://example.com/creditors/2/'
+    journal = data['journal']
+    assert journal['type'] == 'PaginatedList'
+    assert journal['first'] == '/creditors/2/journal'
+    assert journal['forthcoming'] == '/creditors/2/journal?prev=0'
+    assert journal['itemsType'] == 'LedgerEntry'
+    log = data['log']
+    assert log['type'] == 'PaginatedList'
+    assert log['first'] == '/creditors/2/log'
+    assert log['forthcoming'] == '/creditors/2/log?prev=0'
+    assert log['itemsType'] == 'Message'
+    dt = data['directTransfers']
+    assert dt['type'] == 'PaginatedList'
+    assert dt['first'] == '/creditors/2/transfers/'
+    assert dt['totalItems'] == 0
+    assert dt['itemsType'] == 'string'
+    ar = data['accountRecords']
+    assert ar['type'] == 'PaginatedList'
+    assert ar['first'] == '/creditors/2/accounts/'
+    assert ar['totalItems'] == 0
+    assert ar['itemsType'] == 'string'

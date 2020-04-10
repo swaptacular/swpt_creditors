@@ -85,7 +85,7 @@ class MessageSchema(Schema):
     messageId = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
+        validate=validate.Range(min=1, max=MAX_UINT64),
         format="uint64",
         description="The ID of this message. Later messages have bigger IDs.",
         example=12345,
@@ -182,7 +182,7 @@ class LedgerEntrySchema(Schema):
     entryId = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
+        validate=validate.Range(min=1, max=MAX_UINT64),
         format="uint64",
         description="The ID of this entry. Later entries have bigger IDs.",
         example=123,
@@ -231,7 +231,7 @@ class LedgerEntrySchema(Schema):
     previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
-        validate=validate.Range(min=0, max=MAX_UINT64),
+        validate=validate.Range(min=1, max=MAX_UINT64),
         format="uint64",
         description="The ID of the previous entry in the account's ledger. Previous entries have "
                     "smaller IDs. When this field is not present, this means that there are no "

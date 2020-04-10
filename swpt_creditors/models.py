@@ -99,6 +99,19 @@ class Creditor(db.Model):
                 'and it gets set to `1` only after the first management operation has been '
                 'performed.',
     )
+    latest_journal_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
+    latest_log_message_id = db.Column(db.BigInteger, nullable=False, default=0)
+    direct_transfers_count = db.Column(db.Integer, nullable=False, default=0)
+    account_records_count = db.Column(db.Integer, nullable=False, default=0)
+    __table_args__ = (
+        db.CheckConstraint(latest_journal_entry_id >= 0),
+        db.CheckConstraint(latest_log_message_id >= 0),
+        db.CheckConstraint(direct_transfers_count >= 0),
+        db.CheckConstraint(account_records_count >= 0),
+        {
+            'comment': "Represents creditor's principal information.",
+        }
+    )
 
     @property
     def is_active(self):
@@ -112,7 +125,7 @@ class Creditor(db.Model):
             self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
 
 
-class InitiatedTransfer(db.Model):
+class DirectTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
     debtor_uri = db.Column(
@@ -172,7 +185,7 @@ class InitiatedTransfer(db.Model):
 
     creditor = db.relationship(
         'Creditor',
-        backref=db.backref('initiated_transfers', cascade="all, delete-orphan", passive_deletes=True),
+        backref=db.backref('direct_transfers', cascade="all, delete-orphan", passive_deletes=True),
     )
 
     @property
