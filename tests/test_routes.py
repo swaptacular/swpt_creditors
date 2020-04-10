@@ -10,7 +10,7 @@ def client(app, db_session):
 
 
 @pytest.fixture(scope='function')
-def debtor(db_session):
+def creditor(db_session):
     return p.lock_or_create_creditor(2)
 
 
@@ -38,3 +38,16 @@ def test_create_creditor(client):
     assert data['isActive'] is False
     assert data['type'] == 'Creditor'
     assert data['uri'] == 'http://example.com/creditors/2/'
+
+
+def test_get_portfolio(client, creditor):
+    r = client.get('/creditors/2222/portfolio')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/portfolio')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'Portfolio'
+    assert data['uri'] == 'http://example.com/creditors/2/portfolio'
+    print(data)
+    assert 0

@@ -33,17 +33,15 @@ class PaginatedListSchema(Schema):
         description='The type of this object.',
         example='PaginatedList',
     )
-    itemsType = fields.Method(
-        'get_items_type',
+    itemsType = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         description='The type of the items in the paginated list.',
         example='string',
     )
-    first = fields.Method(
-        'get_first',
+    first = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format="uri-reference",
         description='The URI of the first page in the paginated list. The object retrieved from '
                     'this URI will have: 1) An `items` property (an array), which will contain the '
@@ -53,20 +51,17 @@ class PaginatedListSchema(Schema):
                     'paginated list in the future. This can be a relative URI.',
         example='https://example.com/list?page=1',
     )
-    totalItems = fields.Method(
-        'get_length',
+    totalItems = fields.Integer(
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        type='integer',
         format='uint64',
         description='An approximation for the total number of items in the paginated list. Will '
                     'not be present if the total number of items can not, or should not be '
                     'approximated.',
         example=123,
     )
-    forthcoming = fields.Method(
-        'get_forthcoming_uri',
-        type='string',
+    forthcoming = fields.String(
+        dump_only=True,
         format='uri-reference',
         description='An URI for obtaining items that might be added to the paginated list in the '
                     'future. This is useful when we want to skip all items currently in the list, '

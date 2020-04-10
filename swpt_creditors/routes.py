@@ -1,7 +1,9 @@
+from typing import NamedTuple
 from urllib.parse import urljoin
 from flask import redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
@@ -13,9 +15,18 @@ from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
 from . import procedures
 
+
+class PaginatedList(NamedTuple):
+    itemsType: str
+    first: str
+    forthcoming: str = missing
+    totalItems: int = missing
+
+
 CONTEXT = {
     'Creditor': 'public.CreditorEndpoint',
     'Account': 'public.AccountEndpoint',
+    'Portfolio': 'portfolio.PortfolioEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'AccountList': 'accounts.AccountListEndpoint',
     'AccountRecord': 'accounts.AccountRecordEndpoint',
@@ -88,11 +99,35 @@ class PortfolioEndpoint(MethodView):
     def get(self, creditorId):
         """Return creditor's portfolio."""
 
-        abort(500)
+        creditor = procedures.get_creditor(creditorId)
+        if not creditor:
+            abort(404)
+
+        creditor.journal = PaginatedList(
+            'LedgerEntry',
+            url_for('.JournalEntriesEndpoint', creditorId=creditorId),
+            forthcoming='5',
+        )
+        creditor.log = PaginatedList(
+            'Message',
+            url_for('.LogMessagesEndpoint', creditorId=creditorId),
+            forthcoming='5',
+        )
+        creditor.transferUris = PaginatedList(
+            'string',
+            url_for('transfers.DirectTransfersEndpoint', creditorId=creditorId),
+            totalItems=5,
+        )
+        creditor.accountRecordUris = PaginatedList(
+            'string',
+            url_for('accounts.AccountRecordsEndpoint', creditorId=creditorId),
+            totalItems=5,
+        )
+        return creditor
 
 
 @portfolio_api.route('/<i64:creditorId>/journal', parameters=[CID])
-class CreditorJournalEndpoint(MethodView):
+class JournalEntriesEndpoint(MethodView):
     @portfolio_api.arguments(PaginationParametersSchema, location='query')
     @portfolio_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
     @portfolio_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -111,7 +146,7 @@ class CreditorJournalEndpoint(MethodView):
 
 
 @portfolio_api.route('/<i64:creditorId>/log', parameters=[CID])
-class CreditorLogEndpoint(MethodView):
+class LogMessagesEndpoint(MethodView):
     @portfolio_api.arguments(PaginationParametersSchema, location='query')
     @portfolio_api.response(MessagesPageSchema(context=CONTEXT), example=specs.JOURNAL_MESSAGES_EXAMPLE)
     @portfolio_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
@@ -257,7 +292,7 @@ class AccountLedgerEntriesEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID, SEQNUM])
-class AccountTransferEndpoint(MethodView):
+class CommittedTransferEndpoint(MethodView):
     @accounts_api.response(CommittedTransferSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId, seqnum):

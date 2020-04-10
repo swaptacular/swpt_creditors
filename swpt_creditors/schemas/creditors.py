@@ -71,6 +71,7 @@ class PortfolioSchema(Schema):
     accountRecordUris = fields.Nested(
         PaginatedListSchema,
         required=True,
+        dump_only=True,
         description='A paginated list of relative URIs for all account records belonging to '
                     'the creditor.',
         example={
@@ -83,6 +84,7 @@ class PortfolioSchema(Schema):
     journal = fields.Nested(
         PaginatedListSchema,
         required=True,
+        dump_only=True,
         description="A paginated list of recently posted ledger entries (for any of creditor's "
                     "accounts). The paginated list will be sorted in chronological order "
                     "(smaller entry IDs go first). This allows creditors to update the "
@@ -97,6 +99,7 @@ class PortfolioSchema(Schema):
     log = fields.Nested(
         PaginatedListSchema,
         required=True,
+        dump_only=True,
         description="A paginated list of recently posted messages. The paginated list will "
                     "be sorted in chronological order (smaller message IDs go first). This allows "
                     "creditors to obtain the new messages, simply by looking at the \"log\".",
@@ -110,6 +113,7 @@ class PortfolioSchema(Schema):
     transferUris = fields.Nested(
         PaginatedListSchema,
         required=True,
+        dump_only=True,
         description='A paginated list of relative URIs for all direct transfers initiated by '
                     'the creditor, which have not been deleted yet. The paginated list will not '
                     'be sorted in any particular order.',
@@ -120,3 +124,6 @@ class PortfolioSchema(Schema):
             'type': 'PaginatedList',
         },
     )
+
+    def get_uri(self, obj):
+        return url_for(self.context['Portfolio'], _external=True, creditorId=obj.creditor_id)
