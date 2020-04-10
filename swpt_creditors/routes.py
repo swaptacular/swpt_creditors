@@ -104,36 +104,20 @@ class PortfolioEndpoint(MethodView):
             abort(404)
 
         journal_url = url_for('.JournalEntriesEndpoint', creditorId=creditorId)
-        jouranl_forthcoming_query = urlencode({'prev': getattr(creditor, 'latest_journal_entry_id', 0)})
-        creditor.journal = PaginatedList(
-            itemsType='LedgerEntry',
-            first=journal_url,
-            forthcoming=f'{journal_url}?{jouranl_forthcoming_query}',
-        )
+        jouranl_q = urlencode({'prev': getattr(creditor, 'latest_journal_entry_id', 0)})
+        creditor.journal = PaginatedList('LedgerEntry', journal_url, forthcoming=f'{journal_url}?{jouranl_q}')
 
         log_url = url_for('.LogMessagesEndpoint', creditorId=creditorId)
-        log_forthcoming_query = urlencode({'prev': getattr(creditor, 'latest_log_message_id', 0)})
-        creditor.log = PaginatedList(
-            itemsType='Message',
-            first=log_url,
-            forthcoming=f'{log_url}?{log_forthcoming_query}',
-        )
+        log_q = urlencode({'prev': getattr(creditor, 'latest_log_message_id', 0)})
+        creditor.log = PaginatedList('Message', log_url, forthcoming=f'{log_url}?{log_q}')
 
         direct_transfers_url = url_for('transfers.DirectTransfersEndpoint', creditorId=creditorId)
         direct_transfers_count = getattr(creditor, 'initiated_transfers_count', 0)
-        creditor.directTransfers = PaginatedList(
-            itemsType='string',
-            first=direct_transfers_url,
-            totalItems=direct_transfers_count,
-        )
+        creditor.directTransfers = PaginatedList('string', direct_transfers_url, totalItems=direct_transfers_count)
 
         account_records_url = url_for('accounts.AccountRecordsEndpoint', creditorId=creditorId)
         account_records_count = getattr(creditor, 'account_records_count', 0)
-        creditor.accountRecords = PaginatedList(
-            itemsType='string',
-            first=account_records_url,
-            totalItems=account_records_count,
-        )
+        creditor.accountRecords = PaginatedList('string', account_records_url, totalItems=account_records_count)
 
         return creditor
 
