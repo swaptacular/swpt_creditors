@@ -118,12 +118,12 @@ class PortfolioEndpoint(MethodView):
             first=log_url,
             forthcoming=f'{log_url}?{log_forthcoming_query}',
         )
-        creditor.transferUris = PaginatedList(
+        creditor.directTransfers = PaginatedList(
             itemsType='string',
             first=url_for('transfers.DirectTransfersEndpoint', creditorId=creditorId),
             totalItems=getattr(creditor, 'initiated_transfers_count', 0),
         )
-        creditor.accountRecordUris = PaginatedList(
+        creditor.accountRecords = PaginatedList(
             itemsType='string',
             first=url_for('accounts.AccountRecordsEndpoint', creditorId=creditorId),
             totalItems=getattr(creditor, 'account_records_count', 0),
