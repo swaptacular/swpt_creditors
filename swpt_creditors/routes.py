@@ -14,8 +14,8 @@ from . import specs
 from . import procedures
 
 CONTEXT = {
-    'Creditor': 'creditors.CreditorEndpoint',
-    'Account': 'creditors.AccountEndpoint',
+    'Creditor': 'public.CreditorEndpoint',
+    'Account': 'public.AccountEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'AccountList': 'accounts.AccountListEndpoint',
     'AccountRecord': 'accounts.AccountRecordEndpoint',

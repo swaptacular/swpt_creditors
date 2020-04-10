@@ -10,7 +10,7 @@ from .extensions import db
 from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     InitiatedTransfer, RunningTransfer, \
-    MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
 T = TypeVar('T')

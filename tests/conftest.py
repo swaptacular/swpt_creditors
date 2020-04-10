@@ -8,6 +8,15 @@ from swpt_creditors.extensions import db
 
 DB_SESSION = 'swpt_creditors.extensions.db.session'
 
+server_name = 'example.com'
+config_dict = {
+    'TESTING': True,
+    'SERVER_NAME': server_name,
+    'SWPT_SERVER_NAME': server_name,
+    'APP_TRANSFERS_FINALIZATION_AVG_SECONDS': 10.0,
+    'APP_MAX_TRANSFERS_PER_MONTH': 10,
+}
+
 
 def _restart_savepoint(session, transaction):
     if transaction.nested and not transaction._parent.nested:
@@ -19,9 +28,7 @@ def _restart_savepoint(session, transaction):
 def app():
     """Create a Flask application object."""
 
-    app = create_app({
-        'TESTING': True,
-    })
+    app = create_app(config_dict)
     with app.app_context():
         flask_migrate.upgrade()
         forbidden = mock.Mock()
