@@ -624,6 +624,12 @@ def _revise_account_config_effectuality(
         if not applied_config_is_old and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
 
+    # TODO: Consider updating `config.last_signal_ts` and
+    #       `config.last_signal_seqnum` in case the applied config is
+    #       newer that those. This might be necessary, so that the
+    #       system can function properly in case the config is changed
+    #       simultaneously by several systems.
+
     # TODO: Detect the situation when the account is scheduled for
     #       deletion, but `config.negligible_amount` is smaller than
     #       available amount. Make sure there is an `AccountIssue`
