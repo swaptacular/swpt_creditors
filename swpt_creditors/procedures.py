@@ -316,6 +316,7 @@ def process_account_transfer_signal(
         account_new_principal: int,
         previous_transfer_seqnum: int,
         system_flags: int,
+        system_details: str,
         real_creditor_id: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64

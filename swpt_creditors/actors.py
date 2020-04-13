@@ -19,6 +19,7 @@ def on_account_transfer_signal(
         account_new_principal: int,
         previous_transfer_seqnum: int,
         system_flags: int,
+        system_details: str,
         real_creditor_id: int,
         *args, **kwargs) -> None:
 
@@ -36,5 +37,6 @@ def on_account_transfer_signal(
         account_new_principal,
         previous_transfer_seqnum,
         system_flags,
+        system_details,
         real_creditor_id,
     )
