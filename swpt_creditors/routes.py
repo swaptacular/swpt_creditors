@@ -259,8 +259,7 @@ class AccountRecordConfigEndpoint(MethodView):
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account record's configuration.
 
-        **Note:** For practical purposes, this operation is can be
-        treated as idempotent.
+        **Note:** This operation is idempotent.
 
         """
 
@@ -379,7 +378,7 @@ class DirectTransferEndpoint(MethodView):
     def patch(self, transfer_update_request, creditorId, transferUuid):
         """Cancel a direct transfer, if possible.
 
-        This operation is **idempotent**!
+        **Note:** This operation is idempotent.
 
         """
 
