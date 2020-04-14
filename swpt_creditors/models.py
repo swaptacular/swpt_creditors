@@ -734,6 +734,7 @@ class ConfigureAccountSignal(Signal):
         signal_seqnum = fields.Constant(0)
         status_flags = fields.Method('get_status_flags')
         negligible_amount = fields.Boolean()
+        config = fields.Constant('')
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)

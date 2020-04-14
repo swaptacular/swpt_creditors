@@ -211,7 +211,8 @@ def process_account_change_signal(
         status: int,
         signal_ts: datetime,
         signal_ttl: float,
-        real_creditor_id: int) -> None:
+        real_creditor_id: int,
+        config_sha1: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -291,6 +292,7 @@ def process_account_change_signal(
         last_config_signal_seqnum,
         new_account,
         real_creditor_id,
+        config_sha1,
     )
 
     # TODO: Reset the ledger if it has been outdated for a long time.
@@ -598,7 +600,8 @@ def _revise_account_config_effectuality(
         last_config_signal_ts: datetime,
         last_config_signal_seqnum: int,
         new_account: bool,
-        real_creditor_id: int) -> None:
+        real_creditor_id: int,
+        config_sha1: str) -> None:
 
     config = account.account_config
 
@@ -624,11 +627,7 @@ def _revise_account_config_effectuality(
         if not applied_config_is_old and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
 
-    # TODO: Consider updating `config.last_signal_ts` and
-    #       `config.last_signal_seqnum` in case the applied config is
-    #       newer that those. This might be necessary, so that the
-    #       system can function properly in case the config is changed
-    #       simultaneously by several systems.
+    # TODO: Verify the effectuallity of the `config.config` field.
 
     # TODO: Detect the situation when the account is scheduled for
     #       deletion, but `config.negligible_amount` is smaller than
