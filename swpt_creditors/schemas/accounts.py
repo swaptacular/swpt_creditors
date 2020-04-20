@@ -182,6 +182,72 @@ class AccountRecordDisplaySettingsSchema(Schema):
     )
 
 
+class AccountRecordExchangeSettingsSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/accounts/1/exchange',
+    )
+    type = fields.Function(
+        lambda obj: 'AccountRecordExchangeSettings',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountRecordExchangeSettings',
+    )
+    accountRecordUri = fields.Method(
+        'get_account_record_uri',
+        required=True,
+        type='string',
+        format="uri",
+        description="The URI of the corresponding account record.",
+        example='https://example.com/creditors/2/accounts/1/',
+    )
+    pegTo = fields.Url(
+        relative=False,
+        format='uri',
+        description="An URI of another account record, belonging to the same creditor, to "
+                    "which the value of this account's tokens is pegged (via fixed exchange "
+                    "rate). This field is optional.",
+        example='https://example.com/creditors/2/accounts/11/',
+    )
+    fixedExchangeRate = fields.Float(
+        validate=validate.Range(min=0.0),
+        description="The exchange rate between this account's tokens and \"pegTo\" account's "
+                    "tokens. For example, `2.0` would mean that this account's tokens are "
+                    "twice as valuable as \"pegTo\" account's tokens. This field is "
+                    "required only when the `pegTo` field is passed.",
+        example=1.0,
+    )
+    exchangePolicy = fields.String(
+        missing='off',
+        description='The name of the active exchange policy. Different implementations may '
+                    'define different exchange policies. `"off"` indicates that the account '
+                    'should not participate in automatic exchanges.',
+        example='conservative',
+    )
+    minPrincipal = fields.Integer(
+        missing=-MAX_INT64,
+        format='int64',
+        description='The principal amount on the account should not fall below this value. '
+                    '(Note that this limit applies only for automatic exchanges, and is '
+                    'enforced on "best effort" bases.)',
+        example=1000,
+    )
+    maxPrincipal = fields.Integer(
+        missing=0,
+        format='int64',
+        description='The principal amount on the account should not exceed this value. '
+                    '(Note that this limit applies only for automatic exchanges, and is '
+                    'enforced on "best effort" bases.)',
+        example=5000,
+    )
+
+
 class AccountRecordSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -278,6 +344,12 @@ class AccountRecordSchema(Schema):
         dump_only=True,
         required=True,
         description="The account's display settings. Can be changed by the owner of the account.",
+    )
+    exchangeSettings = fields.Nested(
+        AccountRecordExchangeSettingsSchema,
+        dump_only=True,
+        required=True,
+        description="The account's exchange settings. Can be changed by the owner of the account.",
     )
     is_deletion_safe = fields.Boolean(
         required=True,
