@@ -143,7 +143,7 @@ class AccountRecordDisplaySettingsSchema(Schema):
                     'any name that is convenient, or easy to remember.',
         example='Untied States of America',
     )
-    hidden = fields.Boolean(
+    hide = fields.Boolean(
         missing=False,
         description='If `true`, the account record will not be shown in the list of '
                     'account records belonging to the creditor. This may be convenient '
