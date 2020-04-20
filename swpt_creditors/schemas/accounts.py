@@ -4,6 +4,11 @@ from swpt_lib import endpoints
 from .common import MAX_INT64, MAX_UINT64
 from .paginated_lists import PaginatedListSchema
 
+_DEBTOR_NAME_DESCRIPTION = '\
+The name of the debtor. All account records belonging to a given \
+creditor must have different `debtorName`s. The creditor may choose \
+any name that is convenient, or easy to remember.'
+
 
 class AccountCreationRequestSchema(Schema):
     debtor_uri = fields.Url(
@@ -14,6 +19,11 @@ class AccountCreationRequestSchema(Schema):
         format='uri',
         description="The debtor's URI.",
         example='https://example.com/debtors/1/',
+    )
+    debtorName = fields.String(
+        required=True,
+        description=_DEBTOR_NAME_DESCRIPTION,
+        example='Untied States of America',
     )
 
 
@@ -138,9 +148,7 @@ class AccountRecordDisplaySettingsSchema(Schema):
     )
     debtorName = fields.String(
         required=True,
-        description='The name of the debtor. All account records belonging to a given '
-                    'creditor must have different `debtorName`s. The creditor may choose '
-                    'any name that is convenient, or easy to remember.',
+        description=_DEBTOR_NAME_DESCRIPTION,
         example='Untied States of America',
     )
     hide = fields.Boolean(
