@@ -273,7 +273,7 @@ class AccountRecordSchema(Schema):
         required=True,
         description="The account's configuration. Can be changed by the owner of the account.",
     )
-    display = fields.Nested(
+    displaySettings = fields.Nested(
         AccountRecordDisplaySettingsSchema,
         dump_only=True,
         required=True,
