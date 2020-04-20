@@ -111,6 +111,77 @@ class AccountRecordConfigSchema(Schema):
     )
 
 
+class AccountRecordDisplaySettingsSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri',
+        description="The URI of this object.",
+        example='https://example.com/creditors/2/accounts/1/display',
+    )
+    type = fields.Function(
+        lambda obj: 'AccountRecordDisplaySettings',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountRecordDisplaySettings',
+    )
+    accountRecordUri = fields.Method(
+        'get_account_record_uri',
+        required=True,
+        type='string',
+        format="uri",
+        description="The URI of the corresponding account record.",
+        example='https://example.com/creditors/2/accounts/1/',
+    )
+    debtorName = fields.String(
+        required=True,
+        description='The name of the debtor. All account records belonging to a given '
+                    'creditor must have different `debtorName`s. The creditor may choose '
+                    'any name that is convenient, or easy to remember.',
+        example='Untied States of America',
+    )
+    hidden = fields.Boolean(
+        missing=False,
+        description='If `true`, the account record will not be shown in the list of '
+                    'account records belonging to the creditor. This may be convenient '
+                    'for special-purpose accounts.',
+        example=True,
+    )
+    amountDivisor = fields.Float(
+        missing=1.0,
+        validate=validate.Range(min=0.0, min_inclusive=False),
+        description="The amount will be divided by this number before being displayed.",
+        example=100.0,
+    )
+    decimalPlaces = fields.Integer(
+        missing=0,
+        description='The number of digits to show after the decimal point, when displaying '
+                    'the amount.',
+        example=2,
+    )
+    unitName = fields.String(
+        description='The full name of the value measurement unit, "United States Dollars" '
+                    'for example. This field is optional.',
+        example='United States Dollars',
+    )
+    unitAbbr = fields.String(
+        missing='\u00A4',
+        description='A short abbreviation for the value measurement unit. It will be shown '
+                    'right after the displayed amount, "500.00 USD" for example.',
+        example='USD',
+    )
+    unitUri = fields.Url(
+        relative=False,
+        format='uri',
+        description='A link containing additional information about the value measurement '
+                    'unit. This field is optional.',
+        example='https://example.com/units/USD',
+    )
+
+
 class AccountRecordSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -201,6 +272,12 @@ class AccountRecordSchema(Schema):
         dump_only=True,
         required=True,
         description="The account's configuration. Can be changed by the owner of the account.",
+    )
+    display = fields.Nested(
+        AccountRecordDisplaySettingsSchema,
+        dump_only=True,
+        required=True,
+        description="The account's display settings. Can be changed by the owner of the account.",
     )
     is_deletion_safe = fields.Boolean(
         required=True,

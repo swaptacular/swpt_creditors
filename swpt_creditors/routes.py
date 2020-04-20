@@ -10,6 +10,7 @@ from .schemas import (
     AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
     LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPageSchema,
     DirectTransferCreationRequestSchema, DirectTransferSchema, DirectTransferUpdateRequestSchema,
+    AccountRecordDisplaySettingsSchema,
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -258,6 +259,29 @@ class AccountRecordConfigEndpoint(MethodView):
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account record's configuration.
+
+        **Note:** This operation is idempotent.
+
+        """
+
+        abort(500)
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/display', parameters=[CID, DID])
+class AccountRecordDisplaySettingsEndpoint(MethodView):
+    @accounts_api.response(AccountRecordDisplaySettingsSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId):
+        """Return account record's display settings."""
+
+        abort(500)
+
+    @accounts_api.arguments(AccountRecordDisplaySettingsSchema)
+    @accounts_api.response(AccountRecordDisplaySettingsSchema(context=CONTEXT))
+    @accounts_api.doc(responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST,
+                                 409: specs.ACCOUNT_UPDATE_CONFLICT})
+    def patch(self, config_update_request, creditorId, debtorId):
+        """Update account record's display settings.
 
         **Note:** This operation is idempotent.
 
