@@ -216,11 +216,12 @@ class AccountRecordExchangeSettingsSchema(Schema):
         example='https://example.com/creditors/2/accounts/11/',
     )
     fixedExchangeRate = fields.Float(
+        missing=1.0,
         validate=validate.Range(min=0.0),
         description="The exchange rate between this account's tokens and \"pegTo\" account's "
                     "tokens. For example, `2.0` would mean that this account's tokens are "
-                    "twice as valuable as \"pegTo\" account's tokens. This field is "
-                    "required only when the `pegTo` field is passed.",
+                    "twice as valuable as \"pegTo\" account's tokens. (Note that this field "
+                    "will be ignored if the `pegTo` field is not passed as well.)",
         example=1.0,
     )
     exchangePolicy = fields.String(
