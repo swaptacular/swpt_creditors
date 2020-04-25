@@ -123,8 +123,9 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
     'type': 'LedgerEntriesPage',
     'items': [
         {
-            'accountRecordUri': 'https://example.com/creditors/2/accounts/1/',
-            'transferUri': 'https://example.com/creditors/2/accounts/1/transfers/999',
+            'type': 'LedgerEntry',
+            'accountRecord': {'uri': 'https://example.com/creditors/2/accounts/1/'},
+            'transfer': {'uri': 'https://example.com/creditors/2/accounts/1/transfers/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,
@@ -140,8 +141,9 @@ JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
     'type': 'LedgerEntriesPage',
     'items': [
         {
-            'accountRecordUri': 'https://example.com/creditors/2/accounts/1/',
-            'transferUri': 'https://example.com/creditors/2/accounts/1/transfers/999',
+            'type': 'LedgerEntry',
+            'accountRecord': {'uri': 'https://example.com/creditors/2/accounts/1/'},
+            'transfer': {'uri': 'https://example.com/creditors/2/accounts/1/transfers/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,
@@ -157,11 +159,11 @@ JOURNAL_MESSAGES_EXAMPLE = {
     'type': 'MessagesPage',
     'items': [
         {
-            "messageId": 12345,
-            "postedAt": "2020-04-06T14:22:11Z",
-            "creditorUri": "https://example.com/creditors/2/",
-            "type": "Message",
-            "text": "Hi!",
+            'messageId': 12345,
+            'postedAt': '2020-04-06T14:22:11Z',
+            'creditor': {'uri': 'https://example.com/creditors/2/'},
+            'type': 'Message',
+            'text': 'Hi!',
         },
     ],
     'forthcoming': '?prev=12345',
@@ -170,9 +172,9 @@ JOURNAL_MESSAGES_EXAMPLE = {
 DIRECT_TRANSFER_LINKS_EXAMPLE = {
     'next': '?prev=00112233-4455-6677-8899-aabbccddeeff',
     'items': [
-        '123e4567-e89b-12d3-a456-426655440000',
-        '00112233-4455-6677-8899-aabbccddeeff',
+        {'uri': '123e4567-e89b-12d3-a456-426655440000'},
+        {'uri': '00112233-4455-6677-8899-aabbccddeeff'},
     ],
     'uri': 'https://example.com/creditors/2/transfers/',
-    'type': 'LinksPage',
+    'type': 'ObjectReferencesPage',
 }

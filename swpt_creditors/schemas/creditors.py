@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields
 from flask import url_for
-from swpt_lib import endpoints
+from .common import ObjectReferenceSchema
 from .paginated_lists import PaginatedListSchema
 
 
@@ -60,24 +60,22 @@ class PortfolioSchema(Schema):
         description='The type of this object.',
         example='Portfolio',
     )
-    creditorUri = fields.Function(
-        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+    creditor = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The creditor's URI.",
-        example='https://example.com/creditors/2/',
+        example={'uri': 'https://example.com/creditors/2/'},
     )
     accountRecords = fields.Nested(
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description='A paginated list of relative URIs for all account records belonging to '
-                    'the creditor.',
+        description='A paginated list of references to all account records belonging to the creditor.',
         example={
             'totalItems': 20,
             'first': '/creditors/2/accounts/',
-            'itemsType': 'string',
+            'itemsType': 'ObjectReference',
             'type': 'PaginatedList',
         },
     )
@@ -114,13 +112,13 @@ class PortfolioSchema(Schema):
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description='A paginated list of relative URIs for all direct transfers initiated by '
+        description='A paginated list of references to for all direct transfers initiated by '
                     'the creditor, that have not been deleted yet. The paginated list will not '
                     'be sorted in any particular order.',
         example={
             'totalItems': 5,
             'first': '/creditors/2/transfers/',
-            'itemsType': 'string',
+            'itemsType': 'ObjectReference',
             'type': 'PaginatedList',
         },
     )

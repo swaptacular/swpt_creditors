@@ -49,7 +49,7 @@ def test_get_portfolio(client, creditor):
     data = r.get_json()
     assert data['type'] == 'Portfolio'
     assert data['uri'] == 'http://example.com/creditors/2/portfolio'
-    assert data['creditorUri'] == 'http://example.com/creditors/2/'
+    assert data['creditor'] == {'uri': 'http://example.com/creditors/2/'}
     journal = data['journal']
     assert journal['type'] == 'PaginatedList'
     assert journal['first'] == '/creditors/2/journal'

@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
 from swpt_lib import endpoints
-from .common import MAX_INT64
+from .common import ObjectReferenceSchema, MAX_INT64
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -95,29 +95,26 @@ class DirectTransferSchema(Schema):
         description='The type of this object.',
         example='DirectTransfer',
     )
-    debtor_uri = fields.String(
+    debtor = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        data_key='debtorUri',
-        format="uri",
         description=_TRANSFER_DEBTOR_URI_DESCRIPTION,
-        example='https://example.com/debtors/1/',
+        example={'uri': 'https://example.com/debtors/1/'},
     )
-    senderAccountUri = fields.Function(
-        lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
+    senderAccount = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The sender's account URI.",
-        example='https://example.com/creditors/2/debtors/1',
+        example={'uri': 'https://example.com/creditors/2/debtors/1'},
     )
-    recipientAccountUri = fields.Function(
-        lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
+    recipientAccount = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The recipient's account URI.",
-        example='https://example.com/creditors/2222/debtors/1',
+        example={'uri': 'https://example.com/creditors/2222/debtors/1'},
     )
     amount = fields.Integer(
         required=True,
@@ -202,7 +199,7 @@ class DirectTransferUpdateRequestSchema(Schema):
     )
 
 
-class CommittedTransferSchema(Schema):
+class TransferSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -212,43 +209,41 @@ class CommittedTransferSchema(Schema):
         example='https://example.com/creditors/2/accounts/1/transfers/999',
     )
     type = fields.Function(
-        lambda obj: 'CommittedTransfer',
+        lambda obj: 'Transfer',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='CommittedTransfer',
+        example='Transfer',
     )
-    senderAccountUri = fields.Function(
-        lambda obj: endpoints.build_url('account', creditorId=obj.sender_creditor_id, debtorId=obj.debtor_id),
-        required=True,
-        type='string',
-        format="uri",
-        description="The sender's account URI.",
-        example='https://example.com/creditors/2/debtors/1',
-    )
-    recipientAccountUri = fields.Function(
-        lambda obj: endpoints.build_url('account', creditorId=obj.sender_creditor_id, debtorId=obj.debtor_id),
-        required=True,
-        type='string',
-        format="uri",
-        description="The recipient's account URI.",
-        example='https://example.com/creditors/3/debtors/1',
-    )
-    committed_amount = fields.Integer(
+    senderAccount = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        data_key='committedAmount',
+        description="The sender's account URI.",
+        example={'uri': 'https://example.com/creditors/2/debtors/1'},
+    )
+    recipientAccount = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The recipient's account URI.",
+        example={'uri': 'https://example.com/creditors/3/debtors/1'},
+    )
+    amount = fields.Integer(
+        required=True,
+        dump_only=True,
         validate=validate.Range(min=1, max=MAX_INT64),
         format="int64",
         description='The transferred amount.',
         example=1000,
     )
     committed_at_ts = fields.DateTime(
-        required=True,
         dump_only=True,
         data_key='committedAt',
-        description='The moment at which the transfer was committed.',
+        description='The moment at which the transfer was committed. If this field is '
+                    'not present, this means that the moment at which the transfer was '
+                    'committed is unknown.',
     )
     details = fields.Dict(
         dump_only=True,

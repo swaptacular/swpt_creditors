@@ -1,14 +1,14 @@
 from typing import NamedTuple
-from urllib.parse import urljoin, urlencode
-from flask import redirect, url_for, request
+from urllib.parse import urlencode
+from flask import redirect, url_for
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, CommittedTransferSchema,
-    LedgerEntriesPage, PortfolioSchema, LinksPage, PaginationParametersSchema, MessagesPageSchema,
+    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, TransferSchema,
+    LedgerEntriesPage, PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, MessagesPageSchema,
     DirectTransferCreationRequestSchema, DirectTransferSchema, DirectTransferUpdateRequestSchema,
     AccountRecordDisplaySettingsSchema, AccountRecordExchangeSettingsSchema
 )
@@ -100,27 +100,28 @@ class PortfolioEndpoint(MethodView):
     def get(self, creditorId):
         """Return creditor's portfolio."""
 
-        creditor = procedures.get_creditor(creditorId)
-        if not creditor:
+        portfolio = procedures.get_creditor(creditorId)
+        if not portfolio:
             abort(404)
 
         journal_url = url_for('.JournalEntriesEndpoint', creditorId=creditorId)
-        jouranl_q = urlencode({'prev': creditor.latest_journal_entry_id})
-        creditor.journal = PaginatedList('LedgerEntry', journal_url, forthcoming=f'{journal_url}?{jouranl_q}')
+        jouranl_q = urlencode({'prev': portfolio.latest_journal_entry_id})
+        portfolio.journal = PaginatedList('LedgerEntry', journal_url, forthcoming=f'{journal_url}?{jouranl_q}')
 
         log_url = url_for('.LogMessagesEndpoint', creditorId=creditorId)
-        log_q = urlencode({'prev': creditor.latest_log_message_id})
-        creditor.log = PaginatedList('Message', log_url, forthcoming=f'{log_url}?{log_q}')
+        log_q = urlencode({'prev': portfolio.latest_log_message_id})
+        portfolio.log = PaginatedList('Message', log_url, forthcoming=f'{log_url}?{log_q}')
 
         direct_transfers_url = url_for('transfers.DirectTransfersEndpoint', creditorId=creditorId)
-        direct_transfers_count = creditor.direct_transfers_count
-        creditor.directTransfers = PaginatedList('string', direct_transfers_url, totalItems=direct_transfers_count)
+        direct_transfers_count = portfolio.direct_transfers_count
+        portfolio.directTransfers = PaginatedList('string', direct_transfers_url, totalItems=direct_transfers_count)
 
         account_records_url = url_for('accounts.AccountRecordsEndpoint', creditorId=creditorId)
-        account_records_count = creditor.account_records_count
-        creditor.accountRecords = PaginatedList('string', account_records_url, totalItems=account_records_count)
+        account_records_count = portfolio.account_records_count
+        portfolio.accountRecords = PaginatedList('string', account_records_url, totalItems=account_records_count)
 
-        return creditor
+        portfolio.creditor = {'uri': endpoints.build_url('creditor', creditorId=portfolio.creditor_id)}
+        return portfolio
 
 
 @portfolio_api.route('/<i64:creditorId>/journal', parameters=[CID])
@@ -171,15 +172,15 @@ accounts_api = Blueprint(
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountRecordsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(LinksPage(context=CONTEXT))
+    @accounts_api.response(ObjectReferencesPage(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of account records belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains the relative URIs of all
-        account records belonging to a given creditor. The returned
-        fragment will not be sorted in any particular order.
+        list. The paginated list contains references to all account
+        records belonging to a given creditor. The returned fragment
+        will not be sorted in any particular order.
 
         """
 
@@ -334,8 +335,8 @@ class AccountLedgerEntriesEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID, SEQNUM])
-class CommittedTransferEndpoint(MethodView):
-    @accounts_api.response(CommittedTransferSchema(context=CONTEXT))
+class TransferEndpoint(MethodView):
+    @accounts_api.response(TransferSchema(context=CONTEXT))
     @accounts_api.doc(responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId, seqnum):
         """Return information about sent or received transfer."""
@@ -354,16 +355,16 @@ transfers_api = Blueprint(
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
 class DirectTransfersEndpoint(MethodView):
     @transfers_api.arguments(PaginationParametersSchema, location='query')
-    @transfers_api.response(LinksPage(context=CONTEXT), example=specs.DIRECT_TRANSFER_LINKS_EXAMPLE)
+    @transfers_api.response(ObjectReferencesPage(context=CONTEXT), example=specs.DIRECT_TRANSFER_LINKS_EXAMPLE)
     @transfers_api.doc(responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of direct transfers, initiated by a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains the relative URIs of all
-        direct transfers initiated by a given creditor, which have not
-        been deleted yet. The returned fragment will not be sorted in
-        any particular order.
+        list. The paginated list contains references to all direct
+        transfers initiated by a given creditor, which have not been
+        deleted yet. The returned fragment will not be sorted in any
+        particular order.
 
         """
 

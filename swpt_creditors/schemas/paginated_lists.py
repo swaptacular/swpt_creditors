@@ -1,6 +1,5 @@
 from marshmallow import Schema, fields, validate
-from swpt_lib import endpoints
-from .common import MAX_INT64, MAX_UINT64
+from .common import ObjectReferenceSchema, MAX_INT64, MAX_UINT64
 
 
 _PAGE_NEXT_DESCRIPTION = '\
@@ -90,13 +89,12 @@ class MessageSchema(Schema):
         description="The ID of this message. Later messages have bigger IDs.",
         example=12345,
     )
-    creditorUri = fields.Function(
-        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+    creditor = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The creditor's URI.",
-        example='https://example.com/creditors/2/',
+        example={'uri': 'https://example.com/creditors/2/'},
     )
     posted_at_ts = fields.DateTime(
         required=True,
@@ -145,7 +143,7 @@ class MessagesPageSchema(Schema):
     )
 
 
-class LinksPage(Schema):
+class ObjectReferencesPage(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -155,30 +153,38 @@ class LinksPage(Schema):
         example='https://example.com/creditors/2/accounts/',
     )
     type = fields.Function(
-        lambda obj: 'LinksPage',
+        lambda obj: 'ObjectReferencesPage',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='LinksPage',
+        example='ObjectReferencesPage',
     )
-    items = fields.List(
-        fields.String(format='uri-reference'),
+    items = fields.Nested(
+        ObjectReferenceSchema(many=True),
         required=True,
         dump_only=True,
-        description='An array of possibly relative URIs. Can be empty.',
-        example=['1/', '11/', '111/'],
+        description='An array of object references. Can be empty.',
+        example=[{'uri': f'{i}/'} for i in [1, 11, 111]],
     )
     next = fields.Method(
         'get_next_uri',
         type='string',
         format='uri-reference',
-        description=_PAGE_NEXT_DESCRIPTION.format(type='LinksPage'),
+        description=_PAGE_NEXT_DESCRIPTION.format(type='ObjectReferencesPage'),
         example='?prev=111',
     )
 
 
 class LedgerEntrySchema(Schema):
+    type = fields.Function(
+        lambda obj: 'LedgerEntry',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='LedgerEntry',
+    )
     entryId = fields.Integer(
         required=True,
         dump_only=True,
@@ -187,13 +193,12 @@ class LedgerEntrySchema(Schema):
         description="The ID of this entry. Later entries have bigger IDs.",
         example=123,
     )
-    accountRecordUri = fields.Method(
-        'get_account_record_uri',
+    accountRecord = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The URI of the corresponding account record.",
-        example='https://example.com/creditors/2/accounts/1/',
+        example={'uri': 'https://example.com/creditors/2/accounts/1/'},
     )
     amount = fields.Integer(
         required=True,
@@ -214,13 +219,12 @@ class LedgerEntrySchema(Schema):
                     '`amount` plus the old principal amount.',
         example=1500,
     )
-    transferUri = fields.Method(
-        'get_transfer_uri',
+    transfer = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description='The URI of the corresponding transfer.',
-        example='https://example.com/creditors/2/accounts/1/transfers/999',
+        example={'uri': 'https://example.com/creditors/2/accounts/1/transfers/999'},
     )
     posted_at_ts = fields.DateTime(
         required=True,

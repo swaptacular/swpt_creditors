@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
-from .common import MAX_INT64, MAX_UINT64
+from .common import ObjectReferenceSchema, MAX_INT64, MAX_UINT64
 from .paginated_lists import PaginatedListSchema
 
 _DEBTOR_NAME_DESCRIPTION = '\
@@ -44,21 +44,19 @@ class AccountSchema(Schema):
         description='The type of this object.',
         example='Account',
     )
-    debtorUri = fields.Function(
-        lambda obj: endpoints.build_url('debtor', debtorId=obj.debtor_id),
+    debtor = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The debtor's URI.",
-        example='https://example.com/debtors/1/',
+        example={'uri': 'https://example.com/debtors/1/'},
     )
-    creditorUri = fields.Function(
-        lambda obj: endpoints.build_url('creditor', creditorId=obj.creditor_id),
+    creditor = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The creditor's URI.",
-        example='https://example.com/creditors/2/',
+        example={'uri': 'https://example.com/creditors/2/'},
     )
 
 
@@ -89,14 +87,6 @@ class AccountRecordConfigSchema(Schema):
         type='string',
         description='The type of this object.',
         example='AccountRecordConfig',
-    )
-    accountRecordUri = fields.Method(
-        'get_account_record_uri',
-        required=True,
-        type='string',
-        format="uri",
-        description="The URI of the corresponding account record.",
-        example='https://example.com/creditors/2/accounts/1/',
     )
     is_scheduled_for_deletion = fields.Boolean(
         missing=False,
@@ -137,14 +127,6 @@ class AccountRecordDisplaySettingsSchema(Schema):
         type='string',
         description='The type of this object.',
         example='AccountRecordDisplaySettings',
-    )
-    accountRecordUri = fields.Method(
-        'get_account_record_uri',
-        required=True,
-        type='string',
-        format="uri",
-        description="The URI of the corresponding account record.",
-        example='https://example.com/creditors/2/accounts/1/',
     )
     debtorName = fields.String(
         required=True,
@@ -207,15 +189,7 @@ class AccountRecordExchangeSettingsSchema(Schema):
         description='The type of this object.',
         example='AccountRecordExchangeSettings',
     )
-    accountRecordUri = fields.Method(
-        'get_account_record_uri',
-        required=True,
-        type='string',
-        format="uri",
-        description="The URI of the corresponding account record.",
-        example='https://example.com/creditors/2/accounts/1/',
-    )
-    pegTo = fields.Url(
+    pegUri = fields.Url(
         relative=False,
         format='uri',
         description="An URI of another account record, belonging to the same creditor, to "
@@ -226,17 +200,17 @@ class AccountRecordExchangeSettingsSchema(Schema):
     fixedExchangeRate = fields.Float(
         missing=1.0,
         validate=validate.Range(min=0.0),
-        description="The exchange rate between this account's tokens and \"pegTo\" account's "
+        description="The exchange rate between this account's tokens and \"pegUri\" account's "
                     "tokens. For example, `2.0` would mean that this account's tokens are "
-                    "twice as valuable as \"pegTo\" account's tokens. (Note that this field "
-                    "will be ignored if the `pegTo` field is not passed as well.)",
+                    "twice as valuable as \"pegUri\" account's tokens. (Note that this field "
+                    "will be ignored if the `pegUri` field is not passed as well.)",
         example=1.0,
     )
-    exchangePolicy = fields.String(
+    exchangeMode = fields.String(
         missing='off',
-        description='The name of the active exchange policy. Different implementations may '
-                    'define different exchange policies. `"off"` indicates that the account '
-                    'should not participate in automatic exchanges.',
+        description='The name of the active exchange mode. Different implementations may '
+                    'define different exchange modes. `"off"` indicates that the account '
+                    'must not participate in automatic exchanges.',
         example='conservative',
     )
     minPrincipal = fields.Integer(
@@ -274,22 +248,20 @@ class AccountRecordSchema(Schema):
         description='The type of this object.',
         example='AccountRecord',
     )
-    portfolioUri = fields.Method(
-        'get_portfolio_uri',
+    portfolio = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The URI of the portfolio that contains this account record.",
-        example='https://example.com/creditors/2/portfolio',
+        example={'uri': 'https://example.com/creditors/2/portfolio'},
     )
-    accountUri = fields.Function(
-        lambda obj: endpoints.build_url('account', creditorId=obj.creditor_id, debtorId=obj.debtor_id),
+    account = fields.Nested(
+        ObjectReferenceSchema,
         required=True,
-        type='string',
-        format="uri",
+        dump_only=True,
         description="The account's URI. Uniquely identifies the account when it participates "
                     "in a transfer as sender or recipient.",
-        example='https://example.com/creditors/2/debtors/1',
+        example={'uri': 'https://example.com/creditors/2/debtors/1'},
     )
     created_at_ts = fields.DateTime(
         required=True,
