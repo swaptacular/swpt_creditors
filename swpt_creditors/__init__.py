@@ -43,14 +43,16 @@ class Configuration(metaclass=MetaFlaskEnv):
         'info': {
             'title': 'Creditors API',
             'description': API_DESCRIPTION,
-        }
+        },
+        'consumes': ['application/json'],
+        'produces': ['application/json'],
     }
     OPENAPI_VERSION = '3.0.2'
     OPENAPI_URL_PREFIX = '/docs'
     OPENAPI_REDOC_PATH = 'redoc'
     OPENAPI_REDOC_VERSION = 'next'
     OPENAPI_SWAGGER_UI_PATH = 'swagger-ui'
-    OPENAPI_SWAGGER_UI_VERSION = '3.18.3'
+    OPENAPI_SWAGGER_UI_VERSION = '3.23.11'
     APP_TRANSFERS_FINALIZATION_AVG_SECONDS = 5.0
     APP_SIGNALBUS_MAX_DELAY_DAYS = 14
     APP_DEAD_ACCOUNTS_ABANDON_DAYS = 365
