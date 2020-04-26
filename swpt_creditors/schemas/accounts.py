@@ -52,8 +52,8 @@ class AccountSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The creditor's URI. This is useful when more information about the "
-                    "owner of the account is needed.",
+        description="The creditor's URI. This can be useful when more information about "
+                    "the owner of the account is needed.",
         example={'uri': '/creditors/2/'},
     )
 
