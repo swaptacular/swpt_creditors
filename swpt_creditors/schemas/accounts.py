@@ -10,17 +10,6 @@ creditor must have different `debtorName`s. The creditor may choose \
 any name that is convenient, or easy to remember.'
 
 
-class DebtorDataSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'DebtorData',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='DebtorData',
-    )
-
-
 class AccountCreationRequestSchema(Schema):
     debtor_uri = fields.Url(
         required=True,
@@ -52,17 +41,12 @@ class AccountSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object.',
+        description="The type of this object. Different debtors may use different "
+                    "schemas for the public information about their accounts. The "
+                    "provided information must be enough to: 1) uniquely identify the "
+                    "debtor, 2) uniquely identify the creditor's account with the "
+                    "debtor. This field contains the name of the used schema.",
         example='Account',
-    )
-    debtorData = fields.Nested(
-        DebtorDataSchema,
-        required=True,
-        dump_only=True,
-        description="A JSON object containing information about the debtor, as well as "
-                    "information about the creditor's account with the debtor. Different "
-                    "debtor types may use different schemas for this object. A `type` "
-                    "field must always be present, containing the name of the used schema.",
     )
     creditor = fields.Nested(
         ObjectReferenceSchema,
