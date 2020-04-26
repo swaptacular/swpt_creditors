@@ -89,6 +89,10 @@ TRANSFER_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
+INVALID_DIRECT_TRANSFER_CREATION_REQUEST = {
+    'description': 'Invalid direct transfer creation request.',
+}
+
 ACCOUNT_DOES_NOT_EXIST = {
     'description': 'The account does not exist.',
 }

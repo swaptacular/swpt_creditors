@@ -399,7 +399,8 @@ class DirectTransfersEndpoint(MethodView):
                        responses={303: specs.TRANSFER_EXISTS,
                                   403: specs.TOO_MANY_TRANSFERS,
                                   404: specs.CREDITOR_DOES_NOT_EXIST,
-                                  409: specs.TRANSFER_CONFLICT})
+                                  409: specs.TRANSFER_CONFLICT,
+                                  422: specs.INVALID_DIRECT_TRANSFER_CREATION_REQUEST})
     def post(self, transfer_creation_request, creditorId):
         """Create a new direct transfer."""
 

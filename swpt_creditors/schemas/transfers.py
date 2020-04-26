@@ -46,14 +46,16 @@ class DirectTransferCreationRequestSchema(Schema):
         description="A client-generated UUID for the transfer.",
         example='123e4567-e89b-12d3-a456-426655440000',
     )
-    debtor_uri = fields.Url(
+    sender_account_uri = fields.Url(
         required=True,
         relative=True,
+        require_tld=True,
         schemes=[endpoints.get_url_scheme()],
-        data_key='debtorUri',
-        format='uri',
-        description=_TRANSFER_DEBTOR_URI_DESCRIPTION,
-        example='https://example.com/debtors/1/',
+        data_key='senderAccountUri',
+        format='uri-reference',
+        description="The sender's account URI. The account should belong to the creditor "
+                    "that initiates the direct transfer. This can be a relative URI.",
+        example='/creditors/2/debtors/1',
     )
     recipient_account_uri = fields.Url(
         required=True,
@@ -94,13 +96,6 @@ class DirectTransferSchema(Schema):
         type='string',
         description='The type of this object.',
         example='DirectTransfer',
-    )
-    debtor = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description=_TRANSFER_DEBTOR_URI_DESCRIPTION,
-        example={'uri': 'https://example.com/debtors/1/'},
     )
     senderAccount = fields.Nested(
         ObjectReferenceSchema,
