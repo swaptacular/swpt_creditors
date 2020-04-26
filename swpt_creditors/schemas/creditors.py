@@ -15,7 +15,7 @@ class CreditorSchema(Schema):
         type='string',
         format='uri-reference',
         description=URI_DESCRIPTION,
-        example='/creditors/1/',
+        example='/creditors/2/',
     )
     type = fields.Function(
         lambda obj: 'Creditor',
@@ -25,15 +25,8 @@ class CreditorSchema(Schema):
         description='The type of this object.',
         example='Creditor',
     )
-    created_at_date = fields.Date(
-        required=True,
-        dump_only=True,
-        data_key='createdOn',
-        description='The date on which the creditor was created.',
-        example='2019-11-30',
-    )
     is_active = fields.Boolean(
-        required=True,
+        missing=True,
         dump_only=True,
         data_key='isActive',
         description="Whether the creditor is currently active or not."

@@ -22,7 +22,6 @@ def test_create_creditor(client):
     assert r.status_code == 201
     assert r.headers['Location'] == 'http://example.com/creditors/2/'
     data = r.get_json()
-    assert isinstance(iso8601.parse_date(data['createdOn']).date(), date)
     assert data['isActive'] is False
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
@@ -34,7 +33,6 @@ def test_create_creditor(client):
     assert r.status_code == 200
     assert 'max-age' in r.headers['Cache-Control']
     data = r.get_json()
-    assert isinstance(iso8601.parse_date(data['createdOn']).date(), date)
     assert data['isActive'] is False
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
