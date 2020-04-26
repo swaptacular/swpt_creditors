@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
-from .common import ObjectReferenceSchema, MAX_INT64, MAX_UINT64
+from .common import ObjectReferenceSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
 from .paginated_lists import PaginatedListSchema
 
 _DEBTOR_NAME_DESCRIPTION = '\
@@ -32,9 +32,9 @@ class AccountSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/debtors/1',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/debtors/1',
     )
     type = fields.Function(
         lambda obj: 'Account',
@@ -56,7 +56,7 @@ class AccountSchema(Schema):
         required=True,
         dump_only=True,
         description="The creditor's URI.",
-        example={'uri': 'https://example.com/creditors/2/'},
+        example={'uri': '/creditors/2/'},
     )
 
 
@@ -76,9 +76,9 @@ class AccountRecordConfigSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/config',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/config',
     )
     type = fields.Function(
         lambda obj: 'AccountRecordConfig',
@@ -116,9 +116,9 @@ class AccountRecordDisplaySettingsSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/display',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/display',
     )
     type = fields.Function(
         lambda obj: 'AccountRecordDisplaySettings',
@@ -177,9 +177,9 @@ class AccountRecordExchangeSettingsSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/exchange',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/exchange',
     )
     type = fields.Function(
         lambda obj: 'AccountRecordExchangeSettings',
@@ -190,12 +190,12 @@ class AccountRecordExchangeSettingsSchema(Schema):
         example='AccountRecordExchangeSettings',
     )
     pegUri = fields.Url(
-        relative=False,
-        format='uri',
+        relative=True,
+        format='uri-reference',
         description="An URI of another account record, belonging to the same creditor, to "
                     "which the value of this account's tokens is pegged (via fixed exchange "
-                    "rate). This field is optional.",
-        example='https://example.com/creditors/2/accounts/11/',
+                    "rate). Can be a relative URI. This field is optional.",
+        example='/creditors/2/accounts/11/',
     )
     fixedExchangeRate = fields.Float(
         missing=1.0,
@@ -236,9 +236,9 @@ class AccountRecordSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/',
     )
     type = fields.Function(
         lambda obj: 'AccountRecord',
@@ -253,7 +253,7 @@ class AccountRecordSchema(Schema):
         required=True,
         dump_only=True,
         description="The URI of the portfolio that contains this account record.",
-        example={'uri': 'https://example.com/creditors/2/portfolio'},
+        example={'uri': '/creditors/2/portfolio'},
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -261,7 +261,7 @@ class AccountRecordSchema(Schema):
         dump_only=True,
         description="The account's URI. Uniquely identifies the account when it participates "
                     "in a transfer as sender or recipient.",
-        example={'uri': 'https://example.com/creditors/2/debtors/1'},
+        example={'uri': '/creditors/2/debtors/1'},
     )
     created_at_ts = fields.DateTime(
         required=True,
@@ -297,7 +297,7 @@ class AccountRecordSchema(Schema):
         example={
             'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',
-            'first': 'https://example.com/creditors/2/accounts/1/entries?prev=124',
+            'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
     latestEntryId = fields.Integer(

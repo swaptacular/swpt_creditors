@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields
 from flask import url_for
-from .common import ObjectReferenceSchema
+from .common import ObjectReferenceSchema, URI_DESCRIPTION
 from .paginated_lists import PaginatedListSchema
 
 
@@ -13,9 +13,9 @@ class CreditorSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/1/',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/1/',
     )
     type = fields.Function(
         lambda obj: 'Creditor',
@@ -40,7 +40,7 @@ class CreditorSchema(Schema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['Creditor'], _external=True, creditorId=obj.creditor_id)
+        return url_for(self.context['Creditor'], creditorId=obj.creditor_id)
 
 
 class PortfolioSchema(Schema):
@@ -48,9 +48,9 @@ class PortfolioSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/portfolio',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/portfolio',
     )
     type = fields.Function(
         lambda obj: 'Portfolio',
@@ -65,7 +65,7 @@ class PortfolioSchema(Schema):
         required=True,
         dump_only=True,
         description="The creditor's URI.",
-        example={'uri': 'https://example.com/creditors/2/'},
+        example={'uri': '/creditors/2/'},
     )
     accountRecords = fields.Nested(
         PaginatedListSchema,
@@ -124,4 +124,4 @@ class PortfolioSchema(Schema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['Portfolio'], _external=True, creditorId=obj.creditor_id)
+        return url_for(self.context['Portfolio'], creditorId=obj.creditor_id)

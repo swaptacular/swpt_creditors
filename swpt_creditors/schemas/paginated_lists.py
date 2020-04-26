@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, validate
-from .common import ObjectReferenceSchema, MAX_INT64, MAX_UINT64
+from .common import ObjectReferenceSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
 
 
 _PAGE_NEXT_DESCRIPTION = '\
@@ -48,7 +48,7 @@ class PaginatedListSchema(Schema):
                     'which would contain the URI of the next page in the list; 3) May itself have '
                     'a `forthcoming` property, for obtaining items that might be added to the '
                     'paginated list in the future. This can be a relative URI.',
-        example='https://example.com/list?page=1',
+        example='/list?page=1',
     )
     totalItems = fields.Integer(
         dump_only=True,
@@ -68,7 +68,7 @@ class PaginatedListSchema(Schema):
                     'present, this means that the "streaming" feature is not supported by the '
                     'paginated list. The object retrieved from this URI will be of the same type '
                     'as the one retrieved from the `first` field. This can be a relative URI.',
-        example='https://example.com/list?page=1000',
+        example='/list?page=1000',
     )
 
 
@@ -89,12 +89,12 @@ class MessageSchema(Schema):
         description="The ID of this message. Later messages have bigger IDs.",
         example=12345,
     )
-    creditor = fields.Nested(
+    portfolio = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The creditor's URI.",
-        example={'uri': 'https://example.com/creditors/2/'},
+        description="The creditor's portfolio URI.",
+        example={'uri': '/creditors/2/portfolio'},
     )
     posted_at_ts = fields.DateTime(
         required=True,
@@ -109,9 +109,9 @@ class MessagesPageSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/log',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/log',
     )
     type = fields.Function(
         lambda obj: 'MessagesPage',
@@ -148,9 +148,9 @@ class ObjectReferencesPage(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/',
     )
     type = fields.Function(
         lambda obj: 'ObjectReferencesPage',
@@ -198,7 +198,7 @@ class LedgerEntrySchema(Schema):
         required=True,
         dump_only=True,
         description="The URI of the corresponding account record.",
-        example={'uri': 'https://example.com/creditors/2/accounts/1/'},
+        example={'uri': '/creditors/2/accounts/1/'},
     )
     amount = fields.Integer(
         required=True,
@@ -224,7 +224,7 @@ class LedgerEntrySchema(Schema):
         required=True,
         dump_only=True,
         description='The URI of the corresponding transfer.',
-        example={'uri': 'https://example.com/creditors/2/accounts/1/transfers/999'},
+        example={'uri': '/creditors/2/accounts/1/transfers/999'},
     )
     posted_at_ts = fields.DateTime(
         required=True,
@@ -249,9 +249,9 @@ class LedgerEntriesPage(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/entries?prev=124',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/entries?prev=124',
     )
     type = fields.Function(
         lambda obj: 'LedgerEntriesPage',

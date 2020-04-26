@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
 from swpt_lib import endpoints
-from .common import ObjectReferenceSchema, MAX_INT64
+from .common import ObjectReferenceSchema, MAX_INT64, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -83,9 +83,9 @@ class DirectTransferSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000',
     )
     type = fields.Function(
         lambda obj: 'Transfer',
@@ -107,7 +107,7 @@ class DirectTransferSchema(Schema):
         required=True,
         dump_only=True,
         description="The sender's account URI.",
-        example={'uri': 'https://example.com/creditors/2/debtors/1'},
+        example={'uri': '/creditors/2/debtors/1'},
     )
     recipientAccount = fields.Nested(
         ObjectReferenceSchema,
@@ -204,9 +204,9 @@ class TransferSchema(Schema):
         'get_uri',
         required=True,
         type='string',
-        format='uri',
-        description="The URI of this object.",
-        example='https://example.com/creditors/2/accounts/1/transfers/999',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/transfers/999',
     )
     type = fields.Function(
         lambda obj: 'Transfer',

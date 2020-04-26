@@ -7,6 +7,7 @@ MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 MAX_UINT64 = (1 << 64) - 1
+URI_DESCRIPTION = 'The URI of this object. Can be a relative URI.'
 
 
 class ObjectReferenceSchema(Schema):

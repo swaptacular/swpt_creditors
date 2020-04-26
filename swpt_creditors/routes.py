@@ -124,7 +124,7 @@ class PortfolioEndpoint(MethodView):
         account_records_count = portfolio.account_records_count
         portfolio.accountRecords = PaginatedList('string', account_records_url, totalItems=account_records_count)
 
-        portfolio.creditor = {'uri': endpoints.build_url('creditor', creditorId=portfolio.creditor_id)}
+        portfolio.creditor = {'uri': url_for('public.CreditorEndpoint', creditorId=portfolio.creditor_id)}
         return portfolio
 
 

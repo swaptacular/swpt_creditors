@@ -25,7 +25,7 @@ def test_create_creditor(client):
     assert isinstance(iso8601.parse_date(data['createdOn']).date(), date)
     assert data['isActive'] is False
     assert data['type'] == 'Creditor'
-    assert data['uri'] == 'http://example.com/creditors/2/'
+    assert data['uri'] == '/creditors/2/'
 
     r = client.post('/creditors/2/', json={})
     assert r.status_code == 409
@@ -37,7 +37,7 @@ def test_create_creditor(client):
     assert isinstance(iso8601.parse_date(data['createdOn']).date(), date)
     assert data['isActive'] is False
     assert data['type'] == 'Creditor'
-    assert data['uri'] == 'http://example.com/creditors/2/'
+    assert data['uri'] == '/creditors/2/'
 
 
 def test_get_portfolio(client, creditor):
@@ -48,8 +48,8 @@ def test_get_portfolio(client, creditor):
     assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'Portfolio'
-    assert data['uri'] == 'http://example.com/creditors/2/portfolio'
-    assert data['creditor'] == {'uri': 'http://example.com/creditors/2/'}
+    assert data['uri'] == '/creditors/2/portfolio'
+    assert data['creditor'] == {'uri': '/creditors/2/'}
     journal = data['journal']
     assert journal['type'] == 'PaginatedList'
     assert journal['first'] == '/creditors/2/journal'

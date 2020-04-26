@@ -119,13 +119,13 @@ ACCOUNT_RECORD_DOES_NOT_EXIST = {
 }
 
 ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
-    'uri': 'https://example.com/creditors/2/accounts/1/entries?prev=124',
+    'uri': '/creditors/2/accounts/1/entries?prev=124',
     'type': 'LedgerEntriesPage',
     'items': [
         {
             'type': 'LedgerEntry',
-            'accountRecord': {'uri': 'https://example.com/creditors/2/accounts/1/'},
-            'transfer': {'uri': 'https://example.com/creditors/2/accounts/1/transfers/999'},
+            'accountRecord': {'uri': '/creditors/2/accounts/1/'},
+            'transfer': {'uri': '/creditors/2/accounts/1/transfers/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,
@@ -137,13 +137,13 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
 }
 
 JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
-    'uri': 'https://example.com/creditors/2/journal',
+    'uri': '/creditors/2/journal',
     'type': 'LedgerEntriesPage',
     'items': [
         {
             'type': 'LedgerEntry',
-            'accountRecord': {'uri': 'https://example.com/creditors/2/accounts/1/'},
-            'transfer': {'uri': 'https://example.com/creditors/2/accounts/1/transfers/999'},
+            'accountRecord': {'uri': '/creditors/2/accounts/1/'},
+            'transfer': {'uri': '/creditors/2/accounts/1/transfers/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,
@@ -155,13 +155,13 @@ JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
 }
 
 JOURNAL_MESSAGES_EXAMPLE = {
-    'uri': 'https://example.com/creditors/2/log',
+    'uri': '/creditors/2/log',
     'type': 'MessagesPage',
     'items': [
         {
             'messageId': 12345,
             'postedAt': '2020-04-06T14:22:11Z',
-            'creditor': {'uri': 'https://example.com/creditors/2/'},
+            'portfolio': {'uri': '/creditors/2/portfolio'},
             'type': 'Message',
             'text': 'Hi!',
         },
@@ -175,6 +175,6 @@ DIRECT_TRANSFER_LINKS_EXAMPLE = {
         {'uri': '123e4567-e89b-12d3-a456-426655440000'},
         {'uri': '00112233-4455-6677-8899-aabbccddeeff'},
     ],
-    'uri': 'https://example.com/creditors/2/transfers/',
+    'uri': '/creditors/2/transfers/',
     'type': 'ObjectReferencesPage',
 }
