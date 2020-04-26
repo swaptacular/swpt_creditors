@@ -49,7 +49,6 @@ class DirectTransferCreationRequestSchema(Schema):
     sender_account_uri = fields.Url(
         required=True,
         relative=True,
-        require_tld=True,
         schemes=[endpoints.get_url_scheme()],
         data_key='senderAccountUri',
         format='uri-reference',
@@ -60,7 +59,6 @@ class DirectTransferCreationRequestSchema(Schema):
     recipient_account_uri = fields.Url(
         required=True,
         relative=False,
-        require_tld=True,
         schemes=[endpoints.get_url_scheme()],
         data_key='recipientAccountUri',
         format='uri',

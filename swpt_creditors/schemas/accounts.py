@@ -24,7 +24,7 @@ class DebtorDataSchema(Schema):
 class AccountCreationRequestSchema(Schema):
     debtor_uri = fields.Url(
         required=True,
-        relative=True,
+        relative=False,
         schemes=[endpoints.get_url_scheme()],
         data_key='debtorUri',
         format='uri',
@@ -142,6 +142,14 @@ class AccountRecordDisplaySettingsSchema(Schema):
         description='The type of this object.',
         example='AccountRecordDisplaySettings',
     )
+    debtorUri = fields.Url(
+        required=True,
+        relative=False,
+        schemes=[endpoints.get_url_scheme()],
+        format='uri',
+        description="The debtor's URI.",
+        example='https://example.com/debtors/1/',
+    )
     debtorName = fields.String(
         required=True,
         description=_DEBTOR_NAME_DESCRIPTION,
@@ -205,6 +213,7 @@ class AccountRecordExchangeSettingsSchema(Schema):
     )
     pegUri = fields.Url(
         relative=True,
+        schemes=[endpoints.get_url_scheme()],
         format='uri-reference',
         description="An URI of another account record, belonging to the same creditor, to "
                     "which the value of this account's tokens is pegged (via fixed exchange "
