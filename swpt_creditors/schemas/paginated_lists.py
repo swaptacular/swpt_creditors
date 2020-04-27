@@ -200,7 +200,7 @@ class LedgerEntrySchema(Schema):
         description="The URI of the corresponding account record.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    amount = fields.Integer(
+    postedAmount = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
