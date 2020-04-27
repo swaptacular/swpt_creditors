@@ -7,10 +7,10 @@ from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountRecordSchema, AccountRecordConfigSchema, TransferSchema,
-    LedgerEntriesPage, PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, MessagesPageSchema,
+    AccountSchema, AccountConfigSchema, TransferSchema, LedgerEntriesPage,
+    PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, MessagesPageSchema,
     DirectTransferCreationRequestSchema, DirectTransferSchema, DirectTransferUpdateRequestSchema,
-    AccountRecordDisplaySettingsSchema, AccountRecordExchangeSettingsSchema
+    AccountDisplaySettingsSchema, AccountExchangeSettingsSchema
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -25,40 +25,39 @@ class PaginatedList(NamedTuple):
 
 
 CONTEXT = {
-    'Creditor': 'public.CreditorEndpoint',
-    'Account': 'public.AccountEndpoint',
-    'Portfolio': 'portfolio.PortfolioEndpoint',
-    'Transfer': 'transfers.TransferEndpoint',
+    'Creditor': 'creditors.CreditorEndpoint',
+    'Portfolio': 'creditors.PortfolioEndpoint',
     'AccountList': 'accounts.AccountListEndpoint',
-    'AccountRecord': 'accounts.AccountRecordEndpoint',
+    'Account': 'accounts.AccountEndpoint',
+    'Transfer': 'transfers.TransferEndpoint',
 }
 
 
-public_api = Blueprint(
-    'public',
+creditors_api = Blueprint(
+    'creditors',
     __name__,
     url_prefix='/creditors',
-    description="Obtain public information about creditors and accounts, create new creditors.",
+    description="Obtain information about creditors, create new creditors.",
 )
 
 
-@public_api.route('/<i64:creditorId>/', parameters=[CID])
+@creditors_api.route('/<i64:creditorId>/', parameters=[CID])
 class CreditorEndpoint(MethodView):
-    @public_api.response(CreditorSchema(context=CONTEXT))
-    @public_api.doc(operationId='getCreditor',
-                    responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    @creditors_api.response(CreditorSchema(context=CONTEXT))
+    @creditors_api.doc(operationId='getCreditor',
+                       responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
-        """Return public information about a creditor."""
+        """Return a creditor."""
 
         creditor = procedures.get_creditor(creditorId)
         if not creditor:
             abort(404)
         return creditor, {'Cache-Control': 'max-age=86400'}
 
-    @public_api.arguments(CreditorCreationOptionsSchema)
-    @public_api.response(CreditorSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
-    @public_api.doc(operationId='createCreditor',
-                    responses={409: specs.CONFLICTING_CREDITOR})
+    @creditors_api.arguments(CreditorCreationOptionsSchema)
+    @creditors_api.response(CreditorSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @creditors_api.doc(operationId='createCreditor',
+                       responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_creation_options, creditorId):
         """Try to create a new creditor. Requires special privileges.
 
@@ -74,32 +73,10 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
-@public_api.route('/<i64:creditorId>/debtors/<i64:debtorId>', parameters=[CID, DID])
-class AccountEndpoint(MethodView):
-    @public_api.response(AccountSchema(context=CONTEXT))
-    @public_api.doc(operationId='getAccount',
-                    responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId):
-        """Return public information about an account."""
-
-        account = None
-        if not account:
-            abort(404)
-        return account, {'Cache-Control': 'max-age=86400'}
-
-
-portfolio_api = Blueprint(
-    'portfolio',
-    __name__,
-    url_prefix='/creditors',
-    description="View creditors' portfolios.",
-)
-
-
-@portfolio_api.route('/<i64:creditorId>/portfolio', parameters=[CID])
+@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[CID])
 class PortfolioEndpoint(MethodView):
-    @portfolio_api.response(PortfolioSchema(context=CONTEXT))
-    @portfolio_api.doc(operationId='getPortfolio',
+    @creditors_api.response(PortfolioSchema(context=CONTEXT))
+    @creditors_api.doc(operationId='getPortfolio',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
         """Return creditor's portfolio."""
@@ -120,19 +97,19 @@ class PortfolioEndpoint(MethodView):
         direct_transfers_count = portfolio.direct_transfers_count
         portfolio.directTransfers = PaginatedList('string', direct_transfers_url, totalItems=direct_transfers_count)
 
-        account_records_url = url_for('accounts.AccountRecordsEndpoint', creditorId=creditorId)
-        account_records_count = portfolio.account_records_count
-        portfolio.accountRecords = PaginatedList('string', account_records_url, totalItems=account_records_count)
+        accounts_url = url_for('accounts.AccountsEndpoint', creditorId=creditorId)
+        accounts_count = portfolio.accounts_count
+        portfolio.accounts = PaginatedList('string', accounts_url, totalItems=accounts_count)
 
-        portfolio.creditor = {'uri': url_for('public.CreditorEndpoint', creditorId=portfolio.creditor_id)}
+        portfolio.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=portfolio.creditor_id)}
         return portfolio
 
 
-@portfolio_api.route('/<i64:creditorId>/journal', parameters=[CID])
+@creditors_api.route('/<i64:creditorId>/journal', parameters=[CID])
 class JournalEntriesEndpoint(MethodView):
-    @portfolio_api.arguments(PaginationParametersSchema, location='query')
-    @portfolio_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
-    @portfolio_api.doc(operationId='getJournalPage',
+    @creditors_api.arguments(PaginationParametersSchema, location='query')
+    @creditors_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
+    @creditors_api.doc(operationId='getJournalPage',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of creditor's recently posted ledger entries.
@@ -148,11 +125,11 @@ class JournalEntriesEndpoint(MethodView):
         abort(500)
 
 
-@portfolio_api.route('/<i64:creditorId>/log', parameters=[CID])
+@creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
 class LogMessagesEndpoint(MethodView):
-    @portfolio_api.arguments(PaginationParametersSchema, location='query')
-    @portfolio_api.response(MessagesPageSchema(context=CONTEXT), example=specs.JOURNAL_MESSAGES_EXAMPLE)
-    @portfolio_api.doc(operationId='getLogPage',
+    @creditors_api.arguments(PaginationParametersSchema, location='query')
+    @creditors_api.response(MessagesPageSchema(context=CONTEXT), example=specs.JOURNAL_MESSAGES_EXAMPLE)
+    @creditors_api.doc(operationId='getLogPage',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
         """Return a collection of creditor's recently posted messages.
@@ -171,23 +148,23 @@ accounts_api = Blueprint(
     'accounts',
     __name__,
     url_prefix='/creditors',
-    description="View, update and delete creditors' account records.",
+    description="View, update and delete creditors' accounts.",
 )
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
-class AccountRecordsEndpoint(MethodView):
+class AccountsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
     @accounts_api.response(ObjectReferencesPage(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountRecordsPage',
+    @accounts_api.doc(operationId='getAccountsPage',
                       responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of account records belonging to a given creditor.
+        """Return a collection of accounts belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains references to all account
-        records belonging to a given creditor. The returned fragment
-        will not be sorted in any particular order.
+        list. The paginated list contains references to all accounts
+        belonging to a given creditor. The returned fragment will not
+        be sorted in any particular order.
 
         """
 
@@ -198,21 +175,21 @@ class AccountRecordsEndpoint(MethodView):
         return debtor_ids
 
     @accounts_api.arguments(AccountCreationRequestSchema)
-    @accounts_api.response(AccountRecordSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
-    @accounts_api.doc(operationId='createAccountRecord',
+    @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
                                  403: specs.TOO_MANY_ACCOUNTS,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_CONFLICT,
                                  422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
     def post(self, account_creation_request, creditorId):
-        """Create a new account record belonging to a given creditor."""
+        """Create a new account belonging to a given creditor."""
 
         debtor_uri = account_creation_request['debtor_uri']
         try:
             debtor_id = endpoints.match_url('debtor', debtor_uri)['debtorId']
             location = url_for(
-                'accounts.AccountRecordEndpoint',
+                'accounts.AccountEndpoint',
                 _external=True,
                 creditorId=creditorId,
                 debtorId=debtor_id,
@@ -232,23 +209,23 @@ class AccountRecordsEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[CID, DID])
-class AccountRecordEndpoint(MethodView):
-    @accounts_api.response(AccountRecordSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountRecord',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
+class AccountEndpoint(MethodView):
+    @accounts_api.response(AccountSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccount',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
-        """Return an account record."""
+        """Return an account."""
 
         abort(500)
 
     @accounts_api.response(code=204)
-    @accounts_api.doc(operationId='deleteAccountRecord')
+    @accounts_api.doc(operationId='deleteAccount')
     def delete(self, creditorId, debtorId):
-        """Delete an account record.
+        """Delete an account.
 
-        **Important note:** If the account record is not marked as
-        safe for deletion, deleting it may result in losing a
-        non-negligible amount of money on the account.
+        **Important note:** If the account is not marked as safe for
+        deletion, deleting it may result in losing a non-negligible
+        amount of money on the account.
 
         """
 
@@ -256,22 +233,22 @@ class AccountRecordEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])
-class AccountRecordConfigEndpoint(MethodView):
-    @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountRecordConfig',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
+class AccountConfigEndpoint(MethodView):
+    @accounts_api.response(AccountConfigSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountConfig',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
-        """Return account record's configuration."""
+        """Return account's configuration."""
 
         abort(500)
 
-    @accounts_api.arguments(AccountRecordConfigSchema)
-    @accounts_api.response(AccountRecordConfigSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountRecordConfig',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST,
+    @accounts_api.arguments(AccountConfigSchema)
+    @accounts_api.response(AccountConfigSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='updateAccountConfig',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account record's configuration.
+        """Update account's configuration.
 
         **Note:** This operation is idempotent.
 
@@ -281,22 +258,22 @@ class AccountRecordConfigEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/display', parameters=[CID, DID])
-class AccountRecordDisplaySettingsEndpoint(MethodView):
-    @accounts_api.response(AccountRecordDisplaySettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountRecordDisplaySettings',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
+class AccountDisplaySettingsEndpoint(MethodView):
+    @accounts_api.response(AccountDisplaySettingsSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountDisplaySettings',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
-        """Return account record's display settings."""
+        """Return account's display settings."""
 
         abort(500)
 
-    @accounts_api.arguments(AccountRecordDisplaySettingsSchema)
-    @accounts_api.response(AccountRecordDisplaySettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountRecordDisplaySettings',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST,
+    @accounts_api.arguments(AccountDisplaySettingsSchema)
+    @accounts_api.response(AccountDisplaySettingsSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='updateAccountDisplaySettings',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account record's display settings.
+        """Update account's display settings.
 
         **Note:** This operation is idempotent.
 
@@ -306,22 +283,22 @@ class AccountRecordDisplaySettingsEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/exchange', parameters=[CID, DID])
-class AccountRecordExchangeSettingsEndpoint(MethodView):
-    @accounts_api.response(AccountRecordExchangeSettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountRecordExchangeSettings',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
+class AccountExchangeSettingsEndpoint(MethodView):
+    @accounts_api.response(AccountExchangeSettingsSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountExchangeSettings',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
-        """Return account record's exchange settings."""
+        """Return account's exchange settings."""
 
         abort(500)
 
-    @accounts_api.arguments(AccountRecordExchangeSettingsSchema)
-    @accounts_api.response(AccountRecordExchangeSettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountRecordExchangeSettings',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST,
+    @accounts_api.arguments(AccountExchangeSettingsSchema)
+    @accounts_api.response(AccountExchangeSettingsSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='updateAccountExchangeSettings',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account record's exchange settings.
+        """Update account's exchange settings.
 
         **Note:** This operation is idempotent.
 
@@ -335,16 +312,16 @@ class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
     @accounts_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
     @accounts_api.doc(operationId='getAccountLedgerEntriesPage',
-                      responses={404: specs.ACCOUNT_RECORD_DOES_NOT_EXIST})
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
-        """Return a collection of ledger entries for a given account record.
+        """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recent ledger entries
-        for a given account record. The returned fragment will be
-        sorted in reverse-chronological order (bigger entry IDs go
-        first). The entries will constitute a singly linked list, each
-        entry (except the most ancient one) referring to its ancestor.
+        for a given account. The returned fragment will be sorted in
+        reverse-chronological order (bigger entry IDs go first). The
+        entries will constitute a singly linked list, each entry
+        (except the most ancient one) referring to its ancestor.
 
         """
 
@@ -418,7 +395,7 @@ class DirectTransfersEndpoint(MethodView):
                 debtor_id=recipient_account_data.get('debtorId'),
                 recipient_creditor_id=recipient_account_data.get('creditorId'),
                 amount=transfer_creation_request['amount'],
-                transfer_info=transfer_creation_request['info'],
+                transfer_notes=transfer_creation_request['notes'],
             )
         except procedures.TooManyManagementActionsError:
             abort(403)

@@ -193,11 +193,11 @@ class LedgerEntrySchema(Schema):
         description="The ID of this entry. Later entries have bigger IDs.",
         example=123,
     )
-    accountRecord = fields.Nested(
+    account = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account record.",
+        description="The URI of the corresponding account.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     postedAmount = fields.Integer(

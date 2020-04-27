@@ -1,11 +1,11 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
-from .common import ObjectReferenceSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
+from .common import ObjectReferenceSchema, AccountInfoSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
 from .paginated_lists import PaginatedListSchema
 
 _DEBTOR_NAME_DESCRIPTION = '\
-The name of the debtor. All account records belonging to a given \
+The name of the debtor. All accounts belonging to a given \
 creditor must have different `debtorName`s. The creditor may choose \
 any name that is convenient, or easy to remember.'
 
@@ -27,49 +27,18 @@ class AccountCreationRequestSchema(Schema):
     )
 
 
-class AccountSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
-        required=True,
-        type='string',
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/debtors/1',
-    )
+class AccountStatusSchema(Schema):
     type = fields.Function(
-        lambda obj: 'Account',
-        required=True,
-        dump_only=True,
-        type='string',
-        description="The type of this object. Different debtors may use different "
-                    "schemas for the public information about their accounts. The "
-                    "provided information must be enough to: 1) uniquely identify the "
-                    "debtor, 2) uniquely identify the creditor's account with the "
-                    "debtor. This field contains the name of the used schema.",
-        example='Account',
-    )
-    creditor = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The creditor's URI. This can be useful when more information about "
-                    "the owner of the account is needed.",
-        example={'uri': '/creditors/2/'},
-    )
-
-
-class AccountRecordStatusSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'AccountRecordStatus',
+        lambda obj: 'AccountStatus',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountRecordStatus',
+        example='AccountStatus',
     )
 
 
-class AccountRecordConfigSchema(Schema):
+class AccountConfigSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -79,12 +48,12 @@ class AccountRecordConfigSchema(Schema):
         example='/creditors/2/accounts/1/config',
     )
     type = fields.Function(
-        lambda obj: 'AccountRecordConfig',
+        lambda obj: 'AccountConfig',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountRecordConfig',
+        example='AccountConfig',
     )
     is_scheduled_for_deletion = fields.Boolean(
         missing=False,
@@ -109,7 +78,7 @@ class AccountRecordConfigSchema(Schema):
     )
 
 
-class AccountRecordDisplaySettingsSchema(Schema):
+class AccountDisplaySettingsSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -119,12 +88,12 @@ class AccountRecordDisplaySettingsSchema(Schema):
         example='/creditors/2/accounts/1/display',
     )
     type = fields.Function(
-        lambda obj: 'AccountRecordDisplaySettings',
+        lambda obj: 'AccountDisplaySettings',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountRecordDisplaySettings',
+        example='AccountDisplaySettings',
     )
     debtorUri = fields.Url(
         required=True,
@@ -141,8 +110,8 @@ class AccountRecordDisplaySettingsSchema(Schema):
     )
     hide = fields.Boolean(
         missing=False,
-        description='If `true`, the account record will not be shown in the list of '
-                    'account records belonging to the creditor. This may be convenient '
+        description='If `true`, the account will not be shown in the list of '
+                    'accounts belonging to the creditor. This may be convenient '
                     'for special-purpose accounts.',
         example=True,
     )
@@ -178,7 +147,7 @@ class AccountRecordDisplaySettingsSchema(Schema):
     )
 
 
-class AccountRecordExchangeSettingsSchema(Schema):
+class AccountExchangeSettingsSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -188,20 +157,20 @@ class AccountRecordExchangeSettingsSchema(Schema):
         example='/creditors/2/accounts/1/exchange',
     )
     type = fields.Function(
-        lambda obj: 'AccountRecordExchangeSettings',
+        lambda obj: 'AccountExchangeSettings',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountRecordExchangeSettings',
+        example='AccountExchangeSettings',
     )
     pegUri = fields.Url(
         relative=True,
         schemes=[endpoints.get_url_scheme()],
         format='uri-reference',
-        description="An URI of another account record, belonging to the same creditor, to "
-                    "which the value of this account's tokens is pegged (via fixed exchange "
-                    "rate). Can be a relative URI. This field is optional.",
+        description="An URI of another account, belonging to the same creditor, to "
+                    "which the value of this account's tokens is pegged (via fixed "
+                    "exchange rate). Can be a relative URI. This field is optional.",
         example='/creditors/2/accounts/11/',
     )
     fixedExchangeRate = fields.Float(
@@ -238,7 +207,7 @@ class AccountRecordExchangeSettingsSchema(Schema):
     )
 
 
-class AccountRecordSchema(Schema):
+class AccountSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -248,33 +217,36 @@ class AccountRecordSchema(Schema):
         example='/creditors/2/accounts/1/',
     )
     type = fields.Function(
-        lambda obj: 'AccountRecord',
+        lambda obj: 'Account',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountRecord',
+        example='Account',
     )
     portfolio = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the portfolio that contains this account record.",
+        description="The URI of the portfolio that contains this account.",
         example={'uri': '/creditors/2/portfolio'},
     )
-    account = fields.Nested(
-        ObjectReferenceSchema,
+    accountInfo = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        description="The account's URI. Uniquely identifies the account when it participates "
-                    "in a transfer as sender or recipient.",
-        example={'uri': '/creditors/2/debtors/1'},
+        description="A JSON object containing information that uniquely identifies the "
+                    "creditor's account when it participates in transfers as sender or "
+                    "recipient. For example, if the debtor happens to be a bank, this "
+                    "would contain the type of the debtor (a bank), the ID of the bank, "
+                    "and the bank account number.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
     )
     created_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='createdAt',
-        description='The moment at which the account record was created.',
+        description='The moment at which the account was created.',
     )
     principal = fields.Integer(
         required=True,
@@ -316,25 +288,25 @@ class AccountRecordSchema(Schema):
         example=123,
     )
     status = fields.Nested(
-        AccountRecordStatusSchema,
+        AccountStatusSchema,
         dump_only=True,
         required=True,
         description="Account status information.",
     )
     config = fields.Nested(
-        AccountRecordConfigSchema,
+        AccountConfigSchema,
         dump_only=True,
         required=True,
         description="The account's configuration. Can be changed by the owner of the account.",
     )
     displaySettings = fields.Nested(
-        AccountRecordDisplaySettingsSchema,
+        AccountDisplaySettingsSchema,
         dump_only=True,
         required=True,
         description="The account's display settings. Can be changed by the owner of the account.",
     )
     exchangeSettings = fields.Nested(
-        AccountRecordExchangeSettingsSchema,
+        AccountExchangeSettingsSchema,
         dump_only=True,
         required=True,
         description="The account's exchange settings. Can be changed by the owner of the account.",
@@ -343,15 +315,15 @@ class AccountRecordSchema(Schema):
         required=True,
         dump_only=True,
         data_key='isDeletionSafe',
-        description='Whether it is safe to delete this account record. When `false`, deleting '
-                    'the account record may result in losing a non-negligible amount of money '
+        description='Whether it is safe to delete this account. When `false`, deleting '
+                    'the account may result in losing a non-negligible amount of money '
                     'on the account.',
         example=False,
     )
 
     def get_uri(self, obj):
         return url_for(
-            self.context['AccountRecord'],
+            self.context['Account'],
             _external=True,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,

@@ -118,8 +118,8 @@ ACCOUNT_CAN_NOT_BE_CREATED = {
     'description': "The account can not be created. The debtor's URI might be wrong.",
 }
 
-ACCOUNT_RECORD_DOES_NOT_EXIST = {
-    'description': 'The account record does not exist.',
+ACCOUNT_DOES_NOT_EXIST = {
+    'description': 'The account does not exist.',
 }
 
 ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
@@ -128,7 +128,7 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
     'items': [
         {
             'type': 'LedgerEntry',
-            'accountRecord': {'uri': '/creditors/2/accounts/1/'},
+            'account': {'uri': '/creditors/2/accounts/1/'},
             'transfer': {'uri': '/creditors/2/accounts/1/transfers/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',
@@ -146,7 +146,7 @@ JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
     'items': [
         {
             'type': 'LedgerEntry',
-            'accountRecord': {'uri': '/creditors/2/accounts/1/'},
+            'account': {'uri': '/creditors/2/accounts/1/'},
             'transfer': {'uri': '/creditors/2/accounts/1/transfers/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',

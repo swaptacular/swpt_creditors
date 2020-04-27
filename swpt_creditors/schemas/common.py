@@ -17,3 +17,15 @@ class ObjectReferenceSchema(Schema):
         description="The URI of the object. Can be a relative URI.",
         example='https://example.com/objects/1',
     )
+
+
+class AccountInfoSchema(Schema):
+    type = fields.String(
+        required=True,
+        description="The type of this object. Different debtor types may use different "
+                    "schemas for the information about their accounts. The provided "
+                    "information must be enough to: 1) uniquely identify the debtor, "
+                    "2) uniquely identify the creditor's account with the debtor. This "
+                    "field contains the name of the used schema.",
+        example='AccountInfo',
+    )

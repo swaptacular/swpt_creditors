@@ -1,15 +1,14 @@
 from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
-from swpt_lib import endpoints
-from .common import ObjectReferenceSchema, MAX_INT64, URI_DESCRIPTION
+from .common import AccountInfoSchema, MAX_INT64, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
 
-_TRANSFER_INFO_DESCRIPTION = '\
+_TRANSFER_NOTES_DESCRIPTION = '\
 Notes from the sender. Can be any JSON object that the sender wants the \
-recipient to see. Different implementations may impose different restrictions \
+recipient to see. Different debtor types may impose different restrictions \
 on the schema of this JSON object.'
 
 _TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
@@ -46,24 +45,20 @@ class DirectTransferCreationRequestSchema(Schema):
         description="A client-generated UUID for the transfer.",
         example='123e4567-e89b-12d3-a456-426655440000',
     )
-    sender_account_uri = fields.Url(
+    sender_account_info = fields.Nested(
+        AccountInfoSchema,
         required=True,
-        relative=True,
-        schemes=[endpoints.get_url_scheme()],
-        data_key='senderAccountUri',
-        format='uri-reference',
-        description="The sender's account URI. The account should belong to the creditor "
-                    "that initiates the direct transfer. This can be a relative URI.",
-        example='/creditors/2/debtors/1',
+        data_key='senderAccountInfo',
+        description="The sender's account information. The account should belong to the "
+                    "creditor that creates the direct transfer.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
     )
-    recipient_account_uri = fields.Url(
+    recipient_account_info = fields.Nested(
+        AccountInfoSchema,
         required=True,
-        relative=False,
-        schemes=[endpoints.get_url_scheme()],
-        data_key='recipientAccountUri',
-        format='uri',
-        description="The recipient's account URI.",
-        example='https://example.com/creditors/2222/debtors/1',
+        data_key='recipientAccountInfo',
+        description="The recipient's account information.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
     )
     amount = fields.Integer(
         required=True,
@@ -72,9 +67,9 @@ class DirectTransferCreationRequestSchema(Schema):
         description='The amount to be transferred. Must be positive.',
         example=1000,
     )
-    info = fields.Dict(
+    notes = fields.Dict(
         missing={},
-        description=_TRANSFER_INFO_DESCRIPTION,
+        description=_TRANSFER_NOTES_DESCRIPTION,
     )
 
 
@@ -95,19 +90,19 @@ class DirectTransferSchema(Schema):
         description='The type of this object.',
         example='DirectTransfer',
     )
-    senderAccount = fields.Nested(
-        ObjectReferenceSchema,
+    senderAccountInfo = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        description="The sender's account URI.",
-        example={'uri': '/creditors/2/debtors/1'},
+        description="The sender's account information.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
     )
-    recipientAccount = fields.Nested(
-        ObjectReferenceSchema,
+    recipientAccountInfo = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        description="The recipient's account URI.",
-        example={'uri': 'https://example.com/creditors/2222/debtors/1'},
+        description="The recipient's account information.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
     )
     amount = fields.Integer(
         required=True,
@@ -117,10 +112,10 @@ class DirectTransferSchema(Schema):
         description=_TRANSFER_AMOUNT_DESCRIPTION,
         example=1000,
     )
-    info = fields.Dict(
+    notes = fields.Dict(
         required=True,
         dump_only=True,
-        description=_TRANSFER_INFO_DESCRIPTION,
+        description=_TRANSFER_NOTES_DESCRIPTION,
     )
     initiated_at_ts = fields.DateTime(
         required=True,
@@ -209,19 +204,19 @@ class TransferSchema(Schema):
         description='The type of this object.',
         example='Transfer',
     )
-    senderAccount = fields.Nested(
-        ObjectReferenceSchema,
+    senderAccountInfo = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        description="The sender's account URI.",
-        example={'uri': 'https://example.com/creditors/2/debtors/1'},
+        description="The sender's account information.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
     )
-    recipientAccount = fields.Nested(
-        ObjectReferenceSchema,
+    recipientAccountInfo = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        description="The recipient's account URI.",
-        example={'uri': 'https://example.com/creditors/3/debtors/1'},
+        description="The recipient's account information.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
     )
     amount = fields.Integer(
         required=True,
@@ -241,7 +236,7 @@ class TransferSchema(Schema):
     details = fields.Dict(
         dump_only=True,
         description='An optional JSON object containing additional information about the '
-                    'transfer, notably -- notes from the sender. Different implementations '
+                    'transfer, notably -- notes from the sender. Different debtor types '
                     'may use different schemas for this object. A `type` field must always '
                     'be present, containing the name of the used schema.',
     )

@@ -63,7 +63,7 @@ def test_get_portfolio(client, creditor):
     assert dt['first'] == '/creditors/2/transfers/'
     assert dt['totalItems'] == 0
     assert dt['itemsType'] == 'string'
-    ar = data['accountRecords']
+    ar = data['accounts']
     assert ar['type'] == 'PaginatedList'
     assert ar['first'] == '/creditors/2/accounts/'
     assert ar['totalItems'] == 0

@@ -21,10 +21,9 @@ else:
 
 
 API_DESCRIPTION = """This API can be used to:
-1. Obtain public information about creditors and accounts, create new creditors.
-2. View creditors' portfolios.
-3. View, update and delete creditors' account records.
-4. Make direct transfers from one account to another account.
+1. Obtain information about creditors, create new creditors.
+2. View, update and delete creditors' accounts.
+3. Make direct transfers from one account to another account.
 """
 
 
@@ -62,7 +61,7 @@ def create_app(config_dict={}):
     from flask import Flask
     from swpt_lib.utils import Int64Converter
     from .extensions import db, migrate, broker, api
-    from .routes import public_api, portfolio_api, accounts_api, transfers_api
+    from .routes import creditors_api, accounts_api, transfers_api
     from .cli import swpt_creditors
     from . import models  # noqa
 
@@ -78,8 +77,7 @@ def create_app(config_dict={}):
     migrate.init_app(app, db)
     broker.init_app(app)
     api.init_app(app)
-    api.register_blueprint(public_api)
-    api.register_blueprint(portfolio_api)
+    api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)
     app.cli.add_command(swpt_creditors)

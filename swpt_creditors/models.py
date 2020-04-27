@@ -102,12 +102,12 @@ class Creditor(db.Model):
     latest_journal_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     latest_log_message_id = db.Column(db.BigInteger, nullable=False, default=0)
     direct_transfers_count = db.Column(db.Integer, nullable=False, default=0)
-    account_records_count = db.Column(db.Integer, nullable=False, default=0)
+    accounts_count = db.Column(db.Integer, nullable=False, default=0)
     __table_args__ = (
         db.CheckConstraint(latest_journal_entry_id >= 0),
         db.CheckConstraint(latest_log_message_id >= 0),
         db.CheckConstraint(direct_transfers_count >= 0),
-        db.CheckConstraint(account_records_count >= 0),
+        db.CheckConstraint(accounts_count >= 0),
         {
             'comment': "Represents creditor's principal information.",
         }
@@ -143,7 +143,7 @@ class DirectTransfer(db.Model):
         nullable=False,
         comment='The amount to be transferred. Must be positive.',
     )
-    transfer_info = db.Column(
+    transfer_notes = db.Column(
         pg.JSON,
         nullable=False,
         default={},
@@ -219,7 +219,7 @@ class RunningTransfer(db.Model):
         nullable=False,
         comment='The amount to be transferred. Must be positive.',
     )
-    transfer_info = db.Column(
+    transfer_notes = db.Column(
         pg.JSON,
         nullable=False,
         comment='Notes from the debtor. Can be any JSON object that the debtor wants the recipient '

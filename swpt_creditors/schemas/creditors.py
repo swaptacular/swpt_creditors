@@ -26,10 +26,17 @@ class CreditorSchema(Schema):
         example='Creditor',
     )
     is_active = fields.Boolean(
-        missing=True,
+        required=True,
         dump_only=True,
         data_key='isActive',
         description="Whether the creditor is currently active or not."
+    )
+    created_at_date = fields.Date(
+        required=True,
+        dump_only=True,
+        data_key='createdOn',
+        description='The date on which the creditor was created.',
+        example='2019-11-30',
     )
 
     def get_uri(self, obj):
@@ -60,11 +67,11 @@ class PortfolioSchema(Schema):
         description="The creditor's URI.",
         example={'uri': '/creditors/2/'},
     )
-    accountRecords = fields.Nested(
+    accounts = fields.Nested(
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description='A paginated list of references to all account records belonging to the creditor.',
+        description='A paginated list of references to all accounts belonging to the creditor.',
         example={
             'totalItems': 20,
             'first': '/creditors/2/accounts/',
