@@ -44,11 +44,9 @@ class AccountStatusSchema(Schema):
                     'on the account.',
         example=False,
     )
-    interestRate = fields.Method(
-        'get_interest_rate',
+    interest_rate = fields.Float(
         dump_only=True,
-        type='number',
-        format="float",
+        data_key='interestRate',
         description='Annual rate (in percents) at which interest accumulates on the account. When '
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
@@ -244,7 +242,7 @@ class AccountSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the portfolio that contains this account.",
+        description="The URI of the creditor's portfolio that contains this account.",
         example={'uri': '/creditors/2/portfolio'},
     )
     accountInfo = fields.Nested(
@@ -304,21 +302,21 @@ class AccountSchema(Schema):
         ObjectReferenceSchema,
         dump_only=True,
         required=True,
-        description="The URI of account's configuration.",
+        description="The URI for account's configuration.",
         example={'uri': '/creditors/2/accounts/1/config'}
     )
     displaySettings = fields.Nested(
         ObjectReferenceSchema,
         dump_only=True,
         required=True,
-        description="The URI of account's display settings.",
+        description="The URI for account's display settings.",
         example={'uri': '/creditors/2/accounts/1/display'}
     )
     exchangeSettings = fields.Nested(
         ObjectReferenceSchema,
         dump_only=True,
         required=True,
-        description="The URI of account's exchange settings.",
+        description="The URI for account's exchange settings.",
         example={'uri': '/creditors/2/accounts/1/exchange'}
     )
 
