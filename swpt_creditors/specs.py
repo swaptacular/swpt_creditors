@@ -115,7 +115,7 @@ ACCOUNT_EXISTS = {
 }
 
 ACCOUNT_CAN_NOT_BE_CREATED = {
-    'description': "The account can not be created. The debtor's URI might be wrong.",
+    'description': "The account can not be created. The debtor's info might be wrong.",
 }
 
 ACCOUNT_DOES_NOT_EXIST = {
