@@ -122,6 +122,20 @@ class PortfolioSchema(Schema):
             'type': 'PaginatedList',
         },
     )
+    createAccount = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='A URI to which an `AccountCreationRequest` can be POST-ed.',
+        example={'uri': '/creditors/2/accounts/'},
+    )
+    createDirectTransfer = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='A URI to which a `DirectTransferCreationRequest` can be POST-ed.',
+        example={'uri': '/creditors/2/transfers/'},
+    )
 
     def get_uri(self, obj):
         return url_for(self.context['Portfolio'], creditorId=obj.creditor_id)

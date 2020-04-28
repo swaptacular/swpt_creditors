@@ -29,7 +29,9 @@ CONTEXT = {
     'Portfolio': 'creditors.PortfolioEndpoint',
     'AccountList': 'accounts.AccountListEndpoint',
     'Account': 'accounts.AccountEndpoint',
-    'Transfer': 'transfers.TransferEndpoint',
+    'Accounts': 'accounts.AccountsEndpoint',
+    'DirectTransfer': 'transfers.DirectTransferEndpoint',
+    'DirectTransfers': 'transfers.DirectTransfersEndpoint',
 }
 
 
