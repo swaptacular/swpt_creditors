@@ -48,7 +48,9 @@ class MessageSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object.',
+        description='The type of this object. Different kinds of messages may use different '
+                    'additional fields, containing more data. This field contains the name '
+                    'of the used schema.',
         example='Message',
     )
     messageId = fields.Integer(

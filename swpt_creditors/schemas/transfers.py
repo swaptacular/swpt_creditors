@@ -201,7 +201,10 @@ class TransferSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object.',
+        description='The type of this object. Different debtor types may use different '
+                    'additional fields, containing more information about the transfer '
+                    '(notes from the sender for example). This field contains the name '
+                    'of the used schema.',
         example='Transfer',
     )
     senderAccountInfo = fields.Nested(
@@ -232,11 +235,4 @@ class TransferSchema(Schema):
         description='The moment at which the transfer was committed. If this field is '
                     'not present, this means that the moment at which the transfer was '
                     'committed is unknown.',
-    )
-    details = fields.Dict(
-        dump_only=True,
-        description='An optional JSON object containing additional information about the '
-                    'transfer, notably -- notes from the sender. Different debtor types '
-                    'may use different schemas for this object. A `type` field must always '
-                    'be present, containing the name of the used schema.',
     )

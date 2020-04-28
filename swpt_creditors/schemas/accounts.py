@@ -32,7 +32,9 @@ class AccountStatusSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object.',
+        description='The type of this object. Different debtor types may use different '
+                    'additional fields, containing more information about the status '
+                    'of the account. This field contains the name of the used schema.',
         example='AccountStatus',
     )
     is_deletion_safe = fields.Boolean(
@@ -67,7 +69,9 @@ class AccountConfigSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object.',
+        description='The type of this object. Different debtor types may use different '
+                    'additional fields, containing more information about the configuration '
+                    'of the account. This field contains the name of the used schema.',
         example='AccountConfig',
     )
     is_scheduled_for_deletion = fields.Boolean(
@@ -192,8 +196,8 @@ class AccountExchangeSettingsSchema(Schema):
         validate=validate.Range(min=0.0),
         description="The exchange rate between this account's tokens and \"pegUri\" account's "
                     "tokens. For example, `2.0` would mean that this account's tokens are "
-                    "twice as valuable as \"pegUri\" account's tokens. (Note that this field "
-                    "will be ignored if the `pegUri` field is not passed as well.)",
+                    "twice as valuable as \"pegUri\" account's tokens. Note that this field "
+                    "will be ignored if the `pegUri` field has not been passed.",
         example=1.0,
     )
     exchangeMode = fields.String(
