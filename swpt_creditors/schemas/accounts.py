@@ -35,6 +35,15 @@ class AccountStatusSchema(Schema):
         description='The type of this object.',
         example='AccountStatus',
     )
+    is_deletion_safe = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='isDeletionSafe',
+        description='Whether it is safe to delete this account. When `false`, deleting '
+                    'the account may result in losing a non-negligible amount of money '
+                    'on the account.',
+        example=False,
+    )
 
 
 class AccountConfigSchema(Schema):
@@ -308,15 +317,6 @@ class AccountSchema(Schema):
         dump_only=True,
         required=True,
         description="The account's exchange settings. Can be changed by the owner of the account.",
-    )
-    is_deletion_safe = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='isDeletionSafe',
-        description='Whether it is safe to delete this account. When `false`, deleting '
-                    'the account may result in losing a non-negligible amount of money '
-                    'on the account.',
-        example=False,
     )
 
     def get_uri(self, obj):
