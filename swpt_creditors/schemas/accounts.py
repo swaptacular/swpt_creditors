@@ -301,22 +301,25 @@ class AccountSchema(Schema):
         description="Account status information.",
     )
     config = fields.Nested(
-        AccountConfigSchema,
+        ObjectReferenceSchema,
         dump_only=True,
         required=True,
-        description="The account's configuration. Can be changed by the owner of the account.",
+        description="The URI of account's configuration.",
+        example={'uri': '/creditors/2/accounts/1/config'}
     )
     displaySettings = fields.Nested(
-        AccountDisplaySettingsSchema,
+        ObjectReferenceSchema,
         dump_only=True,
         required=True,
-        description="The account's display settings. Can be changed by the owner of the account.",
+        description="The URI of account's display settings.",
+        example={'uri': '/creditors/2/accounts/1/display'}
     )
     exchangeSettings = fields.Nested(
-        AccountExchangeSettingsSchema,
+        ObjectReferenceSchema,
         dump_only=True,
         required=True,
-        description="The account's exchange settings. Can be changed by the owner of the account.",
+        description="The URI of account's exchange settings.",
+        example={'uri': '/creditors/2/accounts/1/exchange'}
     )
 
     def get_uri(self, obj):
