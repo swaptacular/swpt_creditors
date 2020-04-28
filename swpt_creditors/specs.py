@@ -90,7 +90,7 @@ TRANSFER_EXISTS = {
 }
 
 INVALID_DIRECT_TRANSFER_CREATION_REQUEST = {
-    'description': "The transfer can not be created. Sender's or recipient's account URI might be wrong.",
+    'description': "The transfer can not be created. Recipient's account info might be wrong.",
 }
 
 ACCOUNT_DOES_NOT_EXIST = {

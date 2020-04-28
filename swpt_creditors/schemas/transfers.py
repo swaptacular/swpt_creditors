@@ -9,7 +9,7 @@ The amount to be transferred. Must be positive.'
 _TRANSFER_NOTES_DESCRIPTION = '\
 Notes from the sender. Can be any JSON object that the sender wants the \
 recipient to see. Different debtor types may impose different restrictions \
-on the schema of this JSON object.'
+on the schema and the contents of of this object.'
 
 _TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
 The moment at which the transfer was initiated.'
@@ -22,7 +22,15 @@ The URI of the debtor through which the transfer should go. This is analogous to
 the currency code in "normal" bank transfers.'
 
 
-class DirectTransferErrorSchema(Schema):
+class TransferErrorSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'TransferError',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferError',
+    )
     errorCode = fields.String(
         required=True,
         dump_only=True,
@@ -30,7 +38,6 @@ class DirectTransferErrorSchema(Schema):
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
     avlAmount = fields.Integer(
-        required=False,
         dump_only=True,
         format="int64",
         description='The amount currently available on the account.',
@@ -44,14 +51,6 @@ class DirectTransferCreationRequestSchema(Schema):
         data_key='transferUuid',
         description="A client-generated UUID for the transfer.",
         example='123e4567-e89b-12d3-a456-426655440000',
-    )
-    sender_account_info = fields.Nested(
-        AccountInfoSchema,
-        required=True,
-        data_key='senderAccountInfo',
-        description="The sender's account information. The account should belong to the "
-                    "creditor that creates the direct transfer.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
     )
     recipient_account_info = fields.Nested(
         AccountInfoSchema,
@@ -147,10 +146,11 @@ class DirectTransferSchema(Schema):
         example=False,
     )
     errors = fields.Nested(
-        DirectTransferErrorSchema(many=True),
+        TransferErrorSchema(many=True),
         dump_only=True,
         required=True,
-        description='Errors that occurred during the transfer.'
+        description='Errors that have occurred during the execution of the transfer. If '
+                    'the transfer has been successful, this will be an empty array.',
     )
 
     def get_uri(self, obj):

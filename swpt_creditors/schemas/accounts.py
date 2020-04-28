@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
-from .common import ObjectReferenceSchema, AccountInfoSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
+from .common import ObjectReferenceSchema, AccountInfoSchema, DebtorInfoSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
 from .paginated_lists import PaginatedListSchema
 
 _DEBTOR_NAME_DESCRIPTION = '\
@@ -11,19 +11,18 @@ any name that is convenient, or easy to remember.'
 
 
 class AccountCreationRequestSchema(Schema):
-    debtor_uri = fields.Url(
-        required=True,
-        relative=False,
-        schemes=[endpoints.get_url_scheme()],
-        data_key='debtorUri',
-        format='uri',
-        description="The debtor's URI.",
-        example='https://example.com/debtors/1/',
-    )
     debtorName = fields.String(
         required=True,
         description=_DEBTOR_NAME_DESCRIPTION,
-        example='Untied States of America',
+        example='First Swaptacular Bank',
+    )
+    debtorInfo = fields.Nested(
+        DebtorInfoSchema,
+        required=True,
+        description="A JSON object containing information that uniquely identifies the "
+                    "debtor. For example, if the debtor happens to be a bank, this would "
+                    "contain the type of the debtor (a bank), and the ID of the bank.",
+        example={'type': 'SwptDebtorInfo', 'debtorId': 1},
     )
 
 
@@ -95,18 +94,17 @@ class AccountDisplaySettingsSchema(Schema):
         description='The type of this object.',
         example='AccountDisplaySettings',
     )
-    debtorUri = fields.Url(
-        required=True,
-        relative=False,
-        schemes=[endpoints.get_url_scheme()],
-        format='uri',
-        description="The debtor's URI.",
-        example='https://example.com/debtors/1/',
-    )
     debtorName = fields.String(
         required=True,
         description=_DEBTOR_NAME_DESCRIPTION,
-        example='Untied States of America',
+        example='First Swaptacular Bank',
+    )
+    debtorUri = fields.Url(
+        relative=False,
+        format='uri',
+        description='A link containing additional information about the debtor. This '
+                    'field is optional.',
+        example='https://example.com/debtors/1/',
     )
     hide = fields.Boolean(
         missing=False,
