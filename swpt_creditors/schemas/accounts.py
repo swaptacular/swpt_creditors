@@ -44,6 +44,15 @@ class AccountStatusSchema(Schema):
                     'on the account.',
         example=False,
     )
+    interestRate = fields.Method(
+        'get_interest_rate',
+        dump_only=True,
+        type='number',
+        format="float",
+        description='Annual rate (in percents) at which interest accumulates on the account. When '
+                    'this field is not present, this means that the interest rate is unknown.',
+        example=0.0,
+    )
 
 
 class AccountConfigSchema(Schema):
@@ -262,15 +271,6 @@ class AccountSchema(Schema):
         format="int64",
         description='The principal amount on the account.',
         example=0,
-    )
-    interestRate = fields.Method(
-        'get_interest_rate',
-        dump_only=True,
-        type='number',
-        format="float",
-        description='Annual rate (in percents) at which interest accumulates on the account. When '
-                    'this field is not present, this means that the interest rate is unknown.',
-        example=0.0,
     )
     ledgerEntries = fields.Nested(
         PaginatedListSchema,
