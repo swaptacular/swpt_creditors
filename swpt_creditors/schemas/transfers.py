@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
-from .common import AccountInfoSchema, MAX_INT64, URI_DESCRIPTION
+from .common import ObjectReferenceSchema, AccountInfoSchema, MAX_INT64, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -88,6 +88,13 @@ class DirectTransferSchema(Schema):
         type='string',
         description='The type of this object.',
         example='DirectTransfer',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the sender's account.",
+        example={'uri': '/creditors/2/accounts/1/'},
     )
     senderAccountInfo = fields.Nested(
         AccountInfoSchema,

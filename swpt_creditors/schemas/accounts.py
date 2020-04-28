@@ -74,6 +74,13 @@ class AccountConfigSchema(Schema):
                     'of the account. This field contains the name of the used schema.',
         example='AccountConfig',
     )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding account.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
     is_scheduled_for_deletion = fields.Boolean(
         missing=False,
         data_key='isScheduledForDeletion',
@@ -113,6 +120,13 @@ class AccountDisplaySettingsSchema(Schema):
         type='string',
         description='The type of this object.',
         example='AccountDisplaySettings',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding account.",
+        example={'uri': '/creditors/2/accounts/1/'},
     )
     debtorName = fields.String(
         required=True,
@@ -181,6 +195,13 @@ class AccountExchangeSettingsSchema(Schema):
         type='string',
         description='The type of this object.',
         example='AccountExchangeSettings',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding account.",
+        example={'uri': '/creditors/2/accounts/1/'},
     )
     pegUri = fields.Url(
         relative=True,
