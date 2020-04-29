@@ -88,10 +88,10 @@ class DisplaySettingsSchema(Schema):
 class DebtorInfoSchema(Schema):
     type = fields.String(
         required=True,
-        description="The type of this object. Different debtor types may use different "
-                    "schemas for the information about their accounts. The provided "
-                    "information must be enough to uniquely and reliably identify the "
-                    "debtor. This field contains the name of the used schema.",
+        description="The type of this object. Different debtors may use different "
+                    "**additional fields** containing information about the debtor. The "
+                    "provided information must be sufficient to uniquely and reliably "
+                    "identify the debtor. This field contains the name of the used schema.",
         example='DebtorInfo',
     )
     displaySettings = fields.Nested(
@@ -104,11 +104,12 @@ class DebtorInfoSchema(Schema):
 class AccountInfoSchema(Schema):
     type = fields.String(
         required=True,
-        description="The type of this object. Different debtor types may use different "
-                    "schemas for the information about their accounts. The provided "
-                    "information must be enough to: 1) uniquely and reliably identify "
-                    "the debtor, 2) uniquely reliably identify the creditor's account "
-                    "with the debtor. This field contains the name of the used schema.",
+        description="The type of this object. Different debtors may use different "
+                    "**additional fields** containing information about the account. The "
+                    "provided additional information must be sufficient to: 1) uniquely "
+                    "and reliably identify the debtor, 2) uniquely and reliably identify "
+                    "the creditor's account with the debtor. This field contains the "
+                    "name of the used schema.",
         example='AccountInfo',
     )
 

@@ -8,7 +8,7 @@ The amount to be transferred. Must be positive.'
 
 _TRANSFER_NOTES_DESCRIPTION = '\
 Notes from the sender. Can be any JSON object that the sender wants the \
-recipient to see. Different debtor types may impose different restrictions \
+recipient to see. Different debtors may impose different restrictions \
 on the schema and the contents of of this object.'
 
 _TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
@@ -211,8 +211,8 @@ class CommittedTransferSchema(BaseTransferSchema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object. Different debtor types may use different '
-                    'additional fields, containing more information about the transfer '
+        description='The type of this object. Different debtors may use different '
+                    '**additional fields**, containing more information about the transfer '
                     '(notes from the sender for example). This field contains the name '
                     'of the used schema.',
         example='CommittedTransfer',

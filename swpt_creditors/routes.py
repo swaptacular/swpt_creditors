@@ -10,7 +10,7 @@ from .schemas import (
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPage,
     PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, MessagesPageSchema,
     TransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
-    AccountDisplaySettingsSchema, AccountExchangeSettingsSchema
+    AccountDisplaySettingsSchema, AccountExchangeSettingsSchema, AccountInfoSchema
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -336,6 +336,27 @@ transfers_api = Blueprint(
     url_prefix='/creditors',
     description="Make transfers from one account to another account.",
 )
+
+
+@transfers_api.route('/<i64:creditorId>/find-account', parameters=[CID])
+class FindAccountEndpoint(MethodView):
+    @transfers_api.arguments(AccountInfoSchema, example=specs.FIND_ACCOUNT_REQUEST_EXAMPLE)
+    @transfers_api.response(AccountSchema(context=CONTEXT))
+    @transfers_api.doc(operationId='findAccount',
+                       responses={204: specs.NO_MATCHING_ACCOUNT,
+                                  404: specs.CREDITOR_DOES_NOT_EXIST})
+    def post(self, account_info, creditorId):
+        """Given recipient's account information, try to find a matching
+        sender account.
+
+        This is useful when a creditor wants to send money to some
+        other creditor's account, but he does not know if he already
+        has an account with the same debtor (that is: the debtor of
+        the other creditor's account).
+
+        """
+
+        abort(500)
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])

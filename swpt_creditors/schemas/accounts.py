@@ -19,8 +19,8 @@ class AccountStatusSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object. Different debtor types may use different '
-                    'additional fields, containing more information about the status '
+        description='The type of this object. Different debtors may use different '
+                    '**additional fields**, containing more information about the status '
                     'of the account. This field contains the name of the used schema.',
         example='AccountStatus',
     )
@@ -56,9 +56,10 @@ class AccountConfigSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object. Different debtor types may use different '
-                    'additional fields, containing more information about the configuration '
-                    'of the account. This field contains the name of the used schema.',
+        description='The type of this object. Different debtors may use different '
+                    '**additional fields**, containing more information about the '
+                    'configuration of the account. This field contains the name '
+                    'of the used schema.',
         example='AccountConfig',
     )
     account = fields.Nested(

@@ -122,6 +122,10 @@ ACCOUNT_DOES_NOT_EXIST = {
     'description': 'The account does not exist.',
 }
 
+NO_MATCHING_ACCOUNT = {
+    'description': 'No matching account.',
+}
+
 ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
     'uri': '/creditors/2/accounts/1/entries?prev=124',
     'type': 'LedgerEntriesPage',
@@ -181,4 +185,10 @@ TRANSFER_LINKS_EXAMPLE = {
     ],
     'uri': '/creditors/2/transfers/',
     'type': 'ObjectReferencesPage',
+}
+
+FIND_ACCOUNT_REQUEST_EXAMPLE = {
+    'type': 'SwptAccountInfo',
+    'debtorId': 1,
+    'creditorId': 2222
 }
