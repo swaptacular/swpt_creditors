@@ -7,9 +7,9 @@ from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountConfigSchema, TransferSchema, LedgerEntriesPage,
+    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPage,
     PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, MessagesPageSchema,
-    DirectTransferCreationRequestSchema, DirectTransferSchema, DirectTransferUpdateRequestSchema,
+    TransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
     AccountDisplaySettingsSchema, AccountExchangeSettingsSchema
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
@@ -30,8 +30,8 @@ CONTEXT = {
     'AccountList': 'accounts.AccountListEndpoint',
     'Account': 'accounts.AccountEndpoint',
     'Accounts': 'accounts.AccountsEndpoint',
-    'DirectTransfer': 'transfers.DirectTransferEndpoint',
-    'DirectTransfers': 'transfers.DirectTransfersEndpoint',
+    'Transfer': 'transfers.TransferEndpoint',
+    'Transfers': 'transfers.TransfersEndpoint',
 }
 
 
@@ -95,9 +95,9 @@ class PortfolioEndpoint(MethodView):
         log_q = urlencode({'prev': portfolio.latest_log_message_id})
         portfolio.log = PaginatedList('Message', log_url, forthcoming=f'{log_url}?{log_q}')
 
-        direct_transfers_url = url_for('transfers.DirectTransfersEndpoint', creditorId=creditorId)
-        direct_transfers_count = portfolio.direct_transfers_count
-        portfolio.directTransfers = PaginatedList('string', direct_transfers_url, totalItems=direct_transfers_count)
+        transfers_url = url_for('transfers.TransfersEndpoint', creditorId=creditorId)
+        transfers_count = portfolio.direct_transfers_count
+        portfolio.transfers = PaginatedList('string', transfers_url, totalItems=transfers_count)
 
         accounts_url = url_for('accounts.AccountsEndpoint', creditorId=creditorId)
         accounts_count = portfolio.accounts_count
@@ -330,38 +330,27 @@ class AccountLedgerEntriesEndpoint(MethodView):
         abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID, SEQNUM])
-class TransferEndpoint(MethodView):
-    @accounts_api.response(TransferSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getTransfer',
-                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId, seqnum):
-        """Return information about sent or received transfer."""
-
-        abort(500)
-
-
 transfers_api = Blueprint(
     'transfers',
     __name__,
     url_prefix='/creditors',
-    description="Make direct transfers from one account to another account.",
+    description="Make transfers from one account to another account.",
 )
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
-class DirectTransfersEndpoint(MethodView):
+class TransfersEndpoint(MethodView):
     @transfers_api.arguments(PaginationParametersSchema, location='query')
-    @transfers_api.response(ObjectReferencesPage(context=CONTEXT), example=specs.DIRECT_TRANSFER_LINKS_EXAMPLE)
-    @transfers_api.doc(operationId='getDirectTransfersPage',
+    @transfers_api.response(ObjectReferencesPage(context=CONTEXT), example=specs.TRANSFER_LINKS_EXAMPLE)
+    @transfers_api.doc(operationId='getTransfersPage',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of direct transfers, initiated by a given creditor.
+        """Return a collection of transfers, initiated by a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains references to all direct
-        transfers initiated by a given creditor, which have not been
-        deleted yet. The returned fragment will not be sorted in any
+        list. The paginated list contains references to all transfers
+        initiated by a given creditor, which have not been deleted
+        yet. The returned fragment will not be sorted in any
         particular order.
 
         """
@@ -372,16 +361,16 @@ class DirectTransfersEndpoint(MethodView):
             abort(404)
         return transfer_uuids
 
-    @transfers_api.arguments(DirectTransferCreationRequestSchema)
-    @transfers_api.response(DirectTransferSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
-    @transfers_api.doc(operationId='createDirectTransfer',
+    @transfers_api.arguments(TransferCreationRequestSchema)
+    @transfers_api.response(TransferSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @transfers_api.doc(operationId='createTransfer',
                        responses={303: specs.TRANSFER_EXISTS,
                                   403: specs.TOO_MANY_TRANSFERS,
                                   404: specs.CREDITOR_DOES_NOT_EXIST,
                                   409: specs.TRANSFER_CONFLICT,
-                                  422: specs.INVALID_DIRECT_TRANSFER_CREATION_REQUEST})
+                                  422: specs.INVALID_TRANSFER_CREATION_REQUEST})
     def post(self, transfer_creation_request, creditorId):
-        """Create a new direct transfer."""
+        """Create a new transfer."""
 
         uuid = transfer_creation_request['transfer_uuid']
         recipient_account_uri = transfer_creation_request['recipient_account_uri']
@@ -411,22 +400,22 @@ class DirectTransfersEndpoint(MethodView):
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/<uuid:transferUuid>', parameters=[CID, TRANSFER_UUID])
-class DirectTransferEndpoint(MethodView):
-    @transfers_api.response(DirectTransferSchema(context=CONTEXT))
-    @transfers_api.doc(operationId='getDirectTransfer',
+class TransferEndpoint(MethodView):
+    @transfers_api.response(TransferSchema(context=CONTEXT))
+    @transfers_api.doc(operationId='getTransfer',
                        responses={404: specs.TRANSFER_DOES_NOT_EXIST})
     def get(self, creditorId, transferUuid):
-        """Return information about a direct transfer."""
+        """Return information about a transfer."""
 
         return procedures.get_direct_transfer(creditorId, transferUuid) or abort(404)
 
-    @transfers_api.arguments(DirectTransferUpdateRequestSchema)
-    @transfers_api.response(DirectTransferSchema(context=CONTEXT))
-    @transfers_api.doc(operationId='cancelDirectTransfer',
+    @transfers_api.arguments(TransferUpdateRequestSchema)
+    @transfers_api.response(TransferSchema(context=CONTEXT))
+    @transfers_api.doc(operationId='cancelTransfer',
                        responses={404: specs.TRANSFER_DOES_NOT_EXIST,
                                   409: specs.TRANSFER_UPDATE_CONFLICT})
     def patch(self, transfer_update_request, creditorId, transferUuid):
-        """Cancel a direct transfer, if possible.
+        """Cancel a transfer, if possible.
 
         **Note:** This operation is idempotent.
 
@@ -443,9 +432,9 @@ class DirectTransferEndpoint(MethodView):
         return transfer
 
     @transfers_api.response(code=204)
-    @transfers_api.doc(operationId='deleteDirectTransfer')
+    @transfers_api.doc(operationId='deleteTransfer')
     def delete(self, creditorId, transferUuid):
-        """Delete a direct transfer.
+        """Delete a transfer.
 
         Note that deleting a running (not finalized) transfer does not
         cancel it. To ensure that a running transfer has not been
@@ -454,3 +443,14 @@ class DirectTransferEndpoint(MethodView):
         """
 
         procedures.delete_direct_transfer(creditorId, transferUuid)
+
+
+@transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID, SEQNUM])
+class CommittedTransferEndpoint(MethodView):
+    @transfers_api.response(CommittedTransferSchema(context=CONTEXT))
+    @transfers_api.doc(operationId='getCommittedTransfer',
+                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId, seqnum):
+        """Return information about sent or received transfer."""
+
+        abort(500)

@@ -108,12 +108,12 @@ class PortfolioSchema(Schema):
             'type': 'PaginatedList',
         },
     )
-    directTransfers = fields.Nested(
+    transfers = fields.Nested(
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description='A paginated list of references to for all direct transfers initiated by '
-                    'the creditor, that have not been deleted yet. The paginated list will not '
+        description='A paginated list of references to for all transfers initiated by the '
+                    'creditor, that have not been deleted yet. The paginated list will not '
                     'be sorted in any particular order.',
         example={
             'totalItems': 5,
@@ -129,11 +129,11 @@ class PortfolioSchema(Schema):
         description='A URI to which an `AccountCreationRequest` can be POST-ed.',
         example={'uri': '/creditors/2/accounts/'},
     )
-    createDirectTransfer = fields.Nested(
+    createTransfer = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description='A URI to which a `DirectTransferCreationRequest` can be POST-ed.',
+        description='A URI to which a `TransferCreationRequest` can be POST-ed.',
         example={'uri': '/creditors/2/transfers/'},
     )
 

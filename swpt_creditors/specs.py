@@ -89,7 +89,7 @@ TRANSFER_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-INVALID_DIRECT_TRANSFER_CREATION_REQUEST = {
+INVALID_TRANSFER_CREATION_REQUEST = {
     'description': "The transfer can not be created. Verify recipient's and sender's accounts.",
 }
 
@@ -173,7 +173,7 @@ JOURNAL_MESSAGES_EXAMPLE = {
     'forthcoming': '?prev=12345',
 }
 
-DIRECT_TRANSFER_LINKS_EXAMPLE = {
+TRANSFER_LINKS_EXAMPLE = {
     'next': '?prev=00112233-4455-6677-8899-aabbccddeeff',
     'items': [
         {'uri': '123e4567-e89b-12d3-a456-426655440000'},

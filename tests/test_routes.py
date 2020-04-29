@@ -58,7 +58,7 @@ def test_get_portfolio(client, creditor):
     assert log['first'] == '/creditors/2/log'
     assert log['forthcoming'] == '/creditors/2/log?prev=0'
     assert log['itemsType'] == 'Message'
-    dt = data['directTransfers']
+    dt = data['transfers']
     assert dt['type'] == 'PaginatedList'
     assert dt['first'] == '/creditors/2/transfers/'
     assert dt['totalItems'] == 0

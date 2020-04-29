@@ -22,30 +22,32 @@ The URI of the debtor through which the transfer should go. This is analogous to
 the currency code in "normal" bank transfers.'
 
 
-class TransferErrorSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'TransferError',
+class BaseTransferSchema(Schema):
+    senderAccountInfo = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='TransferError',
+        description="The sender's account information.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
     )
-    errorCode = fields.String(
+    recipientAccountInfo = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        description='The error code.',
-        example='INSUFFICIENT_AVAILABLE_AMOUNT',
+        description="The recipient's account information.",
+        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
     )
-    avlAmount = fields.Integer(
+    amount = fields.Integer(
+        required=True,
         dump_only=True,
+        validate=validate.Range(min=1, max=MAX_INT64),
         format="int64",
-        description='The amount currently available on the account.',
-        example=10000,
+        description='The transferred amount.',
+        example=1000,
     )
 
 
-class DirectTransferCreationRequestSchema(Schema):
+class TransferCreationRequestSchema(Schema):
     transfer_uuid = fields.UUID(
         required=True,
         data_key='transferUuid',
@@ -72,7 +74,30 @@ class DirectTransferCreationRequestSchema(Schema):
     )
 
 
-class DirectTransferSchema(Schema):
+class TransferErrorSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'TransferError',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferError',
+    )
+    errorCode = fields.String(
+        required=True,
+        dump_only=True,
+        description='The error code.',
+        example='INSUFFICIENT_AVAILABLE_AMOUNT',
+    )
+    avlAmount = fields.Integer(
+        dump_only=True,
+        format="int64",
+        description='The amount currently available on the account.',
+        example=10000,
+    )
+
+
+class TransferSchema(BaseTransferSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -87,36 +112,7 @@ class DirectTransferSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='DirectTransfer',
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the sender's account.",
-        example={'uri': '/creditors/2/accounts/1/'},
-    )
-    senderAccountInfo = fields.Nested(
-        AccountInfoSchema,
-        required=True,
-        dump_only=True,
-        description="The sender's account information.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
-    )
-    recipientAccountInfo = fields.Nested(
-        AccountInfoSchema,
-        required=True,
-        dump_only=True,
-        description="The recipient's account information.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
-    )
-    amount = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
-        format="int64",
-        description=_TRANSFER_AMOUNT_DESCRIPTION,
-        example=1000,
+        example='Transfer',
     )
     notes = fields.Dict(
         required=True,
@@ -179,7 +175,7 @@ class DirectTransferSchema(Schema):
         return finalized_at_ts.isoformat()
 
 
-class DirectTransferUpdateRequestSchema(Schema):
+class TransferUpdateRequestSchema(Schema):
     is_finalized = fields.Boolean(
         required=True,
         data_key='isFinalized',
@@ -194,7 +190,7 @@ class DirectTransferUpdateRequestSchema(Schema):
     )
 
 
-class TransferSchema(Schema):
+class CommittedTransferSchema(BaseTransferSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -204,7 +200,7 @@ class TransferSchema(Schema):
         example='/creditors/2/accounts/1/transfers/999',
     )
     type = fields.Function(
-        lambda obj: 'Transfer',
+        lambda obj: 'CommittedTransfer',
         required=True,
         dump_only=True,
         type='string',
@@ -212,29 +208,7 @@ class TransferSchema(Schema):
                     'additional fields, containing more information about the transfer '
                     '(notes from the sender for example). This field contains the name '
                     'of the used schema.',
-        example='Transfer',
-    )
-    senderAccountInfo = fields.Nested(
-        AccountInfoSchema,
-        required=True,
-        dump_only=True,
-        description="The sender's account information.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
-    )
-    recipientAccountInfo = fields.Nested(
-        AccountInfoSchema,
-        required=True,
-        dump_only=True,
-        description="The recipient's account information.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
-    )
-    amount = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
-        format="int64",
-        description='The transferred amount.',
-        example=1000,
+        example='CommittedTransfer',
     )
     committed_at_ts = fields.DateTime(
         dump_only=True,
