@@ -1,7 +1,10 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
-from .common import ObjectReferenceSchema, AccountInfoSchema, DebtorInfoSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
+from .common import (
+    ObjectReferenceSchema, AccountInfoSchema, DebtorInfoSchema, DisplaySettingsSchema,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
+)
 from .paginated_lists import PaginatedListSchema
 
 _DEBTOR_NAME_DESCRIPTION = '\
@@ -19,9 +22,10 @@ class AccountCreationRequestSchema(Schema):
     debtorInfo = fields.Nested(
         DebtorInfoSchema,
         required=True,
-        description="A JSON object containing information that uniquely identifies the "
-                    "debtor. For example, if the debtor happens to be a bank, this would "
-                    "contain the type of the debtor (a bank), and the ID of the bank.",
+        description="A JSON object containing information that uniquely and reliably "
+                    "identifies the debtor. For example, if the debtor happens to be a "
+                    "bank, this would contain the type of the debtor (a bank), and the "
+                    "ID of the bank.",
         example={'type': 'SwptDebtorInfo', 'debtorId': 1},
     )
 
@@ -104,7 +108,7 @@ class AccountConfigSchema(Schema):
     )
 
 
-class AccountDisplaySettingsSchema(Schema):
+class AccountDisplaySettingsSchema(DisplaySettingsSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -132,50 +136,6 @@ class AccountDisplaySettingsSchema(Schema):
         required=True,
         description=_DEBTOR_NAME_DESCRIPTION,
         example='First Swaptacular Bank',
-    )
-    debtorUri = fields.Url(
-        relative=False,
-        format='uri',
-        description='A link containing additional information about the debtor. This '
-                    'field is optional.',
-        example='https://example.com/debtors/1/',
-    )
-    hide = fields.Boolean(
-        missing=False,
-        description='If `true`, the account will not be shown in the list of '
-                    'accounts belonging to the creditor. This may be convenient '
-                    'for special-purpose accounts.',
-        example=False,
-    )
-    amountDivisor = fields.Float(
-        missing=1.0,
-        validate=validate.Range(min=0.0, min_inclusive=False),
-        description="The amount will be divided by this number before being displayed.",
-        example=100.0,
-    )
-    decimalPlaces = fields.Integer(
-        missing=0,
-        description='The number of digits to show after the decimal point, when displaying '
-                    'the amount.',
-        example=2,
-    )
-    unitName = fields.String(
-        description='The full name of the value measurement unit, "United States Dollars" '
-                    'for example. This field is optional.',
-        example='United States Dollars',
-    )
-    unitAbbr = fields.String(
-        missing='\u00A4',
-        description='A short abbreviation for the value measurement unit. It will be shown '
-                    'right after the displayed amount, "500.00 USD" for example.',
-        example='USD',
-    )
-    unitUri = fields.Url(
-        relative=False,
-        format='uri',
-        description='A link containing additional information about the value measurement '
-                    'unit. This field is optional.',
-        example='https://example.com/units/USD',
     )
 
 
@@ -274,11 +234,11 @@ class AccountSchema(Schema):
         AccountInfoSchema,
         required=True,
         dump_only=True,
-        description="A JSON object containing information that uniquely identifies the "
-                    "creditor's account when it participates in transfers as sender or "
-                    "recipient. For example, if the debtor happens to be a bank, this "
-                    "would contain the type of the debtor (a bank), the ID of the bank, "
-                    "and the bank account number.",
+        description="A JSON object containing information that uniquely and reliably "
+                    "identifies the creditor's account when it participates in transfers "
+                    "as sender or recipient. For example, if the debtor happens to be a "
+                    "bank, this would contain the type of the debtor (a bank), the ID of "
+                    "the bank, and the bank account number.",
         example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
     )
     created_at_ts = fields.DateTime(
