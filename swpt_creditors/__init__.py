@@ -21,9 +21,13 @@ else:
 
 
 API_DESCRIPTION = """This API can be used to:
-1. Obtain information about creditors, create new creditors.
-2. View, update and delete creditors' accounts.
+1. Get information about creditors, create new creditors.
+2. Create, view, update, and delete accounts, view account's transaction history.
 3. Make transfers from one account to another account.
+
+The API allows for efficient client-side caching, as well as efficient
+cache and data synchronization between two or more clients.
+
 """
 
 

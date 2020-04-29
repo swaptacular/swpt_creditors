@@ -39,7 +39,7 @@ creditors_api = Blueprint(
     'creditors',
     __name__,
     url_prefix='/creditors',
-    description="Obtain information about creditors, create new creditors.",
+    description="Get information about creditors, create new creditors.",
 )
 
 
@@ -150,7 +150,7 @@ accounts_api = Blueprint(
     'accounts',
     __name__,
     url_prefix='/creditors',
-    description="View, update and delete creditors' accounts.",
+    description="Create, view, update, and delete accounts, view account's transaction history.",
 )
 
 
