@@ -13,23 +13,6 @@ creditor must have different `debtorName`s. The creditor may choose \
 any name that is convenient, or easy to remember.'
 
 
-class AccountCreationRequestSchema(Schema):
-    debtorName = fields.String(
-        required=True,
-        description=_DEBTOR_NAME_DESCRIPTION,
-        example='First Swaptacular Bank',
-    )
-    debtorInfo = fields.Nested(
-        DebtorInfoSchema,
-        required=True,
-        description="A JSON object containing information that uniquely and reliably "
-                    "identifies the debtor. For example, if the debtor happens to be a "
-                    "bank, this would contain the type of the debtor (a bank), and the "
-                    "ID of the bank.",
-        example={'type': 'SwptDebtorInfo', 'debtorId': 1},
-    )
-
-
 class AccountStatusSchema(Schema):
     type = fields.Function(
         lambda obj: 'AccountStatus',
@@ -203,6 +186,31 @@ class AccountExchangeSettingsSchema(Schema):
                     '(Note that this limit applies only for automatic exchanges, and is '
                     'enforced on "best effort" bases.)',
         example=5000,
+    )
+
+
+class AccountCreationRequestSchema(Schema):
+    debtorInfo = fields.Nested(
+        DebtorInfoSchema,
+        required=True,
+        description="A JSON object containing information that uniquely and reliably "
+                    "identifies the debtor. For example, if the debtor happens to be a "
+                    "bank, this would contain the type of the debtor (a bank), and the "
+                    "ID of the bank.",
+        example={'type': 'SwptDebtorInfo', 'debtorId': 1},
+    )
+    displaySettings = fields.Nested(
+        AccountDisplaySettingsSchema,
+        required=True,
+        description="Account's display settings.",
+    )
+    exchangeSettings = fields.Nested(
+        AccountExchangeSettingsSchema,
+        description="Account's exchange settings.",
+    )
+    config = fields.Nested(
+        AccountConfigSchema,
+        description="Account's configuration.",
     )
 
 
