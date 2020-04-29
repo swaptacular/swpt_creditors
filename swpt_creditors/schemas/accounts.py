@@ -3,7 +3,7 @@ from flask import url_for
 from swpt_lib import endpoints
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, DebtorInfoSchema, DisplaySettingsSchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
 )
 from .paginated_lists import PaginatedListSchema
 
@@ -89,6 +89,13 @@ class AccountConfigSchema(Schema):
                     'configuration option is *not supported*.',
         example=0.0,
     )
+    revision = fields.Integer(
+        required=True,
+        dump_only=True,
+        format='uint64',
+        description=REVISION_DESCRIPTION,
+        example=1,
+    )
 
 
 class AccountDisplaySettingsSchema(DisplaySettingsSchema):
@@ -119,6 +126,13 @@ class AccountDisplaySettingsSchema(DisplaySettingsSchema):
         required=True,
         description=_DEBTOR_NAME_DESCRIPTION,
         example='First Swaptacular Bank',
+    )
+    revision = fields.Integer(
+        required=True,
+        dump_only=True,
+        format='uint64',
+        description=REVISION_DESCRIPTION,
+        example=1,
     )
 
 
@@ -186,6 +200,13 @@ class AccountExchangeSettingsSchema(Schema):
                     '(Note that this limit applies only for automatic exchanges, and is '
                     'enforced on "best effort" bases.)',
         example=5000,
+    )
+    revision = fields.Integer(
+        required=True,
+        dump_only=True,
+        format='uint64',
+        description=REVISION_DESCRIPTION,
+        example=1,
     )
 
 

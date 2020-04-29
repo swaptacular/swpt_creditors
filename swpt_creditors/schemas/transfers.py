@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
-from .common import ObjectReferenceSchema, AccountInfoSchema, MAX_INT64, URI_DESCRIPTION
+from .common import AccountInfoSchema, MAX_INT64, URI_DESCRIPTION, REVISION_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -154,6 +154,13 @@ class TransferSchema(BaseTransferSchema):
         required=True,
         description='Errors that have occurred during the execution of the transfer. If '
                     'the transfer has been successful, this will be an empty array.',
+    )
+    revision = fields.Integer(
+        required=True,
+        dump_only=True,
+        format='uint64',
+        description=REVISION_DESCRIPTION,
+        example=0,
     )
 
     def get_uri(self, obj):
