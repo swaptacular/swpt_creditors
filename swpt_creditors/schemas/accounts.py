@@ -145,7 +145,7 @@ class AccountDisplaySettingsSchema(Schema):
         description='If `true`, the account will not be shown in the list of '
                     'accounts belonging to the creditor. This may be convenient '
                     'for special-purpose accounts.',
-        example=True,
+        example=False,
     )
     amountDivisor = fields.Float(
         missing=1.0,
