@@ -1,7 +1,10 @@
 from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
-from .common import AccountInfoSchema, MAX_INT64, URI_DESCRIPTION, REVISION_DESCRIPTION
+from .common import (
+    ObjectReferenceSchema, AccountInfoSchema, MessageSchema,
+    MAX_INT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
+)
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -114,6 +117,13 @@ class TransferSchema(BaseTransferSchema):
         description='The type of this object.',
         example='Transfer',
     )
+    portfolio = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the creditor's portfolio that contains this transfer.",
+        example={'uri': '/creditors/2/portfolio'},
+    )
     notes = fields.Dict(
         required=True,
         dump_only=True,
@@ -223,4 +233,34 @@ class CommittedTransferSchema(BaseTransferSchema):
         description='The moment at which the transfer was committed. If this field is '
                     'not present, this means that the moment at which the transfer was '
                     'committed is unknown.',
+    )
+
+
+class TransferChangeMessageSchema(MessageSchema):
+    type = fields.Function(
+        lambda obj: 'TransferChangeMessage',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferChangeMessage',
+    )
+    transfer = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the changed transfer.",
+        example={'uri': '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'},
+    )
+    isDeleted = fields.Boolean(
+        dump_only=True,
+        missing=False,
+        description="Whether the transfer has been deleted.",
+    )
+    changed = fields.Integer(
+        dump_only=True,
+        format='uint64',
+        description="The new revision number. Will not be present if "
+                    "the transfer is newly created.",
+        example=1,
     )
