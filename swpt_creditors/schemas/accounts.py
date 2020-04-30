@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema,
+    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema, MessageSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
 )
 
@@ -414,3 +414,42 @@ class AccountSchema(Schema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
+
+
+class AccountChangeMessageSchema(MessageSchema):
+    type = fields.Function(
+        lambda obj: 'AccountChangeMessage',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountChangeMessage',
+    )
+    isDeleted = fields.Boolean(
+        dump_only=True,
+        missing=False,
+        description="Whether the account has been deleted.",
+    )
+    changedConfig = fields.Integer(
+        dump_only=True,
+        format='uint64',
+        description="The new config revision number.",
+        example=1,
+    )
+    changedDisplaySettings = fields.Integer(
+        dump_only=True,
+        format='uint64',
+        description="The new display settings revision number.",
+        example=1,
+    )
+    changedExchangeSettings = fields.Integer(
+        dump_only=True,
+        format='uint64',
+        description="The new exchange settings revision number.",
+        example=1,
+    )
+    changedStatus = fields.Nested(
+        AccountStatusSchema,
+        dump_only=True,
+        description="The new account status information.",
+    )

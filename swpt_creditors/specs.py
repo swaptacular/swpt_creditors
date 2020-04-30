@@ -170,7 +170,7 @@ JOURNAL_MESSAGES_EXAMPLE = {
             'messageId': 12345,
             'postedAt': '2020-04-06T14:22:11Z',
             'portfolio': {'uri': '/creditors/2/portfolio'},
-            'type': 'Message',
+            'type': 'TextMessage',
             'text': 'Hi!',
         },
     ],
