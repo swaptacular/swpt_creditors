@@ -68,6 +68,7 @@ def create_app(config_dict={}):
     from .routes import creditors_api, accounts_api, transfers_api
     from .cli import swpt_creditors
     from . import models  # noqa
+    from . import schemas
 
     app = Flask(__name__)
     app.url_map.converters['i64'] = Int64Converter
@@ -84,5 +85,6 @@ def create_app(config_dict={}):
     api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)
+    api.spec.components.schema('AccountChangeMessage', schema=schemas.AccountChangeMessageSchema)
     app.cli.add_command(swpt_creditors)
     return app
