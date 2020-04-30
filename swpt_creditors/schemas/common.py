@@ -106,13 +106,6 @@ class MessageSchema(Schema):
         description="The ID of this message. Later messages have bigger IDs.",
         example=12345,
     )
-    portfolio = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The creditor's portfolio URI.",
-        example={'uri': '/creditors/2/portfolio'},
-    )
     posted_at_ts = fields.DateTime(
         required=True,
         dump_only=True,

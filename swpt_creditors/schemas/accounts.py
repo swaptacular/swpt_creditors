@@ -425,6 +425,13 @@ class AccountChangeMessageSchema(MessageSchema):
         description='The type of this object.',
         example='AccountChangeMessage',
     )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the changed account.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
     isDeleted = fields.Boolean(
         dump_only=True,
         missing=False,
