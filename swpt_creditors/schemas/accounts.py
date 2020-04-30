@@ -441,26 +441,26 @@ class AccountChangeMessageSchema(MessageSchema):
         dump_only=True,
         format='uint64',
         description="The new config revision number. Will not be present if "
-                    "the account is newly created.",
+                    "the account is deleted or newly created.",
         example=1,
     )
     changedDisplaySettings = fields.Integer(
         dump_only=True,
         format='uint64',
         description="The new display settings revision number. Will not be "
-                    "present if the account is newly created.",
+                    "present if the account is deleted or newly created.",
         example=1,
     )
     changedExchangeSettings = fields.Integer(
         dump_only=True,
         format='uint64',
         description="The new exchange settings revision number. Will not be "
-                    "present if the account is newly created.",
+                    "present if the account is deleted or newly created.",
         example=1,
     )
     changedStatus = fields.Nested(
         AccountStatusSchema,
         dump_only=True,
         description="The new account status information. Will not be present "
-                    "if the account is newly created.",
+                    "if the account is deleted or newly created.",
     )

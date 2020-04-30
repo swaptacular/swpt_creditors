@@ -261,6 +261,6 @@ class TransferChangeMessageSchema(MessageSchema):
         dump_only=True,
         format='uint64',
         description="The new revision number. Will not be present if "
-                    "the transfer is newly created.",
+                    "the transfer is deleted or newly created.",
         example=1,
     )
