@@ -2,8 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, DebtorInfoSchema,
-    DisplaySettingsSchema, PaginatedListSchema,
+    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
 )
 
@@ -99,44 +98,6 @@ class AccountConfigSchema(Schema):
     )
 
 
-class AccountDisplaySettingsSchema(DisplaySettingsSchema):
-    uri = fields.Method(
-        'get_uri',
-        required=True,
-        type='string',
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/accounts/1/display',
-    )
-    type = fields.Function(
-        lambda obj: 'AccountDisplaySettings',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountDisplaySettings',
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the corresponding account.",
-        example={'uri': '/creditors/2/accounts/1/'},
-    )
-    debtorName = fields.String(
-        required=True,
-        description=_DEBTOR_NAME_DESCRIPTION,
-        example='First Swaptacular Bank',
-    )
-    revision = fields.Integer(
-        required=True,
-        dump_only=True,
-        format='uint64',
-        description=REVISION_DESCRIPTION,
-        example=0,
-    )
-
-
 class AccountExchangeSettingsSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -208,6 +169,120 @@ class AccountExchangeSettingsSchema(Schema):
         format='uint64',
         description=REVISION_DESCRIPTION,
         example=0,
+    )
+
+
+class DisplaySettingsSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'DisplaySettings',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='DisplaySettings',
+    )
+    debtorName = fields.String(
+        required=True,
+        description='The name of the debtor.',
+        example='First Swaptacular Bank',
+    )
+    debtorUri = fields.Url(
+        relative=False,
+        format='uri',
+        description='A link containing additional information about the debtor. This '
+                    'field is optional.',
+        example='https://example.com/debtors/1/',
+    )
+    amountDivisor = fields.Float(
+        missing=1.0,
+        validate=validate.Range(min=0.0, min_inclusive=False),
+        description="The amount will be divided by this number before being displayed.",
+        example=100.0,
+    )
+    decimalPlaces = fields.Integer(
+        missing=0,
+        description='The number of digits to show after the decimal point, when displaying '
+                    'the amount.',
+        example=2,
+    )
+    unitName = fields.String(
+        description='The full name of the value measurement unit, "United States Dollars" '
+                    'for example. This field is optional.',
+        example='United States Dollars',
+    )
+    unitAbbr = fields.String(
+        missing='\u00A4',
+        description='A short abbreviation for the value measurement unit. It will be shown '
+                    'right after the displayed amount, "500.00 USD" for example.',
+        example='USD',
+    )
+    unitUri = fields.Url(
+        relative=False,
+        format='uri',
+        description='A link containing additional information about the value measurement '
+                    'unit. This field is optional.',
+        example='https://example.com/units/USD',
+    )
+    hide = fields.Boolean(
+        missing=False,
+        description='If `true`, the account will not be shown in the list of '
+                    'accounts belonging to the creditor. This may be convenient '
+                    'for special-purpose accounts.',
+        example=False,
+    )
+
+
+class AccountDisplaySettingsSchema(DisplaySettingsSchema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/display',
+    )
+    type = fields.Function(
+        lambda obj: 'AccountDisplaySettings',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountDisplaySettings',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding account.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
+    debtorName = fields.String(
+        required=True,
+        description=_DEBTOR_NAME_DESCRIPTION,
+        example='First Swaptacular Bank',
+    )
+    revision = fields.Integer(
+        required=True,
+        dump_only=True,
+        format='uint64',
+        description=REVISION_DESCRIPTION,
+        example=0,
+    )
+
+
+class DebtorInfoSchema(Schema):
+    type = fields.String(
+        required=True,
+        description="The type of this object. Different debtors may use different "
+                    "**additional fields** containing information about the debtor. The "
+                    "provided information must be sufficient to uniquely and reliably "
+                    "identify the debtor. This field contains the name of the used schema.",
+        example='DebtorInfo',
+    )
+    displaySettings = fields.Nested(
+        DisplaySettingsSchema,
+        description='The account display settings recommended by the debtor. This field '
+                    'is optional.',
     )
 
 
