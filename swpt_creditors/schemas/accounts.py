@@ -392,22 +392,19 @@ class AccountSchema(Schema):
         AccountConfigSchema,
         dump_only=True,
         required=True,
-        description="The account's configuration. Can be changed (PATCH-ed) by "
-                    "the owner of the account.",
+        description="The account's configuration.",
     )
     displaySettings = fields.Nested(
         AccountDisplaySettingsSchema,
         dump_only=True,
         required=True,
-        description="The account's display settings. Can be changed (PATCH-ed) by "
-                    "the owner of the account.",
+        description="The account's display settings.",
     )
     exchangeSettings = fields.Nested(
         AccountExchangeSettingsSchema,
         dump_only=True,
         required=True,
-        description="The account's exchange settings. Can be changed (PATCH-ed) by "
-                    "the owner of the account.",
+        description="The account's exchange settings.",
     )
 
     def get_uri(self, obj):
