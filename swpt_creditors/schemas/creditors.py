@@ -1,7 +1,6 @@
 from marshmallow import Schema, fields
 from flask import url_for
-from .common import ObjectReferenceSchema, URI_DESCRIPTION
-from .paginated_lists import PaginatedListSchema
+from .common import ObjectReferenceSchema, PaginatedListSchema, URI_DESCRIPTION
 
 
 class CreditorCreationOptionsSchema(Schema):

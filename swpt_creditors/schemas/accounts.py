@@ -2,10 +2,10 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, DebtorInfoSchema, DisplaySettingsSchema,
+    ObjectReferenceSchema, AccountInfoSchema, DebtorInfoSchema,
+    DisplaySettingsSchema, PaginatedListSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
 )
-from .paginated_lists import PaginatedListSchema
 
 _DEBTOR_NAME_DESCRIPTION = '\
 The name of the debtor. All accounts belonging to a given \
