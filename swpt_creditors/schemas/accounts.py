@@ -95,7 +95,7 @@ class AccountConfigSchema(Schema):
         dump_only=True,
         format='uint64',
         description=REVISION_DESCRIPTION,
-        example=1,
+        example=0,
     )
 
 
@@ -133,7 +133,7 @@ class AccountDisplaySettingsSchema(DisplaySettingsSchema):
         dump_only=True,
         format='uint64',
         description=REVISION_DESCRIPTION,
-        example=1,
+        example=0,
     )
 
 
@@ -207,7 +207,7 @@ class AccountExchangeSettingsSchema(Schema):
         dump_only=True,
         format='uint64',
         description=REVISION_DESCRIPTION,
-        example=1,
+        example=0,
     )
 
 
@@ -314,25 +314,25 @@ class AccountSchema(Schema):
         description="Account status information.",
     )
     config = fields.Nested(
-        ObjectReferenceSchema,
+        AccountConfigSchema,
         dump_only=True,
         required=True,
-        description="The URI for account's configuration.",
-        example={'uri': '/creditors/2/accounts/1/config'}
+        description="The account's configuration. Can be changed (PATCH-ed) by "
+                    "the owner of the account.",
     )
     displaySettings = fields.Nested(
-        ObjectReferenceSchema,
+        AccountDisplaySettingsSchema,
         dump_only=True,
         required=True,
-        description="The URI for account's display settings.",
-        example={'uri': '/creditors/2/accounts/1/display'}
+        description="The account's display settings. Can be changed (PATCH-ed) by "
+                    "the owner of the account.",
     )
     exchangeSettings = fields.Nested(
-        ObjectReferenceSchema,
+        AccountExchangeSettingsSchema,
         dump_only=True,
         required=True,
-        description="The URI for account's exchange settings.",
-        example={'uri': '/creditors/2/accounts/1/exchange'}
+        description="The account's exchange settings. Can be changed (PATCH-ed) by "
+                    "the owner of the account.",
     )
 
     def get_uri(self, obj):
