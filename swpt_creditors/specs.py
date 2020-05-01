@@ -151,9 +151,8 @@ LOG_ENTRIES_EXAMPLE = {
         {
             'entryId': 12345,
             'postedAt': '2020-04-06T14:22:11Z',
-            'portfolio': {'uri': '/creditors/2/portfolio'},
-            'type': 'TextEntry',
-            'text': 'Hi!',
+            'account': {'uri': '/creditors/2/accounts/1/'},
+            'type': 'AccountUpdate',
         },
     ],
     'forthcoming': '?prev=12345',
