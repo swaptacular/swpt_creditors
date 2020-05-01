@@ -123,12 +123,12 @@ class LedgerEntrySchema(LogEntrySchema):
         description='The type of this object.',
         example='LedgerEntry',
     )
-    account = fields.Nested(
+    ledger = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account.",
-        example={'uri': '/creditors/2/accounts/1/'},
+        description="The URI of the corresponding account ledger.",
+        example={'uri': '/creditors/2/accounts/1/ledger'},
     )
     postedAmount = fields.Integer(
         required=True,

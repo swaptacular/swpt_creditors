@@ -235,26 +235,3 @@ class CommittedTransferSchema(BaseTransferSchema):
                     'not present, this means that the moment at which the transfer was '
                     'committed is unknown.',
     )
-
-
-class TransferUpdateEntrySchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'TransferUpdateEntry',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='TransferUpdateEntry',
-    )
-    transfer = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the updated transfer.",
-        example={'uri': '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'},
-    )
-    isDeleted = fields.Boolean(
-        dump_only=True,
-        missing=False,
-        description="Whether the transfer has been deleted.",
-    )

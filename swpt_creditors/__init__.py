@@ -61,6 +61,17 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_DEAD_ACCOUNTS_ABANDON_DAYS = 365
 
 
+def register_schemas(components):
+    from . import schemas
+
+    components.schema('AccountUpdate', schema=schemas.AccountUpdateSchema)
+    components.schema('AccountStatusUpdate', schema=schemas.AccountStatusUpdateSchema)
+    components.schema('AccountConfigUpdate', schema=schemas.AccountConfigUpdateSchema)
+    components.schema('AccountExchangeSettingsUpdate', schema=schemas.AccountExchangeSettingsUpdateSchema)
+    components.schema('AccountDisplaySettingsUpdate', schema=schemas.AccountDisplaySettingsUpdateSchema)
+    components.schema('TransferUpdate', schema=schemas.TransferUpdateSchema)
+
+
 def create_app(config_dict={}):
     from flask import Flask
     from swpt_lib.utils import Int64Converter
@@ -68,7 +79,6 @@ def create_app(config_dict={}):
     from .routes import creditors_api, accounts_api, transfers_api
     from .cli import swpt_creditors
     from . import models  # noqa
-    from . import schemas
 
     app = Flask(__name__)
     app.url_map.converters['i64'] = Int64Converter
@@ -85,7 +95,6 @@ def create_app(config_dict={}):
     api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)
-    api.spec.components.schema('AccountUpdateEntry', schema=schemas.AccountUpdateEntrySchema)
-    api.spec.components.schema('TransferUpdateEntry', schema=schemas.TransferUpdateEntrySchema)
+    register_schemas(api.spec.components)
     app.cli.add_command(swpt_creditors)
     return app

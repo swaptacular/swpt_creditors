@@ -303,7 +303,7 @@ class AccountLedgerEndpoint(MethodView):
     @accounts_api.doc(operationId='getAccountLedger',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
-        """Return account's ledger information."""
+        """Return account's ledger."""
 
         abort(500)
 

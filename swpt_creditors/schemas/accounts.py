@@ -480,26 +480,3 @@ class AccountSchema(Schema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
-
-
-class AccountUpdateEntrySchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountUpdateEntry',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountUpdateEntry',
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the updated account.",
-        example={'uri': '/creditors/2/accounts/1/'},
-    )
-    isDeleted = fields.Boolean(
-        dump_only=True,
-        missing=False,
-        description="Whether the account has been deleted.",
-    )
