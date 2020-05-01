@@ -416,51 +416,24 @@ class AccountSchema(Schema):
         )
 
 
-class AccountChangeMessageSchema(LogEntrySchema):  # TODO: change the name and the contents
+class AccountUpdateEntrySchema(LogEntrySchema):
     type = fields.Function(
-        lambda obj: 'AccountChangeMessage',
+        lambda obj: 'AccountUpdateEntry',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountChangeMessage',
+        example='AccountUpdateEntry',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the changed account.",
+        description="The URI of the updated account.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     isDeleted = fields.Boolean(
         dump_only=True,
         missing=False,
         description="Whether the account has been deleted.",
-    )
-    changedConfig = fields.Integer(
-        dump_only=True,
-        format='uint64',
-        description="The new config revision number. Will not be present if "
-                    "the account is deleted or newly created.",
-        example=1,
-    )
-    changedDisplaySettings = fields.Integer(
-        dump_only=True,
-        format='uint64',
-        description="The new display settings revision number. Will not be "
-                    "present if the account is deleted or newly created.",
-        example=1,
-    )
-    changedExchangeSettings = fields.Integer(
-        dump_only=True,
-        format='uint64',
-        description="The new exchange settings revision number. Will not be "
-                    "present if the account is deleted or newly created.",
-        example=1,
-    )
-    changedStatus = fields.Nested(
-        AccountStatusSchema,
-        dump_only=True,
-        description="The new account status information. Will not be present "
-                    "if the account is deleted or newly created.",
     )

@@ -85,7 +85,7 @@ def create_app(config_dict={}):
     api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)
-    api.spec.components.schema('AccountChangeMessage', schema=schemas.AccountChangeMessageSchema)
+    api.spec.components.schema('AccountUpdateEntry', schema=schemas.AccountUpdateEntrySchema)
     api.spec.components.schema('TransferUpdateEntry', schema=schemas.TransferUpdateEntrySchema)
     app.cli.add_command(swpt_creditors)
     return app
