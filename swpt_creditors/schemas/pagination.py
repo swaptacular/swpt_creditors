@@ -94,7 +94,7 @@ class ObjectReferencesPage(Schema):
     )
 
 
-class LedgerEntriesPage(Schema):
+class LedgerEntriesPageSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,

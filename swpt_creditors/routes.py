@@ -7,7 +7,7 @@ from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
-    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPage,
+    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
     AccountDisplaySettingsSchema, AccountExchangeSettingsSchema, AccountInfoSchema,
@@ -311,7 +311,7 @@ class AccountLedgerEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
 class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
+    @accounts_api.response(LedgerEntriesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
     @accounts_api.doc(operationId='getAccountLedgerEntriesPage',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
