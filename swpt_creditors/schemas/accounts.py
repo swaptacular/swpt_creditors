@@ -2,14 +2,18 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema, LogEntrySchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, UPDATE_ENTRY_ID_DESCRIPTION
+    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
 )
 
 _DEBTOR_NAME_DESCRIPTION = '\
 The name of the debtor. All accounts belonging to a given \
 creditor must have different `debtorName`s. The creditor may choose \
 any name that is convenient, or easy to remember.'
+
+UPDATE_ENTRY_ID_DESCRIPTION = '\
+The ID of the latest `{type}` entry for this account in the log. Gets \
+bigger after each update.'
 
 
 class AccountLedgerSchema(Schema):
@@ -115,7 +119,7 @@ class AccountStatusSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format="uint64",
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountStatusUpdateEntry'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountStatusUpdate'),
         example=349,
     )
 
@@ -173,7 +177,7 @@ class AccountConfigSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format="uint64",
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountConfigUpdateEntry'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountConfigUpdate'),
         example=346,
     )
 
@@ -248,7 +252,7 @@ class AccountExchangeSettingsSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format="uint64",
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeSettingsUpdateEntry'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeSettingsUpdate'),
         example=347,
     )
 
@@ -347,7 +351,7 @@ class AccountDisplaySettingsSchema(DisplaySettingsSchema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format="uint64",
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplaySettingsUpdateEntry'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplaySettingsUpdate'),
         example=348,
     )
 
@@ -469,7 +473,7 @@ class AccountSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format="uint64",
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountUpdateEntry'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountUpdate'),
         example=344,
     )
 

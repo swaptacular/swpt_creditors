@@ -170,7 +170,7 @@ class TransferSchema(BaseTransferSchema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format="uint64",
-        description="The ID of the latest `TransferUpdateEntry` for this transfer in the log.",
+        description="The ID of the latest `TransferUpdate` entry for this transfer in the log.",
         example=345,
     )
 
