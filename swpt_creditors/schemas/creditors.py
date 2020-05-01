@@ -78,32 +78,17 @@ class PortfolioSchema(Schema):
             'type': 'PaginatedList',
         },
     )
-    journal = fields.Nested(
-        PaginatedListSchema,
-        required=True,
-        dump_only=True,
-        description="A paginated list of recently posted ledger entries (for any of creditor's "
-                    "accounts). The paginated list will be sorted in chronological order "
-                    "(smaller entry IDs go first). This allows creditors to update the "
-                    "position of all their accounts, simply by looking at the \"journal\".",
-        example={
-            'first': '/creditors/2/journal',
-            'forthcoming': '/creditors/2/journal?prev=1234567890',
-            'itemsType': 'LedgerEntry',
-            'type': 'PaginatedList',
-        },
-    )
     log = fields.Nested(
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description="A paginated list of recently posted messages. The paginated list will "
-                    "be sorted in chronological order (smaller message IDs go first). This allows "
-                    "creditors to obtain the new messages, simply by looking at the \"log\".",
+        description="A paginated list of recently posted log entries. The paginated list will "
+                    "be sorted in chronological order (smaller entry IDs go first). This allows "
+                    "the clients of the API to synchronize their data by looking at the \"log\".",
         example={
             'first': '/creditors/2/log',
             'forthcoming': '/creditors/2/log?prev=1234567890',
-            'itemsType': 'Message',
+            'itemsType': 'LogEntry',
             'type': 'PaginatedList',
         },
     )

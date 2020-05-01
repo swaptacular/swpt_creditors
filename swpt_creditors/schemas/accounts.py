@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from swpt_lib import endpoints
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema, MessageSchema,
+    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema, LogEntrySchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
 )
 
@@ -416,7 +416,7 @@ class AccountSchema(Schema):
         )
 
 
-class AccountChangeMessageSchema(MessageSchema):
+class AccountChangeMessageSchema(LogEntrySchema):  # TODO: change the name and the contents
     type = fields.Function(
         lambda obj: 'AccountChangeMessage',
         required=True,

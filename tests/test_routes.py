@@ -48,16 +48,11 @@ def test_get_portfolio(client, creditor):
     assert data['type'] == 'Portfolio'
     assert data['uri'] == '/creditors/2/portfolio'
     assert data['creditor'] == {'uri': '/creditors/2/'}
-    journal = data['journal']
-    assert journal['type'] == 'PaginatedList'
-    assert journal['first'] == '/creditors/2/journal'
-    assert journal['forthcoming'] == '/creditors/2/journal?prev=0'
-    assert journal['itemsType'] == 'LedgerEntry'
     log = data['log']
     assert log['type'] == 'PaginatedList'
     assert log['first'] == '/creditors/2/log'
     assert log['forthcoming'] == '/creditors/2/log?prev=0'
-    assert log['itemsType'] == 'Message'
+    assert log['itemsType'] == 'LogEntry'
     dt = data['transfers']
     assert dt['type'] == 'PaginatedList'
     assert dt['first'] == '/creditors/2/transfers/'

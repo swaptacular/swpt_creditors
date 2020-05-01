@@ -8,7 +8,7 @@ from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPage,
-    PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, MessagesPageSchema,
+    PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
     AccountDisplaySettingsSchema, AccountExchangeSettingsSchema, AccountInfoSchema
 )
@@ -87,13 +87,9 @@ class PortfolioEndpoint(MethodView):
         if not portfolio:
             abort(404)
 
-        journal_url = url_for('.JournalEntriesEndpoint', creditorId=creditorId)
-        jouranl_q = urlencode({'prev': portfolio.latest_journal_entry_id})
-        portfolio.journal = PaginatedList('LedgerEntry', journal_url, forthcoming=f'{journal_url}?{jouranl_q}')
-
-        log_url = url_for('.LogMessagesEndpoint', creditorId=creditorId)
-        log_q = urlencode({'prev': portfolio.latest_log_message_id})
-        portfolio.log = PaginatedList('Message', log_url, forthcoming=f'{log_url}?{log_q}')
+        log_url = url_for('.LogEntriesEndpoint', creditorId=creditorId)
+        log_q = urlencode({'prev': portfolio.latest_log_entry_id})
+        portfolio.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
 
         transfers_url = url_for('transfers.TransfersEndpoint', creditorId=creditorId)
         transfers_count = portfolio.direct_transfers_count
@@ -107,39 +103,19 @@ class PortfolioEndpoint(MethodView):
         return portfolio
 
 
-@creditors_api.route('/<i64:creditorId>/journal', parameters=[CID])
-class JournalEntriesEndpoint(MethodView):
-    @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(LedgerEntriesPage(context=CONTEXT), example=specs.JOURNAL_LEDGER_ENTRIES_EXAMPLE)
-    @creditors_api.doc(operationId='getJournalPage',
-                       responses={404: specs.CREDITOR_DOES_NOT_EXIST})
-    def get(self, pagination_parameters, creditorId):
-        """Return a collection of creditor's recently posted ledger entries.
-
-        The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recently posted ledger
-        entries (for any of creditor's accounts). The returned
-        fragment will be sorted in chronological order (smaller entry
-        IDs go first).
-
-        """
-
-        abort(500)
-
-
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
-class LogMessagesEndpoint(MethodView):
+class LogEntriesEndpoint(MethodView):
     @creditors_api.arguments(PaginationParametersSchema, location='query')
-    @creditors_api.response(MessagesPageSchema(context=CONTEXT), example=specs.JOURNAL_MESSAGES_EXAMPLE)
+    @creditors_api.response(LogEntriesPageSchema(context=CONTEXT), example=specs.LOG_ENTRIES_EXAMPLE)
     @creditors_api.doc(operationId='getLogPage',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of creditor's recently posted messages.
+        """Return a collection of creditor's recently posted log entries.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recently posted
-        messages. The returned fragment will be sorted in
-        chronological order (smaller message IDs go first).
+        list. The paginated list contains all recently posted log
+        entries. The returned fragment will be sorted in chronological
+        order (smaller entry IDs go first).
 
         """
 

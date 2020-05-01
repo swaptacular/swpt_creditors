@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c803f0c31423
+Revision ID: 58cedd69c4db
 Revises: 8d8c816257ce
-Create Date: 2020-04-27 14:07:08.122865
+Create Date: 2020-05-01 13:14:11.794416
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c803f0c31423'
+revision = '58cedd69c4db'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -33,14 +33,12 @@ def upgrade():
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is active."),
     sa.Column('created_at_date', sa.DATE(), nullable=False, comment='The date on which the creditor was created.'),
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. A `null` means that the creditor has not been deactivated yet. Management operations (like making direct transfers) are not allowed on deactivated creditors. Once deactivated, a creditor stays deactivated until it is deleted. Important note: All creditors are created with their "is active" status bit set to `0`, and it gets set to `1` only after the first management operation has been performed.'),
-    sa.Column('latest_journal_entry_id', sa.BigInteger(), nullable=False),
-    sa.Column('latest_log_message_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_log_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('direct_transfers_count', sa.Integer(), nullable=False),
     sa.Column('accounts_count', sa.Integer(), nullable=False),
     sa.CheckConstraint('accounts_count >= 0'),
     sa.CheckConstraint('direct_transfers_count >= 0'),
-    sa.CheckConstraint('latest_journal_entry_id >= 0'),
-    sa.CheckConstraint('latest_log_message_id >= 0'),
+    sa.CheckConstraint('latest_log_entry_id >= 0'),
     sa.PrimaryKeyConstraint('creditor_id'),
     comment="Represents creditor's principal information."
     )

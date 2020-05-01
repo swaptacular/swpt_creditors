@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, MessageSchema,
+    ObjectReferenceSchema, AccountInfoSchema, LogEntrySchema,
     MAX_INT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
 )
 
@@ -236,7 +236,7 @@ class CommittedTransferSchema(BaseTransferSchema):
     )
 
 
-class TransferChangeMessageSchema(MessageSchema):
+class TransferChangeMessageSchema(LogEntrySchema):  # TODO: change the name and the contents
     type = fields.Function(
         lambda obj: 'TransferChangeMessage',
         required=True,

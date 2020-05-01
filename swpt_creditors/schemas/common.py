@@ -87,34 +87,34 @@ class AccountInfoSchema(Schema):
     )
 
 
-class MessageSchema(Schema):
+class LogEntrySchema(Schema):
     type = fields.Function(
-        lambda obj: 'Message',
+        lambda obj: 'LogEntry',
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object. Different kinds of messages may use different '
+        description='The type of this object. Different kinds of log entries may use different '
                     '**additional fields**, containing more data. This field contains the name '
                     'of the used schema.',
-        example='Message',
+        example='LogEntry',
     )
-    messageId = fields.Integer(
+    entryId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=1, max=MAX_UINT64),
         format="uint64",
-        description="The ID of this message. Later messages have bigger IDs.",
+        description="The ID of this log entry. Later log entries have bigger IDs.",
         example=12345,
     )
     posted_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='postedAt',
-        description='The moment at which this message was added to the log.',
+        description='The moment at which this entry was added to the log.',
     )
 
 
-class LedgerEntrySchema(Schema):
+class LedgerEntrySchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'LedgerEntry',
         required=True,
@@ -122,14 +122,6 @@ class LedgerEntrySchema(Schema):
         type='string',
         description='The type of this object.',
         example='LedgerEntry',
-    )
-    entryId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=1, max=MAX_UINT64),
-        format="uint64",
-        description="The ID of this entry. Later entries have bigger IDs.",
-        example=123,
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -164,12 +156,6 @@ class LedgerEntrySchema(Schema):
         description='The URI of the corresponding transfer.',
         example={'uri': '/creditors/2/accounts/1/transfers/999'},
     )
-    posted_at_ts = fields.DateTime(
-        required=True,
-        dump_only=True,
-        data_key='postedAt',
-        description='The moment at which this entry was added to the ledger.',
-    )
     previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
@@ -177,6 +163,6 @@ class LedgerEntrySchema(Schema):
         format="uint64",
         description="The ID of the previous entry in the account's ledger. Previous entries have "
                     "smaller IDs. When this field is not present, this means that there are no "
-                    "previous entries.",
+                    "previous entries in the account's ledger.",
         example=122,
     )

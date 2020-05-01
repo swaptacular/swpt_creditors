@@ -99,13 +99,11 @@ class Creditor(db.Model):
                 'and it gets set to `1` only after the first management operation has been '
                 'performed.',
     )
-    latest_journal_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
-    latest_log_message_id = db.Column(db.BigInteger, nullable=False, default=0)
+    latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     direct_transfers_count = db.Column(db.Integer, nullable=False, default=0)
     accounts_count = db.Column(db.Integer, nullable=False, default=0)
     __table_args__ = (
-        db.CheckConstraint(latest_journal_entry_id >= 0),
-        db.CheckConstraint(latest_log_message_id >= 0),
+        db.CheckConstraint(latest_log_entry_id >= 0),
         db.CheckConstraint(direct_transfers_count >= 0),
         db.CheckConstraint(accounts_count >= 0),
         {

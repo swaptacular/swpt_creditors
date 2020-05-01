@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields
-from .common import ObjectReferenceSchema, LedgerEntrySchema, MessageSchema, URI_DESCRIPTION
+from .common import ObjectReferenceSchema, LedgerEntrySchema, LogEntrySchema, URI_DESCRIPTION
 
 _PAGE_NEXT_DESCRIPTION = '\
 An URI of another `{type}` object which contains more items. When \
@@ -22,7 +22,7 @@ class PaginationParametersSchema(Schema):
     )
 
 
-class MessagesPageSchema(Schema):
+class LogEntriesPageSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -32,31 +32,31 @@ class MessagesPageSchema(Schema):
         example='/creditors/2/log',
     )
     type = fields.Function(
-        lambda obj: 'MessagesPage',
+        lambda obj: 'LogEntriesPage',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='MessagesPage',
+        example='LogEntriesPage',
     )
     items = fields.Nested(
-        MessageSchema(many=True),
+        LogEntrySchema(many=True),
         required=True,
         dump_only=True,
-        description='An array of messages. Can be empty.',
+        description='An array of log entries. Can be empty.',
     )
     next = fields.Method(
         'get_next_uri',
         type='string',
         format='uri-reference',
-        description=_PAGE_NEXT_DESCRIPTION.format(type='MessagesPage'),
+        description=_PAGE_NEXT_DESCRIPTION.format(type='LogEntriesPage'),
         example='?prev=12345',
     )
     forthcoming = fields.Method(
         'get_forthcoming_uri',
         type='string',
         format='uri-reference',
-        description=_PAGE_FORTHCOMING_DESCRIPTION.format(type='MessagesPage'),
+        description=_PAGE_FORTHCOMING_DESCRIPTION.format(type='LogEntriesPage'),
         example='?prev=1234567890',
     )
 

@@ -144,33 +144,15 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
     'next': '?prev=123',
 }
 
-JOURNAL_LEDGER_ENTRIES_EXAMPLE = {
-    'uri': '/creditors/2/journal',
-    'type': 'LedgerEntriesPage',
-    'items': [
-        {
-            'type': 'LedgerEntry',
-            'account': {'uri': '/creditors/2/accounts/1/'},
-            'transfer': {'uri': '/creditors/2/accounts/1/transfers/999'},
-            'entryId': 123,
-            'postedAt': '2020-04-03T18:42:44Z',
-            'principal': 1500,
-            'previousEntryId': 122,
-            'amount': 1000
-        },
-    ],
-    'next': '?prev=123',
-}
-
-JOURNAL_MESSAGES_EXAMPLE = {
+LOG_ENTRIES_EXAMPLE = {
     'uri': '/creditors/2/log',
-    'type': 'MessagesPage',
+    'type': 'LogEntriesPage',
     'items': [
         {
-            'messageId': 12345,
+            'entryId': 12345,
             'postedAt': '2020-04-06T14:22:11Z',
             'portfolio': {'uri': '/creditors/2/portfolio'},
-            'type': 'TextMessage',
+            'type': 'TextEntry',
             'text': 'Hi!',
         },
     ],
