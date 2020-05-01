@@ -153,7 +153,7 @@ class LedgerEntrySchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description='The URI of the corresponding transfer.',
+        description='The URI of the corresponding `CommittedTransfer`.',
         example={'uri': '/creditors/2/accounts/1/transfers/999'},
     )
     previous_entry_id = fields.Integer(
