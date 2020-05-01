@@ -12,7 +12,7 @@ URI_DESCRIPTION = '\
 The URI of this object. Can be a relative URI.'
 
 UPDATE_ENTRY_ID_DESCRIPTION = '\
-The ID of the latest `{type}` for this account in the log. Gets \
+The ID of the latest `{type}` for this account in the log. It gets \
 bigger after each update.'
 
 

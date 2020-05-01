@@ -464,6 +464,14 @@ class AccountSchema(Schema):
         required=True,
         description="The account's exchange settings.",
     )
+    latestUpdateEntryId = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountUpdateEntry'),
+        example=344,
+    )
 
     def get_uri(self, obj):
         return url_for(
