@@ -3,7 +3,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, LogEntrySchema,
-    MAX_INT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -165,12 +165,13 @@ class TransferSchema(BaseTransferSchema):
         description='Errors that have occurred during the execution of the transfer. If '
                     'the transfer has been successful, this will be an empty array.',
     )
-    revision = fields.Integer(
+    latestUpdateEntryId = fields.Integer(
         required=True,
         dump_only=True,
-        format='uint64',
-        description=REVISION_DESCRIPTION,
-        example=0,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description="The ID of the latest `TransferUpdateEntry` for this transfer in the log.",
+        example=345,
     )
 
     def get_uri(self, obj):
@@ -236,31 +237,24 @@ class CommittedTransferSchema(BaseTransferSchema):
     )
 
 
-class TransferChangeMessageSchema(LogEntrySchema):  # TODO: change the name and the contents
+class TransferUpdateEntrySchema(LogEntrySchema):
     type = fields.Function(
-        lambda obj: 'TransferChangeMessage',
+        lambda obj: 'TransferUpdateEntry',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='TransferChangeMessage',
+        example='TransferUpdateEntry',
     )
     transfer = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the changed transfer.",
+        description="The URI of the updated transfer.",
         example={'uri': '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'},
     )
     isDeleted = fields.Boolean(
         dump_only=True,
         missing=False,
         description="Whether the transfer has been deleted.",
-    )
-    changed = fields.Integer(
-        dump_only=True,
-        format='uint64',
-        description="The new revision number. Will not be present if "
-                    "the transfer is deleted or newly created.",
-        example=1,
     )

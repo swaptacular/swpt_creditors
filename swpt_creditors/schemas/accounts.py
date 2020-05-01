@@ -374,12 +374,12 @@ class AccountSchema(Schema):
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
-    latestEntryId = fields.Integer(
+    latestLedgerEntryId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format="uint64",
-        description="The ID of the latest entry in the account ledger.",
+        description="The ID of the latest `LedgerEntry` for this account in the log.",
         example=123,
     )
     status = fields.Nested(
