@@ -11,9 +11,9 @@ MAX_UINT64 = (1 << 64) - 1
 URI_DESCRIPTION = '\
 The URI of this object. Can be a relative URI.'
 
-REVISION_DESCRIPTION = '\
-The revision number. It will be `0` when this object is created, and \
-will be incremented on each subsequent change.'
+UPDATE_ENTRY_ID_DESCRIPTION = '\
+The ID of the latest `{type}` for this account in the log. Gets \
+bigger after each update.'
 
 
 class ObjectReferenceSchema(Schema):

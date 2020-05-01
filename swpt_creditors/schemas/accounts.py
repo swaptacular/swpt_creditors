@@ -3,7 +3,7 @@ from flask import url_for
 from swpt_lib import endpoints
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema, LogEntrySchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, REVISION_DESCRIPTION,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, UPDATE_ENTRY_ID_DESCRIPTION
 )
 
 _DEBTOR_NAME_DESCRIPTION = '\
@@ -12,7 +12,71 @@ creditor must have different `debtorName`s. The creditor may choose \
 any name that is convenient, or easy to remember.'
 
 
+class AccountLedgerSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/ledger',
+    )
+    type = fields.Function(
+        lambda obj: 'AccountLedger',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountLedger',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding account.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
+    principal = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format="int64",
+        description='The principal amount on the account.',
+        example=0,
+    )
+    entries = fields.Nested(
+        PaginatedListSchema,
+        required=True,
+        description='A paginated list of account ledger entries. That is: transfers for '
+                    'which the account is either the sender or the recipient. The paginated '
+                    'list will be sorted in reverse-chronological order (bigger entry IDs go '
+                    'first). The entries will constitute a singly linked list, each entry '
+                    '(except the most ancient one) referring to its ancestor.',
+        example={
+            'itemsType': 'LedgerEntry',
+            'type': 'PaginatedList',
+            'first': '/creditors/2/accounts/1/entries?prev=124',
+        },
+    )
+    latestLedgerEntryId = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description="The ID of the latest `LedgerEntry` for this account in the log.",
+        example=123,
+    )
+
+
 class AccountStatusSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/status',
+    )
     type = fields.Function(
         lambda obj: 'AccountStatus',
         required=True,
@@ -22,6 +86,13 @@ class AccountStatusSchema(Schema):
                     '**additional fields**, containing more information about the status '
                     'of the account. This field contains the name of the used schema.',
         example='AccountStatus',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding account.",
+        example={'uri': '/creditors/2/accounts/1/'},
     )
     is_deletion_safe = fields.Boolean(
         required=True,
@@ -38,6 +109,14 @@ class AccountStatusSchema(Schema):
         description='Annual rate (in percents) at which interest accumulates on the account. When '
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
+    )
+    latestUpdateEntryId = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountStatusUpdateEntry'),
+        example=349,
     )
 
 
@@ -89,12 +168,13 @@ class AccountConfigSchema(Schema):
                     'configuration option is *not supported*.',
         example=0.0,
     )
-    revision = fields.Integer(
+    latestUpdateEntryId = fields.Integer(
         required=True,
         dump_only=True,
-        format='uint64',
-        description=REVISION_DESCRIPTION,
-        example=0,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountConfigUpdateEntry'),
+        example=346,
     )
 
 
@@ -163,12 +243,13 @@ class AccountExchangeSettingsSchema(Schema):
                     'enforced on "best effort" bases.)',
         example=5000,
     )
-    revision = fields.Integer(
+    latestUpdateEntryId = fields.Integer(
         required=True,
         dump_only=True,
-        format='uint64',
-        description=REVISION_DESCRIPTION,
-        example=0,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeSettingsUpdateEntry'),
+        example=347,
     )
 
 
@@ -261,12 +342,13 @@ class AccountDisplaySettingsSchema(DisplaySettingsSchema):
         description=_DEBTOR_NAME_DESCRIPTION,
         example='First Swaptacular Bank',
     )
-    revision = fields.Integer(
+    latestUpdateEntryId = fields.Integer(
         required=True,
         dump_only=True,
-        format='uint64',
-        description=REVISION_DESCRIPTION,
-        example=0,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format="uint64",
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplaySettingsUpdateEntry'),
+        example=348,
     )
 
 
@@ -352,35 +434,11 @@ class AccountSchema(Schema):
         data_key='createdAt',
         description='The moment at which the account was created.',
     )
-    principal = fields.Integer(
-        required=True,
+    ledger = fields.Nested(
+        AccountLedgerSchema,
         dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format="int64",
-        description='The principal amount on the account.',
-        example=0,
-    )
-    ledgerEntries = fields.Nested(
-        PaginatedListSchema,
         required=True,
-        description='A paginated list of account ledger entries. That is: transfers for '
-                    'which the account is either the sender or the recipient. The paginated '
-                    'list will be sorted in reverse-chronological order (bigger entry IDs go '
-                    'first). The entries will constitute a singly linked list, each entry '
-                    '(except the most ancient one) referring to its ancestor.',
-        example={
-            'itemsType': 'LedgerEntry',
-            'type': 'PaginatedList',
-            'first': '/creditors/2/accounts/1/entries?prev=124',
-        },
-    )
-    latestLedgerEntryId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
-        description="The ID of the latest `LedgerEntry` for this account in the log.",
-        example=123,
+        description="Account ledger information.",
     )
     status = fields.Nested(
         AccountStatusSchema,

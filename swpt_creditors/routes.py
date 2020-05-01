@@ -10,7 +10,8 @@ from .schemas import (
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPage,
     PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
-    AccountDisplaySettingsSchema, AccountExchangeSettingsSchema, AccountInfoSchema
+    AccountDisplaySettingsSchema, AccountExchangeSettingsSchema, AccountInfoSchema,
+    AccountLedgerSchema, AccountStatusSchema,
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -281,6 +282,28 @@ class AccountExchangeSettingsEndpoint(MethodView):
         **Note:** This operation is idempotent.
 
         """
+
+        abort(500)
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/status', parameters=[CID, DID])
+class AccountStatusEndpoint(MethodView):
+    @accounts_api.response(AccountStatusSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountStatus',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId):
+        """Return account's status information."""
+
+        abort(500)
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/ledger', parameters=[CID, DID])
+class AccountLedgerEndpoint(MethodView):
+    @accounts_api.response(AccountLedgerSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountLedger',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId):
+        """Return account's ledger information."""
 
         abort(500)
 
