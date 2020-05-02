@@ -102,9 +102,7 @@ class AccountStatusSchema(Schema):
         required=True,
         dump_only=True,
         data_key='isDeletionSafe',
-        description='Whether it is safe to delete this account. When `false`, deleting '
-                    'the account may result in losing a non-negligible amount of money '
-                    'on the account.',
+        description='Whether it is safe to delete this account.',
         example=False,
     )
     interest_rate = fields.Float(
@@ -152,16 +150,16 @@ class AccountConfigSchema(Schema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     is_scheduled_for_deletion = fields.Boolean(
-        missing=False,
+        required=True,
         data_key='isScheduledForDeletion',
-        description='Whether the account is scheduled for deletion. Most of the time, to safely '
-                    'delete an account, it should be first scheduled for deletion, and deleted '
-                    'only after the corresponding account record has been marked as safe for '
-                    'deletion.',
+        description='Whether the account is scheduled for deletion. The safe way to '
+                    'delete an account that does not allow unsafe deletion, is to first '
+                    'schedule it for deletion, and delete it only when the account '
+                    'status indicates that deletion is safe.',
         example=False,
     )
     negligible_amount = fields.Float(
-        missing=0.0,
+        required=True,
         validate=validate.Range(min=0.0),
         data_key='negligibleAmount',
         description='The maximum amount that is considered negligible. It can be used '
@@ -169,6 +167,14 @@ class AccountConfigSchema(Schema):
                     'transfer should be considered as insignificant. Must be '
                     'non-negative.',
         example=0.0,
+    )
+    allow_unsafe_deletion = fields.Boolean(
+        required=True,
+        data_key='allowUnsafeDeletion',
+        description='Whether to allow unsafe deletion of the account. The deletion '
+                    'of an account that allows unsafe deletion may result in losing a '
+                    'non-negligible amount of money on the account.',
+        example=True,
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
@@ -208,9 +214,9 @@ class AccountExchangeSettingsSchema(Schema):
         relative=True,
         schemes=[endpoints.get_url_scheme()],
         format='uri-reference',
-        description="An URI of another account, belonging to the same creditor, to "
-                    "which the value of this account's tokens is pegged (via fixed "
-                    "exchange rate). Can be a relative URI. This field is optional.",
+        description="An optional URI of another account, belonging to the same creditor, "
+                    "to which the value of this account's tokens is pegged (via fixed "
+                    "exchange rate). Can be a relative URI.",
         example='/creditors/2/accounts/11/',
     )
     fixedExchangeRate = fields.Float(
@@ -272,8 +278,7 @@ class DisplaySettingsSchema(Schema):
     debtorUri = fields.Url(
         relative=False,
         format='uri',
-        description='A link containing additional information about the debtor. This '
-                    'field is optional.',
+        description='An optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
     amountDivisor = fields.Float(
@@ -289,8 +294,8 @@ class DisplaySettingsSchema(Schema):
         example=2,
     )
     unitName = fields.String(
-        description='The full name of the value measurement unit, "United States Dollars" '
-                    'for example. This field is optional.',
+        description='Optional full name of the value measurement unit, "United States '
+                    'Dollars" for example.',
         example='United States Dollars',
     )
     unitAbbr = fields.String(
@@ -302,8 +307,8 @@ class DisplaySettingsSchema(Schema):
     unitUri = fields.Url(
         relative=False,
         format='uri',
-        description='A link containing additional information about the value measurement '
-                    'unit. This field is optional.',
+        description='An optional link containing additional information about the value '
+                    'measurement unit.',
         example='https://example.com/units/USD',
     )
     hide = fields.Boolean(
@@ -365,8 +370,7 @@ class DebtorInfoSchema(Schema):
     )
     displaySettings = fields.Nested(
         DisplaySettingsSchema,
-        description='The account display settings recommended by the debtor. This field '
-                    'is optional.',
+        description='Optional display settings, recommended by the debtor.',
     )
 
 
@@ -387,11 +391,11 @@ class AccountCreationRequestSchema(Schema):
     )
     exchangeSettings = fields.Nested(
         AccountExchangeSettingsSchema,
-        description="Account's exchange settings.",
+        description="Optional account exchange settings.",
     )
     config = fields.Nested(
         AccountConfigSchema,
-        description="Account's configuration.",
+        description="Optional account configuration.",
     )
 
 

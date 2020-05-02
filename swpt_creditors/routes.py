@@ -205,13 +205,13 @@ class AccountEndpoint(MethodView):
 
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='deleteAccount',
-                      responses={409: specs.ACCOUNT_NOT_SCHEDULED_FOR_DELETION})
+                      responses={409: specs.ACCOUNT_DELETION_NOT_ALLOWED})
     def delete(self, creditorId, debtorId):
         """Delete an account.
 
         **Important note:** This operation will succeed only if the
-        account is marked as safe for deletion, or is scheduled for
-        deletion.
+        account is marked as safe for deletion, or unsafe deletion is
+        allowed for the account.
 
         """
 
