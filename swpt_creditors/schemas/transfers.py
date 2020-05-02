@@ -10,9 +10,9 @@ _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
 
 _TRANSFER_NOTES_DESCRIPTION = '\
-Notes from the sender. Can be any JSON object that the sender wants the \
-recipient to see. Different debtors may impose different restrictions \
-on the schema and the contents of of this object.'
+Notes from the sender. Can be any JSON object, containing information that \
+the sender wants the recipient to see. Different debtors may impose \
+different restrictions on the schema and the contents of of this object.'
 
 _TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
 The moment at which the transfer was initiated.'
@@ -235,4 +235,12 @@ class CommittedTransferSchema(BaseTransferSchema):
         description='The moment at which the transfer was committed. If this field is '
                     'not present, this means that the moment at which the transfer was '
                     'committed is unknown.',
+    )
+    reference = fields.String(
+        dump_only=True,
+        description='An optional *payee reference*. A payee reference is a short string '
+                    'that can be included with transfers to help identify the transfer. '
+                    'The reference may include details to help the recipient to identify '
+                    'the sender and/or the reason for the transfer.',
+        example='Payment 123',
     )
