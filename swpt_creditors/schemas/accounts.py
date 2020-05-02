@@ -244,7 +244,7 @@ class AccountExchangeSettingsSchema(Schema):
         example=1000,
     )
     maxPrincipal = fields.Integer(
-        missing=0,
+        missing=MAX_INT64,
         format='int64',
         description='The principal amount on the account should not exceed this value. '
                     '(Note that this limit applies only for automatic exchanges, and is '
