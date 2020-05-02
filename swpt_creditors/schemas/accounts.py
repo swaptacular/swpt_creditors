@@ -152,10 +152,12 @@ class AccountConfigSchema(Schema):
     is_scheduled_for_deletion = fields.Boolean(
         required=True,
         data_key='isScheduledForDeletion',
-        description='Whether the account is scheduled for deletion. The safe way to '
-                    'delete an account that does not allow unsafe deletion, is to first '
-                    'schedule it for deletion, and delete it only when the account '
-                    'status indicates that deletion is safe.',
+        description='Whether the account is scheduled for deletion. The safest way to '
+                    'delete an account which status indicates that deletion is not '
+                    'safe, is to first schedule it for deletion, and delete it only '
+                    'when the account status indicates that deletion is safe. Note '
+                    'that this may also require making outgoing transfers, so as to '
+                    'reduce the balance on the account to a negligible amount.',
         example=False,
     )
     negligible_amount = fields.Float(
@@ -163,8 +165,8 @@ class AccountConfigSchema(Schema):
         validate=validate.Range(min=0.0),
         data_key='negligibleAmount',
         description='The maximum amount that is considered negligible. It can be used '
-                    'to decide whether the account can be safely deleted, and whether a '
-                    'transfer should be considered as insignificant. Must be '
+                    'to decide whether the account can be safely deleted, and whether an '
+                    'incoming transfer should be considered as insignificant. Must be '
                     'non-negative.',
         example=0.0,
     )
