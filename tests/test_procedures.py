@@ -93,7 +93,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         signal_ts=current_ts,
         signal_ttl=1e30,
         real_creditor_id=C_ID,
-        config_sha1='DA39A3EE5E6B4B0D',
+        config='',
     )
     account = Account.query.one()
     assert not account.account_config.is_scheduled_for_deletion
@@ -128,7 +128,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         signal_ts=current_ts,
         signal_ttl=1e30,
         real_creditor_id=C_ID,
-        config_sha1='DA39A3EE5E6B4B0D',
+        config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_signal_ts == ac.last_signal_ts
@@ -153,7 +153,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         signal_ts=current_ts,
         signal_ttl=1e30,
         real_creditor_id=C_ID,
-        config_sha1='DA39A3EE5E6B4B0D',
+        config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_signal_ts == ac.last_signal_ts
@@ -178,7 +178,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         signal_ts=current_ts,
         signal_ttl=1e30,
         real_creditor_id=C_ID,
-        config_sha1='DA39A3EE5E6B4B0D',
+        config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_signal_ts == ac.last_signal_ts
@@ -204,7 +204,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         signal_ts=current_ts,
         signal_ttl=1e30,
         real_creditor_id=C_ID,
-        config_sha1='DA39A3EE5E6B4B0D',
+        config='',
     )
     cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
     assert cas.negligible_amount > 1e22
@@ -226,7 +226,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         signal_ts=current_ts,
         signal_ttl=1e30,
         real_creditor_id=C_ID,
-        config_sha1='DA39A3EE5E6B4B0D',
+        config='',
     )
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
 
@@ -254,7 +254,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         signal_ts=current_ts,
         signal_ttl=1e30,
         real_creditor_id=C_ID,
-        config_sha1='DA39A3EE5E6B4B0D',
+        config='',
     )
     config = AccountConfig.query.one()
     assert config.has_account

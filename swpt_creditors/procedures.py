@@ -212,7 +212,7 @@ def process_account_change_signal(
         signal_ts: datetime,
         signal_ttl: float,
         real_creditor_id: int,
-        config_sha1: str) -> None:
+        config: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -292,7 +292,7 @@ def process_account_change_signal(
         last_config_signal_seqnum,
         new_account,
         real_creditor_id,
-        config_sha1,
+        config,
     )
 
     # TODO: Reset the ledger if it has been outdated for a long time.
@@ -601,7 +601,7 @@ def _revise_account_config_effectuality(
         last_config_signal_seqnum: int,
         new_account: bool,
         real_creditor_id: int,
-        config_sha1: str) -> None:
+        config: str) -> None:
 
     config = account.account_config
 
