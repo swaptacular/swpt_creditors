@@ -126,7 +126,7 @@ class PortfolioSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="A URI to which recipient's account `AccountInfo` can be POST-ed, "
+        description="A URI to which recipient account's `AccountInfo` can be POST-ed, "
                     "trying to find a matching sender `Account`.",
         example={'uri': '/creditors/2/find-account'},
     )
