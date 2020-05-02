@@ -198,13 +198,14 @@ class AccountEndpoint(MethodView):
         abort(500)
 
     @accounts_api.response(code=204)
-    @accounts_api.doc(operationId='deleteAccount')
+    @accounts_api.doc(operationId='deleteAccount',
+                      responses={409: specs.ACCOUNT_NOT_SCHEDULED_FOR_DELETION})
     def delete(self, creditorId, debtorId):
         """Delete an account.
 
-        **Important note:** If the account is not marked as safe for
-        deletion, deleting it may result in losing a non-negligible
-        amount of money on the account.
+        **Important note:** This operation will succeed only if the
+        account is marked as safe for deletion, or is scheduled for
+        deletion.
 
         """
 

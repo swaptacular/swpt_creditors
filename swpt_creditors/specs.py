@@ -118,6 +118,10 @@ ACCOUNT_CAN_NOT_BE_CREATED = {
     'description': "The account can not be created. The debtor's info might be wrong.",
 }
 
+ACCOUNT_NOT_SCHEDULED_FOR_DELETION = {
+    'description': 'The account must be scheduled for deletion first.',
+}
+
 ACCOUNT_DOES_NOT_EXIST = {
     'description': 'The account does not exist.',
 }
