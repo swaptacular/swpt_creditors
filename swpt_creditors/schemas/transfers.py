@@ -44,7 +44,7 @@ class BaseTransferSchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=1, max=MAX_INT64),
-        format="int64",
+        format='int64',
         description='The transferred amount.',
         example=1000,
     )
@@ -67,7 +67,7 @@ class TransferCreationRequestSchema(Schema):
     amount = fields.Integer(
         required=True,
         validate=validate.Range(min=1, max=MAX_INT64),
-        format="int64",
+        format='int64',
         description='The amount to be transferred. Must be positive.',
         example=1000,
     )
@@ -94,7 +94,7 @@ class TransferErrorSchema(Schema):
     )
     avlAmount = fields.Integer(
         dump_only=True,
-        format="int64",
+        format='int64',
         description='The amount currently available on the account.',
         example=10000,
     )
@@ -169,8 +169,9 @@ class TransferSchema(BaseTransferSchema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
-        description="The ID of the latest `TransferUpdate` entry for this transfer in the log.",
+        format='uint64',
+        description='The ID of the latest `TransferUpdate` entry for this transfer in '
+                    'the log. It gets bigger after each update.',
         example=345,
     )
 

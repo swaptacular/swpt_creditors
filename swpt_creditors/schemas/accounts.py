@@ -12,8 +12,8 @@ creditor must have different `debtorName`s. The creditor may choose \
 any name that is convenient, or easy to remember.'
 
 UPDATE_ENTRY_ID_DESCRIPTION = '\
-The ID of the latest `{type}` entry for this account in the log. Gets \
-bigger after each update.'
+The ID of the latest `{type}` entry for this account in the log. It \
+gets bigger after each update.'
 
 
 class AccountLedgerSchema(Schema):
@@ -44,7 +44,7 @@ class AccountLedgerSchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format="int64",
+        format='int64',
         description='The principal amount on the account.',
         example=0,
     )
@@ -66,8 +66,8 @@ class AccountLedgerSchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
-        description="The ID of the latest `LedgerEntry` for this account in the log.",
+        format='uint64',
+        description='The ID of the latest `LedgerEntry` for this account in the log.',
         example=123,
     )
 
@@ -118,7 +118,7 @@ class AccountStatusSchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
+        format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountStatusUpdate'),
         example=349,
     )
@@ -174,7 +174,7 @@ class AccountConfigSchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
+        format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountConfigUpdate'),
         example=346,
     )
@@ -249,7 +249,7 @@ class AccountExchangeSettingsSchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
+        format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeSettingsUpdate'),
         example=347,
     )
@@ -348,7 +348,7 @@ class AccountDisplaySettingsSchema(DisplaySettingsSchema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
+        format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplaySettingsUpdate'),
         example=348,
     )
@@ -470,7 +470,7 @@ class AccountSchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
-        format="uint64",
+        format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountUpdate'),
         example=344,
     )

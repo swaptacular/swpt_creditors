@@ -39,7 +39,7 @@ class PaginatedListSchema(Schema):
     first = fields.String(
         required=True,
         dump_only=True,
-        format="uri-reference",
+        format='uri-reference',
         description='The URI of the first page in the paginated list. The object retrieved from '
                     'this URI will have: 1) An `items` property (an array), which will contain the '
                     'first items of the paginated list; 2) May have a `next` property (a string), '
@@ -98,8 +98,8 @@ class LogEntrySchema(Schema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=1, max=MAX_UINT64),
-        format="uint64",
-        description="The ID of this log entry. Later log entries have bigger IDs.",
+        format='uint64',
+        description='The ID of this log entry. Later log entries have bigger IDs.',
         example=12345,
     )
     posted_at_ts = fields.DateTime(
@@ -130,7 +130,7 @@ class LedgerEntrySchema(LogEntrySchema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format="int64",
+        format='int64',
         description="The amount added to account's principal. Can be positive (an increase) or "
                     "negative (a decrease). Can not be zero.",
         example=1000,
@@ -139,7 +139,7 @@ class LedgerEntrySchema(LogEntrySchema):
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format="int64",
+        format='int64',
         description='The new principal amount on the account, as it is after the transfer. Unless '
                     'a principal overflow has occurred, the new principal amount will be equal to '
                     '`amount` plus the old principal amount.',
@@ -156,7 +156,7 @@ class LedgerEntrySchema(LogEntrySchema):
         dump_only=True,
         data_key='previousEntryId',
         validate=validate.Range(min=1, max=MAX_UINT64),
-        format="uint64",
+        format='uint64',
         description="The ID of the previous entry in the account's ledger. Previous entries have "
                     "smaller IDs. When this field is not present, this means that there are no "
                     "previous entries in the account's ledger.",
