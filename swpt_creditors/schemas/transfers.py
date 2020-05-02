@@ -157,8 +157,8 @@ class TransferSchema(BaseTransferSchema):
     )
     errors = fields.Nested(
         TransferErrorSchema(many=True),
+        missing=[],
         dump_only=True,
-        required=True,
         description='Errors that have occurred during the execution of the transfer. If '
                     'the transfer has been successful, this will be an empty array.',
     )

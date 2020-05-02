@@ -438,32 +438,32 @@ class AccountSchema(Schema):
     )
     ledger = fields.Nested(
         AccountLedgerSchema,
-        dump_only=True,
         required=True,
+        dump_only=True,
         description="Account ledger information.",
     )
     status = fields.Nested(
         AccountStatusSchema,
-        dump_only=True,
         required=True,
+        dump_only=True,
         description="Account status information.",
     )
     config = fields.Nested(
         AccountConfigSchema,
-        dump_only=True,
         required=True,
+        dump_only=True,
         description="The account's configuration.",
     )
     displaySettings = fields.Nested(
         AccountDisplaySettingsSchema,
-        dump_only=True,
         required=True,
+        dump_only=True,
         description="The account's display settings.",
     )
     exchangeSettings = fields.Nested(
         AccountExchangeSettingsSchema,
-        dump_only=True,
         required=True,
+        dump_only=True,
         description="The account's exchange settings.",
     )
     latestUpdateEntryId = fields.Integer(
