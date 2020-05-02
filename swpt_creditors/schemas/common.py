@@ -170,3 +170,69 @@ class LedgerEntrySchema(LogEntrySchema):
                     'the sender and/or the reason for the transfer.',
         example='Payment 123',
     )
+
+
+class TransferErrorSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'TransferError',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferError',
+    )
+    errorCode = fields.String(
+        required=True,
+        dump_only=True,
+        description='The error code.',
+        example='INSUFFICIENT_AVAILABLE_AMOUNT',
+    )
+    avlAmount = fields.Integer(
+        dump_only=True,
+        format='int64',
+        description='The amount currently available on the account.',
+        example=10000,
+    )
+
+
+class TransferStatusSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'TransferStatus',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferStatus',
+    )
+    is_finalized = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='isFinalized',
+        description='Whether the transfer has been finalized.',
+        example=False,
+    )
+    finalized_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='finalizedAt',
+        description='The moment at which the transfer has been finalized. If the transfer '
+                    'has not been finalized yet, this field contains an estimation of when '
+                    'the transfer will be finalized.',
+    )
+    is_successful = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='isSuccessful',
+        description='Whether the transfer has been completed successfully. Note that if '
+                    'a transfer has been completed successfully, it is guaranteed that '
+                    'it has been finalized as well.',
+        example=False,
+    )
+    errors = fields.Nested(
+        TransferErrorSchema(many=True),
+        missing=[],
+        dump_only=True,
+        description='Errors that have occurred during the execution of the transfer. If '
+                    'the transfer has been completed successfully, this field will not '
+                    'be present, or it will contain an empty array.',
+    )

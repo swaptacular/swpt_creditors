@@ -1,7 +1,9 @@
-from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
-from flask import url_for, current_app
-from .common import ObjectReferenceSchema, AccountInfoSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
+from flask import url_for
+from .common import (
+    ObjectReferenceSchema, AccountInfoSchema, TransferStatusSchema,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
+)
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -13,9 +15,6 @@ different restrictions on the schema and the contents of of this object.'
 
 _TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
 The moment at which the transfer was initiated.'
-
-_TRANSFER_IS_SUCCESSFUL_DESCRIPTION = '\
-Whether the transfer has been successful or not.'
 
 _TRANSFER_DEBTOR_URI_DESCRIPTION = '\
 The URI of the debtor through which the transfer should go. This is analogous to \
@@ -74,29 +73,6 @@ class TransferCreationRequestSchema(Schema):
     )
 
 
-class TransferErrorSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'TransferError',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='TransferError',
-    )
-    errorCode = fields.String(
-        required=True,
-        dump_only=True,
-        description='The error code.',
-        example='INSUFFICIENT_AVAILABLE_AMOUNT',
-    )
-    avlAmount = fields.Integer(
-        dump_only=True,
-        format='int64',
-        description='The amount currently available on the account.',
-        example=10000,
-    )
-
-
 class TransferSchema(BaseTransferSchema):
     uri = fields.Method(
         'get_uri',
@@ -132,37 +108,6 @@ class TransferSchema(BaseTransferSchema):
         data_key='initiatedAt',
         description=_TRANSFER_INITIATED_AT_TS_DESCRIPTION,
     )
-    is_finalized = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='isFinalized',
-        description='Whether the transfer has been finalized or not.',
-        example=True,
-    )
-    finalizedAt = fields.Method(
-        'get_finalized_at_string',
-        required=True,
-        type='string',
-        format='date-time',
-        description='The moment at which the transfer has been finalized. If the transfer '
-                    'has not been finalized yet, this field contains an estimation of when '
-                    'the transfer should be finalized.',
-    )
-    is_successful = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='isSuccessful',
-        description=_TRANSFER_IS_SUCCESSFUL_DESCRIPTION,
-        example=False,
-    )
-    errors = fields.Nested(
-        TransferErrorSchema(many=True),
-        missing=[],
-        dump_only=True,
-        description='Errors that have occurred during the execution of the transfer. If '
-                    'the transfer has been successful, this field will not be present '
-                    'or will be an empty array.',
-    )
     latestUpdateEntryId = fields.Integer(
         required=True,
         dump_only=True,
@@ -171,6 +116,12 @@ class TransferSchema(BaseTransferSchema):
         description='The ID of the latest `TransferUpdate` entry for this transfer in '
                     'the log. It gets bigger after each update.',
         example=345,
+    )
+    status = fields.Nested(
+        TransferStatusSchema,
+        required=True,
+        dump_only=True,
+        description="The transfer's status information.",
     )
 
     def get_uri(self, obj):
@@ -181,30 +132,9 @@ class TransferSchema(BaseTransferSchema):
             transferUuid=obj.transfer_uuid,
         )
 
-    def get_finalized_at_string(self, obj):
-        if obj.is_finalized:
-            finalized_at_ts = obj.finalized_at_ts
-        else:
-            current_ts = datetime.now(tz=timezone.utc)
-            current_delay = current_ts - obj.initiated_at_ts
-            average_delay = timedelta(seconds=current_app.config['APP_TRANSFERS_FINALIZATION_AVG_SECONDS'])
-            finalized_at_ts = current_ts + max(current_delay, average_delay)
-        return finalized_at_ts.isoformat()
 
-
-class TransferUpdateRequestSchema(Schema):
-    is_finalized = fields.Boolean(
-        required=True,
-        data_key='isFinalized',
-        description='Should be `true`.',
-        example=True,
-    )
-    is_successful = fields.Boolean(
-        required=True,
-        data_key='isSuccessful',
-        description='Should be `false`.',
-        example=False,
-    )
+class CancelTransferRequestSchema(Schema):
+    pass
 
 
 class CommittedTransferSchema(BaseTransferSchema):

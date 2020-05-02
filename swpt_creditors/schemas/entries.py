@@ -1,5 +1,5 @@
 from marshmallow import fields
-from .common import ObjectReferenceSchema, LogEntrySchema
+from .common import ObjectReferenceSchema, LogEntrySchema, TransferStatusSchema
 
 
 class AccountUpdateSchema(LogEntrySchema):
@@ -11,7 +11,7 @@ class AccountUpdateSchema(LogEntrySchema):
         description='The type of this object.',
         example='AccountUpdate',
     )
-    account = fields.Nested(
+    object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
@@ -34,7 +34,7 @@ class AccountStatusUpdateSchema(LogEntrySchema):
         description='The type of this object.',
         example='AccountStautsUpdate',
     )
-    status = fields.Nested(
+    object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
@@ -52,7 +52,7 @@ class AccountConfigUpdateSchema(LogEntrySchema):
         description='The type of this object.',
         example='AccountConfigUpdate',
     )
-    config = fields.Nested(
+    object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
@@ -70,7 +70,7 @@ class AccountExchangeSettingsUpdateSchema(LogEntrySchema):
         description='The type of this object.',
         example='AccountExchangeSettingsUpdate',
     )
-    exchangeSettings = fields.Nested(
+    object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
@@ -88,7 +88,7 @@ class AccountDisplaySettingsUpdateSchema(LogEntrySchema):
         description='The type of this object.',
         example='AccountDisplaySettingsUpdate',
     )
-    displaySettings = fields.Nested(
+    object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
@@ -106,12 +106,21 @@ class TransferUpdateSchema(LogEntrySchema):
         description='The type of this object.',
         example='TransferUpdate',
     )
-    transfer = fields.Nested(
+    object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         description="The URI of the updated transfer.",
         example={'uri': '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'},
+    )
+    status = fields.Nested(
+        TransferStatusSchema,
+        dump_only=True,
+        description='The current status information for the updated transfer. This field '
+                    'will not be present when the transfer has been deleted, or when a new '
+                    'transfer has been just created. (When a new transfer has been just '
+                    'created, we can not avoid making an HTTP request to obtain the whole '
+                    '`Transfer` object anyway.)'
     )
     isDeleted = fields.Boolean(
         dump_only=True,

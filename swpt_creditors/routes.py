@@ -9,7 +9,7 @@ from .schemas import (
     CreditorCreationOptionsSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, LogEntriesPageSchema,
-    TransferCreationRequestSchema, TransferSchema, TransferUpdateRequestSchema,
+    TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySettingsSchema, AccountExchangeSettingsSchema, AccountInfoSchema,
     AccountLedgerSchema, AccountStatusSchema,
 )
@@ -391,7 +391,7 @@ class TransfersEndpoint(MethodView):
                                   409: specs.TRANSFER_CONFLICT,
                                   422: specs.INVALID_TRANSFER_CREATION_REQUEST})
     def post(self, transfer_creation_request, creditorId):
-        """Create a new transfer."""
+        """Create a new transfer, initiated by a given creditor."""
 
         uuid = transfer_creation_request['transfer_uuid']
         recipient_account_uri = transfer_creation_request['recipient_account_uri']
@@ -426,25 +426,26 @@ class TransferEndpoint(MethodView):
     @transfers_api.doc(operationId='getTransfer',
                        responses={404: specs.TRANSFER_DOES_NOT_EXIST})
     def get(self, creditorId, transferUuid):
-        """Return information about a transfer."""
+        """Return a transfer."""
 
         return procedures.get_direct_transfer(creditorId, transferUuid) or abort(404)
 
-    @transfers_api.arguments(TransferUpdateRequestSchema)
+    @transfers_api.arguments(CancelTransferRequestSchema)
     @transfers_api.response(TransferSchema(context=CONTEXT))
     @transfers_api.doc(operationId='cancelTransfer',
                        responses={404: specs.TRANSFER_DOES_NOT_EXIST,
                                   409: specs.TRANSFER_UPDATE_CONFLICT})
-    def patch(self, transfer_update_request, creditorId, transferUuid):
-        """Cancel a transfer, if possible.
+    def post(self, cancel_transfer_request, creditorId, transferUuid):
+        """Cancel a transfer.
+
+        This operation will fail if the transfer has already been
+        completed successfully.
 
         **Note:** This operation is idempotent.
 
         """
 
         try:
-            if not (transfer_update_request['is_finalized'] and not transfer_update_request['is_successful']):
-                raise procedures.TransferUpdateConflictError()
             transfer = procedures.cancel_transfer(creditorId, transferUuid)
         except procedures.TransferDoesNotExistError:
             abort(404)
