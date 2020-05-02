@@ -160,7 +160,8 @@ class TransferSchema(BaseTransferSchema):
         missing=[],
         dump_only=True,
         description='Errors that have occurred during the execution of the transfer. If '
-                    'the transfer has been successful, this will be an empty array.',
+                    'the transfer has been successful, this field will not be present '
+                    'or will be an empty array.',
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
