@@ -82,7 +82,13 @@ class PortfolioEndpoint(MethodView):
     @creditors_api.doc(operationId='getPortfolio',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
-        """Return creditor's portfolio."""
+        """Return creditor's portfolio.
+
+        The creditor's portfolio "contains" all creditor's accounts,
+        pending transfers, and recent events (the log). In short: it
+        is the gateway to all objects and operations in the API.
+
+        """
 
         portfolio = procedures.get_creditor(creditorId)
         if not portfolio:
