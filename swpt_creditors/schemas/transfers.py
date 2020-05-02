@@ -1,10 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from marshmallow import Schema, fields, validate
 from flask import url_for, current_app
-from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, LogEntrySchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
-)
+from .common import ObjectReferenceSchema, AccountInfoSchema, MAX_INT64, MAX_UINT64, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -235,12 +232,4 @@ class CommittedTransferSchema(BaseTransferSchema):
         description='The moment at which the transfer was committed. If this field is '
                     'not present, this means that the moment at which the transfer was '
                     'committed is unknown.',
-    )
-    reference = fields.String(
-        dump_only=True,
-        description='An optional *payee reference*. A payee reference is a short string '
-                    'that can be included with transfers to help identify the transfer. '
-                    'The reference may include details to help the recipient to identify '
-                    'the sender and/or the reason for the transfer.',
-        example='Payment 123',
     )

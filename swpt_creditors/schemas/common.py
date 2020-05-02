@@ -162,3 +162,11 @@ class LedgerEntrySchema(LogEntrySchema):
                     "previous entries in the account's ledger.",
         example=122,
     )
+    reference = fields.String(
+        dump_only=True,
+        description='An optional *payee reference*. A payee reference is a short string '
+                    'that can be included with transfers to help identify the transfer. '
+                    'The reference may include details to help the recipient to identify '
+                    'the sender and/or the reason for the transfer.',
+        example='Payment 123',
+    )
