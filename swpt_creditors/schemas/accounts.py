@@ -225,11 +225,11 @@ class AccountExchangeSettingsSchema(Schema):
                     "will be ignored if the `pegUri` field has not been passed.",
         example=1.0,
     )
-    exchangeMode = fields.String(
-        missing='off',
-        description='The name of the active exchange mode. Different implementations may '
-                    'define different exchange modes. `"off"` indicates that the account '
-                    'must not participate in automatic exchanges.',
+    policy = fields.String(
+        description='The name of the active automatic exchange policy. Different '
+                    'implementations may define different exchange policies. This field is '
+                    'optional. If it not present, this means that the account will not '
+                    'participate in automatic exchanges.',
         example='conservative',
     )
     minPrincipal = fields.Integer(
