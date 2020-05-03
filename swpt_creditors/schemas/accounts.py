@@ -150,7 +150,7 @@ class AccountConfigSchema(Schema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     is_scheduled_for_deletion = fields.Boolean(
-        required=True,
+        missing=False,
         data_key='isScheduledForDeletion',
         description='Whether the account is scheduled for deletion. The safest way to '
                     'delete an account which status indicates that deletion is not '
@@ -161,7 +161,7 @@ class AccountConfigSchema(Schema):
         example=False,
     )
     negligible_amount = fields.Float(
-        required=True,
+        missing=0.0,
         validate=validate.Range(min=0.0),
         data_key='negligibleAmount',
         description='The maximum amount that is considered negligible. It can be used '
@@ -171,7 +171,7 @@ class AccountConfigSchema(Schema):
         example=0.0,
     )
     allow_unsafe_deletion = fields.Boolean(
-        required=True,
+        missing=False,
         data_key='allowUnsafeDeletion',
         description='Whether to allow unsafe deletion of the account. The deletion '
                     'of an account that allows unsafe deletion may result in losing a '
