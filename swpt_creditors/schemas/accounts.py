@@ -6,11 +6,6 @@ from .common import (
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
 )
 
-_DEBTOR_NAME_DESCRIPTION = '\
-The name of the debtor. All accounts belonging to a given \
-creditor must have different `debtorName`s. The creditor may choose \
-any name that is convenient, or easy to remember.'
-
 UPDATE_ENTRY_ID_DESCRIPTION = '\
 The ID of the latest `{type}` entry for this account in the log. It \
 gets bigger after each update.'
@@ -263,18 +258,35 @@ class AccountExchangeSettingsSchema(Schema):
     )
 
 
-class DisplaySettingsSchema(Schema):
+class AccountDisplaySettingsSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/display',
+    )
     type = fields.Function(
-        lambda obj: 'DisplaySettings',
+        lambda obj: 'AccountDisplaySettings',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='DisplaySettings',
+        example='AccountDisplaySettings',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding account.",
+        example={'uri': '/creditors/2/accounts/1/'},
     )
     debtorName = fields.String(
         required=True,
-        description='The name of the debtor.',
+        description='The name of the debtor. All accounts belonging to a given creditor '
+                    'must have different `debtorName`s. The creditor may choose any '
+                    'name that is convenient, or easy to remember.',
         example='First Swaptacular Bank',
     )
     debtorUrl = fields.Url(
@@ -320,37 +332,6 @@ class DisplaySettingsSchema(Schema):
                     'for special-purpose accounts.',
         example=False,
     )
-
-
-class AccountDisplaySettingsSchema(DisplaySettingsSchema):
-    uri = fields.Method(
-        'get_uri',
-        required=True,
-        type='string',
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/accounts/1/display',
-    )
-    type = fields.Function(
-        lambda obj: 'AccountDisplaySettings',
-        required=True,
-        dump_only=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountDisplaySettings',
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the corresponding account.",
-        example={'uri': '/creditors/2/accounts/1/'},
-    )
-    debtorName = fields.String(
-        required=True,
-        description=_DEBTOR_NAME_DESCRIPTION,
-        example='First Swaptacular Bank',
-    )
     latestUpdateEntryId = fields.Integer(
         required=True,
         dump_only=True,
@@ -369,10 +350,6 @@ class DebtorInfoSchema(Schema):
                     "provided information must be sufficient to uniquely and reliably "
                     "identify the debtor. This field contains the name of the used schema.",
         example='DebtorInfo',
-    )
-    displaySettings = fields.Nested(
-        DisplaySettingsSchema,
-        description='Optional display settings, recommended by the debtor.',
     )
 
 
