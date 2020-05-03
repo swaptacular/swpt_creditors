@@ -9,7 +9,7 @@ _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
 
 _TRANSFER_NOTES_DESCRIPTION = '\
-Notes from the sender. Can be any JSON object, containing information that \
+Notes from the sender. Can be any JSON object containing information that \
 the sender wants the recipient to see. Different debtors may impose \
 different restrictions on the schema and the contents of of this object.'
 

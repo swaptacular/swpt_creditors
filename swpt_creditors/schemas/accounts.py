@@ -151,7 +151,7 @@ class AccountConfigSchema(Schema):
     )
     is_scheduled_for_deletion = fields.Boolean(
         missing=False,
-        data_key='isScheduledForDeletion',
+        data_key='scheduledForDeletion',
         description='Whether the account is scheduled for deletion. The safest way to '
                     'delete an account which status indicates that deletion is not '
                     'safe, is to first schedule it for deletion, and delete it only '
@@ -277,7 +277,7 @@ class DisplaySettingsSchema(Schema):
         description='The name of the debtor.',
         example='First Swaptacular Bank',
     )
-    debtorUri = fields.Url(
+    debtorUrl = fields.Url(
         relative=False,
         format='uri',
         description='An optional link containing additional information about the debtor.',
@@ -306,7 +306,7 @@ class DisplaySettingsSchema(Schema):
                     'right after the displayed amount, "500.00 USD" for example.',
         example='USD',
     )
-    unitUri = fields.Url(
+    unitUrl = fields.Url(
         relative=False,
         format='uri',
         description='An optional link containing additional information about the value '

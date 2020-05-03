@@ -207,8 +207,9 @@ class TransferStatusSchema(Schema):
     is_finalized = fields.Boolean(
         required=True,
         dump_only=True,
-        data_key='isFinalized',
-        description='Whether the transfer has been finalized.',
+        data_key='finalized',
+        description='Whether the transfer has been finalized. A finalized transfer can be '
+                    'either successful (no errors), or unsuccessful (one or more `errors`).',
         example=False,
     )
     finalized_at_ts = fields.DateTime(
@@ -218,15 +219,6 @@ class TransferStatusSchema(Schema):
         description='The moment at which the transfer has been finalized. If the transfer '
                     'has not been finalized yet, this field contains an estimation of when '
                     'the transfer will be finalized.',
-    )
-    is_successful = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='isSuccessful',
-        description='Whether the transfer has been completed successfully. Note that if '
-                    'a transfer has been completed successfully, it is guaranteed that '
-                    'it has been finalized as well.',
-        example=False,
     )
     errors = fields.Nested(
         TransferErrorSchema(many=True),

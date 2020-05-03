@@ -18,7 +18,7 @@ class AccountUpdateSchema(LogEntrySchema):
         description="The URI of the updated account.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    isDeleted = fields.Boolean(
+    deleted = fields.Boolean(
         dump_only=True,
         missing=False,
         description="Whether the account has been deleted.",
@@ -122,7 +122,7 @@ class TransferUpdateSchema(LogEntrySchema):
                     'created, we can not avoid making an HTTP request to obtain the whole '
                     '`Transfer` object anyway.)'
     )
-    isDeleted = fields.Boolean(
+    deleted = fields.Boolean(
         dump_only=True,
         missing=False,
         description="Whether the transfer has been deleted.",

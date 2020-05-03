@@ -444,8 +444,7 @@ class TransferEndpoint(MethodView):
     def post(self, cancel_transfer_request, creditorId, transferUuid):
         """Cancel a transfer.
 
-        This operation will fail if the transfer has already been
-        completed successfully.
+        This operation will fail if the transfer can not be canceled.
 
         **Note:** This operation is idempotent.
 

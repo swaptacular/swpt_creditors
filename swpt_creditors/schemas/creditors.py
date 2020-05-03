@@ -27,7 +27,7 @@ class CreditorSchema(Schema):
     is_active = fields.Boolean(
         required=True,
         dump_only=True,
-        data_key='isActive',
+        data_key='active',
         description="Whether the creditor is currently active."
     )
     created_at_date = fields.Date(
