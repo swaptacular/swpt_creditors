@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate
+from swpt_lib import endpoints
 
 MIN_INT16 = -1 << 15
 MAX_INT16 = (1 << 15) - 1
@@ -15,6 +16,8 @@ The URI of this object. Can be a relative URI.'
 class ObjectReferenceSchema(Schema):
     uri = fields.Url(
         required=True,
+        relative=True,
+        schemes=[endpoints.get_url_scheme()],
         format='uri-reference',
         description="The URI of the object. Can be a relative URI.",
         example='https://example.com/objects/1',

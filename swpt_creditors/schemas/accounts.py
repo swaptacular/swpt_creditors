@@ -1,6 +1,5 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
-from swpt_lib import endpoints
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
@@ -197,7 +196,8 @@ class AccountExchangeSettingsSchema(Schema):
         required=True,
         dump_only=True,
         type='string',
-        description='The type of this object.',
+        description='The type of this object. Different implementations may use different '
+                    '**additional fields**. This field contains the name of the used schema.',
         example='AccountExchangeSettings',
     )
     account = fields.Nested(
@@ -207,22 +207,22 @@ class AccountExchangeSettingsSchema(Schema):
         description="The URI of the corresponding account.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    pegUri = fields.Url(
-        relative=True,
-        schemes=[endpoints.get_url_scheme()],
-        format='uri-reference',
+    peg = fields.Nested(
+        ObjectReferenceSchema,
         description="An optional URI of another account, belonging to the same creditor, "
-                    "to which the value of this account's tokens is pegged (via fixed "
-                    "exchange rate). Can be a relative URI.",
-        example='/creditors/2/accounts/11/',
+                    "to which the value of this account's tokens is pegged (via the "
+                    "defined `exchangeRate`).",
+        example={'uri': '/creditors/2/accounts/11/'},
     )
-    fixedExchangeRate = fields.Float(
-        missing=1.0,
+    exchangeRate = fields.Float(
         validate=validate.Range(min=0.0),
-        description="The exchange rate between this account's tokens and \"pegUri\" account's "
-                    "tokens. For example, `2.0` would mean that this account's tokens are "
-                    "twice as valuable as \"pegUri\" account's tokens. Note that this field "
-                    "will be ignored if the `pegUri` field has not been passed.",
+        description="The exchange rate between this account's tokens and `peg`'s tokens. "
+                    "For example, `2.0` would mean that this account's tokens are twice "
+                    "as valuable as `peg`'s tokens. If `peg` is not set, the exchange "
+                    "rate is between this account's tokens and some abstract universal "
+                    "measure of value. (It does not really matter what this universal "
+                    "measure of value is. Each creditor may choose the one that is most "
+                    "convenient to him.) This field is optional.",
         example=1.0,
     )
     policy = fields.String(
@@ -236,16 +236,16 @@ class AccountExchangeSettingsSchema(Schema):
         missing=-MAX_INT64,
         format='int64',
         description='The principal amount on the account should not fall below this value. '
-                    '(Note that this limit applies only for automatic exchanges, and is '
-                    'enforced on "best effort" bases.)',
+                    'Note that this limit applies only for automatic exchanges, and is '
+                    'enforced on "best effort" bases.',
         example=1000,
     )
     maxPrincipal = fields.Integer(
         missing=MAX_INT64,
         format='int64',
         description='The principal amount on the account should not exceed this value. '
-                    '(Note that this limit applies only for automatic exchanges, and is '
-                    'enforced on "best effort" bases.)',
+                    'Note that this limit applies only for automatic exchanges, and is '
+                    'enforced on "best effort" bases.',
         example=5000,
     )
     latestUpdateEntryId = fields.Integer(
