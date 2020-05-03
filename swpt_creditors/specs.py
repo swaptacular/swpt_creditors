@@ -98,7 +98,7 @@ ACCOUNT_DOES_NOT_EXIST = {
 }
 
 ACCOUNT_CONFLICT = {
-    'description': 'A different account entry with the same debtor ID already exists.',
+    'description': 'A different account entry with the same debtor ID or name already exists.',
 }
 
 ACCOUNT_UPDATE_CONFLICT = {
