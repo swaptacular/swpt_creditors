@@ -123,9 +123,3 @@ class LedgerEntriesPageSchema(Schema):
         format='uri-reference',
         description=_PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
     )
-    forthcoming = fields.Method(
-        'get_forthcoming_uri',
-        type='string',
-        format='uri-reference',
-        description=_PAGE_FORTHCOMING_DESCRIPTION.format(type='LedgerEntriesPage'),
-    )
