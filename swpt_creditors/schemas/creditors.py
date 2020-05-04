@@ -115,16 +115,16 @@ class PortfolioSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description='A URI to which an `AccountCreationRequest` can be POST-ed, '
-                    'trying to create a new `Account`.',
+        description='A URI to which an `AccountCreationRequest` can be POST-ed to '
+                    'create a new `Account`.',
         example={'uri': '/creditors/2/accounts/'},
     )
     createTransfer = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description='A URI to which a `TransferCreationRequest` can be POST-ed, '
-                    'trying to create a new `Transfer`.',
+        description='A URI to which a `TransferCreationRequest` can be POST-ed to '
+                    'create a new `Transfer`.',
         example={'uri': '/creditors/2/transfers/'},
     )
     findAccount = fields.Nested(
