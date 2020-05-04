@@ -43,7 +43,7 @@ class LogEntriesPageSchema(Schema):
         LogEntrySchema(many=True),
         required=True,
         dump_only=True,
-        description='An array of log entries. Can be empty.',
+        description='An array of `LogEntry`s. Can be empty.',
     )
     next = fields.Method(
         'get_next_uri',
@@ -82,7 +82,7 @@ class ObjectReferencesPage(Schema):
         ObjectReferenceSchema(many=True),
         required=True,
         dump_only=True,
-        description='An array of object references. Can be empty.',
+        description='An array of `ObjectReference`s. Can be empty.',
         example=[{'uri': f'{i}/'} for i in [1, 11, 111]],
     )
     next = fields.Method(
@@ -115,7 +115,7 @@ class LedgerEntriesPageSchema(Schema):
         LedgerEntrySchema(many=True),
         required=True,
         dump_only=True,
-        description='An array of ledger entries. Can be empty.',
+        description='An array of `LedgerEntry`s. Can be empty.',
     )
     next = fields.Method(
         'get_next_uri',

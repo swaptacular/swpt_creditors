@@ -99,7 +99,7 @@ class TransferSchema(BaseTransferSchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's portfolio that contains this transfer.",
+        description="The URI of the creditor's `Portfolio` that contains this transfer.",
         example={'uri': '/creditors/2/portfolio'},
     )
     notes = fields.Dict(
@@ -126,7 +126,7 @@ class TransferSchema(BaseTransferSchema):
         TransferStatusSchema,
         required=True,
         dump_only=True,
-        description="The transfer's status information.",
+        description="The transfer's `TransferStatus`.",
     )
 
     def get_uri(self, obj):

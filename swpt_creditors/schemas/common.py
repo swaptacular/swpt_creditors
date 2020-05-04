@@ -126,7 +126,7 @@ class LedgerEntrySchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account ledger.",
+        description="The URI of the corresponding `AccountLedger`.",
         example={'uri': '/creditors/2/accounts/1/ledger'},
     )
     postedAmount = fields.Integer(

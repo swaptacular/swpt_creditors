@@ -31,7 +31,7 @@ class AccountLedgerSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account.",
+        description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     principal = fields.Integer(
@@ -45,7 +45,7 @@ class AccountLedgerSchema(Schema):
     entries = fields.Nested(
         PaginatedListSchema,
         required=True,
-        description='A paginated list of account ledger entries. That is: transfers for '
+        description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers for '
                     'which the account is either the sender or the recipient. The paginated '
                     'list will be sorted in reverse-chronological order (bigger entry IDs go '
                     'first). The entries will constitute a singly linked list, each entry '
@@ -89,7 +89,7 @@ class AccountStatusSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account.",
+        description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     is_deletion_safe = fields.Boolean(
@@ -137,7 +137,7 @@ class AccountConfigSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account.",
+        description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     is_scheduled_for_deletion = fields.Boolean(
@@ -199,12 +199,12 @@ class AccountExchangeSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account.",
+        description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     peg = fields.Nested(
         ObjectReferenceSchema,
-        description="An optional URI of another account, belonging to the same creditor, "
+        description="An optional URI of another `Account`, belonging to the same creditor, "
                     "to which the value of this account's tokens is pegged (via the "
                     "defined `exchangeRate`).",
         example={'uri': '/creditors/2/accounts/11/'},
@@ -271,7 +271,7 @@ class AccountDisplaySchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the corresponding account.",
+        description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     debtorName = fields.String(
@@ -396,7 +396,7 @@ class AccountSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's portfolio that contains this account.",
+        description="The URI of the creditor's `Portfolio` that contains this account.",
         example={'uri': '/creditors/2/portfolio'},
     )
     accountInfo = fields.Nested(
@@ -420,31 +420,31 @@ class AccountSchema(Schema):
         AccountLedgerSchema,
         required=True,
         dump_only=True,
-        description="Account ledger information.",
+        description="The account's `AccountLedger`.",
     )
     status = fields.Nested(
         AccountStatusSchema,
         required=True,
         dump_only=True,
-        description="Account status information.",
+        description="The account's `AccountStatus`.",
     )
     config = fields.Nested(
         AccountConfigSchema,
         required=True,
         dump_only=True,
-        description="The account's configuration.",
+        description="The account's `AccountConfig`.",
     )
     display = fields.Nested(
         AccountDisplaySchema,
         required=True,
         dump_only=True,
-        description="The account's display settings.",
+        description="The account's `AccountDisplay` settings.",
     )
     exchange = fields.Nested(
         AccountExchangeSchema,
         required=True,
         dump_only=True,
-        description="The account's exchange settings.",
+        description="The account's `AccountExchange` settings.",
     )
     latestUpdateEntryId = fields.Integer(
         required=True,

@@ -15,7 +15,7 @@ class AccountUpdateSchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the updated account.",
+        description="The URI of the updated `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
     deleted = fields.Boolean(
@@ -38,7 +38,7 @@ class AccountStatusUpdateSchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the updated account status information.",
+        description="The URI of the updated `AccountStatus`.",
         example={'uri': '/creditors/2/accounts/1/status'},
     )
 
@@ -56,7 +56,7 @@ class AccountConfigUpdateSchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the updated account configuration.",
+        description="The URI of the updated `AccountConfig`.",
         example={'uri': '/creditors/2/accounts/1/config'},
     )
 
@@ -74,7 +74,7 @@ class AccountExchangeUpdateSchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the updated account exchange settings.",
+        description="The URI of the updated `AccountExchange` settings.",
         example={'uri': '/creditors/2/accounts/1/exchange'},
     )
 
@@ -92,7 +92,7 @@ class AccountDisplayUpdateSchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the updated account display settings.",
+        description="The URI of the updated `AccountDisplay` settings.",
         example={'uri': '/creditors/2/accounts/1/display'},
     )
 
@@ -110,13 +110,13 @@ class TransferUpdateSchema(LogEntrySchema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the updated transfer.",
+        description="The URI of the updated `Transfer`.",
         example={'uri': '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'},
     )
     status = fields.Nested(
         TransferStatusSchema,
         dump_only=True,
-        description='The current status information for the updated transfer. This field '
+        description='The current `TransferStatus` for the updated transfer. This field '
                     'will not be present when the transfer has been deleted, or when a new '
                     'transfer has been just created. (When a new transfer has been just '
                     'created, we can not avoid making an HTTP request to obtain the whole '

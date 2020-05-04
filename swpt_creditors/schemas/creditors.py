@@ -67,14 +67,15 @@ class PortfolioSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The creditor's URI.",
+        description="The URI of the `Creditor`.",
         example={'uri': '/creditors/2/'},
     )
     accounts = fields.Nested(
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description='A paginated list of references to all accounts belonging to the creditor.',
+        description='A `PaginatedList` of `ObjectReference`s to all `Account`s belonging to the '
+                    'creditor. The paginated list will not be sorted in any particular order.',
         example={
             'totalItems': 20,
             'first': '/creditors/2/accounts/',
@@ -86,7 +87,7 @@ class PortfolioSchema(Schema):
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description="A paginated list of recently posted log entries. The paginated list will "
+        description="A `PaginatedList` of recently posted `LogEntry`s. The paginated list will "
                     "be sorted in chronological order (smaller entry IDs go first). This allows "
                     "the clients of the API to synchronize their data by looking at the \"log\".",
         example={
@@ -100,9 +101,9 @@ class PortfolioSchema(Schema):
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description='A paginated list of references to for all transfers initiated by the '
-                    'creditor, that have not been deleted yet. The paginated list will not '
-                    'be sorted in any particular order.',
+        description='A `PaginatedList` of `ObjectReference`s to for all `Transfer`s initiated '
+                    'by the creditor, that have not been deleted yet. The paginated list will '
+                    'not be sorted in any particular order.',
         example={
             'totalItems': 5,
             'first': '/creditors/2/transfers/',
@@ -130,7 +131,7 @@ class PortfolioSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="A URI to which recipient account's `AccountInfo` can be POST-ed, "
+        description="A URI to which the recipient account's `AccountInfo` can be POST-ed, "
                     "trying to find a matching sender `Account`.",
         example={'uri': '/creditors/2/find-account'},
     )
