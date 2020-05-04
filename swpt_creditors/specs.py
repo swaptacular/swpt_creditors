@@ -136,7 +136,7 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
     'items': [
         {
             'type': 'LedgerEntry',
-            'account': {'uri': '/creditors/2/accounts/1/'},
+            'ledger': {'uri': '/creditors/2/accounts/1/ledger'},
             'transfer': {'uri': '/creditors/2/accounts/1/transfers/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',

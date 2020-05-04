@@ -167,7 +167,7 @@ class AccountConfigSchema(Schema):
         description='Whether to allow unsafe deletion of the account. The deletion '
                     'of an account that allows unsafe deletion may result in losing a '
                     'non-negligible amount of money on the account.',
-        example=True,
+        example=False,
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
