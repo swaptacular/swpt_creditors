@@ -87,8 +87,8 @@ class PortfolioSchema(Schema):
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description="A `PaginatedList` of recently posted `LogEntry`s. The paginated list will "
-                    "be sorted in chronological order (smaller entry IDs go first). This allows "
+        description="A `PaginatedList` of recent `LogEntry`s. The paginated list will be "
+                    "sorted in chronological order (smaller entry IDs go first). This allows "
                     "the clients of the API to synchronize their data by looking at the \"log\".",
         example={
             'first': '/creditors/2/log',

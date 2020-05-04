@@ -117,7 +117,7 @@ class LogEntriesEndpoint(MethodView):
     @creditors_api.doc(operationId='getLogPage',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
-        """Return a collection of creditor's recently posted log entries.
+        """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recently posted log
