@@ -81,7 +81,7 @@ class AccountStatusSchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object. Different debtors may use different '
-                    '**additional fields**, containing more information about the status '
+                    '**additional fields**, providing more information about the status '
                     'of the account. This field contains the name of the used schema.',
         example='AccountStatus',
     )
@@ -125,13 +125,10 @@ class AccountConfigSchema(Schema):
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/config',
     )
-    type = fields.Function(
-        lambda obj: 'AccountConfig',
-        required=True,
-        dump_only=True,
-        type='string',
+    type = fields.String(
+        missing='AccountConfig',
         description='The type of this object. Different debtors may use different '
-                    '**additional fields**, containing more information about the '
+                    '**additional fields**, providing more information about the '
                     'configuration of the account. This field contains the name '
                     'of the used schema.',
         example='AccountConfig',
@@ -191,13 +188,11 @@ class AccountExchangeSettingsSchema(Schema):
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/exchange',
     )
-    type = fields.Function(
-        lambda obj: 'AccountExchangeSettings',
-        required=True,
-        dump_only=True,
-        type='string',
+    type = fields.String(
+        missing='AccountExchangeSettings',
         description='The type of this object. Different implementations may use different '
-                    '**additional fields**. This field contains the name of the used schema.',
+                    '**additional fields**, providing more exchange settings for the '
+                    'account. This field contains the name of the used schema.',
         example='AccountExchangeSettings',
     )
     account = fields.Nested(
@@ -267,11 +262,8 @@ class AccountDisplaySettingsSchema(Schema):
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/display',
     )
-    type = fields.Function(
-        lambda obj: 'AccountDisplaySettings',
-        required=True,
-        dump_only=True,
-        type='string',
+    type = fields.String(
+        missing='AccountDisplaySettings',
         description='The type of this object.',
         example='AccountDisplaySettings',
     )
@@ -354,6 +346,11 @@ class DebtorInfoSchema(Schema):
 
 
 class AccountCreationRequestSchema(Schema):
+    type = fields.String(
+        missing='AccountCreationRequest',
+        description='The type of this object.',
+        example='AccountCreationRequest',
+    )
     debtorInfo = fields.Nested(
         DebtorInfoSchema,
         required=True,

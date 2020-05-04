@@ -93,7 +93,7 @@ class LogEntrySchema(Schema):
         dump_only=True,
         type='string',
         description='The type of this object. Different kinds of log entries may use different '
-                    '**additional fields**, containing more data. This field contains the name '
+                    '**additional fields**, providing more data. This field contains the name '
                     'of the used schema.',
         example='LogEntry',
     )

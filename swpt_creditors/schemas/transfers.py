@@ -47,6 +47,11 @@ class BaseTransferSchema(Schema):
 
 
 class TransferCreationRequestSchema(Schema):
+    type = fields.String(
+        missing='TransferCreationRequest',
+        description='The type of this object.',
+        example='TransferCreationRequest',
+    )
     transfer_uuid = fields.UUID(
         required=True,
         data_key='transferUuid',
@@ -134,7 +139,11 @@ class TransferSchema(BaseTransferSchema):
 
 
 class CancelTransferRequestSchema(Schema):
-    pass
+    type = fields.String(
+        missing='CancelTransferRequest',
+        description='The type of this object.',
+        example='CancelTransferRequest',
+    )
 
 
 class CommittedTransferSchema(BaseTransferSchema):
@@ -152,7 +161,7 @@ class CommittedTransferSchema(BaseTransferSchema):
         dump_only=True,
         type='string',
         description='The type of this object. Different debtors may use different '
-                    '**additional fields**, containing more information about the transfer '
+                    '**additional fields**, providing more information about the transfer '
                     '(notes from the sender for example). This field contains the name '
                     'of the used schema.',
         example='CommittedTransfer',

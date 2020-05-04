@@ -3,8 +3,12 @@ from flask import url_for
 from .common import ObjectReferenceSchema, PaginatedListSchema, URI_DESCRIPTION
 
 
-class CreditorCreationOptionsSchema(Schema):
-    pass
+class CreditorCreationRequestSchema(Schema):
+    type = fields.String(
+        missing='CreditorCreationRequest',
+        description='The type of this object.',
+        example='CreditorCreationRequest',
+    )
 
 
 class CreditorSchema(Schema):
