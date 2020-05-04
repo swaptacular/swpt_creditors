@@ -8,7 +8,7 @@ from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationRequestSchema, CreditorSchema, AccountCreationRequestSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
-    PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, LogEntriesPageSchema,
+    PortfolioSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountInfoSchema,
     AccountLedgerSchema, AccountStatusSchema,
@@ -140,7 +140,7 @@ accounts_api = Blueprint(
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(ObjectReferencesPage(context=CONTEXT))
+    @accounts_api.response(ObjectReferencesPageSchema(context=CONTEXT))
     @accounts_api.doc(operationId='getAccountsPage',
                       responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
@@ -368,7 +368,7 @@ class FindAccountEndpoint(MethodView):
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
 class TransfersEndpoint(MethodView):
     @transfers_api.arguments(PaginationParametersSchema, location='query')
-    @transfers_api.response(ObjectReferencesPage(context=CONTEXT), example=specs.TRANSFER_LINKS_EXAMPLE)
+    @transfers_api.response(ObjectReferencesPageSchema(context=CONTEXT), example=specs.TRANSFER_LINKS_EXAMPLE)
     @transfers_api.doc(operationId='getTransfersPage',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId):
