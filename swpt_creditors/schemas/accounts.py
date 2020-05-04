@@ -363,15 +363,15 @@ class AccountCreationRequestSchema(Schema):
     display = fields.Nested(
         AccountDisplaySchema,
         required=True,
-        description="Account's display settings.",
+        description="Account's `AccountDisplay` settings.",
     )
     exchange = fields.Nested(
         AccountExchangeSchema,
-        description="Optional account exchange settings.",
+        description="Optional `AccountExchange` settings.",
     )
     config = fields.Nested(
         AccountConfigSchema,
-        description="Optional account configuration.",
+        description="Optional `AccountConfig`.",
     )
 
 

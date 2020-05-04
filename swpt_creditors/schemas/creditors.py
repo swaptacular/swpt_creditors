@@ -101,7 +101,7 @@ class PortfolioSchema(Schema):
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description='A `PaginatedList` of `ObjectReference`s to for all `Transfer`s initiated '
+        description='A `PaginatedList` of `ObjectReference`s to all `Transfer`s initiated '
                     'by the creditor, that have not been deleted yet. The paginated list will '
                     'not be sorted in any particular order.',
         example={
