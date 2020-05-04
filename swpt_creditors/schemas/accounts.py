@@ -179,7 +179,7 @@ class AccountConfigSchema(Schema):
     )
 
 
-class AccountExchangeSettingsSchema(Schema):
+class AccountExchangeSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -189,11 +189,11 @@ class AccountExchangeSettingsSchema(Schema):
         example='/creditors/2/accounts/1/exchange',
     )
     type = fields.String(
-        missing='AccountExchangeSettings',
+        missing='AccountExchange',
         description='The type of this object. Different implementations may use different '
                     '**additional fields**, providing more exchange settings for the '
                     'account. This field contains the name of the used schema.',
-        example='AccountExchangeSettings',
+        example='AccountExchange',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -248,12 +248,12 @@ class AccountExchangeSettingsSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeSettingsUpdate'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeUpdate'),
         example=347,
     )
 
 
-class AccountDisplaySettingsSchema(Schema):
+class AccountDisplaySchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -263,9 +263,9 @@ class AccountDisplaySettingsSchema(Schema):
         example='/creditors/2/accounts/1/display',
     )
     type = fields.String(
-        missing='AccountDisplaySettings',
+        missing='AccountDisplay',
         description='The type of this object.',
-        example='AccountDisplaySettings',
+        example='AccountDisplay',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -329,7 +329,7 @@ class AccountDisplaySettingsSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplaySettingsUpdate'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplayUpdate'),
         example=348,
     )
 
@@ -360,13 +360,13 @@ class AccountCreationRequestSchema(Schema):
                     "ID of the bank.",
         example={'type': 'SwptDebtorInfo', 'debtorId': 1},
     )
-    displaySettings = fields.Nested(
-        AccountDisplaySettingsSchema,
+    display = fields.Nested(
+        AccountDisplaySchema,
         required=True,
         description="Account's display settings.",
     )
-    exchangeSettings = fields.Nested(
-        AccountExchangeSettingsSchema,
+    exchange = fields.Nested(
+        AccountExchangeSchema,
         description="Optional account exchange settings.",
     )
     config = fields.Nested(
@@ -434,14 +434,14 @@ class AccountSchema(Schema):
         dump_only=True,
         description="The account's configuration.",
     )
-    displaySettings = fields.Nested(
-        AccountDisplaySettingsSchema,
+    display = fields.Nested(
+        AccountDisplaySchema,
         required=True,
         dump_only=True,
         description="The account's display settings.",
     )
-    exchangeSettings = fields.Nested(
-        AccountExchangeSettingsSchema,
+    exchange = fields.Nested(
+        AccountExchangeSchema,
         required=True,
         dump_only=True,
         description="The account's exchange settings.",

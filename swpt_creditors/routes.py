@@ -10,7 +10,7 @@ from .schemas import (
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     PortfolioSchema, ObjectReferencesPage, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
-    AccountDisplaySettingsSchema, AccountExchangeSettingsSchema, AccountInfoSchema,
+    AccountDisplaySchema, AccountExchangeSchema, AccountInfoSchema,
     AccountLedgerSchema, AccountStatusSchema,
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
@@ -244,18 +244,18 @@ class AccountConfigEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/display', parameters=[CID, DID])
-class AccountDisplaySettingsEndpoint(MethodView):
-    @accounts_api.response(AccountDisplaySettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountDisplaySettings',
+class AccountDisplayEndpoint(MethodView):
+    @accounts_api.response(AccountDisplaySchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountDisplay',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
         """Return account's display settings."""
 
         abort(500)
 
-    @accounts_api.arguments(AccountDisplaySettingsSchema)
-    @accounts_api.response(AccountDisplaySettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountDisplaySettings',
+    @accounts_api.arguments(AccountDisplaySchema)
+    @accounts_api.response(AccountDisplaySchema(context=CONTEXT))
+    @accounts_api.doc(operationId='updateAccountDisplay',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
@@ -269,18 +269,18 @@ class AccountDisplaySettingsEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/exchange', parameters=[CID, DID])
-class AccountExchangeSettingsEndpoint(MethodView):
-    @accounts_api.response(AccountExchangeSettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountExchangeSettings',
+class AccountExchangeEndpoint(MethodView):
+    @accounts_api.response(AccountExchangeSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountExchange',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
         """Return account's exchange settings."""
 
         abort(500)
 
-    @accounts_api.arguments(AccountExchangeSettingsSchema)
-    @accounts_api.response(AccountExchangeSettingsSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountExchangeSettings',
+    @accounts_api.arguments(AccountExchangeSchema)
+    @accounts_api.response(AccountExchangeSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='updateAccountExchange',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):

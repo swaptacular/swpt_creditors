@@ -61,14 +61,14 @@ class AccountConfigUpdateSchema(LogEntrySchema):
     )
 
 
-class AccountExchangeSettingsUpdateSchema(LogEntrySchema):
+class AccountExchangeUpdateSchema(LogEntrySchema):
     type = fields.Function(
-        lambda obj: 'AccountExchangeSettingsUpdate',
+        lambda obj: 'AccountExchangeUpdate',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountExchangeSettingsUpdate',
+        example='AccountExchangeUpdate',
     )
     object = fields.Nested(
         ObjectReferenceSchema,
@@ -79,14 +79,14 @@ class AccountExchangeSettingsUpdateSchema(LogEntrySchema):
     )
 
 
-class AccountDisplaySettingsUpdateSchema(LogEntrySchema):
+class AccountDisplayUpdateSchema(LogEntrySchema):
     type = fields.Function(
-        lambda obj: 'AccountDisplaySettingsUpdate',
+        lambda obj: 'AccountDisplayUpdate',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountDisplaySettingsUpdate',
+        example='AccountDisplayUpdate',
     )
     object = fields.Nested(
         ObjectReferenceSchema,
