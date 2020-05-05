@@ -93,9 +93,9 @@ class AccountStatusSchema(Schema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     is_deletion_safe = fields.Boolean(
-        required=True,
         dump_only=True,
-        data_key='isDeletionSafe',
+        missing=False,
+        data_key='safeToDelete',
         description='Whether it is safe to delete this account.',
         example=False,
     )
@@ -105,6 +105,13 @@ class AccountStatusSchema(Schema):
         description='Annual rate (in percents) at which interest accumulates on the account. When '
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
+    )
+    misconfigured = fields.Boolean(
+        dump_only=True,
+        missing=False,
+        description='Whether the account is misconfigured. A `true` means that the current '
+                    '`AccountConfig` can not be applied for some reason.',
+        example=False,
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
