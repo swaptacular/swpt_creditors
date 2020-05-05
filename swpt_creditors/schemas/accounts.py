@@ -110,7 +110,8 @@ class AccountStatusSchema(Schema):
         dump_only=True,
         missing=False,
         description='Whether the account is misconfigured. A `true` means that the current '
-                    '`AccountConfig` can not be applied for some reason.',
+                    '`AccountConfig` can not be applied, or is not effectual anymore, for some '
+                    'reason.',
         example=False,
     )
     latestUpdateEntryId = fields.Integer(
