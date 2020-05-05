@@ -177,3 +177,7 @@ FIND_ACCOUNT_REQUEST_EXAMPLE = {
     'debtorId': 1,
     'creditorId': 2222
 }
+
+FIND_ACCOUNT_RESPONSE_EXAMPLE = {
+    'uri': '/creditors/2/accounts/1/',
+}

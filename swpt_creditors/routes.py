@@ -11,7 +11,7 @@ from .schemas import (
     PortfolioSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountInfoSchema,
-    AccountLedgerSchema, AccountStatusSchema,
+    AccountLedgerSchema, AccountStatusSchema, ObjectReferenceSchema,
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -347,7 +347,7 @@ transfers_api = Blueprint(
 @transfers_api.route('/<i64:creditorId>/find-account', parameters=[CID])
 class FindAccountEndpoint(MethodView):
     @transfers_api.arguments(AccountInfoSchema, example=specs.FIND_ACCOUNT_REQUEST_EXAMPLE)
-    @transfers_api.response(AccountSchema(context=CONTEXT))
+    @transfers_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.FIND_ACCOUNT_RESPONSE_EXAMPLE)
     @transfers_api.doc(operationId='findAccount',
                        responses={204: specs.NO_MATCHING_ACCOUNT,
                                   404: specs.CREDITOR_DOES_NOT_EXIST})

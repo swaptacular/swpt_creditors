@@ -132,7 +132,10 @@ class PortfolioSchema(Schema):
         required=True,
         dump_only=True,
         description="A URI to which the recipient account's `AccountInfo` can be POST-ed, "
-                    "trying to find a matching sender `Account`.",
+                    "trying to find a matching sender account. If a matching sender "
+                    "account is found, the response will contain an `ObjectReference` to "
+                    "the `Account`. Otherwise, the response will be empty (response code "
+                    "204).",
         example={'uri': '/creditors/2/find-account'},
     )
 
