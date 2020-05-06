@@ -67,7 +67,7 @@ class AccountLedgerSchema(Schema):
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='LedgerEntry'),
     )
 
 
@@ -130,7 +130,7 @@ class AccountStatusSchema(Schema):
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountStatusUpdate'),
     )
 
 
@@ -198,7 +198,7 @@ class AccountConfigSchema(Schema):
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountConfigUpdate'),
     )
 
 
@@ -277,7 +277,7 @@ class AccountExchangeSchema(Schema):
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountExchangeUpdate'),
     )
 
 
@@ -363,7 +363,7 @@ class AccountDisplaySchema(Schema):
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountDisplayUpdate'),
     )
 
 
@@ -490,7 +490,7 @@ class AccountSchema(Schema):
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountUpdate'),
     )
 
     def get_uri(self, obj):

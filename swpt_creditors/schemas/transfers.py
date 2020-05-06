@@ -125,7 +125,7 @@ class TransferSchema(BaseTransferSchema):
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='TransferUpdate'),
     )
     status = fields.Nested(
         TransferStatusSchema,

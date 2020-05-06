@@ -26,7 +26,9 @@ a continuous stream of new items. This field will not be present when the \
 `next` field is present. This can be a relative URI.'
 
 LATEST_UPDATE_AT_DESCRIPTION = '\
-The moment of the latest update on this object.'
+The moment of the latest update on this object. The value is the same as the \
+value of the `postedAt` field of the latest `{type}` entry for this object \
+in the log.'
 
 
 class PaginationParametersSchema(Schema):
