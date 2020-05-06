@@ -25,6 +25,9 @@ but may become available in the future. This is useful when we want to follow \
 a continuous stream of new items. This field will not be present when the \
 `next` field is present. This can be a relative URI.'
 
+LATEST_UPDATE_AT_DESCRIPTION = '\
+The moment of the latest update on this object.'
+
 
 class PaginationParametersSchema(Schema):
     prev = fields.String(

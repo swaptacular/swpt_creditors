@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
 UPDATE_ENTRY_ID_DESCRIPTION = '\
@@ -64,6 +64,11 @@ class AccountLedgerSchema(Schema):
         description='The ID of the latest `LedgerEntry` for this account in the log.',
         example=123,
     )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION,
+    )
 
 
 class AccountStatusSchema(Schema):
@@ -121,6 +126,11 @@ class AccountStatusSchema(Schema):
         format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountStatusUpdate'),
         example=349,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -184,6 +194,11 @@ class AccountConfigSchema(Schema):
         format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountConfigUpdate'),
         example=346,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -258,6 +273,11 @@ class AccountExchangeSchema(Schema):
         format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeUpdate'),
         example=347,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -339,6 +359,11 @@ class AccountDisplaySchema(Schema):
         format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplayUpdate'),
         example=348,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -461,6 +486,11 @@ class AccountSchema(Schema):
         format='uint64',
         description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountUpdate'),
         example=344,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
     def get_uri(self, obj):

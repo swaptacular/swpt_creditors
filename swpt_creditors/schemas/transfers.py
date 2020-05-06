@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, TransferStatusSchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
+    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -121,6 +121,11 @@ class TransferSchema(BaseTransferSchema):
         description='The ID of the latest `TransferUpdate` entry for this transfer in '
                     'the log. It gets bigger after each update.',
         example=345,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
     status = fields.Nested(
         TransferStatusSchema,
