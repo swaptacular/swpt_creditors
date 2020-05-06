@@ -234,11 +234,7 @@ class AccountConfigEndpoint(MethodView):
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account's configuration.
-
-        **Note:** This operation is idempotent.
-
-        """
+        """Update account's configuration."""
 
         abort(500)
 
@@ -259,11 +255,7 @@ class AccountDisplayEndpoint(MethodView):
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account's display settings.
-
-        **Note:** This operation is idempotent.
-
-        """
+        """Update account's display settings."""
 
         abort(500)
 
@@ -284,11 +276,7 @@ class AccountExchangeEndpoint(MethodView):
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_UPDATE_CONFLICT})
     def patch(self, config_update_request, creditorId, debtorId):
-        """Update account's exchange settings.
-
-        **Note:** This operation is idempotent.
-
-        """
+        """Update account's exchange settings."""
 
         abort(500)
 
@@ -445,8 +433,6 @@ class TransferEndpoint(MethodView):
         """Cancel a transfer.
 
         This operation will fail if the transfer can not be canceled.
-
-        **Note:** This operation is idempotent.
 
         """
 
