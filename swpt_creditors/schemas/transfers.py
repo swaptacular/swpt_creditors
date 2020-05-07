@@ -3,6 +3,7 @@ from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, TransferStatusSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    PAYEE_REFERENCE_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -44,6 +45,12 @@ class BaseTransferSchema(Schema):
         description='The transferred amount.',
         example=1000,
     )
+    reference = fields.String(
+        dump_only=True,
+        missing='',
+        description=PAYEE_REFERENCE_DESCRIPTION,
+        example='PAYMENT 123',
+    )
 
 
 class TransferCreationRequestSchema(Schema):
@@ -71,6 +78,11 @@ class TransferCreationRequestSchema(Schema):
         format='int64',
         description='The amount to be transferred. Must be positive.',
         example=1000,
+    )
+    reference = fields.String(
+        missing='',
+        description=PAYEE_REFERENCE_DESCRIPTION,
+        example='PAYMENT 123',
     )
     notes = fields.Dict(
         missing={},

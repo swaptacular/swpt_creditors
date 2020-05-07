@@ -30,6 +30,12 @@ The moment of the latest update on this object. The value is the same as the \
 value of the `postedAt` field of the latest `{type}` entry for this object \
 in the log.'
 
+PAYEE_REFERENCE_DESCRIPTION = '\
+A *payee reference*. A payee reference is a short string that can be \
+included with transfers to help identify the transfer. The reference may \
+include details to help the recipient to identify the sender and/or the \
+reason for the transfer.'
+
 
 class PaginationParametersSchema(Schema):
     prev = fields.String(
