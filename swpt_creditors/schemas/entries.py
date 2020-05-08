@@ -2,7 +2,6 @@ from marshmallow import Schema, fields, validate
 from .common import (
     ObjectReferenceSchema, TransferStatusSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
-    PAYEE_REFERENCE_DESCRIPTION,
 )
 
 
@@ -127,7 +126,10 @@ class LedgerEntrySchema(LogEntrySchema):
     reference = fields.String(
         dump_only=True,
         missing='',
-        description=PAYEE_REFERENCE_DESCRIPTION,
+        description="A payment reference. A payment reference is a short string that can be "
+                "included with transfers to help identify the transfer. For incoming transfers "
+                "this will be the transfer's `payeeRef` field. For outgoing transfers this "
+                "will be the transfer's `payerRef` field.",
         example='PAYMENT 123',
     )
 

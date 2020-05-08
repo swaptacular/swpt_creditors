@@ -3,16 +3,10 @@ from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountInfoSchema, TransferStatusSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
-    PAYEE_REFERENCE_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
-
-_TRANSFER_NOTES_DESCRIPTION = '\
-Notes from the sender. Can be any JSON object containing information that \
-the sender wants the recipient to see. Different debtors may impose \
-different restrictions on the schema and the contents of of this object.'
 
 _TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
 The moment at which the transfer was initiated.'
@@ -23,47 +17,13 @@ the currency code in "normal" bank transfers.'
 
 
 class BaseTransferSchema(Schema):
-    senderAccountInfo = fields.Nested(
+    sender_account_info = fields.Nested(
         AccountInfoSchema,
         required=True,
         dump_only=True,
+        data_key='senderAccountInfo',
         description="The sender's account information.",
         example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
-    )
-    recipientAccountInfo = fields.Nested(
-        AccountInfoSchema,
-        required=True,
-        dump_only=True,
-        description="The recipient's account information.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
-    )
-    amount = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
-        format='int64',
-        description='The transferred amount.',
-        example=1000,
-    )
-    reference = fields.String(
-        dump_only=True,
-        missing='',
-        description=PAYEE_REFERENCE_DESCRIPTION,
-        example='PAYMENT 123',
-    )
-
-
-class TransferCreationRequestSchema(Schema):
-    type = fields.String(
-        missing='TransferCreationRequest',
-        description='The type of this object.',
-        example='TransferCreationRequest',
-    )
-    transfer_uuid = fields.UUID(
-        required=True,
-        data_key='transferUuid',
-        description="A client-generated UUID for the transfer.",
-        example='123e4567-e89b-12d3-a456-426655440000',
     )
     recipient_account_info = fields.Nested(
         AccountInfoSchema,
@@ -76,17 +36,45 @@ class TransferCreationRequestSchema(Schema):
         required=True,
         validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
-        description='The amount to be transferred. Must be positive.',
+        description='The transferred amount. Must be positive.',
         example=1000,
     )
-    reference = fields.String(
+    payee_ref = fields.String(
         missing='',
-        description=PAYEE_REFERENCE_DESCRIPTION,
+        data_key='payeeRef',
+        description='The *payee reference*. A payee reference is a short string that may be '
+                    'included with transfers to help the recipient to identify the sender '
+                    'and/or the reason for the transfer.',
         example='PAYMENT 123',
+    )
+    payer_ref = fields.String(
+        missing='',
+        data_key='payerRef',
+        description='The *payer reference*. A payer reference is a short string that may be '
+                    'be included with transfers to help the sender to identify the transfer. '
+                    'For example, this can be useful when the recipient is making a refund, '
+                    'to refer to the original payment.',
+        example='PAYMENT ABC',
     )
     notes = fields.Dict(
         missing={},
-        description=_TRANSFER_NOTES_DESCRIPTION,
+        description='Notes from the sender. Can be any JSON object containing information that '
+                    'the sender wants the recipient to see. Different debtors may impose '
+                    'different restrictions on the schema and the contents of of this object.',
+    )
+
+
+class TransferCreationRequestSchema(BaseTransferSchema):
+    type = fields.String(
+        missing='TransferCreationRequest',
+        description='The type of this object.',
+        example='TransferCreationRequest',
+    )
+    transfer_uuid = fields.UUID(
+        required=True,
+        data_key='transferUuid',
+        description="A client-generated UUID for the transfer.",
+        example='123e4567-e89b-12d3-a456-426655440000',
     )
 
 
@@ -113,11 +101,6 @@ class TransferSchema(BaseTransferSchema):
         dump_only=True,
         description="The URI of the creditor's `Portfolio` that contains this transfer.",
         example={'uri': '/creditors/2/portfolio'},
-    )
-    notes = fields.Dict(
-        required=True,
-        dump_only=True,
-        description=_TRANSFER_NOTES_DESCRIPTION,
     )
     initiated_at_ts = fields.DateTime(
         required=True,
