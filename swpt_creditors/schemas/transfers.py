@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, TransferStatusSchema,
+    ObjectReferenceSchema, AccountIdentitySchema, TransferStatusSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
@@ -17,20 +17,20 @@ the currency code in "normal" bank transfers.'
 
 
 class BaseTransferSchema(Schema):
-    sender_account_info = fields.Nested(
-        AccountInfoSchema,
+    sender_account = fields.Nested(
+        AccountIdentitySchema,
         required=True,
         dump_only=True,
-        data_key='senderAccountInfo',
-        description="The sender's account information.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
+        data_key='senderAccount',
+        description="The sender's `AccountIdentity` information.",
+        example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2222},
     )
-    recipient_account_info = fields.Nested(
-        AccountInfoSchema,
+    recipient_account = fields.Nested(
+        AccountIdentitySchema,
         required=True,
-        data_key='recipientAccountInfo',
-        description="The recipient's account information.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2222},
+        data_key='recipientAccount',
+        description="The recipient's `AccountIdentity` information.",
+        example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2222},
     )
     amount = fields.Integer(
         required=True,

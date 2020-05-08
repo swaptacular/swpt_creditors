@@ -115,7 +115,7 @@ ACCOUNT_EXISTS = {
 }
 
 ACCOUNT_CAN_NOT_BE_CREATED = {
-    'description': "The account can not be created. The debtor's info might be wrong.",
+    'description': "The account can not be created. The debtor's identity might be wrong.",
 }
 
 ACCOUNT_DELETION_NOT_ALLOWED = {
@@ -173,7 +173,7 @@ TRANSFER_LINKS_EXAMPLE = {
 }
 
 FIND_ACCOUNT_REQUEST_EXAMPLE = {
-    'type': 'SwptAccountInfo',
+    'type': 'SwptAccountIdentity',
     'debtorId': 1,
     'creditorId': 2222
 }

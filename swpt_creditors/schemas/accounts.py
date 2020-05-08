@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountInfoSchema, PaginatedListSchema,
+    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
@@ -367,14 +367,14 @@ class AccountDisplaySchema(Schema):
     )
 
 
-class DebtorInfoSchema(Schema):
+class DebtorIdentitySchema(Schema):
     type = fields.String(
         required=True,
         description="The type of this object. Different debtors may use different "
                     "**additional fields** containing information about the debtor. The "
-                    "provided information must be sufficient to uniquely and reliably "
+                    "provided information must be just enough to uniquely and reliably "
                     "identify the debtor. This field contains the name of the used schema.",
-        example='DebtorInfo',
+        example='DebtorIdentity',
     )
 
 
@@ -402,8 +402,8 @@ class AccountSchema(Schema):
         description="The URI of the creditor's `Portfolio` that contains this account.",
         example={'uri': '/creditors/2/portfolio'},
     )
-    accountInfo = fields.Nested(
-        AccountInfoSchema,
+    accountIdentity = fields.Nested(
+        AccountIdentitySchema,
         required=True,
         dump_only=True,
         description="A JSON object containing information that uniquely and reliably "
@@ -411,16 +411,16 @@ class AccountSchema(Schema):
                     "as sender or recipient. For example, if the debtor happens to be a "
                     "bank, this would contain the type of the debtor (a bank), the ID of "
                     "the bank, and the bank account number.",
-        example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
+        example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
     )
-    debtorInfo = fields.Nested(
-        DebtorInfoSchema,
+    debtorIdentity = fields.Nested(
+        DebtorIdentitySchema,
         required=True,
         description="A JSON object containing information that uniquely and reliably "
                     "identifies the debtor. For example, if the debtor happens to be a "
                     "bank, this would contain the type of the debtor (a bank), and the "
                     "ID of the bank.",
-        example={'type': 'SwptDebtorInfo', 'debtorId': 1},
+        example={'type': 'SwptDebtorIdentity', 'debtorId': 1},
     )
     created_at_ts = fields.DateTime(
         required=True,
