@@ -378,36 +378,6 @@ class DebtorInfoSchema(Schema):
     )
 
 
-class AccountCreationRequestSchema(Schema):
-    type = fields.String(
-        missing='AccountCreationRequest',
-        description='The type of this object.',
-        example='AccountCreationRequest',
-    )
-    debtorInfo = fields.Nested(
-        DebtorInfoSchema,
-        required=True,
-        description="A JSON object containing information that uniquely and reliably "
-                    "identifies the debtor. For example, if the debtor happens to be a "
-                    "bank, this would contain the type of the debtor (a bank), and the "
-                    "ID of the bank.",
-        example={'type': 'SwptDebtorInfo', 'debtorId': 1},
-    )
-    display = fields.Nested(
-        AccountDisplaySchema,
-        required=True,
-        description="Account's `AccountDisplay` settings.",
-    )
-    exchange = fields.Nested(
-        AccountExchangeSchema,
-        description="Optional `AccountExchange` settings.",
-    )
-    config = fields.Nested(
-        AccountConfigSchema,
-        description="Optional `AccountConfig`.",
-    )
-
-
 class AccountSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -443,6 +413,15 @@ class AccountSchema(Schema):
                     "the bank, and the bank account number.",
         example={'type': 'SwptAccountInfo', 'debtorId': 1, 'creditorId': 2},
     )
+    debtorInfo = fields.Nested(
+        DebtorInfoSchema,
+        required=True,
+        description="A JSON object containing information that uniquely and reliably "
+                    "identifies the debtor. For example, if the debtor happens to be a "
+                    "bank, this would contain the type of the debtor (a bank), and the "
+                    "ID of the bank.",
+        example={'type': 'SwptDebtorInfo', 'debtorId': 1},
+    )
     created_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
@@ -453,31 +432,28 @@ class AccountSchema(Schema):
         AccountLedgerSchema,
         required=True,
         dump_only=True,
-        description="The account's `AccountLedger`.",
+        description="Account's `AccountLedger`.",
     )
     status = fields.Nested(
         AccountStatusSchema,
         required=True,
         dump_only=True,
-        description="The account's `AccountStatus`.",
+        description="Account's `AccountStatus`.",
     )
     config = fields.Nested(
         AccountConfigSchema,
         required=True,
-        dump_only=True,
-        description="The account's `AccountConfig`.",
+        description="Account's `AccountConfig`.",
     )
     display = fields.Nested(
         AccountDisplaySchema,
         required=True,
-        dump_only=True,
-        description="The account's `AccountDisplay` settings.",
+        description="Account's `AccountDisplay` settings.",
     )
     exchange = fields.Nested(
         AccountExchangeSchema,
         required=True,
-        dump_only=True,
-        description="The account's `AccountExchange` settings.",
+        description="Account's `AccountExchange` settings.",
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
@@ -500,3 +476,19 @@ class AccountSchema(Schema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
+
+
+class AccountCreationRequestSchema(AccountSchema):
+    type = fields.String(
+        missing='AccountCreationRequest',
+        description='The type of this object.',
+        example='AccountCreationRequest',
+    )
+    exchange = fields.Nested(
+        AccountExchangeSchema,
+        description="Optional `AccountExchange` settings.",
+    )
+    config = fields.Nested(
+        AccountConfigSchema,
+        description="Optional `AccountConfig`.",
+    )
