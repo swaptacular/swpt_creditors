@@ -17,18 +17,16 @@ the currency code in "normal" bank transfers.'
 
 
 class BaseTransferSchema(Schema):
-    sender_account = fields.Nested(
+    sender = fields.Nested(
         AccountIdentitySchema,
         required=True,
         dump_only=True,
-        data_key='senderAccount',
         description="The sender's `AccountIdentity` information.",
         example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2222},
     )
-    recipient_account = fields.Nested(
+    recipient = fields.Nested(
         AccountIdentitySchema,
         required=True,
-        data_key='recipientAccount',
         description="The recipient's `AccountIdentity` information.",
         example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2222},
     )

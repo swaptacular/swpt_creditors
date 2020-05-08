@@ -402,7 +402,7 @@ class AccountSchema(Schema):
         description="The URI of the creditor's `Portfolio` that contains this account.",
         example={'uri': '/creditors/2/portfolio'},
     )
-    accountIdentity = fields.Nested(
+    identity = fields.Nested(
         AccountIdentitySchema,
         required=True,
         dump_only=True,
@@ -413,7 +413,7 @@ class AccountSchema(Schema):
                     "the bank, and the bank account number.",
         example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
     )
-    debtorIdentity = fields.Nested(
+    debtor = fields.Nested(
         DebtorIdentitySchema,
         required=True,
         description="A JSON object containing information that uniquely and reliably "
