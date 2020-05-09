@@ -97,6 +97,18 @@ class AccountStatusSchema(Schema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
+    identity = fields.Nested(
+        AccountIdentitySchema,
+        dump_only=True,
+        description="A JSON object containing information that uniquely and reliably "
+                    "identifies the account when it participates in transfers as sender"
+                    "or recipient. For example, if the debtor happens to be a bank, "
+                    "this would contain the type of the debtor (a bank), the ID of the "
+                    "bank, and the bank account number. When this field is not present, "
+                    "this means that the account has not obtained identity yet, and "
+                    "can not participate in transfers.",
+        example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
+    )
     is_deletion_safe = fields.Boolean(
         dump_only=True,
         missing=False,
@@ -400,18 +412,6 @@ class AccountSchema(Schema):
         dump_only=True,
         description="The URI of the creditor's `Portfolio` that contains this account.",
         example={'uri': '/creditors/2/portfolio'},
-    )
-    identity = fields.Nested(
-        AccountIdentitySchema,
-        dump_only=True,
-        description="A JSON object containing information that uniquely and reliably "
-                    "identifies the account when it participates in transfers as sender"
-                    "or recipient. For example, if the debtor happens to be a bank, "
-                    "this would contain the type of the debtor (a bank), the ID of the "
-                    "bank, and the bank account number. When this field is not present, "
-                    "this means that the account have not obtained identity yet, and "
-                    "can not participate in transfers.",
-        example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
     )
     debtor = fields.Nested(
         DebtorIdentitySchema,
