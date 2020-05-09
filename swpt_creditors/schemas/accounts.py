@@ -303,10 +303,9 @@ class AccountDisplaySchema(Schema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     debtorName = fields.String(
-        required=True,
-        description='The name of the debtor. All accounts belonging to a given creditor '
-                    'must have different `debtorName`s. The creditor may choose any '
-                    'name that is convenient, or easy to remember.',
+        description='Optional name of the debtor. All accounts belonging to a given '
+                    'creditor must have different `debtorName`s. The creditor may choose '
+                    'any name that is convenient, or easy to remember.',
         example='First Swaptacular Bank',
     )
     debtorUrl = fields.Url(
@@ -491,4 +490,8 @@ class AccountCreationRequestSchema(AccountSchema):
     config = fields.Nested(
         AccountConfigSchema,
         description="Optional `AccountConfig`.",
+    )
+    display = fields.Nested(
+        AccountDisplaySchema,
+        description="Optional `AccountDisplay` settings.",
     )
