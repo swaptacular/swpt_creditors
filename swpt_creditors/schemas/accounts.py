@@ -21,6 +21,31 @@ class DebtorIdentitySchema(Schema):
     )
 
 
+class CurrencyPegSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'CurrencyPeg',
+        required=True,
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='CurrencyPeg',
+    )
+    currency = fields.Nested(
+        DebtorIdentitySchema,
+        required=True,
+        description="Identifies the debtor that issues the peg currency.",
+        example={'type': 'SwptDebtorIdentity', 'debtorId': 111},
+    )
+    exchangeRate = fields.Float(
+        required=True,
+        validate=validate.Range(min=0.0),
+        description="The exchange rate between the pegged currency and the peg currency. For "
+                    "example, `2.0` would mean that pegged currency's tokens are twice as "
+                    "valuable as peg currency's tokens.",
+        example=1.0,
+    )
+
+
 class DebtorInfoSchema(Schema):
     type = fields.String(
         required=True,
@@ -130,15 +155,6 @@ class AccountStatusSchema(Schema):
                     "can not participate in transfers.",
         example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
     )
-    debtorInfo = fields.Nested(
-        DebtorInfoSchema,
-        required=True,
-        dump_only=True,
-        description="A JSON object containing essential information about the debtor. "
-                    "Notably, the object may contain the recommended display settings, the "
-                    "currency to which the debtor's currency is pegged, and the exchange "
-                    "rate.",
-    )
     is_deletion_safe = fields.Boolean(
         dump_only=True,
         missing=False,
@@ -160,6 +176,12 @@ class AccountStatusSchema(Schema):
                     '`AccountConfig` can not be applied, or is not effectual anymore, for some '
                     'reason.',
         example=False,
+    )
+    peg = fields.Nested(
+        CurrencyPegSchema,
+        description="Optional currency peg, announced by the debtor. A currency peg is a policy "
+                    "in which the debtor sets a specific fixed exchange rate for its currency "
+                    "with other debtor's currency (the peg currency).",
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
@@ -267,22 +289,22 @@ class AccountExchangeSchema(Schema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    peg = fields.Nested(
+    pegCurrency = fields.Nested(
         ObjectReferenceSchema,
-        description="An optional URI of another `Account`, belonging to the same creditor, "
+        description="Optional URI of another `Account`, belonging to the same creditor, "
                     "to which the value of this account's tokens is pegged (via the "
                     "defined `exchangeRate`).",
         example={'uri': '/creditors/2/accounts/11/'},
     )
     exchangeRate = fields.Float(
         validate=validate.Range(min=0.0),
-        description="The exchange rate between this account's tokens and `peg`'s tokens. "
-                    "For example, `2.0` would mean that this account's tokens are twice "
-                    "as valuable as `peg`'s tokens. If `peg` is not set, the exchange "
-                    "rate is between this account's tokens and some abstract universal "
-                    "measure of value. (It does not really matter what this universal "
-                    "measure of value is. Each creditor may choose the one that is most "
-                    "convenient to him.) This field is optional.",
+        description="The exchange rate between this account's tokens and `pegCurrency`'s "
+                    "tokens. For example, `2.0` would mean that this account's tokens are "
+                    "twice as valuable as `pegCurrency`'s tokens. If `pegCurrency` is not set, "
+                    "the exchange rate is between this account's tokens and some abstract "
+                    "universal measure of value. (It does not really matter what this "
+                    "universal measure of value is. Each creditor may choose the one that is "
+                    "most  convenient to him.) This field is optional.",
         example=1.0,
     )
     policy = fields.String(
@@ -353,7 +375,7 @@ class AccountDisplaySchema(Schema):
     debtorUrl = fields.Url(
         relative=False,
         format='uri',
-        description='An optional link containing additional information about the debtor.',
+        description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
     amountDivisor = fields.Float(
@@ -382,7 +404,7 @@ class AccountDisplaySchema(Schema):
     unitUrl = fields.Url(
         relative=False,
         format='uri',
-        description='An optional link containing additional information about the value '
+        description='Optional link containing additional information about the value '
                     'measurement unit.',
         example='https://example.com/units/USD',
     )
