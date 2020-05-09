@@ -132,12 +132,12 @@ class AccountStatusSchema(Schema):
     )
     debtorInfo = fields.Nested(
         DebtorInfoSchema,
+        required=True,
         dump_only=True,
         description="A JSON object containing essential information about the debtor. "
                     "Notably, the object may contain the recommended display settings, the "
                     "currency to which the debtor's currency is pegged, and the exchange "
-                    "rate. When additional information about the debtor is not available "
-                    "yet, this field will not be present.",
+                    "rate.",
     )
     is_deletion_safe = fields.Boolean(
         dump_only=True,
