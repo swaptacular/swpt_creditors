@@ -403,13 +403,14 @@ class AccountSchema(Schema):
     )
     identity = fields.Nested(
         AccountIdentitySchema,
-        required=True,
         dump_only=True,
         description="A JSON object containing information that uniquely and reliably "
-                    "identifies the creditor's account when it participates in transfers "
-                    "as sender or recipient. For example, if the debtor happens to be a "
-                    "bank, this would contain the type of the debtor (a bank), the ID of "
-                    "the bank, and the bank account number.",
+                    "identifies the account when it participates in transfers as sender"
+                    "or recipient. For example, if the debtor happens to be a bank, "
+                    "this would contain the type of the debtor (a bank), the ID of the "
+                    "bank, and the bank account number. When this field is not present, "
+                    "this means that the account have not obtained identity yet, and "
+                    "can not participate in transfers.",
         example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
     )
     debtor = fields.Nested(
