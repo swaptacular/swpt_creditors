@@ -10,6 +10,27 @@ The ID of the latest `{type}` entry for this account in the log. It \
 gets bigger after each update.'
 
 
+class DebtorIdentitySchema(Schema):
+    type = fields.String(
+        required=True,
+        description="The type of this object. Different debtors may use different "
+                    "**additional fields** containing information about the debtor. The "
+                    "provided information must be just enough to uniquely and reliably "
+                    "identify the debtor. This field contains the name of the used schema.",
+        example='DebtorIdentity',
+    )
+
+
+class DebtorInfoSchema(Schema):
+    type = fields.String(
+        required=True,
+        description="The type of this object. Different debtors may use different "
+                    "**additional fields** containing information about the debtor. "
+                    "This field contains the name of the used schema.",
+        example='DebtorInfo',
+    )
+
+
 class AccountLedgerSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -108,6 +129,15 @@ class AccountStatusSchema(Schema):
                     "this means that the account has not obtained identity yet, and "
                     "can not participate in transfers.",
         example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
+    )
+    debtorInfo = fields.Nested(
+        DebtorInfoSchema,
+        dump_only=True,
+        description="A JSON object containing essential information about the debtor. "
+                    "Notably, the object may contain the recommended display settings, the "
+                    "currency to which the debtor's currency is pegged, and the exchange "
+                    "rate. When additional information about the debtor is not available "
+                    "yet, this field will not be present.",
     )
     is_deletion_safe = fields.Boolean(
         dump_only=True,
@@ -375,17 +405,6 @@ class AccountDisplaySchema(Schema):
         required=True,
         dump_only=True,
         description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountDisplayUpdate'),
-    )
-
-
-class DebtorIdentitySchema(Schema):
-    type = fields.String(
-        required=True,
-        description="The type of this object. Different debtors may use different "
-                    "**additional fields** containing information about the debtor. The "
-                    "provided information must be just enough to uniquely and reliably "
-                    "identify the debtor. This field contains the name of the used schema.",
-        example='DebtorIdentity',
     )
 
 
