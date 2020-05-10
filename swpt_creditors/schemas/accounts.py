@@ -179,6 +179,7 @@ class AccountStatusSchema(Schema):
     )
     peg = fields.Nested(
         CurrencyPegSchema,
+        dump_only=True,
         description="Optional currency peg, announced by the debtor. A currency peg is a policy "
                     "in which the debtor sets a specific fixed exchange rate for its currency "
                     "with other debtor's currency (the peg currency).",
