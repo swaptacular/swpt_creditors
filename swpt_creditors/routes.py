@@ -11,7 +11,7 @@ from .schemas import (
     PortfolioSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema,
-    AccountLedgerSchema, AccountStatusSchema, ObjectReferenceSchema,
+    AccountLedgerSchema, AccountInfoSchema, ObjectReferenceSchema,
 )
 from .specs import DID, CID, SEQNUM, TRANSFER_UUID
 from . import specs
@@ -281,10 +281,10 @@ class AccountExchangeEndpoint(MethodView):
         abort(500)
 
 
-@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/status', parameters=[CID, DID])
-class AccountStatusEndpoint(MethodView):
-    @accounts_api.response(AccountStatusSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountStatus',
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/info', parameters=[CID, DID])
+class AccountInfoEndpoint(MethodView):
+    @accounts_api.response(AccountInfoSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountInfo',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, creditorId, debtorId):
         """Return account's status information."""

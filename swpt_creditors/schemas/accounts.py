@@ -145,24 +145,24 @@ class AccountLedgerSchema(Schema):
     )
 
 
-class AccountStatusSchema(Schema):
+class AccountInfoSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
         type='string',
         format='uri-reference',
         description=URI_DESCRIPTION,
-        example='/creditors/2/accounts/1/status',
+        example='/creditors/2/accounts/1/info',
     )
     type = fields.Function(
-        lambda obj: 'AccountStatus',
+        lambda obj: 'AccountInfo',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object. Different debtors may use different '
-                    '**additional fields**, providing more information about the status '
-                    'of the account. This field contains the name of the used schema.',
-        example='AccountStatus',
+                    '**additional fields**, providing more information about the '
+                    'account. This field contains the name of the used schema.',
+        example='AccountInfo',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -229,13 +229,13 @@ class AccountStatusSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountStatusUpdate'),
+        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
         example=349,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountStatusUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountInfoUpdate'),
     )
 
 
@@ -474,11 +474,11 @@ class AccountSchema(Schema):
         dump_only=True,
         description="Account's `AccountLedger`.",
     )
-    status = fields.Nested(
-        AccountStatusSchema,
+    info = fields.Nested(
+        AccountInfoSchema,
         required=True,
         dump_only=True,
-        description="Account's `AccountStatus`.",
+        description="Account's `AccountInfo`.",
     )
     config = fields.Nested(
         AccountConfigSchema,

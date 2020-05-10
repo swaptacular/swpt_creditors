@@ -65,7 +65,7 @@ def register_schemas(components):
     from . import schemas
 
     components.schema('AccountUpdate', schema=schemas.AccountUpdateSchema)
-    components.schema('AccountStatusUpdate', schema=schemas.AccountStatusUpdateSchema)
+    components.schema('AccountInfoUpdate', schema=schemas.AccountInfoUpdateSchema)
     components.schema('AccountConfigUpdate', schema=schemas.AccountConfigUpdateSchema)
     components.schema('AccountExchangeUpdate', schema=schemas.AccountExchangeUpdateSchema)
     components.schema('AccountDisplayUpdate', schema=schemas.AccountDisplayUpdateSchema)

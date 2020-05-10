@@ -188,21 +188,21 @@ class AccountUpdateSchema(LogEntrySchema):
     )
 
 
-class AccountStatusUpdateSchema(LogEntrySchema):
+class AccountInfoUpdateSchema(LogEntrySchema):
     type = fields.Function(
-        lambda obj: 'AccountStatusUpdate',
+        lambda obj: 'AccountInfoUpdate',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountStatusUpdate',
+        example='AccountInfoUpdate',
     )
     object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the updated `AccountStatus`.",
-        example={'uri': '/creditors/2/accounts/1/status'},
+        description="The URI of the updated `AccountInfo`.",
+        example={'uri': '/creditors/2/accounts/1/info'},
     )
 
 
