@@ -56,9 +56,8 @@ class DisplaySchema(Schema):
         example='Display',
     )
     debtorName = fields.String(
-        description='Optional name of the debtor. All accounts belonging to a given '
-                    'creditor must have different `debtorName`s. The creditor may choose '
-                    'any name that is convenient, or easy to remember.',
+        required=True,
+        description='The name of the debtor.',
         example='First Swaptacular Bank',
     )
     amountDivisor = fields.Float(
@@ -75,11 +74,10 @@ class DisplaySchema(Schema):
     )
     unit = fields.String(
         description="Optional abbreviation for the value measurement unit. It will be shown "
-                    "right after the displayed amount, \"500.00 USD\" for example. All "
-                    "accounts belonging to a given creditor must have different `unit`s. The "
-                    "creditor may choose any name that is convenient, or easy to remember. "
-                    "(Note that in practice many of creditor's accounts might be pegged to "
-                    "other accounts, and only a few might have their `unit` fields set.)",
+                    "right after the displayed amount, \"500.00 USD\" for example. All accounts "
+                    "belonging to a given creditor must have different `unit`s. (Note that in "
+                    "practice many of creditor's accounts might be pegged to other accounts, "
+                    "and only a few might need to have their `unit` fields set.)",
         example='USD',
     )
 
@@ -221,8 +219,9 @@ class AccountInfoSchema(Schema):
     )
     recommendedDisplay = fields.Nested(
         DisplaySchema,
+        required=True,
         dump_only=True,
-        description='Optional recommended `Display` settings.',
+        description='The recommended `Display` settings.',
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
@@ -407,6 +406,16 @@ class AccountDisplaySchema(DisplaySchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
+    debtorName = fields.String(
+        description='The name of the debtor. All accounts belonging to a given creditor '
+                    'must have different `debtorName`s. The creditor may choose any '
+                    'name that is convenient, or easy to remember. Initially (when a '
+                    'new account is created) this field will not be present, and *it '
+                    'should be set as soon as possible*, otherwise the real identity of '
+                    'the debtor may remain unknown to the creditor, which may lead to '
+                    'confusion and financial loses.',
+        example='First Swaptacular Bank',
+    )
     hide = fields.Boolean(
         missing=False,
         description='If `true`, the account will not be shown in the list of '
@@ -516,23 +525,3 @@ class AccountSchema(Schema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
-
-
-class AccountCreationRequestSchema(AccountSchema):
-    type = fields.String(
-        missing='AccountCreationRequest',
-        description='The type of this object.',
-        example='AccountCreationRequest',
-    )
-    exchange = fields.Nested(
-        AccountExchangeSchema,
-        description="Optional `AccountExchange` settings.",
-    )
-    config = fields.Nested(
-        AccountConfigSchema,
-        description="Optional `AccountConfig`.",
-    )
-    display = fields.Nested(
-        AccountDisplaySchema,
-        description="Optional `AccountDisplay` settings.",
-    )

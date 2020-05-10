@@ -6,7 +6,7 @@ from flask_smorest import Blueprint, abort
 from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
-    CreditorCreationRequestSchema, CreditorSchema, AccountCreationRequestSchema,
+    CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     PortfolioSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
@@ -159,7 +159,7 @@ class AccountsEndpoint(MethodView):
             abort(404)
         return debtor_ids
 
-    @accounts_api.arguments(AccountCreationRequestSchema)
+    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,

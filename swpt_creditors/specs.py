@@ -98,7 +98,7 @@ ACCOUNT_DOES_NOT_EXIST = {
 }
 
 ACCOUNT_CONFLICT = {
-    'description': 'A different account entry with the same debtor ID or name already exists.',
+    'description': 'A different account entry with the same debtor ID already exists.',
 }
 
 ACCOUNT_UPDATE_CONFLICT = {
@@ -180,4 +180,9 @@ FIND_ACCOUNT_REQUEST_EXAMPLE = {
 
 FIND_ACCOUNT_RESPONSE_EXAMPLE = {
     'uri': '/creditors/2/accounts/1/',
+}
+
+DEBTOR_IDENTITY_EXAMPLE = {
+    'type': 'SwptDebtorIdentity',
+    'debtorId': 1,
 }
