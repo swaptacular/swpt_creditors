@@ -225,7 +225,7 @@ class AccountInfoSchema(Schema):
                     'reason.',
         example=False,
     )
-    peg = fields.Nested(
+    currencyPeg = fields.Nested(
         CurrencyPegSchema,
         dump_only=True,
         description="Optional `CurrencyPeg`, announced by the debtor. A currency peg is a policy "
