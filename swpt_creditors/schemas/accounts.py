@@ -46,6 +46,28 @@ class CurrencyPegSchema(Schema):
     )
 
 
+class AccountPegSchema(Schema):
+    type = fields.String(
+        missing='AccountPeg',
+        description='The type of this object.',
+        example='AccountPeg',
+    )
+    currency = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        description='The URI of the `Account` which tokens will be the peg currency.',
+        example={'uri': '/creditors/2/accounts/11/'},
+    )
+    exchangeRate = fields.Float(
+        required=True,
+        validate=validate.Range(min=0.0),
+        description="The exchange rate between the pegged currency and the peg currency. For "
+                    "example, `2.0` would mean that pegged currency's tokens are twice as "
+                    "valuable as peg currency's tokens.",
+        example=1.0,
+    )
+
+
 class DisplaySchema(Schema):
     type = fields.Function(
         lambda obj: 'Display',
@@ -329,23 +351,12 @@ class AccountExchangeSchema(Schema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    pegCurrency = fields.Nested(
-        ObjectReferenceSchema,
-        description="Optional URI of another `Account`, belonging to the same creditor, "
-                    "to which the value of this account's tokens is pegged (via the "
-                    "defined `exchangeRate`).",
-        example={'uri': '/creditors/2/accounts/11/'},
-    )
-    exchangeRate = fields.Float(
-        validate=validate.Range(min=0.0),
-        description="The exchange rate between this account's tokens and `pegCurrency`'s "
-                    "tokens. For example, `2.0` would mean that this account's tokens are "
-                    "twice as valuable as `pegCurrency`'s tokens. If `pegCurrency` is not set, "
-                    "the exchange rate is between this account's tokens and some abstract "
-                    "universal measure of value. (It does not really matter what this "
-                    "universal measure of value is. Each creditor may choose the one that is "
-                    "most  convenient to him.) This field is optional.",
-        example=1.0,
+    peg = fields.Nested(
+        AccountPegSchema,
+        description="Optional `AccountPeg`, announced by the owner of the account. An account "
+                    "peg is an exchange strategy, in which the creditor sets a specific fixed "
+                    "exchange rate between the tokens of two of his accounts (the pegged "
+                    "currency, and the peg currency).",
     )
     policy = fields.String(
         description='The name of the active automatic exchange policy. Different '
