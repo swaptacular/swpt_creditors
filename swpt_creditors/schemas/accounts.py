@@ -46,13 +46,41 @@ class CurrencyPegSchema(Schema):
     )
 
 
-class DebtorInfoSchema(Schema):
-    type = fields.String(
+class DisplaySchema(Schema):
+    type = fields.Function(
+        lambda obj: 'Display',
         required=True,
-        description="The type of this object. Different debtors may use different "
-                    "**additional fields** containing information about the debtor. "
-                    "This field contains the name of the used schema.",
-        example='DebtorInfo',
+        dump_only=True,
+        type='string',
+        description='The type of this object.',
+        example='Display',
+    )
+    debtorName = fields.String(
+        description='Optional name of the debtor. All accounts belonging to a given '
+                    'creditor must have different `debtorName`s. The creditor may choose '
+                    'any name that is convenient, or easy to remember.',
+        example='First Swaptacular Bank',
+    )
+    amountDivisor = fields.Float(
+        missing=1.0,
+        validate=validate.Range(min=0.0, min_inclusive=False),
+        description="The amount will be divided by this number before being displayed.",
+        example=100.0,
+    )
+    decimalPlaces = fields.Integer(
+        missing=0,
+        description='The number of digits to show after the decimal point, when displaying '
+                    'the amount.',
+        example=2,
+    )
+    unit = fields.String(
+        description="Optional abbreviation for the value measurement unit. It will be shown "
+                    "right after the displayed amount, \"500.00 USD\" for example. All "
+                    "accounts belonging to a given creditor must have different `unit`s. The "
+                    "creditor may choose any name that is convenient, or easy to remember. "
+                    "(Note that in practice many of creditor's accounts might be pegged to "
+                    "other accounts, and only a few might have their `unit` fields set.)",
+        example='USD',
     )
 
 
@@ -183,6 +211,18 @@ class AccountStatusSchema(Schema):
         description="Optional currency peg, announced by the debtor. A currency peg is a policy "
                     "in which the debtor sets a specific fixed exchange rate for its currency "
                     "with other debtor's currency (the peg currency).",
+    )
+    debtorUrl = fields.Url(
+        dump_only=True,
+        relative=False,
+        format='uri',
+        description='Optional link containing additional information about the debtor.',
+        example='https://example.com/debtors/1/',
+    )
+    recommendedDisplay = fields.Nested(
+        DisplaySchema,
+        dump_only=True,
+        description='Optional recommended display settings.',
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
@@ -346,7 +386,7 @@ class AccountExchangeSchema(Schema):
     )
 
 
-class AccountDisplaySchema(Schema):
+class AccountDisplaySchema(DisplaySchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -366,48 +406,6 @@ class AccountDisplaySchema(Schema):
         dump_only=True,
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
-    )
-    debtorName = fields.String(
-        description='Optional name of the debtor. All accounts belonging to a given '
-                    'creditor must have different `debtorName`s. The creditor may choose '
-                    'any name that is convenient, or easy to remember.',
-        example='First Swaptacular Bank',
-    )
-    debtorUrl = fields.Url(
-        relative=False,
-        format='uri',
-        description='Optional link containing additional information about the debtor.',
-        example='https://example.com/debtors/1/',
-    )
-    amountDivisor = fields.Float(
-        missing=1.0,
-        validate=validate.Range(min=0.0, min_inclusive=False),
-        description="The amount will be divided by this number before being displayed.",
-        example=100.0,
-    )
-    decimalPlaces = fields.Integer(
-        missing=0,
-        description='The number of digits to show after the decimal point, when displaying '
-                    'the amount.',
-        example=2,
-    )
-    unitName = fields.String(
-        description='Optional full name of the value measurement unit, "United States '
-                    'Dollars" for example.',
-        example='United States Dollars',
-    )
-    unitAbbr = fields.String(
-        missing='\u00A4',
-        description='A short abbreviation for the value measurement unit. It will be shown '
-                    'right after the displayed amount, "500.00 USD" for example.',
-        example='USD',
-    )
-    unitUrl = fields.Url(
-        relative=False,
-        format='uri',
-        description='Optional link containing additional information about the value '
-                    'measurement unit.',
-        example='https://example.com/units/USD',
     )
     hide = fields.Boolean(
         missing=False,
