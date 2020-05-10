@@ -38,15 +38,15 @@ def test_create_creditor(client):
     assert data['uri'] == '/creditors/2/'
 
 
-def test_get_portfolio(client, creditor):
-    r = client.get('/creditors/2222/portfolio')
+def test_get_wallet(client, creditor):
+    r = client.get('/creditors/2222/wallet')
     assert r.status_code == 404
 
-    r = client.get('/creditors/2/portfolio')
+    r = client.get('/creditors/2/wallet')
     assert r.status_code == 200
     data = r.get_json()
-    assert data['type'] == 'Portfolio'
-    assert data['uri'] == '/creditors/2/portfolio'
+    assert data['type'] == 'Wallet'
+    assert data['uri'] == '/creditors/2/wallet'
     assert data['creditor'] == {'uri': '/creditors/2/'}
     log = data['log']
     assert log['type'] == 'PaginatedList'

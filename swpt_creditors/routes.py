@@ -8,7 +8,7 @@ from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
-    PortfolioSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
+    WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema,
     AccountLedgerSchema, AccountInfoSchema, ObjectReferenceSchema,
@@ -27,7 +27,7 @@ class PaginatedList(NamedTuple):
 
 CONTEXT = {
     'Creditor': 'creditors.CreditorEndpoint',
-    'Portfolio': 'creditors.PortfolioEndpoint',
+    'Wallet': 'creditors.WalletEndpoint',
     'AccountList': 'accounts.AccountListEndpoint',
     'Account': 'accounts.AccountEndpoint',
     'Accounts': 'accounts.AccountsEndpoint',
@@ -76,38 +76,38 @@ class CreditorEndpoint(MethodView):
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
 
-@creditors_api.route('/<i64:creditorId>/portfolio', parameters=[CID])
-class PortfolioEndpoint(MethodView):
-    @creditors_api.response(PortfolioSchema(context=CONTEXT))
-    @creditors_api.doc(operationId='getPortfolio',
+@creditors_api.route('/<i64:creditorId>/wallet', parameters=[CID])
+class WalletEndpoint(MethodView):
+    @creditors_api.response(WalletSchema(context=CONTEXT))
+    @creditors_api.doc(operationId='getWallet',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def get(self, creditorId):
-        """Return creditor's portfolio.
+        """Return creditor's wallet.
 
-        The creditor's portfolio "contains" all creditor's accounts,
+        The creditor's wallet "contains" all creditor's accounts,
         pending transfers, and recent events (the log). In short: it
         is the gateway to all objects and operations in the API.
 
         """
 
-        portfolio = procedures.get_creditor(creditorId)
-        if not portfolio:
+        wallet = procedures.get_creditor(creditorId)
+        if not wallet:
             abort(404)
 
         log_url = url_for('.LogEntriesEndpoint', creditorId=creditorId)
-        log_q = urlencode({'prev': portfolio.latest_log_entry_id})
-        portfolio.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
+        log_q = urlencode({'prev': wallet.latest_log_entry_id})
+        wallet.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
 
         transfers_url = url_for('transfers.TransfersEndpoint', creditorId=creditorId)
-        transfers_count = portfolio.direct_transfers_count
-        portfolio.transfers = PaginatedList('string', transfers_url, totalItems=transfers_count)
+        transfers_count = wallet.direct_transfers_count
+        wallet.transfers = PaginatedList('string', transfers_url, totalItems=transfers_count)
 
         accounts_url = url_for('accounts.AccountsEndpoint', creditorId=creditorId)
-        accounts_count = portfolio.accounts_count
-        portfolio.accounts = PaginatedList('string', accounts_url, totalItems=accounts_count)
+        accounts_count = wallet.accounts_count
+        wallet.accounts = PaginatedList('string', accounts_url, totalItems=accounts_count)
 
-        portfolio.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=portfolio.creditor_id)}
-        return portfolio
+        wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=wallet.creditor_id)}
+        return wallet
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])

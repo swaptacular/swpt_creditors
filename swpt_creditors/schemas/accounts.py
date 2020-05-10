@@ -461,12 +461,12 @@ class AccountSchema(Schema):
         description='The type of this object.',
         example='Account',
     )
-    portfolio = fields.Nested(
+    wallet = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Portfolio` that contains this account.",
-        example={'uri': '/creditors/2/portfolio'},
+        description="The URI of the creditor's `Wallet` that contains this account.",
+        example={'uri': '/creditors/2/wallet'},
     )
     debtor = fields.Nested(
         DebtorIdentitySchema,

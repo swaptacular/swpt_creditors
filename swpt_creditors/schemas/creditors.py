@@ -45,21 +45,21 @@ class CreditorSchema(Schema):
         return url_for(self.context['Creditor'], creditorId=obj.creditor_id)
 
 
-class PortfolioSchema(Schema):
+class WalletSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
         type='string',
         format='uri-reference',
         description=URI_DESCRIPTION,
-        example='/creditors/2/portfolio',
+        example='/creditors/2/wallet',
     )
     type = fields.Function(
-        lambda obj: 'Portfolio',
+        lambda obj: 'Wallet',
         required=True,
         type='string',
         description='The type of this object.',
-        example='Portfolio',
+        example='Wallet',
     )
     creditor = fields.Nested(
         ObjectReferenceSchema,
@@ -136,4 +136,4 @@ class PortfolioSchema(Schema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['Portfolio'], creditorId=obj.creditor_id)
+        return url_for(self.context['Wallet'], creditorId=obj.creditor_id)
