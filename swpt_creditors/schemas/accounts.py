@@ -33,7 +33,7 @@ class CurrencyPegSchema(Schema):
     currency = fields.Nested(
         DebtorIdentitySchema,
         required=True,
-        description="Identifies the debtor that issues the peg currency.",
+        description="The `DebtorIdentity` of the debtor that issues the peg currency.",
         example={'type': 'SwptDebtorIdentity', 'debtorId': 111},
     )
     exchangeRate = fields.Float(
@@ -174,13 +174,13 @@ class AccountInfoSchema(Schema):
     identity = fields.Nested(
         AccountIdentitySchema,
         dump_only=True,
-        description="A JSON object containing information that uniquely and reliably "
-                    "identifies the account when it participates in transfers as sender"
-                    "or recipient. For example, if the debtor happens to be a bank, "
+        description="An `AccountIdentity` object, containing information that uniquely and "
+                    "reliably identifies the account when it participates in transfers as "
+                    "sender or recipient. For example, if the debtor happens to be a bank, "
                     "this would contain the type of the debtor (a bank), the ID of the "
                     "bank, and the bank account number. When this field is not present, "
-                    "this means that the account has not obtained identity yet, and "
-                    "can not participate in transfers.",
+                    "this means that the account has not obtained identity yet, and can "
+                    "not participate in transfers.",
         example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
     )
     is_deletion_safe = fields.Boolean(
@@ -208,7 +208,7 @@ class AccountInfoSchema(Schema):
     peg = fields.Nested(
         CurrencyPegSchema,
         dump_only=True,
-        description="Optional currency peg, announced by the debtor. A currency peg is a policy "
+        description="Optional `CurrencyPeg`, announced by the debtor. A currency peg is a policy "
                     "in which the debtor sets a specific fixed exchange rate for its currency "
                     "with other debtor's currency (the peg currency).",
     )
@@ -222,7 +222,7 @@ class AccountInfoSchema(Schema):
     recommendedDisplay = fields.Nested(
         DisplaySchema,
         dump_only=True,
-        description='Optional recommended display settings.',
+        description='Optional recommended `Display` settings.',
     )
     latestUpdateEntryId = fields.Integer(
         required=True,
@@ -456,10 +456,10 @@ class AccountSchema(Schema):
     debtor = fields.Nested(
         DebtorIdentitySchema,
         required=True,
-        description="A JSON object containing information that uniquely and reliably "
-                    "identifies the debtor. For example, if the debtor happens to be a "
-                    "bank, this would contain the type of the debtor (a bank), and the "
-                    "ID of the bank.",
+        description="A `DebtorIdentity` object, containing information that uniquely and "
+                    "reliably identifies the debtor. For example, if the debtor happens to "
+                    "be a  bank, this would contain the type of the debtor (a bank), and "
+                    "the ID of the bank.",
         example={'type': 'SwptDebtorIdentity', 'debtorId': 1},
     )
     created_at_ts = fields.DateTime(
