@@ -190,12 +190,12 @@ class AccountUpdateSchema(LogEntrySchema):
 
 class AccountStatusUpdateSchema(LogEntrySchema):
     type = fields.Function(
-        lambda obj: 'AccountStautsUpdate',
+        lambda obj: 'AccountStatusUpdate',
         required=True,
         dump_only=True,
         type='string',
         description='The type of this object.',
-        example='AccountStautsUpdate',
+        example='AccountStatusUpdate',
     )
     object = fields.Nested(
         ObjectReferenceSchema,
