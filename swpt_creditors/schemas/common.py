@@ -42,7 +42,6 @@ class PaginatedListSchema(Schema):
     type = fields.Function(
         lambda obj: 'PaginatedList',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='PaginatedList',
@@ -110,7 +109,6 @@ class ObjectReferencesPageSchema(Schema):
     type = fields.Function(
         lambda obj: 'ObjectReferencesPage',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='ObjectReferencesPage',
@@ -148,7 +146,6 @@ class TransferErrorSchema(Schema):
     type = fields.Function(
         lambda obj: 'TransferError',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='TransferError',
@@ -171,7 +168,6 @@ class TransferStatusSchema(Schema):
     type = fields.Function(
         lambda obj: 'TransferStatus',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='TransferStatus',

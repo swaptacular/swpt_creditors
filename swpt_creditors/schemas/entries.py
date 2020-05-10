@@ -9,7 +9,6 @@ class LogEntrySchema(Schema):
     type = fields.Function(
         lambda obj: 'LogEntry',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object. Different kinds of log entries may use different '
                     '**additional fields**, providing more data. This field contains the name '
@@ -44,7 +43,6 @@ class LogEntriesPageSchema(Schema):
     type = fields.Function(
         lambda obj: 'LogEntriesPage',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='LogEntriesPage',
@@ -75,7 +73,6 @@ class LedgerEntrySchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'LedgerEntry',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='LedgerEntry',
@@ -146,7 +143,6 @@ class LedgerEntriesPageSchema(Schema):
     type = fields.Function(
         lambda obj: 'LedgerEntriesPage',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='LedgerEntriesPage',
@@ -169,7 +165,6 @@ class AccountUpdateSchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'AccountUpdate',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='AccountUpdate',
@@ -192,7 +187,6 @@ class AccountInfoUpdateSchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'AccountInfoUpdate',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='AccountInfoUpdate',
@@ -210,7 +204,6 @@ class AccountConfigUpdateSchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'AccountConfigUpdate',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='AccountConfigUpdate',
@@ -228,7 +221,6 @@ class AccountExchangeUpdateSchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'AccountExchangeUpdate',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='AccountExchangeUpdate',
@@ -246,7 +238,6 @@ class AccountDisplayUpdateSchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'AccountDisplayUpdate',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='AccountDisplayUpdate',
@@ -264,7 +255,6 @@ class TransferUpdateSchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'TransferUpdate',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='TransferUpdate',

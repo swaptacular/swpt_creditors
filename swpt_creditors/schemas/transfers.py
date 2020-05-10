@@ -88,7 +88,6 @@ class TransferSchema(BaseTransferSchema):
     type = fields.Function(
         lambda obj: 'Transfer',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='Transfer',
@@ -156,7 +155,6 @@ class CommittedTransferSchema(BaseTransferSchema):
     type = fields.Function(
         lambda obj: 'CommittedTransfer',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object. Different debtors may use different '
                     '**additional fields**, providing more information about the transfer '

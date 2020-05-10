@@ -25,7 +25,6 @@ class CurrencyPegSchema(Schema):
     type = fields.Function(
         lambda obj: 'CurrencyPeg',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='CurrencyPeg',
@@ -72,7 +71,6 @@ class DisplaySchema(Schema):
     type = fields.Function(
         lambda obj: 'Display',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='Display',
@@ -116,7 +114,6 @@ class AccountLedgerSchema(Schema):
     type = fields.Function(
         lambda obj: 'AccountLedger',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='AccountLedger',
@@ -177,7 +174,6 @@ class AccountInfoSchema(Schema):
     type = fields.Function(
         lambda obj: 'AccountInfo',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object. Different debtors may use different '
                     '**additional fields**, providing more information about the '
@@ -461,7 +457,6 @@ class AccountSchema(Schema):
     type = fields.Function(
         lambda obj: 'Account',
         required=True,
-        dump_only=True,
         type='string',
         description='The type of this object.',
         example='Account',
