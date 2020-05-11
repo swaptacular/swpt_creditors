@@ -449,8 +449,8 @@ class AccountDisplaySchema(DisplaySchema):
                     "account's `peg`-chain should be followed (skipping accounts without "
                     "a unit), and the unit with the biggest `unitPreference` value should "
                     "be chosen. In case of a tie, units closer down the peg-chain should "
-                    "be preferred. If no unit is found , the generic currency sign "
-                    "(\u00a4), or the \"XXX\" ISO 4217 currency code should be shown.",
+                    "be preferred. If no unit is found, the generic currency sign (\u00a4), "
+                    "or the \"XXX\" ISO 4217 currency code should be shown.",
         example=0,
     )
     latestUpdateId = fields.Integer(
