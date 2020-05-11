@@ -197,7 +197,7 @@ class AccountInfoSchema(Schema):
                     "bank, and the bank account number. When this field is not present, "
                     "this means that the account has not obtained identity yet, and can "
                     "not participate in transfers.",
-        example={'type': 'SwptAccountIdentity', 'debtorId': 1, 'creditorId': 2},
+        example={'type': 'SwptAccount', 'debtorId': 1, 'creditorId': 2},
     )
     is_deletion_safe = fields.Boolean(
         dump_only=True,

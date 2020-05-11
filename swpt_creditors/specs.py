@@ -173,7 +173,7 @@ TRANSFER_LINKS_EXAMPLE = {
 }
 
 FIND_ACCOUNT_REQUEST_EXAMPLE = {
-    'type': 'SwptAccountIdentity',
+    'type': 'SwptAccount',
     'debtorId': 1,
     'creditorId': 2222
 }
@@ -182,7 +182,7 @@ FIND_ACCOUNT_RESPONSE_EXAMPLE = {
     'uri': '/creditors/2/accounts/1/',
 }
 
-DEBTOR_IDENTITY_EXAMPLE = {
+DEBTOR_EXAMPLE = {
     'type': 'SwptDebtor',
     'debtorId': 1,
 }

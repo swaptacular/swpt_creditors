@@ -159,7 +159,7 @@ class AccountsEndpoint(MethodView):
             abort(404)
         return debtor_ids
 
-    @accounts_api.arguments(DebtorSchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
+    @accounts_api.arguments(DebtorSchema, example=specs.DEBTOR_EXAMPLE)
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,

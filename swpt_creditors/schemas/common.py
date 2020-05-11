@@ -138,7 +138,7 @@ class AccountIdentitySchema(Schema):
                     "and reliably identify the debtor, 2) uniquely and reliably identify "
                     "the creditor's account with the debtor. This field contains the "
                     "name of the used schema.",
-        example='AccountIdentity',
+        example='SwptAccount',
     )
 
 
