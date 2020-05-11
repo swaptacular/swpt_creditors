@@ -100,7 +100,7 @@ class DisplaySchema(Schema):
                     "shown right after the displayed amount, \"500.00 USD\" for example. All "
                     "accounts belonging to a given creditor must have different `unit`s. "
                     "Thus, setting this field for an account is most probably a bad idea, "
-                    "unless the account tokens are already widely recognized. Notably, one "
+                    "unless the account's tokens are already widely recognized. Notably, one "
                     "currency being pegged to another currency is not a good reason for the "
                     "pegged currency to have the same `unit` as the peg currency. In "
                     "practice, many of creditor's accounts might be pegged to other "
