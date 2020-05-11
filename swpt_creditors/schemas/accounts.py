@@ -246,7 +246,7 @@ class AccountInfoSchema(Schema):
     officialDisplay = fields.Nested(
         DisplaySchema,
         dump_only=True,
-        description='Optional officially recommended `Display` settings.',
+        description='Optional recommended `Display` settings.',
     )
     latestUpdateId = fields.Integer(
         required=True,
