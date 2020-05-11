@@ -29,7 +29,7 @@ class CurrencyPegSchema(Schema):
         description='The type of this object.',
         example='CurrencyPeg',
     )
-    currency = fields.Nested(
+    debtor = fields.Nested(
         DebtorSchema,
         required=True,
         description="The peg currency's `Debtor`.",
@@ -51,10 +51,10 @@ class AccountPegSchema(Schema):
         description='The type of this object.',
         example='AccountPeg',
     )
-    currency = fields.Nested(
+    account = fields.Nested(
         ObjectReferenceSchema,
         required=True,
-        description='The URI of the `Account` which tokens will be the peg currency.',
+        description='The URI of the `Account` which acts as a peg currency.',
         example={'uri': '/creditors/2/accounts/11/'},
     )
     exchangeRate = fields.Float(
@@ -83,7 +83,10 @@ class DisplaySchema(Schema):
     amountDivisor = fields.Float(
         missing=1.0,
         validate=validate.Range(min=0.0, min_inclusive=False),
-        description="The amount should be divided by this number before being displayed.",
+        description="Account's amounts should be divided by this number before being "
+                    "displayed. Important note: This value should be used for display "
+                    "purposes only. Notably, the value of this field must be ignored when "
+                    "the exchange rate between pegged accounts is being calculated.",
         example=100.0,
     )
     decimalPlaces = fields.Integer(
