@@ -95,9 +95,10 @@ class DisplaySchema(Schema):
     unit = fields.String(
         description="Optional abbreviation for the value measurement unit. It should be shown "
                     "right after the displayed amount, \"500.00 USD\" for example. All accounts "
-                    "belonging to a given creditor must have different `unit`s. Note that in "
-                    "practice many of creditor's accounts might be pegged to other accounts, "
-                    "and only a few might need to have their `unit` fields set.",
+                    "belonging to a given creditor must have different `unit`s. Thus, "
+                    "fabricating new value measurement units is generally not a good idea. Note "
+                    "that in practice many of creditor's accounts might be pegged to other "
+                    "accounts, and only a few might need to have their `unit` fields set.",
         example='USD',
     )
 
@@ -238,9 +239,8 @@ class AccountInfoSchema(Schema):
     )
     officialDisplay = fields.Nested(
         DisplaySchema,
-        required=True,
         dump_only=True,
-        description='The officially recommended `Display` settings.',
+        description='Optional officially recommended `Display` settings.',
     )
     latestUpdateId = fields.Integer(
         required=True,
