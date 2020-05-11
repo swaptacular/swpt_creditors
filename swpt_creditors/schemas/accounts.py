@@ -347,13 +347,6 @@ class AccountExchangeSchema(Schema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    peg = fields.Nested(
-        AccountPegSchema,
-        description="Optional `AccountPeg`, announced by the owner of the account. An account "
-                    "peg is an exchange strategy, in which the creditor sets a specific fixed "
-                    "exchange rate between the tokens of two of his accounts (the pegged "
-                    "currency, and the peg currency).",
-    )
     policy = fields.String(
         description='The name of the active automatic exchange policy. Different '
                     'implementations may define different exchange policies. This field is '
@@ -429,6 +422,13 @@ class AccountDisplaySchema(DisplaySchema):
                     'accounts belonging to the creditor. This may be convenient '
                     'for special-purpose accounts.',
         example=False,
+    )
+    peg = fields.Nested(
+        AccountPegSchema,
+        description="Optional `AccountPeg`, announced by the owner of the account. An "
+                    "account peg is a policy, in which the creditor sets a specific fixed "
+                    "exchange rate between the tokens of two of his accounts (the pegged "
+                    "currency, and the peg currency).",
     )
     latestUpdateId = fields.Integer(
         required=True,
