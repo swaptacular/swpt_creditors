@@ -99,9 +99,9 @@ class DisplaySchema(Schema):
         description="**Optional** abbreviation for the value measurement unit. It should be "
                     "shown right after the displayed amount, \"500.00 USD\" for example. All "
                     "accounts belonging to a given creditor must have different `unit`s. "
-                    "Thus, setting this field for a given account is not a good idea, unless "
-                    "the account tokens are already widely recognized. Notably, one currency "
-                    "being pegged to another currency is not a good enough reason for the "
+                    "Thus, setting this field for an account is most probably a bad idea, "
+                    "unless the account tokens are already widely recognized. Notably, one "
+                    "currency being pegged to another currency is not a good reason for the "
                     "pegged currency to have the same `unit` as the peg currency. In "
                     "practice, many of creditor's accounts might be pegged to other "
                     "accounts, and only a few would need to have their `unit` field set.",
@@ -243,7 +243,7 @@ class AccountInfoSchema(Schema):
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
-    officialDisplay = fields.Nested(
+    recommendedDisplay = fields.Nested(
         DisplaySchema,
         dump_only=True,
         description='Optional recommended `Display` settings.',
