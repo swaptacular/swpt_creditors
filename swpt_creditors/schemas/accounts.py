@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
 UPDATE_ID_DESCRIPTION = '\
@@ -410,8 +410,8 @@ class AccountDisplaySchema(DisplaySchema):
         description='The name of the debtor. All accounts belonging to a given creditor '
                     'must have different `debtorName`s. The creditor may choose any '
                     'name that is convenient, or easy to remember. Initially (when a '
-                    'new account is created) this field will not be present, and *it '
-                    'should be set as soon as possible*, otherwise the real identity of '
+                    'new account is created) this field will not be present, and **it '
+                    'should be set as soon as possible**, otherwise the real identity of '
                     'the debtor may remain unknown to the creditor, which may lead to '
                     'confusion and financial loses.',
         example='First Swaptacular Bank',
@@ -429,6 +429,21 @@ class AccountDisplaySchema(DisplaySchema):
                     "account peg is a policy, in which the creditor sets a specific fixed "
                     "exchange rate between the tokens of two of his accounts (the pegged "
                     "currency, and the peg currency).",
+    )
+    unitPreference = fields.Integer(
+        missing=0,
+        validate=validate.Range(min=MIN_INT32, max=MAX_INT32),
+        format='int32',
+        description="A number that reflects creditor's preference for seeing other "
+                    "accounts measured in this account's `unit`. A bigger number indicates "
+                    "a bigger preference, negative numbers are allowed. This is useful "
+                    "when the creditor has declared `AccountPeg`s between accounts. To "
+                    "determine the unit in which to show a given account's amount, the "
+                    "account's `peg`-chain should be followed (skipping accounts without "
+                    "a unit), and the unit with the biggest `unitPreference` value should "
+                    "be chosen. In case of a tie, units closer down the peg-chain should "
+                    "be preferred.",
+        example=0,
     )
     latestUpdateId = fields.Integer(
         required=True,
