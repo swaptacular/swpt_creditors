@@ -83,7 +83,7 @@ class DisplaySchema(Schema):
     amountDivisor = fields.Float(
         missing=1.0,
         validate=validate.Range(min=0.0, min_inclusive=False),
-        description="The amount will be divided by this number before being displayed.",
+        description="The amount should be divided by this number before being displayed.",
         example=100.0,
     )
     decimalPlaces = fields.Integer(
@@ -93,7 +93,7 @@ class DisplaySchema(Schema):
         example=2,
     )
     unit = fields.String(
-        description="Optional abbreviation for the value measurement unit. It will be shown "
+        description="Optional abbreviation for the value measurement unit. It should be shown "
                     "right after the displayed amount, \"500.00 USD\" for example. All accounts "
                     "belonging to a given creditor must have different `unit`s. (Note that in "
                     "practice many of creditor's accounts might be pegged to other accounts, "
@@ -410,15 +410,15 @@ class AccountDisplaySchema(DisplaySchema):
         description='The name of the debtor. All accounts belonging to a given creditor '
                     'must have different `debtorName`s. The creditor may choose any '
                     'name that is convenient, or easy to remember. Initially (when a '
-                    'new account is created) this field will not be present, and **it '
-                    'should be set as soon as possible**, otherwise the real identity of '
-                    'the debtor may remain unknown to the creditor, which may lead to '
+                    'new account is created) this field will not be set, and **it should '
+                    'be set as soon as possible**, otherwise the real identity of the '
+                    'debtor may remain unknown to the creditor, which may lead to '
                     'confusion and financial loses.',
         example='First Swaptacular Bank',
     )
     hide = fields.Boolean(
         missing=False,
-        description='If `true`, the account will not be shown in the list of '
+        description='If `true`, the account should not be shown in the list of '
                     'accounts belonging to the creditor. This may be convenient '
                     'for special-purpose accounts.',
         example=False,
