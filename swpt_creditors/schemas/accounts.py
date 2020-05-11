@@ -5,7 +5,7 @@ from .common import (
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
-UPDATE_ENTRY_ID_DESCRIPTION = '\
+UPDATE_ID_DESCRIPTION = '\
 The ID of the latest `{type}` entry for this account in the log. It \
 gets bigger after each update.'
 
@@ -241,12 +241,12 @@ class AccountInfoSchema(Schema):
         dump_only=True,
         description='The recommended `Display` settings.',
     )
-    latestUpdateEntryId = fields.Integer(
+    latestUpdateId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
+        description=UPDATE_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
         example=349,
     )
     latestUpdateAt = fields.DateTime(
@@ -309,12 +309,12 @@ class AccountConfigSchema(Schema):
                     'non-negligible amount of money on the account.',
         example=False,
     )
-    latestUpdateEntryId = fields.Integer(
+    latestUpdateId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountConfigUpdate'),
+        description=UPDATE_ID_DESCRIPTION.format(type='AccountConfigUpdate'),
         example=346,
     )
     latestUpdateAt = fields.DateTime(
@@ -377,12 +377,12 @@ class AccountExchangeSchema(Schema):
                     'enforced on "best effort" bases.',
         example=5000,
     )
-    latestUpdateEntryId = fields.Integer(
+    latestUpdateId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountExchangeUpdate'),
+        description=UPDATE_ID_DESCRIPTION.format(type='AccountExchangeUpdate'),
         example=347,
     )
     latestUpdateAt = fields.DateTime(
@@ -430,12 +430,12 @@ class AccountDisplaySchema(DisplaySchema):
                     'for special-purpose accounts.',
         example=False,
     )
-    latestUpdateEntryId = fields.Integer(
+    latestUpdateId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountDisplayUpdate'),
+        description=UPDATE_ID_DESCRIPTION.format(type='AccountDisplayUpdate'),
         example=348,
     )
     latestUpdateAt = fields.DateTime(
@@ -510,12 +510,12 @@ class AccountSchema(Schema):
         required=True,
         description="Account's `AccountExchange` settings.",
     )
-    latestUpdateEntryId = fields.Integer(
+    latestUpdateId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ENTRY_ID_DESCRIPTION.format(type='AccountUpdate'),
+        description=UPDATE_ID_DESCRIPTION.format(type='AccountUpdate'),
         example=344,
     )
     latestUpdateAt = fields.DateTime(

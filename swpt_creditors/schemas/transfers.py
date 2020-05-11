@@ -105,7 +105,7 @@ class TransferSchema(BaseTransferSchema):
         data_key='initiatedAt',
         description=_TRANSFER_INITIATED_AT_TS_DESCRIPTION,
     )
-    latestUpdateEntryId = fields.Integer(
+    latestUpdateId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
