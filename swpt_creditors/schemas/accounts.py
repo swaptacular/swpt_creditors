@@ -147,7 +147,7 @@ class AccountLedgerSchema(Schema):
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
-    latestLedgerEntryId = fields.Integer(
+    latestEntryId = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
@@ -155,7 +155,7 @@ class AccountLedgerSchema(Schema):
         description='The ID of the latest `LedgerEntry` for this account in the log.',
         example=123,
     )
-    latestUpdateAt = fields.DateTime(
+    latestEntryAt = fields.DateTime(
         required=True,
         dump_only=True,
         description=LATEST_UPDATE_AT_DESCRIPTION.format(type='LedgerEntry'),
