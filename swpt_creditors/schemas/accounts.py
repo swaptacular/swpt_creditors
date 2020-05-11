@@ -443,7 +443,7 @@ class AccountDisplaySchema(DisplaySchema):
         format='int32',
         description="A number that reflects creditor's preference for seeing other "
                     "accounts' amounts measured in this account's `unit`. A bigger number "
-                    "indicates a bigger preference, negative numbers are allowed. This is "
+                    "indicates a bigger preference (negative numbers are allowed). This is "
                     "useful when the creditor has declared `AccountPeg`s between accounts. "
                     "To determine the unit in which to show a given account's amount, the "
                     "account's `peg`-chain should be followed (skipping accounts without "
