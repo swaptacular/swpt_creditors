@@ -78,7 +78,7 @@ class DisplaySchema(Schema):
     debtorName = fields.String(
         required=True,
         description='The name of the debtor.',
-        example='First Swaptacular Bank',
+        example='United States of America',
     )
     amountDivisor = fields.Float(
         missing=1.0,
@@ -421,7 +421,7 @@ class AccountDisplaySchema(DisplaySchema):
                     'be set as soon as possible**, otherwise the real identity of the '
                     'debtor may remain unknown to the creditor, which may lead to '
                     'confusion and financial loses.',
-        example='First Swaptacular Bank',
+        example='United States of America',
     )
     hide = fields.Boolean(
         missing=False,
