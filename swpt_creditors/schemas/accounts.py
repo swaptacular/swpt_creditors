@@ -239,7 +239,7 @@ class AccountInfoSchema(Schema):
                     "network connection is available, still allowing those accounts to act as "
                     "links in a chain of currency pegs. Dummy accounts might be displayed "
                     "differently from normal accounts, or not displayed at all.",
-        example=True,
+        example=False,
     )
     currencyPeg = fields.Nested(
         CurrencyPegSchema,
