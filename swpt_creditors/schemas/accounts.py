@@ -32,7 +32,7 @@ class CurrencyPegSchema(Schema):
     currency = fields.Nested(
         DebtorSchema,
         required=True,
-        description="The `Debtor` that issues the peg currency.",
+        description="The peg currency's `Debtor`.",
         example={'type': 'SwptDebtor', 'debtorId': 111},
     )
     exchangeRate = fields.Float(
@@ -158,7 +158,9 @@ class AccountLedgerSchema(Schema):
     latestEntryAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='LedgerEntry'),
+        description='The moment of the latest update on this object. The value is the same as '
+                    'the value of the `postedAt` field of the latest `LedgerEntry` for this '
+                    'account in the log.',
     )
 
 
@@ -216,9 +218,8 @@ class AccountInfoSchema(Schema):
     misconfigured = fields.Boolean(
         dump_only=True,
         missing=False,
-        description='Whether the account is misconfigured. A `true` means that the current '
-                    '`AccountConfig` can not be applied, or is not effectual anymore, for some '
-                    'reason.',
+        description='Whether the account is misconfigured. A `true` means that for some reason, '
+                    'the current `AccountConfig` can not be applied, or is not effectual anymore.',
         example=False,
     )
     currencyPeg = fields.Nested(
@@ -239,7 +240,7 @@ class AccountInfoSchema(Schema):
         DisplaySchema,
         required=True,
         dump_only=True,
-        description='The recommended `Display` settings.',
+        description='The officially recommended `Display` settings.',
     )
     latestUpdateId = fields.Integer(
         required=True,
@@ -284,11 +285,11 @@ class AccountConfigSchema(Schema):
         missing=False,
         data_key='scheduledForDeletion',
         description='Whether the account is scheduled for deletion. The safest way to '
-                    'delete an account which status indicates that deletion is not '
-                    'safe, is to first schedule it for deletion, and delete it only '
-                    'when the account status indicates that deletion is safe. Note '
-                    'that this may also require making outgoing transfers, so as to '
-                    'reduce the balance on the account to a negligible amount.',
+                    'delete an account which status (`AccountInfo`) indicates that deletion '
+                    'is not safe, is to first schedule it for deletion, and delete it only '
+                    'when the account status indicates that deletion is safe. Note that'
+                    'this may also require making outgoing transfers, so as to reduce the '
+                    'balance on the account to a negligible amount.',
         example=False,
     )
     negligible_amount = fields.Float(
