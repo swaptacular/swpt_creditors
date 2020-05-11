@@ -235,7 +235,7 @@ class AccountInfoSchema(Schema):
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
-    recommendedDisplay = fields.Nested(
+    officialDisplay = fields.Nested(
         DisplaySchema,
         required=True,
         dump_only=True,
