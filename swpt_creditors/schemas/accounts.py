@@ -232,12 +232,12 @@ class AccountInfoSchema(Schema):
     dummy = fields.Boolean(
         missing=False,
         description="Whether the account is a *dummy account*. Dummy accounts are accounts whose "
-                    "balance is always zero, and no transfers can be made from/to them. Dummy "
+                    "balances are always zero, and no transfers can be made from/to them. Dummy "
                     "accounts can be useful for two purposes: 1) They can represent physical "
                     "value measurement units (like ounces of gold), to which debtors can peg "
                     "their currencies; 2) They can represent accounts with debtors to which no "
                     "network connection is available, still allowing those accounts to act as "
-                    "links in a  chain of currency pegs. Dummy accounts might be displayed "
+                    "links in a chain of currency pegs. Dummy accounts might be displayed "
                     "differently from normal accounts, or not displayed at all.",
         example=True,
     )
