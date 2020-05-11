@@ -435,14 +435,15 @@ class AccountDisplaySchema(DisplaySchema):
         validate=validate.Range(min=MIN_INT32, max=MAX_INT32),
         format='int32',
         description="A number that reflects creditor's preference for seeing other "
-                    "accounts measured in this account's `unit`. A bigger number indicates "
-                    "a bigger preference, negative numbers are allowed. This is useful "
-                    "when the creditor has declared `AccountPeg`s between accounts. To "
-                    "determine the unit in which to show a given account's amount, the "
+                    "accounts' amounts measured in this account's `unit`. A bigger number "
+                    "indicates a bigger preference, negative numbers are allowed. This is "
+                    "useful when the creditor has declared `AccountPeg`s between accounts. "
+                    "To determine the unit in which to show a given account's amount, the "
                     "account's `peg`-chain should be followed (skipping accounts without "
                     "a unit), and the unit with the biggest `unitPreference` value should "
                     "be chosen. In case of a tie, units closer down the peg-chain should "
-                    "be preferred.",
+                    "be preferred. If no unit is found , the generic currency sign "
+                    "(\u00a4), or the \"XXX\" ISO 4217 currency code should be shown.",
         example=0,
     )
     latestUpdateId = fields.Integer(
