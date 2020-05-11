@@ -10,14 +10,14 @@ The ID of the latest `{type}` entry for this account in the log. It \
 gets bigger after each update.'
 
 
-class DebtorIdentitySchema(Schema):
+class DebtorSchema(Schema):
     type = fields.String(
         required=True,
         description="The type of this object. Different debtors may use different "
                     "**additional fields** containing information about the debtor. The "
                     "provided information must be just enough to uniquely and reliably "
                     "identify the debtor. This field contains the name of the used schema.",
-        example='DebtorIdentity',
+        example='Debtor',
     )
 
 
@@ -30,10 +30,10 @@ class CurrencyPegSchema(Schema):
         example='CurrencyPeg',
     )
     currency = fields.Nested(
-        DebtorIdentitySchema,
+        DebtorSchema,
         required=True,
-        description="The `DebtorIdentity` of the debtor that issues the peg currency.",
-        example={'type': 'SwptDebtorIdentity', 'debtorId': 111},
+        description="The `Debtor` that issues the peg currency.",
+        example={'type': 'SwptDebtor', 'debtorId': 111},
     )
     exchangeRate = fields.Float(
         required=True,
@@ -469,13 +469,13 @@ class AccountSchema(Schema):
         example={'uri': '/creditors/2/wallet'},
     )
     debtor = fields.Nested(
-        DebtorIdentitySchema,
+        DebtorSchema,
         required=True,
-        description="A `DebtorIdentity` object, containing information that uniquely and "
-                    "reliably identifies the debtor. For example, if the debtor happens to "
-                    "be a  bank, this would contain the type of the debtor (a bank), and "
-                    "the ID of the bank.",
-        example={'type': 'SwptDebtorIdentity', 'debtorId': 1},
+        description="A `Debtor` object, containing information that uniquely and "
+                    "reliably identifies the debtor. For example, if the debtor happens "
+                    "to be a  bank, this would contain the type of the debtor (a bank), "
+                    "and the ID of the bank.",
+        example={'type': 'SwptDebtor', 'debtorId': 1},
     )
     created_at_ts = fields.DateTime(
         required=True,

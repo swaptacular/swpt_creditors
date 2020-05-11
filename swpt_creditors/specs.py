@@ -183,6 +183,6 @@ FIND_ACCOUNT_RESPONSE_EXAMPLE = {
 }
 
 DEBTOR_IDENTITY_EXAMPLE = {
-    'type': 'SwptDebtorIdentity',
+    'type': 'SwptDebtor',
     'debtorId': 1,
 }
