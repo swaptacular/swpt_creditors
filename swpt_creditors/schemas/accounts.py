@@ -229,6 +229,18 @@ class AccountInfoSchema(Schema):
                     'the current `AccountConfig` can not be applied, or is not effectual anymore.',
         example=False,
     )
+    dummy = fields.Boolean(
+        missing=False,
+        description="Whether the account is a *dummy account*. Dummy accounts are accounts whose "
+                    "balance is always zero, and no transfers can be made from/to them. Dummy "
+                    "accounts can be useful for two purposes: 1) They can represent physical "
+                    "value measurement units (like ounces of gold), to which debtors can peg "
+                    "their currencies; 2) They can represent accounts with debtors to which no "
+                    "network connection is available, still allowing those accounts to act as "
+                    "links in a  chain of currency pegs. Dummy accounts might be displayed "
+                    "differently from normal accounts, or not displayed at all.",
+        example=True,
+    )
     currencyPeg = fields.Nested(
         CurrencyPegSchema,
         dump_only=True,
@@ -291,7 +303,7 @@ class AccountConfigSchema(Schema):
         missing=False,
         data_key='scheduledForDeletion',
         description='Whether the account is scheduled for deletion. The safest way to '
-                    'delete an account which status (`AccountInfo`) indicates that deletion '
+                    'delete an account whose status (`AccountInfo`) indicates that deletion '
                     'is not safe, is to first schedule it for deletion, and delete it only '
                     'when the account status indicates that deletion is safe. Note that'
                     'this may also require making outgoing transfers, so as to reduce the '
@@ -423,13 +435,6 @@ class AccountDisplaySchema(DisplaySchema):
                     'confusion and financial loses.',
         example='United States of America',
     )
-    hide = fields.Boolean(
-        missing=False,
-        description='If `true`, the account should not be shown in the list of '
-                    'accounts belonging to the creditor. This may be convenient '
-                    'for special-purpose accounts.',
-        example=False,
-    )
     peg = fields.Nested(
         AccountPegSchema,
         description="Optional `AccountPeg`, announced by the owner of the account. An "
@@ -441,16 +446,15 @@ class AccountDisplaySchema(DisplaySchema):
         missing=0,
         validate=validate.Range(min=MIN_INT32, max=MAX_INT32),
         format='int32',
-        description="A number that reflects creditor's preference for seeing other "
-                    "accounts' amounts measured in this account's `unit`. A bigger number "
-                    "indicates a bigger preference (negative numbers are allowed). This is "
-                    "useful when the creditor has declared `AccountPeg`s between accounts. "
-                    "To determine the unit in which to show a given account's amount, the "
-                    "account's `peg`-chain should be followed (skipping accounts without "
-                    "a unit), and the unit with the biggest `unitPreference` value should "
-                    "be chosen. In case of a tie, units closer down the peg-chain should "
-                    "be preferred. If no unit is found, the generic currency sign (\u00a4), "
-                    "or the \"XXX\" ISO 4217 currency code should be shown.",
+        description="A number that expresses creditor's preference for seeing the balances on "
+                    "other accounts, measured in this account's `unit`. A bigger number indicates "
+                    "a bigger preference (negative numbers are allowed too). To determine the "
+                    "value measurement unit in which to show the balance on a given account, the "
+                    "account's `peg`-chain should be followed (omitting accounts without a unit), "
+                    "and the unit with the biggest `unitPreference` value should be chosen. In "
+                    "case of a tie, units that are closer down the chain of pegs should be "
+                    "preferred. If no unit is found, the generic currency sign (\u00a4), or the "
+                    "\"XXX\" ISO 4217 currency code should be shown.",
         example=0,
     )
     latestUpdateId = fields.Integer(
