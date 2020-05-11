@@ -99,10 +99,12 @@ class DisplaySchema(Schema):
         description="**Optional** abbreviation for the value measurement unit. It should be "
                     "shown right after the displayed amount, \"500.00 USD\" for example. All "
                     "accounts belonging to a given creditor must have different `unit`s. "
-                    "Thus, introducing a new value measurement unit is not a good idea, "
-                    "unless it is already widely recognized. Note that in practice many of "
-                    "creditor's accounts might be pegged to other accounts, and only a few "
-                    "would need to have their `unit` field set.",
+                    "Thus, setting this field for a given account is not a good idea, unless "
+                    "the account tokens are already widely recognized. Notably, one currency "
+                    "being pegged to another currency is not a good enough reason for the "
+                    "pegged currency to have the same `unit` as the peg currency. In "
+                    "practice, many of creditor's accounts might be pegged to other "
+                    "accounts, and only a few would need to have their `unit` field set.",
         example='USD',
     )
 
