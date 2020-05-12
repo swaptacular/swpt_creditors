@@ -442,7 +442,8 @@ class AccountDisplaySchema(DisplaySchema):
         description="Optional `AccountPeg`, announced by the owner of the account. An "
                     "account peg is a policy, in which the creditor sets a specific fixed "
                     "exchange rate between the tokens of two of his accounts (the pegged "
-                    "currency, and the peg currency).",
+                    "currency, and the peg currency). Sometimes the peg currency is itself "
+                    "pegged to another currency. This is called a \"peg-chain\".",
     )
     ownUnitPreference = fields.Integer(
         missing=0,
