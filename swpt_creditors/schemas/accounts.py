@@ -225,8 +225,10 @@ class AccountInfoSchema(Schema):
     misconfigured = fields.Boolean(
         dump_only=True,
         missing=False,
-        description='Whether the account is misconfigured. A `true` means that for some reason, '
-                    'the current `AccountConfig` can not be applied, or is not effectual anymore.',
+        description='Whether the account is misconfigured. A `true` means that, for some reason, '
+                    'the current `AccountConfig` can not be applied, or is not effectual anymore. '
+                    'Usually this means that there has been some kind of network communication '
+                    'or system configuration problem.',
         example=False,
     )
     dummy = fields.Boolean(
