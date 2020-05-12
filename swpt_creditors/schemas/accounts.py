@@ -506,9 +506,9 @@ class AccountSchema(Schema):
                     "and the ID of the bank. Note that some accounts may represent a "
                     "physical value measurement unit (like ounces of gold), and be "
                     "useful only as links in a chain of currency pegs. Those *dummy "
-                    "accounts*  will have *dummy debtors*, which do not represent a "
+                    "accounts* will have *dummy debtors*, which do not represent a "
                     "person or an organization, do not owe anything to anyone, and are "
-                    "used solely as identifiers of the value measurement unit.",
+                    "used solely as identifiers of value measurement units.",
         example={'type': 'SwptDebtor', 'debtorId': 1},
     )
     created_at_ts = fields.DateTime(
