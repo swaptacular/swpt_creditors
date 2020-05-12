@@ -162,37 +162,3 @@ class TransferErrorSchema(Schema):
         description='The amount currently available on the account.',
         example=10000,
     )
-
-
-class TransferStatusSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'TransferStatus',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='TransferStatus',
-    )
-    is_finalized = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='finalized',
-        description='Whether the transfer has been finalized. A finalized transfer can be '
-                    'either successful (no errors), or unsuccessful (one or more `errors`).',
-        example=False,
-    )
-    finalized_at_ts = fields.DateTime(
-        required=True,
-        dump_only=True,
-        data_key='finalizedAt',
-        description='The moment at which the transfer has been finalized. If the transfer '
-                    'has not been finalized yet, this field contains an estimation of when '
-                    'the transfer will be finalized.',
-    )
-    errors = fields.Nested(
-        TransferErrorSchema(many=True),
-        missing=[],
-        dump_only=True,
-        description='Errors that have occurred during the execution of the transfer. If '
-                    'the transfer has been completed successfully, this field will not '
-                    'be present, or it will contain an empty array.',
-    )

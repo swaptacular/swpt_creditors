@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, validate
 from .common import (
-    ObjectReferenceSchema, TransferStatusSchema,
+    ObjectReferenceSchema, TransferErrorSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
 )
 
@@ -266,17 +266,23 @@ class TransferUpdateSchema(LogEntrySchema):
         description="The URI of the updated `Transfer`.",
         example={'uri': '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'},
     )
-    status = fields.Nested(
-        TransferStatusSchema,
-        dump_only=True,
-        description='The current `TransferStatus` for the updated transfer. This field '
-                    'will not be present when the transfer has been deleted, or when a new '
-                    'transfer has been just created. (When a new transfer has been just '
-                    'created, we can not avoid making an HTTP request to obtain the whole '
-                    '`Transfer` object anyway.)'
-    )
     deleted = fields.Boolean(
         dump_only=True,
         missing=False,
         description="Whether the transfer has been deleted.",
+    )
+    finalized_at_ts = fields.DateTime(
+        dump_only=True,
+        data_key='finalizedAt',
+        description='The value of the `finalizedAt` field in the updated `Transfer`. '
+                    'This field will not be present when the transfer has been deleted, or '
+                    'when the field is not present in the updated transfer.',
+    )
+    errors = fields.Nested(
+        TransferErrorSchema(many=True),
+        missing=[],
+        dump_only=True,
+        description='The value of the `errors` field in the updated `Transfer`.'
+                    'This field will not be present when the transfer has been deleted, or '
+                    'when the field is not present in the updated transfer.',
     )

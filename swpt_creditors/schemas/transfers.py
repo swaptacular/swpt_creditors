@@ -1,7 +1,7 @@
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, missing
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, TransferStatusSchema,
+    ObjectReferenceSchema, AccountIdentitySchema, TransferErrorSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
@@ -105,6 +105,35 @@ class TransferSchema(BaseTransferSchema):
         data_key='initiatedAt',
         description=_TRANSFER_INITIATED_AT_TS_DESCRIPTION,
     )
+    checkup_at_ts = fields.Method(
+        'get_checkup_at_ts',
+        type='string',
+        format='date-time',
+        data_key='checkupAt',
+        description="The moment at which the sender is advised to look at the transfer "
+                    "again, to see if it's status has changed. If this field is not present, "
+                    "this means either that the status of the transfer is not expected to "
+                    "change, or that the moment of the expected change can not be guessed. "
+                    "Note that the value of this field is calculated on-the-fly, so it may "
+                    "change from one request to another, and no `TransferUpdate` entry for "
+                    "the change will be posted to the log.",
+    )
+    finalized_at_ts = fields.DateTime(
+        dump_only=True,
+        data_key='finalizedAt',
+        description='The moment at which the transfer has been finalized. If the transfer '
+                    'has not been finalized yet, this field will not be present. '
+                    'A finalized transfer can be either successful (no errors), or '
+                    'unsuccessful (one or more `errors`).',
+    )
+    errors = fields.Nested(
+        TransferErrorSchema(many=True),
+        missing=[],
+        dump_only=True,
+        description='Errors that have occurred during the execution of the transfer. If '
+                    'the transfer has been completed successfully, this field will not '
+                    'be present, or it will contain an empty array.',
+    )
     latestUpdateId = fields.Integer(
         required=True,
         dump_only=True,
@@ -119,12 +148,6 @@ class TransferSchema(BaseTransferSchema):
         dump_only=True,
         description=LATEST_UPDATE_AT_DESCRIPTION.format(type='TransferUpdate'),
     )
-    status = fields.Nested(
-        TransferStatusSchema,
-        required=True,
-        dump_only=True,
-        description="The transfer's `TransferStatus`.",
-    )
 
     def get_uri(self, obj):
         return url_for(
@@ -133,6 +156,9 @@ class TransferSchema(BaseTransferSchema):
             creditorId=obj.creditor_id,
             transferUuid=obj.transfer_uuid,
         )
+
+    def get_checkup_at_ts(self, obj):
+        return missing
 
 
 class CancelTransferRequestSchema(Schema):
