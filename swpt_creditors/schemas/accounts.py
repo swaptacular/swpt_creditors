@@ -95,16 +95,16 @@ class DisplaySchema(Schema):
                     'the amount.',
         example=2,
     )
-    unit = fields.String(
-        description="**Optional** abbreviation for the value measurement unit. It should be "
-                    "shown right after the displayed amount, \"500.00 USD\" for example. All "
-                    "accounts belonging to a given creditor must have different `unit`s. "
-                    "Thus, setting this field for an account is most probably a bad idea, "
-                    "unless the account's tokens are already widely recognized. Notably, one "
-                    "currency being pegged to another currency is not a good reason for the "
-                    "pegged currency to have the same `unit` as the peg currency. In "
-                    "practice, many of creditor's accounts might be pegged to other "
-                    "accounts, and only a few would need to have their `unit` field set.",
+    ownUnit = fields.String(
+        description="Optional abbreviation for a value measurement unit that is unique for the "
+                    "account's debtor. It should be shown right after the displayed amount, "
+                    "\"500.00 USD\" for example. All accounts belonging to a given creditor must "
+                    "have different `ownUnit`s. Thus, setting this field for an account is most "
+                    "probably a bad idea, unless the account's debtor tokens are already widely "
+                    "recognized. Notably, one currency being pegged to another currency is not "
+                    "a good reason for the pegged currency to have the same `ownUnit` as the peg "
+                    "currency. In practice, many of creditor's accounts might be pegged to other "
+                    "accounts, and only a few would need to have their `ownUnit` field set.",
         example='USD',
     )
 
@@ -444,19 +444,19 @@ class AccountDisplaySchema(DisplaySchema):
                     "exchange rate between the tokens of two of his accounts (the pegged "
                     "currency, and the peg currency).",
     )
-    unitPreference = fields.Integer(
+    ownUnitPreference = fields.Integer(
         missing=0,
         validate=validate.Range(min=MIN_INT32, max=MAX_INT32),
         format='int32',
         description="A number that expresses creditor's preference for seeing the balances on "
-                    "other accounts, measured in this account's `unit`. A bigger number indicates "
-                    "a bigger preference (negative numbers are allowed too). To determine the "
-                    "value measurement unit in which to show the balance on a given account, the "
-                    "account's `peg`-chain should be followed (omitting accounts without a unit), "
-                    "and the unit with the biggest `unitPreference` value should be chosen. In "
-                    "case of a tie, units that are closer down the chain of pegs should be "
-                    "preferred. If no unit is found, the generic currency sign (\u00a4), or the "
-                    "\"XXX\" ISO 4217 currency code should be shown.",
+                    "other accounts, measured in this account's `ownUnit`. A bigger number "
+                    "indicates a bigger preference (negative numbers are allowed too). To "
+                    "determine the value measurement unit in which to show the balance on a given "
+                    "account, the account's `peg`-chain should be followed (skipping accounts "
+                    "without `ownUnit`), and the unit with the biggest `ownUnitPreference` "
+                    "value should be chosen. In case of a tie, units that are closer down the "
+                    "chain of pegs should be preferred. If no unit is found, the generic currency "
+                    "sign (\u00a4), or the \"XXX\" ISO 4217 currency code should be shown.",
         example=0,
     )
     latestUpdateId = fields.Integer(
