@@ -503,12 +503,12 @@ class AccountSchema(Schema):
         description="A `Debtor` object, containing information that uniquely and "
                     "reliably identifies the debtor. For example, if the debtor happens "
                     "to be a  bank, this would contain the type of the debtor (a bank), "
-                    "and the ID of the bank. Note that some accounts may represent "
-                    "physical value measurement units (like ounces of gold), and be "
+                    "and the ID of the bank. Note that some accounts may represent a "
+                    "physical value measurement unit (like ounces of gold), and be "
                     "useful only as links in a chain of currency pegs. Those *dummy "
                     "accounts*  will have *dummy debtors*, which do not represent a "
                     "person or an organization, do not owe anything to anyone, and are "
-                    "used solely as identifiers.",
+                    "used solely as identifiers of the value measurement unit.",
         example={'type': 'SwptDebtor', 'debtorId': 1},
     )
     created_at_ts = fields.DateTime(
