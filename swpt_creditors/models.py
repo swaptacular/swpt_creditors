@@ -289,12 +289,9 @@ class AccountCommit(db.Model):
         nullable=False,
         comment='Indicates which subsystem has committed the transfer.',
     )
-    other_creditor_id = db.Column(
-        db.BigInteger,
+    other_party_identity = db.Column(
+        db.String,
         nullable=False,
-        comment='The creditor ID of other party in the transfer. When `committed_amount` is '
-                'positive, this is the sender. When `committed_amount` is negative, this is '
-                'the recipient.',
     )
     committed_at_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -338,12 +335,9 @@ class AccountCommit(db.Model):
         nullable=False,
         comment='Various bit-flags characterizing the transfer.',
     )
-    real_creditor_id = db.Column(
-        db.BigInteger,
+    creditor_identity = db.Column(
+        db.String,
         nullable=False,
-        comment='The original value of the `creditor_id` field, as it was when the signal was '
-                'generated. (Intermediaries may modify the `creditor_id`/`sender_creditor_id`'
-                'fields of signals, analogous to the way IP masquerading works.)',
     )
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -472,9 +466,9 @@ class AccountConfig(db.Model):
                 'decide whether an account can be safely deleted; 2) decide '
                 'whether an incoming transfer is insignificant.',
     )
-    real_creditor_id = db.Column(
-        db.BigInteger,
-        comment='The value of the `real_creditor_id` field from the first received '
+    creditor_identity = db.Column(
+        db.String,
+        comment='The value of the `creditor_identity` field from the first received '
                 '`AccountChangeSignal` for the account. Once set, must never change.',
     )
 

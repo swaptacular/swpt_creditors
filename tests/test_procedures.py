@@ -43,7 +43,7 @@ def test_create_new_creditor(db_session):
 def test_process_pending_account_commits(db_session, setup_account, current_ts):
     ny2019 = date(2019, 1, 1)
     p.process_account_transfer_signal(
-        D_ID, C_ID, 1, 'direct', current_ts, 1000, 666, '', 0, ny2019, 1000, 0, 0, '', C_ID)
+        D_ID, C_ID, 1, 'direct', current_ts, 1000, 666, '', 0, ny2019, 1000, 0, 0, C_ID)
     assert p.process_pending_account_commits(C_ID, D_ID)
 
 
@@ -92,7 +92,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         status=0,
         signal_ts=current_ts,
         signal_ttl=1e30,
-        real_creditor_id=C_ID,
+        creditor_identity=str(C_ID),
         config='',
     )
     account = Account.query.one()
@@ -127,7 +127,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         signal_ts=current_ts,
         signal_ttl=1e30,
-        real_creditor_id=C_ID,
+        creditor_identity=str(C_ID),
         config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
@@ -152,7 +152,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         signal_ts=current_ts,
         signal_ttl=1e30,
-        real_creditor_id=C_ID,
+        creditor_identity=str(C_ID),
         config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
@@ -177,7 +177,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         signal_ts=current_ts,
         signal_ttl=1e30,
-        real_creditor_id=C_ID,
+        creditor_identity=str(C_ID),
         config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
@@ -203,7 +203,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         signal_ts=current_ts,
         signal_ttl=1e30,
-        real_creditor_id=C_ID,
+        creditor_identity=str(C_ID),
         config='',
     )
     cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
@@ -225,7 +225,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG,
         signal_ts=current_ts,
         signal_ttl=1e30,
-        real_creditor_id=C_ID,
+        creditor_identity=str(C_ID),
         config='',
     )
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
@@ -253,7 +253,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         status=0,
         signal_ts=current_ts,
         signal_ttl=1e30,
-        real_creditor_id=C_ID,
+        creditor_identity=str(C_ID),
         config='',
     )
     config = AccountConfig.query.one()

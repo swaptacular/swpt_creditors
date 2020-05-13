@@ -211,7 +211,7 @@ def process_account_change_signal(
         status: int,
         signal_ts: datetime,
         signal_ttl: float,
-        real_creditor_id: int,
+        creditor_identity: str,
         config: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -224,7 +224,6 @@ def process_account_change_signal(
     assert negligible_amount >= 0.0
     assert MIN_INT32 <= status <= MAX_INT32
     assert signal_ttl > 0.0
-    assert MIN_INT64 <= real_creditor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - signal_ts).total_seconds() > signal_ttl:
@@ -291,7 +290,7 @@ def process_account_change_signal(
         last_config_signal_ts,
         last_config_signal_seqnum,
         new_account,
-        real_creditor_id,
+        creditor_identity,
         config,
     )
 
@@ -311,15 +310,14 @@ def process_account_transfer_signal(
         coordinator_type: str,
         committed_at_ts: datetime,
         committed_amount: int,
-        other_creditor_id: int,
+        other_party_identity: str,
         transfer_message: str,
         transfer_flags: int,
         account_creation_date: date,
         account_new_principal: int,
         previous_transfer_seqnum: int,
         system_flags: int,
-        system_details: str,
-        real_creditor_id: int) -> None:
+        creditor_identity: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -327,13 +325,11 @@ def process_account_transfer_signal(
     assert len(coordinator_type) <= 30
     assert committed_amount != 0
     assert -MAX_INT64 <= committed_amount <= MAX_INT64
-    assert MIN_INT64 <= other_creditor_id <= MAX_INT64
     assert MIN_INT32 <= transfer_flags <= MAX_INT32
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
     assert 0 <= previous_transfer_seqnum <= MAX_INT64
     assert previous_transfer_seqnum < transfer_seqnum
     assert MIN_INT32 <= system_flags <= MAX_INT32
-    assert MIN_INT64 <= real_creditor_id <= MAX_INT64
 
     try:
         ledger = _get_or_create_ledger(creditor_id, debtor_id)
@@ -344,7 +340,7 @@ def process_account_transfer_signal(
         account_ledger=ledger,
         transfer_seqnum=transfer_seqnum,
         coordinator_type=coordinator_type,
-        other_creditor_id=other_creditor_id,
+        other_party_identity=other_party_identity,
         committed_at_ts=committed_at_ts,
         committed_amount=committed_amount,
         transfer_message=transfer_message,
@@ -352,7 +348,7 @@ def process_account_transfer_signal(
         account_creation_date=account_creation_date,
         account_new_principal=account_new_principal,
         system_flags=system_flags,
-        real_creditor_id=real_creditor_id,
+        creditor_identity=creditor_identity,
     )
     try:
         db.session.add(account_commit)
@@ -600,7 +596,7 @@ def _revise_account_config_effectuality(
         last_config_signal_ts: datetime,
         last_config_signal_seqnum: int,
         new_account: bool,
-        real_creditor_id: int,
+        creditor_identity: str,
         config: str) -> None:
 
     config = account.account_config
@@ -608,8 +604,8 @@ def _revise_account_config_effectuality(
     if not config.has_account:
         config.has_account = True
 
-    if config.real_creditor_id is None:
-        config.real_creditor_id = real_creditor_id
+    if config.creditor_identity is None:
+        config.creditor_identity = creditor_identity
 
     no_applied_config = last_config_signal_ts - BEGINNING_OF_TIME < TD_SECOND
     if no_applied_config:
@@ -623,7 +619,7 @@ def _revise_account_config_effectuality(
         last_config_request = (config.last_signal_ts, config.last_signal_seqnum)
         last_applied_config = (last_config_signal_ts, last_config_signal_seqnum)
         applied_config_is_old = is_later_event(last_config_request, last_applied_config)
-        config_is_effectual = account.check_if_config_is_effectual() and real_creditor_id == config.real_creditor_id
+        config_is_effectual = account.check_if_config_is_effectual() and creditor_identity == config.creditor_identity
         if not applied_config_is_old and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
 
