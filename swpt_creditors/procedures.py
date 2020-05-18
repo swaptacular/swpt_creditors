@@ -5,7 +5,7 @@ from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_
 from sqlalchemy.orm import joinedload
-from swpt_lib.utils import is_later_event, increment_seqnum
+from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
 from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
     Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
@@ -240,15 +240,12 @@ def process_account_change_signal(
             # service behaves adequately. Nevertheless, it is good to
             # be prepared for all eventualities.
             return
-        prev_event = (account.change_ts, account.change_seqnum)
-        this_event = (change_ts, change_seqnum)
-        this_event_is_not_old = not is_later_event(prev_event, this_event)
-        this_event_is_not_new = not is_later_event(this_event, prev_event)
-        if this_event_is_not_old:
+        prev_event = (account.creation_date, account.change_ts, Seqnum(account.change_seqnum))
+        this_event = (creation_date, change_ts, Seqnum(change_seqnum))
+        if this_event >= prev_event:
             account.last_heartbeat_ts = signal_ts
-        if this_event_is_not_new:
+        if this_event <= prev_event:
             return
-        assert this_event_is_not_old
         new_account = account.creation_date < creation_date
         account.change_ts = change_ts
         account.change_seqnum = change_seqnum
@@ -616,11 +613,10 @@ def _revise_account_config_effectuality(
         if new_account:
             _insert_configure_account_signal(config)
     else:
-        last_config_request = (config.last_signal_ts, config.last_signal_seqnum)
-        last_applied_config = (last_config_signal_ts, last_config_signal_seqnum)
-        applied_config_is_old = is_later_event(last_config_request, last_applied_config)
+        last_config_request = (config.last_signal_ts, Seqnum(config.last_signal_seqnum))
+        last_applied_config = (last_config_signal_ts, Seqnum(last_config_signal_seqnum))
         config_is_effectual = account.check_if_config_is_effectual() and creditor_identity == config.creditor_identity
-        if not applied_config_is_old and config.is_effectual != config_is_effectual:
+        if last_applied_config >= last_config_request and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
 
     # TODO: Verify the effectuallity of the `config.config` field.

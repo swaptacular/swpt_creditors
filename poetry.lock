@@ -638,7 +638,7 @@ flask = "^1.1"
 sqlalchemy = "^1.3"
 
 [package.source]
-reference = "2aa00e02b9144fb7488c8cc3ba3bcadf8c4c37eb"
+reference = "5874f6527d560e20b54c438b222722bacf906294"
 type = "git"
 url = "https://github.com/epandurski/swpt_lib.git"
 [[package]]
