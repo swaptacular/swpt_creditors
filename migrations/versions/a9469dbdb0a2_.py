@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c1b382d9999a
+Revision ID: a9469dbdb0a2
 Revises: 8d8c816257ce
-Create Date: 2020-05-13 21:09:22.429781
+Create Date: 2020-05-20 19:00:04.392165
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c1b382d9999a'
+revision = 'a9469dbdb0a2'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -22,11 +22,11 @@ def upgrade():
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('signal_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('signal_seqnum', sa.Integer(), nullable=False),
+    sa.Column('ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('seqnum', sa.Integer(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'signal_ts', 'signal_seqnum')
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'ts', 'seqnum')
     )
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
@@ -116,8 +116,8 @@ def upgrade():
     sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('has_account', sa.BOOLEAN(), nullable=False, comment='Whether a corresponding `account` record exists.'),
     sa.Column('is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
-    sa.Column('last_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last sent `configure_account` signal. Must never decrease.'),
-    sa.Column('last_signal_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last sent `configure_account` signal. It is incremented (with wrapping) on every change. This column, along with the `last_signal_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
+    sa.Column('last_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The timestamp of the last sent `configure_account` signal. Must never decrease.'),
+    sa.Column('last_seqnum', sa.Integer(), nullable=False, comment='The sequential number of the last sent `configure_account` signal. It is incremented (with wrapping) on every change. This column, along with the `last_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
     sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the account is functional, 2 - the configuration is not effectual, 4 - the account can be removed.'),
     sa.Column('allow_unsafe_removal', sa.BOOLEAN(), nullable=False, comment='Whether the owner approved unsafe removal of the account. In extraordinary circumstances it might be necessary to forcefully remove an account, accepting the risk of losing the available amount.'),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the account is scheduled for deletion.'),

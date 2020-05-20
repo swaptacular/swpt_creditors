@@ -162,7 +162,7 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
     config = _get_account_config(creditor_id, debtor_id)
     if config:
         if not config.allow_unsafe_removal:
-            days_since_last_config_signal = (datetime.now(tz=timezone.utc) - config.last_signal_ts).days
+            days_since_last_config_signal = (datetime.now(tz=timezone.utc) - config.last_ts).days
             is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
             is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and config.is_effectual
             is_removal_safe = not config.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
@@ -204,13 +204,13 @@ def process_account_change_signal(
         interest: float,
         interest_rate: float,
         last_transfer_seqnum: int,
-        last_config_signal_ts: datetime,
-        last_config_signal_seqnum: int,
+        last_config_ts: datetime,
+        last_config_seqnum: int,
         creation_date: date,
         negligible_amount: float,
         status: int,
-        signal_ts: datetime,
-        signal_ttl: float,
+        ts: datetime,
+        ttl: float,
         creditor_identity: str,
         config: str) -> None:
 
@@ -220,13 +220,13 @@ def process_account_change_signal(
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
     assert 0 <= last_transfer_seqnum <= MAX_INT64
-    assert MIN_INT32 <= last_config_signal_seqnum <= MAX_INT32
+    assert MIN_INT32 <= last_config_seqnum <= MAX_INT32
     assert negligible_amount >= 0.0
     assert MIN_INT32 <= status <= MAX_INT32
-    assert signal_ttl > 0.0
+    assert ttl > 0.0
 
     current_ts = datetime.now(tz=timezone.utc)
-    if (current_ts - signal_ts).total_seconds() > signal_ttl:
+    if (current_ts - ts).total_seconds() > ttl:
         return
 
     account = Account.lock_instance(
@@ -243,7 +243,7 @@ def process_account_change_signal(
         prev_event = (account.creation_date, account.change_ts, Seqnum(account.change_seqnum))
         this_event = (creation_date, change_ts, Seqnum(change_seqnum))
         if this_event >= prev_event:
-            account.last_heartbeat_ts = signal_ts
+            account.last_heartbeat_ts = ts
         if this_event <= prev_event:
             return
         new_account = account.creation_date < creation_date
@@ -284,8 +284,8 @@ def process_account_change_signal(
 
     _revise_account_config_effectuality(
         account,
-        last_config_signal_ts,
-        last_config_signal_seqnum,
+        last_config_ts,
+        last_config_seqnum,
         new_account,
         creditor_identity,
         config,
@@ -486,13 +486,13 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
 def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     config.is_effectual = False
-    config.last_signal_ts = max(config.last_signal_ts, current_ts)
-    config.last_signal_seqnum = increment_seqnum(config.last_signal_seqnum)
+    config.last_ts = max(config.last_ts, current_ts)
+    config.last_seqnum = increment_seqnum(config.last_seqnum)
     db.session.add(ConfigureAccountSignal(
         creditor_id=config.creditor_id,
         debtor_id=config.debtor_id,
-        signal_ts=config.last_signal_ts,
-        signal_seqnum=config.last_signal_seqnum,
+        ts=config.last_ts,
+        seqnum=config.last_seqnum,
         negligible_amount=config.negligible_amount,
         is_scheduled_for_deletion=config.is_scheduled_for_deletion,
     ))
@@ -506,8 +506,8 @@ def _discard_orphaned_account(creditor_id: int, debtor_id: int, status: int, neg
         db.session.add(ConfigureAccountSignal(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
-            signal_ts=datetime.now(tz=timezone.utc),
-            signal_seqnum=0,
+            ts=datetime.now(tz=timezone.utc),
+            seqnum=0,
             negligible_amount=HUGE_NEGLIGIBLE_AMOUNT,
             is_scheduled_for_deletion=True,
         ))
@@ -590,8 +590,8 @@ def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool =
 
 def _revise_account_config_effectuality(
         account: Account,
-        last_config_signal_ts: datetime,
-        last_config_signal_seqnum: int,
+        last_config_ts: datetime,
+        last_config_seqnum: int,
         new_account: bool,
         creditor_identity: str,
         config: str) -> None:
@@ -604,7 +604,7 @@ def _revise_account_config_effectuality(
     if config.creditor_identity is None:
         config.creditor_identity = creditor_identity
 
-    no_applied_config = last_config_signal_ts - BEGINNING_OF_TIME < TD_SECOND
+    no_applied_config = last_config_ts - BEGINNING_OF_TIME < TD_SECOND
     if no_applied_config:
         # It looks like the account has been resurrected with the
         # default configuration values, and must be reconfigured. As
@@ -613,8 +613,8 @@ def _revise_account_config_effectuality(
         if new_account:
             _insert_configure_account_signal(config)
     else:
-        last_config_request = (config.last_signal_ts, Seqnum(config.last_signal_seqnum))
-        last_applied_config = (last_config_signal_ts, Seqnum(last_config_signal_seqnum))
+        last_config_request = (config.last_ts, Seqnum(config.last_seqnum))
+        last_applied_config = (last_config_ts, Seqnum(last_config_seqnum))
         config_is_effectual = account.check_if_config_is_effectual() and creditor_identity == config.creditor_identity
         if last_applied_config >= last_config_request and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
