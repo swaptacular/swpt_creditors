@@ -388,18 +388,18 @@ class TransfersEndpoint(MethodView):
         """Create a new transfer, initiated by a given creditor."""
 
         uuid = transfer_creation_request['transfer_uuid']
-        recipient_account_uri = transfer_creation_request['recipient_account_uri']
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
         try:
-            recipient_account_data = endpoints.match_url('account', recipient_account_uri)
-        except endpoints.MatchError:
-            recipient_account_data = {}
+            # TODO: parse `transfer_creation_request['recipient']`.
+            debtor_id, recipient_identity = 1, 'xxx'
+        except ValueError:
+            abort(422)
         try:
             transfer = procedures.initiate_transfer(
                 creditor_id=creditorId,
                 transfer_uuid=uuid,
-                debtor_id=recipient_account_data.get('debtorId'),
-                recipient_creditor_id=recipient_account_data.get('creditorId'),
+                debtor_id=debtor_id,
+                recipient_identity=recipient_identity,
                 amount=transfer_creation_request['amount'],
                 transfer_notes=transfer_creation_request['notes'],
             )
