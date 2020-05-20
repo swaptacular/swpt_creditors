@@ -391,7 +391,7 @@ class TransfersEndpoint(MethodView):
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
         try:
             # TODO: parse `transfer_creation_request['recipient']`.
-            debtor_id, recipient_identity = 1, 'xxx'
+            debtor_id, recipient = 1, 'xxx'
         except ValueError:
             abort(422)
         try:
@@ -399,7 +399,7 @@ class TransfersEndpoint(MethodView):
                 creditor_id=creditorId,
                 transfer_uuid=uuid,
                 debtor_id=debtor_id,
-                recipient_identity=recipient_identity,
+                recipient=recipient,
                 amount=transfer_creation_request['amount'],
                 transfer_notes=transfer_creation_request['notes'],
             )

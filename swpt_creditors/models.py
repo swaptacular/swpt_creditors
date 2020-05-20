@@ -207,7 +207,7 @@ class RunningTransfer(db.Model):
         nullable=False,
         comment='The debtor through which the transfer should go.',
     )
-    recipient_identity = db.Column(
+    recipient = db.Column(
         db.String,
         nullable=False,
         comment='The recipient of the transfer.',

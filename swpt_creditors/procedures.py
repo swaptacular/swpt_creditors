@@ -432,7 +432,7 @@ def process_finalized_direct_transfer_signal(
         transfer_id: int,
         coordinator_id: int,
         coordinator_request_id: int,
-        recipient_identity: str,
+        recipient: str,
         committed_amount: int,
         status_code: str) -> None:
 
@@ -450,9 +450,9 @@ def process_finalized_direct_transfer_signal(
         and rt.direct_transfer_id == transfer_id
     )
     if rt_matches_the_signal:
-        if committed_amount == rt.amount and recipient_identity == rt.recipient_identity:
+        if committed_amount == rt.amount and recipient == rt.recipient:
             error = None
-        elif committed_amount == 0 and recipient_identity == rt.recipient_identity:
+        elif committed_amount == 0 and recipient == rt.recipient:
             error = {'errorCode': status_code}
         else:
             error = {'errorCode': 'UNEXPECTED_ERROR'}
