@@ -92,7 +92,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         status=0,
         ts=current_ts,
         ttl=1e30,
-        creditor_identity=str(C_ID),
+        account_identity=str(C_ID),
         config='',
     )
     account = Account.query.one()
@@ -127,7 +127,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         ts=current_ts,
         ttl=1e30,
-        creditor_identity=str(C_ID),
+        account_identity=str(C_ID),
         config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
@@ -152,7 +152,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         ts=current_ts,
         ttl=1e30,
-        creditor_identity=str(C_ID),
+        account_identity=str(C_ID),
         config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
@@ -177,7 +177,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         ts=current_ts,
         ttl=1e30,
-        creditor_identity=str(C_ID),
+        account_identity=str(C_ID),
         config='',
     )
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
@@ -203,7 +203,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=0,
         ts=current_ts,
         ttl=1e30,
-        creditor_identity=str(C_ID),
+        account_identity=str(C_ID),
         config='',
     )
     cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
@@ -225,7 +225,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         status=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG,
         ts=current_ts,
         ttl=1e30,
-        creditor_identity=str(C_ID),
+        account_identity=str(C_ID),
         config='',
     )
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
@@ -253,7 +253,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         status=0,
         ts=current_ts,
         ttl=1e30,
-        creditor_identity=str(C_ID),
+        account_identity=str(C_ID),
         config='',
     )
     config = AccountConfig.query.one()

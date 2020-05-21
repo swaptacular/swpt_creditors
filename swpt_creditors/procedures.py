@@ -211,7 +211,7 @@ def process_account_change_signal(
         status: int,
         ts: datetime,
         ttl: float,
-        creditor_identity: str,
+        account_identity: str,
         config: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -287,7 +287,7 @@ def process_account_change_signal(
         last_config_ts,
         last_config_seqnum,
         new_account,
-        creditor_identity,
+        account_identity,
         config,
     )
 
@@ -592,7 +592,7 @@ def _revise_account_config_effectuality(
         last_config_ts: datetime,
         last_config_seqnum: int,
         new_account: bool,
-        creditor_identity: str,
+        account_identity: str,
         config: str) -> None:
 
     config = account.account_config
@@ -600,8 +600,8 @@ def _revise_account_config_effectuality(
     if not config.has_account:
         config.has_account = True
 
-    if config.creditor_identity is None:
-        config.creditor_identity = creditor_identity
+    if config.account_identity is None:
+        config.account_identity = account_identity
 
     no_applied_config = last_config_ts - BEGINNING_OF_TIME < TD_SECOND
     if no_applied_config:
@@ -614,7 +614,7 @@ def _revise_account_config_effectuality(
     else:
         last_config_request = (config.last_ts, Seqnum(config.last_seqnum))
         last_applied_config = (last_config_ts, Seqnum(last_config_seqnum))
-        config_is_effectual = account.check_if_config_is_effectual() and creditor_identity == config.creditor_identity
+        config_is_effectual = account.check_if_config_is_effectual() and account_identity == config.account_identity
         if last_applied_config >= last_config_request and config.is_effectual != config_is_effectual:
             config.is_effectual = config_is_effectual
 

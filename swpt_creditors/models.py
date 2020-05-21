@@ -466,10 +466,10 @@ class AccountConfig(db.Model):
                 'decide whether an account can be safely deleted; 2) decide '
                 'whether an incoming transfer is insignificant.',
     )
-    creditor_identity = db.Column(
+    account_identity = db.Column(
         db.String,
-        comment='The value of the `creditor_identity` field from the first received '
-                '`AccountChangeSignal` for the account. Once set, must never change.',
+        comment='The value of the `account_identity` field from the first received '
+                '`AccountChangeSignal` for the account.',
     )
 
     __table_args__ = (
