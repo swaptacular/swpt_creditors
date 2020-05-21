@@ -13,10 +13,10 @@ def test_on_account_transfer_signal(db_session):
         committed_at='2019-10-01T00:00:00Z',
         amount=1000,
         transfer_message='{"message": "test"}',
+        transfer_flags=0,
         creation_date='2020-01-02',
         principal=1000,
         previous_transfer_number=0,
-        system_flags=0,
         sender='666',
         recipient=str(C_ID),
     )
@@ -28,10 +28,10 @@ def test_on_account_transfer_signal(db_session):
         committed_at='2019-10-01T00:00:00Z',
         amount=1000,
         transfer_message='test',
+        transfer_flags=0,
         creation_date='2020-01-02',
         principal=1000,
         previous_transfer_number=0,
-        system_flags=0,
         sender='666',
         recipient=str(C_ID),
     )

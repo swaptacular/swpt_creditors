@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 655618ef51ae
+Revision ID: 89e3ad892096
 Revises: 8d8c816257ce
-Create Date: 2020-05-21 20:01:31.539685
+Create Date: 2020-05-21 20:16:44.918063
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '655618ef51ae'
+revision = '89e3ad892096'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -97,9 +97,9 @@ def upgrade():
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_message', sa.TEXT(), nullable=False),
+    sa.Column('transfer_flags', sa.Integer(), nullable=False),
     sa.Column('account_creation_date', sa.DATE(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
-    sa.Column('system_flags', sa.Integer(), nullable=False),
     sa.Column('sender', sa.String(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),

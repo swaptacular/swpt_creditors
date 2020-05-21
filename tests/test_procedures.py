@@ -50,10 +50,10 @@ def test_process_pending_account_commits(db_session, setup_account, current_ts):
         committed_at_ts=current_ts,
         amount=1000,
         transfer_message='',
+        transfer_flags=0,
         creation_date=ny2019,
         principal=1000,
         previous_transfer_number=0,
-        system_flags=0,
         sender='666',
         recipient=str(C_ID),
     )

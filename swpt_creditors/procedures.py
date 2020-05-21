@@ -308,10 +308,10 @@ def process_account_transfer_signal(
         committed_at_ts: datetime,
         amount: int,
         transfer_message: str,
+        transfer_flags: int,
         creation_date: date,
         principal: int,
         previous_transfer_number: int,
-        system_flags: int,
         sender: str,
         recipient: str) -> None:
 
@@ -324,7 +324,7 @@ def process_account_transfer_signal(
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert 0 <= previous_transfer_number <= MAX_INT64
     assert previous_transfer_number < transfer_number
-    assert MIN_INT32 <= system_flags <= MAX_INT32
+    assert MIN_INT32 <= transfer_flags <= MAX_INT32
 
     try:
         ledger = _get_or_create_ledger(creditor_id, debtor_id)
@@ -338,9 +338,9 @@ def process_account_transfer_signal(
         committed_at_ts=committed_at_ts,
         committed_amount=amount,
         transfer_message=transfer_message,
+        transfer_flags=transfer_flags,
         account_creation_date=creation_date,
         account_new_principal=principal,
-        system_flags=system_flags,
         sender=sender,
         recipient=recipient,
     )

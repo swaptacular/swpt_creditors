@@ -13,10 +13,10 @@ def on_account_transfer_signal(
         committed_at: str,
         amount: int,
         transfer_message: str,
+        transfer_flags: int,
         creation_date: str,
         principal: int,
         previous_transfer_number: int,
-        system_flags: int,
         sender: str,
         recipient: str,
         *args, **kwargs) -> None:
@@ -29,10 +29,10 @@ def on_account_transfer_signal(
         iso8601.parse_date(committed_at),
         amount,
         transfer_message,
+        transfer_flags,
         date.fromisoformat(creation_date),
         principal,
         previous_transfer_number,
-        system_flags,
         sender,
         recipient,
     )

@@ -279,9 +279,9 @@ class AccountCommit(db.Model):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_message = db.Column(pg.TEXT, nullable=False)
+    transfer_flags = db.Column(db.Integer, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
-    system_flags = db.Column(db.Integer, nullable=False)
     sender = db.Column(db.String, nullable=False)
     recipient = db.Column(db.String, nullable=False)
     __table_args__ = (
