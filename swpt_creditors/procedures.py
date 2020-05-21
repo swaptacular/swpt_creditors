@@ -306,7 +306,7 @@ def process_account_transfer_signal(
         transfer_seqnum: int,
         coordinator_type: str,
         committed_at_ts: datetime,
-        committed_amount: int,
+        amount: int,
         transfer_message: str,
         transfer_flags: int,
         creation_date: date,
@@ -320,8 +320,8 @@ def process_account_transfer_signal(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_seqnum <= MAX_INT64
     assert len(coordinator_type) <= 30
-    assert committed_amount != 0
-    assert -MAX_INT64 <= committed_amount <= MAX_INT64
+    assert amount != 0
+    assert -MAX_INT64 <= amount <= MAX_INT64
     assert MIN_INT32 <= transfer_flags <= MAX_INT32
     assert -MAX_INT64 <= account_new_principal <= MAX_INT64
     assert 0 <= previous_transfer_seqnum <= MAX_INT64
@@ -338,7 +338,7 @@ def process_account_transfer_signal(
         transfer_seqnum=transfer_seqnum,
         coordinator_type=coordinator_type,
         committed_at_ts=committed_at_ts,
-        committed_amount=committed_amount,
+        committed_amount=amount,
         transfer_message=transfer_message,
         transfer_flags=transfer_flags,
         account_creation_date=creation_date,
@@ -368,7 +368,7 @@ def process_account_transfer_signal(
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
         _update_ledger(ledger, account_new_principal, current_ts)
-        _insert_ledger_entry(creditor_id, debtor_id, transfer_seqnum, committed_amount, account_new_principal)
+        _insert_ledger_entry(creditor_id, debtor_id, transfer_seqnum, amount, account_new_principal)
     elif transfer_seqnum >= ledger.next_transfer_seqnum:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_account_commits()`.)
@@ -376,7 +376,7 @@ def process_account_transfer_signal(
             account_commit=account_commit,
             account_new_principal=account_new_principal,
             committed_at_ts=committed_at_ts,
-            committed_amount=committed_amount,
+            committed_amount=amount,
         ))
 
 
