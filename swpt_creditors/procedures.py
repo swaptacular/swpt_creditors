@@ -307,14 +307,14 @@ def process_account_transfer_signal(
         coordinator_type: str,
         committed_at_ts: datetime,
         committed_amount: int,
-        other_party_identity: str,
         transfer_message: str,
         transfer_flags: int,
-        account_creation_date: date,
+        creation_date: date,
         account_new_principal: int,
         previous_transfer_seqnum: int,
         system_flags: int,
-        creditor_identity: str) -> None:
+        sender: str,
+        recipient: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -337,15 +337,15 @@ def process_account_transfer_signal(
         account_ledger=ledger,
         transfer_seqnum=transfer_seqnum,
         coordinator_type=coordinator_type,
-        other_party_identity=other_party_identity,
         committed_at_ts=committed_at_ts,
         committed_amount=committed_amount,
         transfer_message=transfer_message,
         transfer_flags=transfer_flags,
-        account_creation_date=account_creation_date,
+        account_creation_date=creation_date,
         account_new_principal=account_new_principal,
         system_flags=system_flags,
-        creditor_identity=creditor_identity,
+        sender=sender,
+        recipient=recipient,
     )
     try:
         db.session.add(account_commit)
@@ -358,8 +358,8 @@ def process_account_transfer_signal(
         return
 
     current_ts = datetime.now(tz=timezone.utc)
-    if account_creation_date > ledger.account_creation_date:
-        ledger.reset(account_creation_date=account_creation_date, current_ts=current_ts)
+    if creation_date > ledger.account_creation_date:
+        ledger.reset(account_creation_date=creation_date, current_ts=current_ts)
 
     ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
     if transfer_seqnum == ledger.next_transfer_seqnum and ledger_has_not_been_updated_soon:

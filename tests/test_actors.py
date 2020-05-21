@@ -10,7 +10,6 @@ def test_on_account_transfer_signal(db_session):
         creditor_id=C_ID,
         transfer_seqnum=(1 << 40) + 1,
         coordinator_type='direct',
-        other_party_identity='666',
         committed_at='2019-10-01T00:00:00Z',
         committed_amount=1000,
         transfer_message='{"message": "test"}',
@@ -19,14 +18,14 @@ def test_on_account_transfer_signal(db_session):
         account_new_principal=1000,
         previous_transfer_seqnum=(1 << 40),
         system_flags=0,
-        creditor_identity=str(C_ID),
+        sender='666',
+        recipient=str(C_ID),
     )
     a.on_account_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_seqnum=(1 << 40) + 1,
         coordinator_type='direct',
-        other_party_identity='666',
         committed_at='2019-10-01T00:00:00Z',
         committed_amount=1000,
         transfer_message='test',
@@ -35,5 +34,6 @@ def test_on_account_transfer_signal(db_session):
         account_new_principal=1000,
         previous_transfer_seqnum=(1 << 40),
         system_flags=0,
-        creditor_identity=str(C_ID),
+        sender='666',
+        recipient=str(C_ID),
     )

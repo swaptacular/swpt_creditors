@@ -43,7 +43,21 @@ def test_create_new_creditor(db_session):
 def test_process_pending_account_commits(db_session, setup_account, current_ts):
     ny2019 = date(2019, 1, 1)
     p.process_account_transfer_signal(
-        D_ID, C_ID, 1, 'direct', current_ts, 1000, 666, '', 0, ny2019, 1000, 0, 0, C_ID)
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_seqnum=1,
+        coordinator_type='direct',
+        committed_at_ts=current_ts,
+        committed_amount=1000,
+        transfer_message='',
+        transfer_flags=0,
+        creation_date=ny2019,
+        account_new_principal=1000,
+        previous_transfer_seqnum=0,
+        system_flags=0,
+        sender='666',
+        recipient=str(C_ID),
+    )
     assert p.process_pending_account_commits(C_ID, D_ID)
 
 

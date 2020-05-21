@@ -289,10 +289,6 @@ class AccountCommit(db.Model):
         nullable=False,
         comment='Indicates which subsystem has committed the transfer.',
     )
-    other_party_identity = db.Column(
-        db.String,
-        nullable=False,
-    )
     committed_at_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
@@ -335,7 +331,11 @@ class AccountCommit(db.Model):
         nullable=False,
         comment='Various bit-flags characterizing the transfer.',
     )
-    creditor_identity = db.Column(
+    sender = db.Column(
+        db.String,
+        nullable=False,
+    )
+    recipient = db.Column(
         db.String,
         nullable=False,
     )

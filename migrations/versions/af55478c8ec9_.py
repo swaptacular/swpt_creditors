@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7a0a2047ec14
+Revision ID: af55478c8ec9
 Revises: 8d8c816257ce
-Create Date: 2020-05-20 21:53:16.022928
+Create Date: 2020-05-21 14:43:28.752237
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7a0a2047ec14'
+revision = 'af55478c8ec9'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -94,7 +94,6 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False, comment='Along with `creditor_id` and `debtor_id` uniquely identifies the account commit. It gets incremented on each committed transfer. Initially, `transfer_seqnum` has its lowest 40 bits set to zero, and its highest 24 bits calculated from the value of `account_creation_date`.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has committed the transfer.'),
-    sa.Column('other_party_identity', sa.String(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was committed.'),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False, comment="This is the change in the account's principal that the transfer caused. Can be positive or negative. Can not be zero."),
     sa.Column('transfer_message', sa.TEXT(), nullable=False, comment='Notes from the sender. Can be any string that the sender wants the recipient to see.'),
@@ -102,7 +101,8 @@ def upgrade():
     sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False, comment='The principal on the account after the transfer.'),
     sa.Column('system_flags', sa.Integer(), nullable=False, comment='Various bit-flags characterizing the transfer.'),
-    sa.Column('creditor_identity', sa.String(), nullable=False),
+    sa.Column('sender', sa.String(), nullable=False),
+    sa.Column('recipient', sa.String(), nullable=False),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('transfer_seqnum > 0'),
@@ -122,7 +122,7 @@ def upgrade():
     sa.Column('allow_unsafe_removal', sa.BOOLEAN(), nullable=False, comment='Whether the owner approved unsafe removal of the account. In extraordinary circumstances it might be necessary to forcefully remove an account, accepting the risk of losing the available amount.'),
     sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the account is scheduled for deletion.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
-    sa.Column('creditor_identity', sa.String(), nullable=True, comment='The value of the `creditor_identity` field from the first received `AccountChangeSignal` for the account. Once set, must never change.'),
+    sa.Column('account_identity', sa.String(), nullable=True, comment='The value of the `account_identity` field from the first received `AccountChangeSignal` for the account.'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
