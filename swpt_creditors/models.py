@@ -672,8 +672,8 @@ class ConfigureAccountSignal(Signal):
         creditor_id = fields.Constant(ROOT_CREDITOR_ID)
         ts = fields.DateTime()
         seqnum = fields.Constant(0)
-        status_flags = fields.Method('get_status_flags')
         negligible_amount = fields.Boolean()
+        config_flags = fields.Method('get_config_flags')
         config = fields.Constant('')
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -683,7 +683,7 @@ class ConfigureAccountSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
 
-    def get_status_flags(self, obj):
+    def get_config_flags(self, obj):
         if self.is_scheduled_for_deletion:
             return Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         return 0
