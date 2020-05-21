@@ -52,7 +52,7 @@ def test_process_pending_account_commits(db_session, setup_account, current_ts):
         transfer_message='',
         transfer_flags=0,
         creation_date=ny2019,
-        account_new_principal=1000,
+        principal=1000,
         previous_transfer_seqnum=0,
         system_flags=0,
         sender='666',

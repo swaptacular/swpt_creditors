@@ -310,7 +310,7 @@ def process_account_transfer_signal(
         transfer_message: str,
         transfer_flags: int,
         creation_date: date,
-        account_new_principal: int,
+        principal: int,
         previous_transfer_seqnum: int,
         system_flags: int,
         sender: str,
@@ -323,7 +323,7 @@ def process_account_transfer_signal(
     assert amount != 0
     assert -MAX_INT64 <= amount <= MAX_INT64
     assert MIN_INT32 <= transfer_flags <= MAX_INT32
-    assert -MAX_INT64 <= account_new_principal <= MAX_INT64
+    assert -MAX_INT64 <= principal <= MAX_INT64
     assert 0 <= previous_transfer_seqnum <= MAX_INT64
     assert previous_transfer_seqnum < transfer_seqnum
     assert MIN_INT32 <= system_flags <= MAX_INT32
@@ -342,7 +342,7 @@ def process_account_transfer_signal(
         transfer_message=transfer_message,
         transfer_flags=transfer_flags,
         account_creation_date=creation_date,
-        account_new_principal=account_new_principal,
+        account_new_principal=principal,
         system_flags=system_flags,
         sender=sender,
         recipient=recipient,
@@ -367,14 +367,14 @@ def process_account_transfer_signal(
         # update the account ledger right away. We must be careful,
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
-        _update_ledger(ledger, account_new_principal, current_ts)
-        _insert_ledger_entry(creditor_id, debtor_id, transfer_seqnum, amount, account_new_principal)
+        _update_ledger(ledger, principal, current_ts)
+        _insert_ledger_entry(creditor_id, debtor_id, transfer_seqnum, amount, principal)
     elif transfer_seqnum >= ledger.next_transfer_seqnum:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_account_commits()`.)
         db.session.add(PendingAccountCommit(
             account_commit=account_commit,
-            account_new_principal=account_new_principal,
+            account_new_principal=principal,
             committed_at_ts=committed_at_ts,
             committed_amount=amount,
         ))
