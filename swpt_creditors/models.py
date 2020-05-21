@@ -270,8 +270,6 @@ class RunningTransfer(db.Model):
 #       table and deletes old records (ones having an old
 #       `committed_at_ts`). We need to do this to free up disk space.
 class AccountCommit(db.Model):
-    TRANSFER_FLAG_IS_PUBLIC = 1
-
     SYSTEM_FLAG_IS_NEGLIGIBLE = 1
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -281,7 +279,6 @@ class AccountCommit(db.Model):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_message = db.Column(pg.TEXT, nullable=False)
-    transfer_flags = db.Column(db.Integer, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     system_flags = db.Column(db.Integer, nullable=False)
