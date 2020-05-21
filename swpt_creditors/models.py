@@ -276,76 +276,24 @@ class AccountCommit(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(
-        db.BigInteger,
-        primary_key=True,
-        comment="Along with `creditor_id` and `debtor_id` uniquely identifies the account "
-                "commit. It gets incremented on each committed transfer. Initially, "
-                "`transfer_seqnum` has its lowest 40 bits set to zero, and its highest 24 "
-                "bits calculated from the value of `account_creation_date`.",
-    )
-    coordinator_type = db.Column(
-        db.String(30),
-        nullable=False,
-        comment='Indicates which subsystem has committed the transfer.',
-    )
-    committed_at_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        comment='The moment at which the transfer was committed.',
-    )
-    committed_amount = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment="This is the change in the account's principal that the transfer caused. Can "
-                "be positive or negative. Can not be zero.",
-    )
-    transfer_message = db.Column(
-        pg.TEXT,
-        nullable=False,
-        comment='Notes from the sender. Can be any string that the sender wants the recipient '
-                'to see.',
-    )
-    transfer_flags = db.Column(
-        db.Integer,
-        nullable=False,
-        comment='Contains various flags set when the transfer was finalized. (This is the value '
-                'of the `transfer_flags parameter, with which the `finalize_prepared_transfer` '
-                'actor was called.)',
-    )
-    account_creation_date = db.Column(
-        db.DATE,
-        nullable=False,
-        comment="The date on which the account was created. This is needed to detect when "
-                "an account has been deleted, and recreated again. (In that case the sequence "
-                "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
-                "a brand new ledger created).",
-    )
-    account_new_principal = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The principal on the account after the transfer.',
-    )
-    system_flags = db.Column(
-        db.Integer,
-        nullable=False,
-        comment='Various bit-flags characterizing the transfer.',
-    )
-    sender = db.Column(
-        db.String,
-        nullable=False,
-    )
-    recipient = db.Column(
-        db.String,
-        nullable=False,
-    )
+    transfer_number = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_message = db.Column(pg.TEXT, nullable=False)
+    transfer_flags = db.Column(db.Integer, nullable=False)
+    account_creation_date = db.Column(db.DATE, nullable=False)
+    account_new_principal = db.Column(db.BigInteger, nullable=False)
+    system_flags = db.Column(db.Integer, nullable=False)
+    sender = db.Column(db.String, nullable=False)
+    recipient = db.Column(db.String, nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
             ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
             ondelete='CASCADE',
         ),
-        db.CheckConstraint(transfer_seqnum > 0),
+        db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(account_new_principal > MIN_INT64),
         {
@@ -370,7 +318,7 @@ class PendingAccountCommit(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    transfer_number = db.Column(db.BigInteger, primary_key=True)
 
     # TODO: Normally, these columns are not part of the primary key,
     #       but because we want them to be included in the index to
@@ -383,8 +331,8 @@ class PendingAccountCommit(db.Model):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
-            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'],
+            ['creditor_id', 'debtor_id', 'transfer_number'],
+            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'],
             ondelete='CASCADE',
         ),
         db.CheckConstraint(committed_amount != 0),
@@ -527,7 +475,7 @@ class AccountLedger(db.Model):
         default=BEGINNING_OF_TIME.date(),
         comment="The date on which the account was created. This is needed to detect when "
                 "an account has been deleted, and recreated again. (In that case the sequence "
-                "of `transfer_seqnum`s will be broken, the old ledger should be discarded, and "
+                "of `transfer_number`s will be broken, the old ledger should be discarded, and "
                 "a brand new ledger created).",
     )
     principal = db.Column(
@@ -536,17 +484,17 @@ class AccountLedger(db.Model):
         default=0,
         comment='The account principal, as it is after the last transfer has been added to the ledger.'
     )
-    next_transfer_seqnum = db.Column(
+    next_transfer_number = db.Column(
         db.BigInteger,
         nullable=False,
         default=1,
-        comment="The anticipated `transfer_seqnum` for the next transfer. It gets incremented when a "
+        comment="The anticipated `transfer_number` for the next transfer. It gets incremented when a "
                 "new transfer is added to the ledger. For a newly created (or purged, and then "
                 "recreated) account, the sequential number of the first transfer will have its lower "
                 "40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's "
                 "creation date (the number of days since Jan 1st, 1970). Note that when an account "
                 "has been removed from the database, and then recreated again, for this account, a "
-                "gap will occur in the generated sequence of `transfer_seqnum`s.",
+                "gap will occur in the generated sequence of `transfer_number`s.",
     )
     last_update_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -559,14 +507,14 @@ class AccountLedger(db.Model):
             # This index is supposed to allow efficient merge joins
             # with `PendingAccountCommit`. Not sure if it is really
             # beneficial in practice.
-            'idx_next_transfer_seqnum',
+            'idx_next_transfer_number',
             creditor_id,
             debtor_id,
-            next_transfer_seqnum,
+            next_transfer_number,
         ),
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(principal > MIN_INT64),
-        db.CheckConstraint(next_transfer_seqnum > 0),
+        db.CheckConstraint(next_transfer_number > 0),
         {
             'comment': 'Represents essential information about the ledger of a given account. Logically '
                        'those columns belong to the `account_config` table, but they are isolated '
@@ -583,12 +531,12 @@ class AccountLedger(db.Model):
             assert account.creditor_id == self.creditor_id and account.debtor_id == self.debtor_id
             self.account_creation_date = account.creation_date
             self.principal = account.principal
-            self.next_transfer_seqnum = account.last_transfer_seqnum + 1
+            self.next_transfer_number = account.last_transfer_number + 1
         else:
             account_creation_date = account_creation_date or BEGINNING_OF_TIME.date()
             self.account_creation_date = account_creation_date
             self.principal = 0
-            self.next_transfer_seqnum = (date_to_int24(account_creation_date) << 40) + 1
+            self.next_transfer_number = (date_to_int24(account_creation_date) << 40) + 1
         self.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
@@ -600,7 +548,7 @@ class LedgerEntry(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    transfer_number = db.Column(db.BigInteger, primary_key=True)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, server_default=utcnow())
@@ -612,7 +560,7 @@ class LedgerEntry(db.Model):
             creditor_id,
             added_at_ts,
             debtor_id,
-            transfer_seqnum,
+            transfer_number,
             committed_amount,
             account_new_principal,
         ),
@@ -622,8 +570,8 @@ class LedgerEntry(db.Model):
             ondelete='CASCADE',
         ),
         db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'transfer_seqnum'],
-            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'],
+            ['creditor_id', 'debtor_id', 'transfer_number'],
+            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'],
             ondelete='CASCADE',
         ),
         db.CheckConstraint(committed_amount != 0),
@@ -660,7 +608,7 @@ class Account(db.Model):
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
-    last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    last_transfer_number = db.Column(db.BigInteger, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.Integer, nullable=False)
@@ -687,7 +635,7 @@ class Account(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
-        db.CheckConstraint(last_transfer_seqnum >= 0),
+        db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(negligible_amount >= 0.0),
         {

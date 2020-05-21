@@ -22,7 +22,7 @@ HUGE_NEGLIGIBLE_AMOUNT = 1e30
 PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.debtor_id,
     PendingAccountCommit.creditor_id,
-    PendingAccountCommit.transfer_seqnum,
+    PendingAccountCommit.transfer_number,
 )
 
 
@@ -203,7 +203,7 @@ def process_account_change_signal(
         principal: int,
         interest: float,
         interest_rate: float,
-        last_transfer_seqnum: int,
+        last_transfer_number: int,
         last_config_ts: datetime,
         last_config_seqnum: int,
         creation_date: date,
@@ -219,7 +219,7 @@ def process_account_change_signal(
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
-    assert 0 <= last_transfer_seqnum <= MAX_INT64
+    assert 0 <= last_transfer_number <= MAX_INT64
     assert MIN_INT32 <= last_config_seqnum <= MAX_INT32
     assert negligible_amount >= 0.0
     assert MIN_INT32 <= status <= MAX_INT32
@@ -252,7 +252,7 @@ def process_account_change_signal(
         account.principal = principal
         account.interest = interest
         account.interest_rate = interest_rate
-        account.last_transfer_seqnum = last_transfer_seqnum
+        account.last_transfer_number = last_transfer_number
         account.creation_date = creation_date
         account.negligible_amount = negligible_amount
         account.status = status
@@ -274,7 +274,7 @@ def process_account_change_signal(
             principal=principal,
             interest=interest,
             interest_rate=interest_rate,
-            last_transfer_seqnum=last_transfer_seqnum,
+            last_transfer_number=last_transfer_number,
             creation_date=creation_date,
             negligible_amount=negligible_amount,
             status=status,
@@ -303,7 +303,7 @@ def process_account_change_signal(
 def process_account_transfer_signal(
         debtor_id: int,
         creditor_id: int,
-        transfer_seqnum: int,
+        transfer_number: int,
         coordinator_type: str,
         committed_at_ts: datetime,
         amount: int,
@@ -311,21 +311,21 @@ def process_account_transfer_signal(
         transfer_flags: int,
         creation_date: date,
         principal: int,
-        previous_transfer_seqnum: int,
+        previous_transfer_number: int,
         system_flags: int,
         sender: str,
         recipient: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert 0 < transfer_seqnum <= MAX_INT64
+    assert 0 < transfer_number <= MAX_INT64
     assert len(coordinator_type) <= 30
     assert amount != 0
     assert -MAX_INT64 <= amount <= MAX_INT64
     assert MIN_INT32 <= transfer_flags <= MAX_INT32
     assert -MAX_INT64 <= principal <= MAX_INT64
-    assert 0 <= previous_transfer_seqnum <= MAX_INT64
-    assert previous_transfer_seqnum < transfer_seqnum
+    assert 0 <= previous_transfer_number <= MAX_INT64
+    assert previous_transfer_number < transfer_number
     assert MIN_INT32 <= system_flags <= MAX_INT32
 
     try:
@@ -335,7 +335,7 @@ def process_account_transfer_signal(
 
     account_commit = AccountCommit(
         account_ledger=ledger,
-        transfer_seqnum=transfer_seqnum,
+        transfer_number=transfer_number,
         coordinator_type=coordinator_type,
         committed_at_ts=committed_at_ts,
         committed_amount=amount,
@@ -362,14 +362,14 @@ def process_account_transfer_signal(
         ledger.reset(account_creation_date=creation_date, current_ts=current_ts)
 
     ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
-    if transfer_seqnum == ledger.next_transfer_seqnum and ledger_has_not_been_updated_soon:
+    if transfer_number == ledger.next_transfer_number and ledger_has_not_been_updated_soon:
         # If account commits come in the right order, it is faster to
         # update the account ledger right away. We must be careful,
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
         _update_ledger(ledger, principal, current_ts)
-        _insert_ledger_entry(creditor_id, debtor_id, transfer_seqnum, amount, principal)
-    elif transfer_seqnum >= ledger.next_transfer_seqnum:
+        _insert_ledger_entry(creditor_id, debtor_id, transfer_number, amount, principal)
+    elif transfer_number >= ledger.next_transfer_number:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_account_commits()`.)
         db.session.add(PendingAccountCommit(
@@ -395,12 +395,12 @@ def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count:
     pks_to_delete = []
     current_ts = datetime.now(tz=timezone.utc)
     pending_transfers = _get_ordered_pending_transfers(ledger, max_count)
-    for transfer_seqnum, committed_amount, account_new_principal in pending_transfers:
-        pk = (creditor_id, debtor_id, transfer_seqnum)
-        if transfer_seqnum == ledger.next_transfer_seqnum:
+    for transfer_number, committed_amount, account_new_principal in pending_transfers:
+        pk = (creditor_id, debtor_id, transfer_number)
+        if transfer_number == ledger.next_transfer_number:
             _update_ledger(ledger, account_new_principal, current_ts)
             _insert_ledger_entry(*pk, committed_amount, account_new_principal)
-        elif transfer_seqnum > ledger.next_transfer_seqnum:
+        elif transfer_number > ledger.next_transfer_number:
             has_gaps = True
             break
         pks_to_delete.append(pk)
@@ -418,7 +418,7 @@ def find_legible_pending_account_commits(max_count: int = None):
     query = db.session.query(pac.creditor_id, pac.debtor_id).filter(
         al.creditor_id == pac.creditor_id,
         al.debtor_id == pac.debtor_id,
-        al.next_transfer_seqnum == pac.transfer_seqnum
+        al.next_transfer_number == pac.transfer_number
     )
     if max_count is not None:
         query = query.limit(max_count)
@@ -538,21 +538,21 @@ def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) 
 
 def _update_ledger(ledger: AccountLedger, account_new_principal: int, current_ts: datetime = None) -> None:
     ledger.principal = account_new_principal
-    ledger.next_transfer_seqnum += 1
+    ledger.next_transfer_number += 1
     ledger.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
 def _insert_ledger_entry(
         creditor_id: int,
         debtor_id: int,
-        transfer_seqnum: int,
+        transfer_number: int,
         committed_amount: int,
         account_new_principal: int) -> None:
 
     db.session.add(LedgerEntry(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
-        transfer_seqnum=transfer_seqnum,
+        transfer_number=transfer_number,
         committed_amount=committed_amount,
         account_new_principal=account_new_principal,
     ))
@@ -631,12 +631,12 @@ def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None)
     debtor_id = ledger.debtor_id
     query = db.session.\
         query(
-            PendingAccountCommit.transfer_seqnum,
+            PendingAccountCommit.transfer_number,
             PendingAccountCommit.committed_amount,
             PendingAccountCommit.account_new_principal,
         ).\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        order_by(PendingAccountCommit.transfer_seqnum)
+        order_by(PendingAccountCommit.transfer_number)
     if max_count is not None:
         query = query.limit(max_count)
     return query.all()

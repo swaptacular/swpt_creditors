@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: af55478c8ec9
+Revision ID: 92e5d078a70a
 Revises: 8d8c816257ce
-Create Date: 2020-05-21 14:43:28.752237
+Create Date: 2020-05-21 18:41:23.046653
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'af55478c8ec9'
+revision = '92e5d078a70a'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -60,17 +60,17 @@ def upgrade():
     op.create_table('account_ledger',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
+    sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_number`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The account principal, as it is after the last transfer has been added to the ledger.'),
-    sa.Column('next_transfer_seqnum', sa.BigInteger(), nullable=False, comment="The anticipated `transfer_seqnum` for the next transfer. It gets incremented when a new transfer is added to the ledger. For a newly created (or purged, and then recreated) account, the sequential number of the first transfer will have its lower 40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's creation date (the number of days since Jan 1st, 1970). Note that when an account has been removed from the database, and then recreated again, for this account, a gap will occur in the generated sequence of `transfer_seqnum`s."),
+    sa.Column('next_transfer_number', sa.BigInteger(), nullable=False, comment="The anticipated `transfer_number` for the next transfer. It gets incremented when a new transfer is added to the ledger. For a newly created (or purged, and then recreated) account, the sequential number of the first transfer will have its lower 40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's creation date (the number of days since Jan 1st, 1970). Note that when an account has been removed from the database, and then recreated again, for this account, a gap will occur in the generated sequence of `transfer_number`s."),
     sa.Column('last_update_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the most recent change in the row happened.'),
-    sa.CheckConstraint('next_transfer_seqnum > 0'),
+    sa.CheckConstraint('next_transfer_number > 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
     comment='Represents essential information about the ledger of a given account. Logically those columns belong to the `account_config` table, but they are isolated here mainly for peformace reasons. The thing is that we want really fast index-only scans on the `account_config` table. Normally, the account config rarely changes (which is good for the index-only scans), while the account ledger information may change very frequently.'
     )
-    op.create_index('idx_next_transfer_seqnum', 'account_ledger', ['creditor_id', 'debtor_id', 'next_transfer_seqnum'], unique=False)
+    op.create_index('idx_next_transfer_number', 'account_ledger', ['creditor_id', 'debtor_id', 'next_transfer_number'], unique=False)
     op.create_table('direct_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
@@ -92,22 +92,22 @@ def upgrade():
     op.create_table('account_commit',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False, comment='Along with `creditor_id` and `debtor_id` uniquely identifies the account commit. It gets incremented on each committed transfer. Initially, `transfer_seqnum` has its lowest 40 bits set to zero, and its highest 24 bits calculated from the value of `account_creation_date`.'),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has committed the transfer.'),
-    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was committed.'),
-    sa.Column('committed_amount', sa.BigInteger(), nullable=False, comment="This is the change in the account's principal that the transfer caused. Can be positive or negative. Can not be zero."),
-    sa.Column('transfer_message', sa.TEXT(), nullable=False, comment='Notes from the sender. Can be any string that the sender wants the recipient to see.'),
-    sa.Column('transfer_flags', sa.Integer(), nullable=False, comment='Contains various flags set when the transfer was finalized. (This is the value of the `transfer_flags parameter, with which the `finalize_prepared_transfer` actor was called.)'),
-    sa.Column('account_creation_date', sa.DATE(), nullable=False, comment='The date on which the account was created. This is needed to detect when an account has been deleted, and recreated again. (In that case the sequence of `transfer_seqnum`s will be broken, the old ledger should be discarded, and a brand new ledger created).'),
-    sa.Column('account_new_principal', sa.BigInteger(), nullable=False, comment='The principal on the account after the transfer.'),
-    sa.Column('system_flags', sa.Integer(), nullable=False, comment='Various bit-flags characterizing the transfer.'),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
+    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_message', sa.TEXT(), nullable=False),
+    sa.Column('transfer_flags', sa.Integer(), nullable=False),
+    sa.Column('account_creation_date', sa.DATE(), nullable=False),
+    sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
+    sa.Column('system_flags', sa.Integer(), nullable=False),
     sa.Column('sender', sa.String(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.CheckConstraint('transfer_seqnum > 0'),
+    sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number'),
     comment='Represents an account commit. A new row is inserted when a `AccountCommitSignal` is received. The row is deleted when some time (few months for example) has passed.'
     )
     op.create_table('account_config',
@@ -136,14 +136,14 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
-    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.Integer(), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
     sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the available amount is not negligible, 2 - changed interest rate.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
-    sa.CheckConstraint('last_transfer_seqnum >= 0'),
+    sa.CheckConstraint('last_transfer_number >= 0'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_config.creditor_id', 'account_config.debtor_id'], ondelete='CASCADE'),
@@ -166,28 +166,28 @@ def upgrade():
     op.create_table('ledger_entry',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), server_default=sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)"), nullable=False),
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number'),
     comment="Represents an entry in one of creditor's account ledgers. This table allows users to ask only for transfers that have occurred before or after a given moment in time."
     )
-    op.create_index('idx_ledger_entry_added_at_ts', 'ledger_entry', ['creditor_id', 'added_at_ts', 'debtor_id', 'transfer_seqnum', 'committed_amount', 'account_new_principal'], unique=False)
+    op.create_index('idx_ledger_entry_added_at_ts', 'ledger_entry', ['creditor_id', 'added_at_ts', 'debtor_id', 'transfer_number', 'committed_amount', 'account_new_principal'], unique=False)
     op.create_table('pending_account_commit',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_seqnum'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_seqnum'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_seqnum', 'committed_amount', 'account_new_principal'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number', 'committed_amount', 'account_new_principal'),
     comment='Represents an account commit that has not been included in the account ledger yet. A new row is inserted when a `AccountCommitSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because account commits can be received out-of-order, but must be added to the ledgers in-order.'
     )
     # ### end Alembic commands ###
@@ -204,7 +204,7 @@ def downgrade():
     op.drop_table('account_config')
     op.drop_table('account_commit')
     op.drop_table('direct_transfer')
-    op.drop_index('idx_next_transfer_seqnum', table_name='account_ledger')
+    op.drop_index('idx_next_transfer_number', table_name='account_ledger')
     op.drop_table('account_ledger')
     op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
