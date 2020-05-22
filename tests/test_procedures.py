@@ -104,7 +104,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         negligible_amount=0.0,
         status=0,
         ts=current_ts,
-        ttl=1e30,
+        ttl=1000000,
         account_identity=str(C_ID),
         config='',
     )
@@ -139,7 +139,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         negligible_amount=0.0,
         status=0,
         ts=current_ts,
-        ttl=1e30,
+        ttl=1000000,
         account_identity=str(C_ID),
         config='',
     )
@@ -164,7 +164,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         negligible_amount=3.0,
         status=0,
         ts=current_ts,
-        ttl=1e30,
+        ttl=1000000,
         account_identity=str(C_ID),
         config='',
     )
@@ -189,7 +189,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         negligible_amount=0.0,
         status=0,
         ts=current_ts,
-        ttl=1e30,
+        ttl=1000000,
         account_identity=str(C_ID),
         config='',
     )
@@ -215,7 +215,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         negligible_amount=2.0,
         status=0,
         ts=current_ts,
-        ttl=1e30,
+        ttl=1000000,
         account_identity=str(C_ID),
         config='',
     )
@@ -237,7 +237,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
         negligible_amount=1e30,
         status=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG,
         ts=current_ts,
-        ttl=1e30,
+        ttl=1000000,
         account_identity=str(C_ID),
         config='',
     )
@@ -265,7 +265,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         negligible_amount=0.0,
         status=0,
         ts=current_ts,
-        ttl=1e30,
+        ttl=1000000,
         account_identity=str(C_ID),
         config='',
     )

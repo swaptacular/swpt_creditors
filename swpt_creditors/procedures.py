@@ -210,7 +210,7 @@ def process_account_change_signal(
         negligible_amount: float,
         status: int,
         ts: datetime,
-        ttl: float,
+        ttl: int,
         account_identity: str,
         config: str) -> None:
 
@@ -223,7 +223,7 @@ def process_account_change_signal(
     assert MIN_INT32 <= last_config_seqnum <= MAX_INT32
     assert negligible_amount >= 0.0
     assert MIN_INT32 <= status <= MAX_INT32
-    assert ttl > 0.0
+    assert ttl > 0
 
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - ts).total_seconds() > ttl:
