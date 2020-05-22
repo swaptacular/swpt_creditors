@@ -89,7 +89,7 @@ def test_change_account_config(db_session, setup_account):
 
 def test_try_to_remove_account(db_session, setup_account, current_ts):
     assert p.try_to_remove_account(C_ID, 1234)
-    p.process_account_change_signal(
+    p.process_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         last_change_ts=current_ts,
@@ -117,14 +117,14 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
     assert AccountConfig.query.one_or_none() is None
 
 
-def test_process_account_change_signal(db_session, creditor, setup_account, current_ts):
+def test_process_account_update_signal(db_session, creditor, setup_account, current_ts):
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert not ac.is_effectual
     assert ac.negligible_amount == 0.0
     last_ts = ac.last_ts
     last_seqnum = ac.last_seqnum
 
-    p.process_account_change_signal(
+    p.process_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         last_change_ts=current_ts,
@@ -149,7 +149,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
     assert ac.is_effectual
     assert ac.negligible_amount == 0.0
 
-    p.process_account_change_signal(
+    p.process_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         last_change_ts=current_ts,
@@ -174,7 +174,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
     assert not ac.is_effectual
     assert ac.negligible_amount == 0.0
 
-    p.process_account_change_signal(
+    p.process_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         last_change_ts=current_ts,
@@ -200,7 +200,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
     assert ac.negligible_amount == 0.0
 
     # Discard orphaned account.
-    p.process_account_change_signal(
+    p.process_account_update_signal(
         debtor_id=1235,
         creditor_id=C_ID,
         last_change_ts=current_ts,
@@ -222,7 +222,7 @@ def test_process_account_change_signal(db_session, creditor, setup_account, curr
     cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
     assert cas.negligible_amount > 1e22
     assert cas.is_scheduled_for_deletion
-    p.process_account_change_signal(
+    p.process_account_update_signal(
         debtor_id=1235,
         creditor_id=C_ID,
         last_change_ts=current_ts,
@@ -250,7 +250,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     assert config.creditor_id == C_ID
     assert not config.has_account
     assert len(Account.query.all()) == 0
-    p.process_account_change_signal(
+    p.process_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         last_change_ts=current_ts,

@@ -195,7 +195,7 @@ def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date
 
 
 @atomic
-def process_account_change_signal(
+def process_account_update_signal(
         debtor_id: int,
         creditor_id: int,
         last_change_ts: datetime,
