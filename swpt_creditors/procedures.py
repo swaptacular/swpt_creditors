@@ -198,8 +198,8 @@ def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date
 def process_account_change_signal(
         debtor_id: int,
         creditor_id: int,
-        change_ts: datetime,
-        change_seqnum: int,
+        last_change_ts: datetime,
+        last_change_seqnum: int,
         principal: int,
         interest: float,
         interest_rate: float,
@@ -216,7 +216,7 @@ def process_account_change_signal(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT32 <= change_seqnum <= MAX_INT32
+    assert MIN_INT32 <= last_change_seqnum <= MAX_INT32
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
     assert 0 <= last_transfer_number <= MAX_INT64
@@ -240,15 +240,15 @@ def process_account_change_signal(
             # service behaves adequately. Nevertheless, it is good to
             # be prepared for all eventualities.
             return
-        prev_event = (account.creation_date, account.change_ts, Seqnum(account.change_seqnum))
-        this_event = (creation_date, change_ts, Seqnum(change_seqnum))
+        prev_event = (account.creation_date, account.last_change_ts, Seqnum(account.last_change_seqnum))
+        this_event = (creation_date, last_change_ts, Seqnum(last_change_seqnum))
         if this_event >= prev_event:
             account.last_heartbeat_ts = ts
         if this_event <= prev_event:
             return
         new_account = account.creation_date < creation_date
-        account.change_ts = change_ts
-        account.change_seqnum = change_seqnum
+        account.last_change_ts = last_change_ts
+        account.last_change_seqnum = last_change_seqnum
         account.principal = principal
         account.interest = interest
         account.interest_rate = interest_rate
@@ -269,8 +269,8 @@ def process_account_change_signal(
         new_account = True
         account = Account(
             account_config=config,
-            change_ts=change_ts,
-            change_seqnum=change_seqnum,
+            last_change_ts=last_change_ts,
+            last_change_seqnum=last_change_seqnum,
             principal=principal,
             interest=interest,
             interest_rate=interest_rate,
