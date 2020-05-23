@@ -208,11 +208,12 @@ def process_account_update_signal(
         last_config_seqnum: int,
         creation_date: date,
         negligible_amount: float,
+        config: str,
+        config_flags: int,
         status: int,
         ts: datetime,
         ttl: int,
-        account_identity: str,
-        config: str) -> None:
+        account_identity: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -222,6 +223,7 @@ def process_account_update_signal(
     assert 0 <= last_transfer_number <= MAX_INT64
     assert MIN_INT32 <= last_config_seqnum <= MAX_INT32
     assert negligible_amount >= 0.0
+    assert MIN_INT32 <= config_flags <= MAX_INT32
     assert MIN_INT32 <= status <= MAX_INT32
     assert ttl > 0
 
@@ -255,6 +257,7 @@ def process_account_update_signal(
         account.last_transfer_number = last_transfer_number
         account.creation_date = creation_date
         account.negligible_amount = negligible_amount
+        account.config_flags = config_flags
         account.status = status
     else:
         config = _get_account_config(creditor_id, debtor_id, lock=True)
@@ -264,7 +267,7 @@ def process_account_update_signal(
 
             # The user have removed the account. The "orphaned"
             # `Account` record should be scheduled for deletion.
-            _discard_orphaned_account(creditor_id, debtor_id, status, negligible_amount)
+            _discard_orphaned_account(creditor_id, debtor_id, status, config_flags, negligible_amount)
             return
         new_account = True
         account = Account(
@@ -277,6 +280,7 @@ def process_account_update_signal(
             last_transfer_number=last_transfer_number,
             creation_date=creation_date,
             negligible_amount=negligible_amount,
+            config_flags=config_flags,
             status=status,
         )
         with db.retry_on_integrity_error():
@@ -494,9 +498,15 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
     ))
 
 
-def _discard_orphaned_account(creditor_id: int, debtor_id: int, status: int, negligible_amount: float) -> None:
+def _discard_orphaned_account(
+        creditor_id: int,
+        debtor_id: int,
+        status: int,
+        config_flags: int,
+        negligible_amount: float) -> None:
+
     is_deleted = status & Account.STATUS_DELETED_FLAG
-    is_scheduled_for_deletion = status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    is_scheduled_for_deletion = config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     has_huge_negligible_amount = negligible_amount >= HUGE_NEGLIGIBLE_AMOUNT
     if not is_deleted and not (is_scheduled_for_deletion and has_huge_negligible_amount):
         db.session.add(ConfigureAccountSignal(

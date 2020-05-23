@@ -584,7 +584,8 @@ class LedgerEntry(db.Model):
 
 
 class Account(db.Model):
-    STATUS_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
+    CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
+
     STATUS_DELETED_FLAG = 1 << 16
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
     STATUS_OVERFLOWN_FLAG = 1 << 18
@@ -608,6 +609,7 @@ class Account(db.Model):
     last_transfer_number = db.Column(db.BigInteger, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
+    config_flags = db.Column(db.Integer, nullable=False)
     status = db.Column(db.Integer, nullable=False)
     last_heartbeat_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -650,7 +652,7 @@ class Account(db.Model):
 
     @property
     def is_scheduled_for_deletion(self):
-        return bool(self.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG)
+        return bool(self.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
 
     def check_if_config_is_effectual(self):
         config = self.account_config
@@ -682,5 +684,5 @@ class ConfigureAccountSignal(Signal):
 
     def get_config_flags(self, obj):
         if self.is_scheduled_for_deletion:
-            return Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+            return Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
         return 0

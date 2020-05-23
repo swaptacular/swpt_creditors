@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1b10478c541c
+Revision ID: 9a13a781e85b
 Revises: 8d8c816257ce
-Create Date: 2020-05-22 14:55:04.384213
+Create Date: 2020-05-23 14:53:22.716332
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1b10478c541c'
+revision = '9a13a781e85b'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -138,6 +138,7 @@ def upgrade():
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('status', sa.Integer(), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
     sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the available amount is not negligible, 2 - changed interest rate.'),
