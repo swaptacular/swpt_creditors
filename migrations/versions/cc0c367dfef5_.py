@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9a13a781e85b
+Revision ID: cc0c367dfef5
 Revises: 8d8c816257ce
-Create Date: 2020-05-23 14:53:22.716332
+Create Date: 2020-05-23 15:27:51.094128
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9a13a781e85b'
+revision = 'cc0c367dfef5'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -139,7 +139,7 @@ def upgrade():
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
-    sa.Column('status', sa.Integer(), nullable=False),
+    sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
     sa.Column('issues', sa.SmallInteger(), nullable=False, comment='Issues for which the user has been notified (status bits): 1 - the available amount is not negligible, 2 - changed interest rate.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),

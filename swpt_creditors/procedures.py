@@ -210,7 +210,7 @@ def process_account_update_signal(
         negligible_amount: float,
         config: str,
         config_flags: int,
-        status: int,
+        status_flags: int,
         ts: datetime,
         ttl: int,
         account_identity: str) -> None:
@@ -224,7 +224,7 @@ def process_account_update_signal(
     assert MIN_INT32 <= last_config_seqnum <= MAX_INT32
     assert negligible_amount >= 0.0
     assert MIN_INT32 <= config_flags <= MAX_INT32
-    assert MIN_INT32 <= status <= MAX_INT32
+    assert MIN_INT32 <= status_flags <= MAX_INT32
     assert ttl > 0
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -258,7 +258,7 @@ def process_account_update_signal(
         account.creation_date = creation_date
         account.negligible_amount = negligible_amount
         account.config_flags = config_flags
-        account.status = status
+        account.status_flags = status_flags
     else:
         config = _get_account_config(creditor_id, debtor_id, lock=True)
         if config is None:
@@ -267,7 +267,7 @@ def process_account_update_signal(
 
             # The user have removed the account. The "orphaned"
             # `Account` record should be scheduled for deletion.
-            _discard_orphaned_account(creditor_id, debtor_id, status, config_flags, negligible_amount)
+            _discard_orphaned_account(creditor_id, debtor_id, status_flags, config_flags, negligible_amount)
             return
         new_account = True
         account = Account(
@@ -281,7 +281,7 @@ def process_account_update_signal(
             creation_date=creation_date,
             negligible_amount=negligible_amount,
             config_flags=config_flags,
-            status=status,
+            status_flags=status_flags,
         )
         with db.retry_on_integrity_error():
             db.session.add(account)
@@ -501,11 +501,11 @@ def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime
 def _discard_orphaned_account(
         creditor_id: int,
         debtor_id: int,
-        status: int,
+        status_flags: int,
         config_flags: int,
         negligible_amount: float) -> None:
 
-    is_deleted = status & Account.STATUS_DELETED_FLAG
+    is_deleted = status_flags & Account.STATUS_DELETED_FLAG
     is_scheduled_for_deletion = config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     has_huge_negligible_amount = negligible_amount >= HUGE_NEGLIGIBLE_AMOUNT
     if not is_deleted and not (is_scheduled_for_deletion and has_huge_negligible_amount):

@@ -610,7 +610,7 @@ class Account(db.Model):
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     config_flags = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.Integer, nullable=False)
+    status_flags = db.Column(db.Integer, nullable=False)
     last_heartbeat_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
