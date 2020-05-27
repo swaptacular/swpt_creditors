@@ -237,6 +237,7 @@ def process_account_update_signal(
         of=Account,
     )
     if account:
+        account.last_heartbeat_ts = max(ts, account.last_heartbeat_ts)
         if account.creation_date > creation_date:  # pragma: no cover
             # This should never happen, given that the `swpt_accounts`
             # service behaves adequately. Nevertheless, it is good to
@@ -244,8 +245,6 @@ def process_account_update_signal(
             return
         prev_event = (account.creation_date, account.last_change_ts, Seqnum(account.last_change_seqnum))
         this_event = (creation_date, last_change_ts, Seqnum(last_change_seqnum))
-        if this_event >= prev_event:
-            account.last_heartbeat_ts = ts
         if this_event <= prev_event:
             return
         new_account = account.creation_date < creation_date
