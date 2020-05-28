@@ -237,7 +237,8 @@ def process_account_update_signal(
         of=Account,
     )
     if account:
-        account.last_heartbeat_ts = max(ts, account.last_heartbeat_ts)
+        if ts > account.last_heartbeat_ts:
+            account.last_heartbeat_ts = ts
         if account.creation_date > creation_date:  # pragma: no cover
             # This should never happen, given that the `swpt_accounts`
             # service behaves adequately. Nevertheless, it is good to
