@@ -204,6 +204,7 @@ def process_account_update_signal(
         interest: float,
         interest_rate: float,
         last_transfer_number: int,
+        last_transfer_committed_at: datetime,
         last_config_ts: datetime,
         last_config_seqnum: int,
         creation_date: date,
