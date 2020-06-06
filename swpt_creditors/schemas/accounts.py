@@ -234,7 +234,7 @@ class AccountInfoSchema(Schema):
     unreachable = fields.Boolean(
         dump_only=True,
         missing=False,
-        description='Whether the account is unreachable. A `true` indicates that the account '
+        description='Whether the account is "unreachable". A `true` indicates that the account '
                     'can not receive incoming transfers.',
         example=False,
     )
