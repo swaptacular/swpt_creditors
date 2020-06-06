@@ -13,7 +13,7 @@ from .schemas import (
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema,
     AccountLedgerSchema, AccountInfoSchema, ObjectReferenceSchema,
 )
-from .specs import DID, CID, SEQNUM, TRANSFER_UUID
+from .specs import DID, CID, EPOCH, SEQNUM, TRANSFER_UUID
 from . import specs
 from . import procedures
 
@@ -458,12 +458,13 @@ class TransferEndpoint(MethodView):
         procedures.delete_direct_transfer(creditorId, transferUuid)
 
 
-@transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<i64:seqnum>', parameters=[CID, DID, SEQNUM])
+@transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<int:epoch>/<i64:seqnum>',
+                     parameters=[CID, DID, EPOCH, SEQNUM])
 class CommittedTransferEndpoint(MethodView):
     @transfers_api.response(CommittedTransferSchema(context=CONTEXT))
     @transfers_api.doc(operationId='getCommittedTransfer',
                        responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def get(self, creditorId, debtorId, seqnum):
+    def get(self, creditorId, debtorId, epoch, seqnum):
         """Return information about sent or received transfer."""
 
         abort(500)

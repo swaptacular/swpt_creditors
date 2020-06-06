@@ -26,6 +26,19 @@ CID = {
     },
 }
 
+EPOCH = {
+    'in': 'path',
+    'name': 'epoch',
+    'required': True,
+    'description': "The number of days between 1970-01-01 and the account's creation date",
+    'schema': {
+        'type': 'integer',
+        'format': 'uint32',
+        'minimum': 0,
+        'maximum': (1 << 32) - 1,
+    },
+}
+
 SEQNUM = {
     'in': 'path',
     'name': 'seqnum',
