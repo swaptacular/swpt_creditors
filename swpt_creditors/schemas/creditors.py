@@ -50,7 +50,7 @@ class CreditorSchema(Schema):
         format='uint64',
         description='The ID of the latest `CreditorUpdate` entry for this creditor in '
                     'the log. It gets bigger after each update.',
-        example=345,
+        example=350,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
