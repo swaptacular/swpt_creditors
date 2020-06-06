@@ -69,50 +69,6 @@ class LogEntriesPageSchema(Schema):
     )
 
 
-class CommitEntrySchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'CommitEntry',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='CommitEntry',
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the affected `Account`.",
-        example={'uri': '/creditors/2/accounts/1/'},
-    )
-    acquiredAmount = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format='int64',
-        description="The amount that will eventually be added to the affected account's "
-                    "principal. Can be a positive number (the affected account is the "
-                    "recipient), or a negative number (the affected account is the sender). "
-                    "Can not be zero.",
-        example=1000,
-    )
-    transfer = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description='The URI of the corresponding `CommittedTransfer`.',
-        example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
-    )
-    reference = fields.String(
-        dump_only=True,
-        missing='',
-        description="A payment reference. A payment reference is a short string that can be "
-                    "included with transfers to help identify the transfer. For incoming "
-                    "transfers this will be the transfer's `payeeRef` field. For outgoing "
-                    "transfers this will be the transfer's `payerRef` field.",
-        example='PAYMENT 123',
-    )
-
-
 class LedgerEntrySchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'LedgerEntry',
@@ -193,6 +149,50 @@ class LedgerEntriesPageSchema(Schema):
         type='string',
         format='uri-reference',
         description=PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
+    )
+
+
+class AccountCommitSchema(LogEntrySchema):
+    type = fields.Function(
+        lambda obj: 'AccountCommit',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountCommit',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the affected `Account`.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
+    acquiredAmount = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format='int64',
+        description="The amount that will eventually be added to the affected account's "
+                    "principal. Can be a positive number (the affected account is the "
+                    "recipient), or a negative number (the affected account is the sender). "
+                    "Can not be zero.",
+        example=1000,
+    )
+    transfer = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='The URI of the corresponding `CommittedTransfer`.',
+        example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
+    )
+    reference = fields.String(
+        dump_only=True,
+        missing='',
+        description="A payment reference. A payment reference is a short string that can be "
+                    "included with transfers to help identify the transfer. For incoming "
+                    "transfers this will be the transfer's `payeeRef` field. For outgoing "
+                    "transfers this will be the transfer's `payerRef` field.",
+        example='PAYMENT 123',
     )
 
 

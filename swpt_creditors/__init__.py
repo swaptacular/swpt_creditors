@@ -63,13 +63,13 @@ class Configuration(metaclass=MetaFlaskEnv):
 def register_schemas(components):
     from . import schemas
 
+    components.schema('AccountCommit', schema=schemas.AccountCommitSchema)
     components.schema('AccountUpdate', schema=schemas.AccountUpdateSchema)
     components.schema('AccountInfoUpdate', schema=schemas.AccountInfoUpdateSchema)
     components.schema('AccountConfigUpdate', schema=schemas.AccountConfigUpdateSchema)
     components.schema('AccountExchangeUpdate', schema=schemas.AccountExchangeUpdateSchema)
     components.schema('AccountDisplayUpdate', schema=schemas.AccountDisplayUpdateSchema)
     components.schema('TransferUpdate', schema=schemas.TransferUpdateSchema)
-    components.schema('CommitEntry', schema=schemas.CommitEntrySchema)
 
 
 def create_app(config_dict={}):
