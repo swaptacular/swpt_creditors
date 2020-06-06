@@ -231,6 +231,13 @@ class AccountInfoSchema(Schema):
                     'or system configuration problem.',
         example=False,
     )
+    unreachable = fields.Boolean(
+        dump_only=True,
+        missing=False,
+        description='Whether the account is unreachable. A `true` indicates that the account '
+                    'can not receive incoming transfers.',
+        example=False,
+    )
     dummy = fields.Boolean(
         missing=False,
         description="Whether the account is a *dummy account*. Dummy accounts are accounts whose "
