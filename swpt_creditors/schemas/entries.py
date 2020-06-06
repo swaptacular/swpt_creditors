@@ -100,7 +100,7 @@ class CommitEntrySchema(LogEntrySchema):
         required=True,
         dump_only=True,
         description='The URI of the corresponding `CommittedTransfer`.',
-        example={'uri': '/creditors/2/accounts/1/transfers/999'},
+        example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
     )
     reference = fields.String(
         dump_only=True,
@@ -152,7 +152,7 @@ class LedgerEntrySchema(LogEntrySchema):
         required=True,
         dump_only=True,
         description='The URI of the corresponding `CommittedTransfer`.',
-        example={'uri': '/creditors/2/accounts/1/transfers/999'},
+        example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
     )
     previous_entry_id = fields.Integer(
         dump_only=True,

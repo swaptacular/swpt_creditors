@@ -150,7 +150,7 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
         {
             'type': 'LedgerEntry',
             'ledger': {'uri': '/creditors/2/accounts/1/ledger'},
-            'transfer': {'uri': '/creditors/2/accounts/1/transfers/999'},
+            'transfer': {'uri': '/creditors/2/accounts/1/transfers/18444/999'},
             'entryId': 123,
             'postedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,

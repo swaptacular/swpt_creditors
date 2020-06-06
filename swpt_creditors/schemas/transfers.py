@@ -176,7 +176,7 @@ class CommittedTransferSchema(BaseTransferSchema):
         type='string',
         format='uri-reference',
         description=URI_DESCRIPTION,
-        example='/creditors/2/accounts/1/transfers/999',
+        example='/creditors/2/accounts/1/transfers/18444/999',
     )
     type = fields.Function(
         lambda obj: 'CommittedTransfer',
