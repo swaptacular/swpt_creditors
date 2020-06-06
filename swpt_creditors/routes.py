@@ -137,6 +137,24 @@ accounts_api = Blueprint(
 )
 
 
+@accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
+class DebtorLookupEndpoint(MethodView):
+    @accounts_api.arguments(DebtorSchema, example=specs.DEBTOR_EXAMPLE)
+    @accounts_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
+    @accounts_api.doc(operationId='debtorLookup',
+                      responses={204: specs.NO_MATCHING_ACCOUNT,
+                                 404: specs.CREDITOR_DOES_NOT_EXIST})
+    def post(self, account_info, creditorId):
+        """Try to find an existing account with a given debtor.
+
+        This is useful when the creditor does not know if he already
+        has an account with a given debtor.
+
+        """
+
+        abort(500)
+
+
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountsEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
@@ -332,18 +350,18 @@ transfers_api = Blueprint(
 )
 
 
-@transfers_api.route('/<i64:creditorId>/find-account', parameters=[CID])
-class FindAccountEndpoint(MethodView):
-    @transfers_api.arguments(AccountIdentitySchema, example=specs.FIND_ACCOUNT_REQUEST_EXAMPLE)
-    @transfers_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.FIND_ACCOUNT_RESPONSE_EXAMPLE)
-    @transfers_api.doc(operationId='findAccount',
+@transfers_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])
+class AccountLookupEndpoint(MethodView):
+    @transfers_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_LOOKUP_REQUEST_EXAMPLE)
+    @transfers_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
+    @transfers_api.doc(operationId='accountLookup',
                        responses={204: specs.NO_MATCHING_ACCOUNT,
                                   404: specs.CREDITOR_DOES_NOT_EXIST})
     def post(self, account_info, creditorId):
         """Given recipient's account identity, try to find a matching sender
         account.
 
-        This is useful when a creditor wants to send money to some
+        This is useful when the creditor wants to send money to some
         other creditor's account, but he does not know if he already
         has an account with the same debtor (that is: the debtor of
         the other creditor's account).

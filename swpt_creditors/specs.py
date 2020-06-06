@@ -185,13 +185,13 @@ TRANSFER_LINKS_EXAMPLE = {
     'type': 'ObjectReferencesPage',
 }
 
-FIND_ACCOUNT_REQUEST_EXAMPLE = {
+ACCOUNT_LOOKUP_REQUEST_EXAMPLE = {
     'type': 'SwptAccount',
     'debtorId': 1,
     'creditorId': 2222
 }
 
-FIND_ACCOUNT_RESPONSE_EXAMPLE = {
+ACCOUNT_LOOKUP_RESPONSE_EXAMPLE = {
     'uri': '/creditors/2/accounts/1/',
 }
 
