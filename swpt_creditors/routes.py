@@ -337,6 +337,12 @@ class AccountLedgerEntriesEndpoint(MethodView):
         entries will constitute a singly linked list, each entry
         (except the most ancient one) referring to its ancestor.
 
+        The `prev` URL parameter should contain the `entryId` of the
+        latest seen ledger entry. Then, the returned fragment will
+        start with the immediate predecessor of this entry, continuing
+        with older, and older entries (having smaller, and smaller
+        `entryId`s).
+
         """
 
         abort(500)
