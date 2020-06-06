@@ -70,6 +70,7 @@ def register_schemas(components):
     components.schema('AccountExchangeUpdate', schema=schemas.AccountExchangeUpdateSchema)
     components.schema('AccountDisplayUpdate', schema=schemas.AccountDisplayUpdateSchema)
     components.schema('TransferUpdate', schema=schemas.TransferUpdateSchema)
+    components.schema('CreditorUpdate', schema=schemas.CreditorUpdateSchema)
 
 
 def create_app(config_dict={}):

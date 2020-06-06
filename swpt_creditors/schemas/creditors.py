@@ -1,6 +1,9 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
 from flask import url_for
-from .common import ObjectReferenceSchema, PaginatedListSchema, URI_DESCRIPTION
+from .common import (
+    ObjectReferenceSchema, PaginatedListSchema,
+    URI_DESCRIPTION, MAX_UINT64, LATEST_UPDATE_AT_DESCRIPTION,
+)
 
 
 class CreditorCreationRequestSchema(Schema):
@@ -39,6 +42,20 @@ class CreditorSchema(Schema):
         data_key='createdOn',
         description='The date on which the creditor was created.',
         example='2019-11-30',
+    )
+    latestUpdateId = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format='uint64',
+        description='The ID of the latest `CreditorUpdate` entry for this creditor in '
+                    'the log. It gets bigger after each update.',
+        example=345,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='CreditorUpdate'),
     )
 
     def get_uri(self, obj):

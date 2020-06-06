@@ -321,3 +321,20 @@ class TransferUpdateSchema(LogEntrySchema):
                     'This field will not be present when the transfer has been deleted, or '
                     'when the field is not present in the updated transfer.',
     )
+
+
+class CreditorUpdateSchema(LogEntrySchema):
+    type = fields.Function(
+        lambda obj: 'CreditorUpdate',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='CreditorUpdate',
+    )
+    object = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the updated `Creditor`.",
+        example={'uri': '/creditors/2/'},
+    )
