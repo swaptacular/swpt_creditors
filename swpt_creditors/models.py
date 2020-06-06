@@ -72,6 +72,11 @@ class Signal(db.Model):
 
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
+# TODO: Consider using a `CreditorSpace` model, which may contain a
+#       `mask` field. The idea is to know the interval of creditor IDs
+#       for which the instance is responsible for, and therefore, not
+#       messing up with accounts belonging to other instances.
+
 
 class Creditor(db.Model):
     STATUS_IS_ACTIVE_FLAG = 1
