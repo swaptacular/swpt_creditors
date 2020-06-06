@@ -124,7 +124,7 @@ class WalletSchema(Schema):
                     'create a new `Transfer`.',
         example={'uri': '/creditors/2/transfers/'},
     )
-    findAccount = fields.Nested(
+    accountLookup = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
@@ -132,7 +132,17 @@ class WalletSchema(Schema):
                     "trying to find a matching sender account. If a matching sender account "
                     "is found, the response will contain an `ObjectReference` to the "
                     "`Account`. Otherwise, the response will be empty (response code 204).",
-        example={'uri': '/creditors/2/find-account'},
+        example={'uri': '/creditors/2/account-lookup'},
+    )
+    debtorLookup = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="A URI to which a `Debtor` information can be POST-ed, trying to find an "
+                    "existing account with this debtor. If an existing account is found, the "
+                    "response will contain an `ObjectReference` to the `Account`. Otherwise, "
+                    "the response will be empty (response code 204).",
+        example={'uri': '/creditors/2/debtor-lookup'},
     )
 
     def get_uri(self, obj):
