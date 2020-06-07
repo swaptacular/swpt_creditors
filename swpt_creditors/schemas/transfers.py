@@ -39,9 +39,9 @@ class BaseTransferSchema(Schema):
     )
     notes = fields.Dict(
         missing={},
-        description='Notes from the sender. Can be any JSON object containing information '
-                    'that whoever committed the transfer wants the recipient (and the '
-                    'sender) to see.',
+        description='Notes from the committer of the transfer. Can be any JSON object '
+                    'containing information that whoever committed the transfer wants the '
+                    'recipient (and the sender) to see.',
     )
 
 
