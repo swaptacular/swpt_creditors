@@ -39,9 +39,9 @@ class BaseTransferSchema(Schema):
     )
     notes = fields.Dict(
         missing={},
-        description='Notes from the sender. Can be any JSON object containing information that '
-                    'the sender wants the recipient to see. Different debtors may impose '
-                    'different restrictions on the schema and the contents of of this object.',
+        description='Notes from the sender. Can be any JSON object containing information '
+                    'that whoever committed the transfer wants the recipient (and the '
+                    'sender) to see.',
     )
 
 
@@ -165,10 +165,7 @@ class CommittedTransferSchema(BaseTransferSchema):
         lambda obj: 'CommittedTransfer',
         required=True,
         type='string',
-        description='The type of this object. Different debtors may use different '
-                    '**additional fields**, providing more information about the transfer '
-                    '(notes from the sender for example). This field contains the name '
-                    'of the used schema.',
+        description='The type of this object.',
         example='CommittedTransfer',
     )
     committed_at_ts = fields.DateTime(
