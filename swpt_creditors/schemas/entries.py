@@ -188,10 +188,10 @@ class AccountCommitSchema(LogEntrySchema):
     reference = fields.String(
         dump_only=True,
         missing='',
-        description="A payment reference. A payment reference is a short string that can be "
+        description="A payment reference. A payment reference is a short string that may be "
                     "included with transfers to help identify the transfer. For incoming "
-                    "transfers this will be the transfer's `payeeRef` field. For outgoing "
-                    "transfers this will be the transfer's `payerRef` field.",
+                    "transfers this will be the transfer's *payee reference*. For outgoing "
+                    "transfers this will be the transfer's *payer reference*.",
         example='PAYMENT 123',
     )
 

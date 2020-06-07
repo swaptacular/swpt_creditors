@@ -37,23 +37,6 @@ class BaseTransferSchema(Schema):
         description='The transferred amount. Must be positive.',
         example=1000,
     )
-    payee_ref = fields.String(
-        missing='',
-        data_key='payeeRef',
-        description='The *payee reference*. A payee reference is a short string that may be '
-                    'included with transfers to help the recipient to identify the sender '
-                    'and/or the reason for the transfer.',
-        example='PAYMENT 123',
-    )
-    payer_ref = fields.String(
-        missing='',
-        data_key='payerRef',
-        description='The *payer reference*. A payer reference is a short string that may be '
-                    'be included with transfers to help the sender to identify the transfer. '
-                    'For example, this can be useful when the recipient is making a refund, '
-                    'to refer to the original payment.',
-        example='PAYMENT ABC',
-    )
     notes = fields.Dict(
         missing={},
         description='Notes from the sender. Can be any JSON object containing information that '
