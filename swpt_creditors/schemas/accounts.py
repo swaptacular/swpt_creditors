@@ -295,10 +295,7 @@ class AccountConfigSchema(Schema):
     )
     type = fields.String(
         missing='AccountConfig',
-        description='The type of this object. Different debtors may use different '
-                    '**additional fields**, providing more information about the '
-                    'configuration of the account. This field contains the name '
-                    'of the used schema.',
+        description='The type of this object.',
         example='AccountConfig',
     )
     account = fields.Nested(
@@ -328,6 +325,12 @@ class AccountConfigSchema(Schema):
                     'incoming transfer should be considered as insignificant. Must be '
                     'non-negative.',
         example=0.0,
+    )
+    config = fields.String(
+        missing='',
+        description='Additional account configuration settings. Different debtors may '
+                    'use different formats for this field.',
+        example='',
     )
     allow_unsafe_deletion = fields.Boolean(
         missing=False,
