@@ -67,48 +67,6 @@ class AccountPegSchema(Schema):
     )
 
 
-class DisplaySchema(Schema):
-    type = fields.Function(
-        lambda obj: 'Display',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='Display',
-    )
-    debtorName = fields.String(
-        required=True,
-        description='The name of the debtor.',
-        example='United States of America',
-    )
-    amountDivisor = fields.Float(
-        missing=1.0,
-        validate=validate.Range(min=0.0, min_inclusive=False),
-        description="Account's amounts should be divided by this number before being "
-                    "displayed. Important note: This value should be used for display "
-                    "purposes only. Notably, the value of this field must be ignored when "
-                    "the exchange rate between pegged accounts is being calculated.",
-        example=100.0,
-    )
-    decimalPlaces = fields.Integer(
-        missing=0,
-        description='The number of digits to show after the decimal point, when displaying '
-                    'the amount.',
-        example=2,
-    )
-    ownUnit = fields.String(
-        description="Optional abbreviation for a value measurement unit that is unique for the "
-                    "account's debtor. It should be shown right after the displayed amount, "
-                    "\"500.00 USD\" for example. All accounts belonging to a given creditor must "
-                    "have different `ownUnit`s. Thus, setting this field for an account is most "
-                    "probably a bad idea, unless the account's debtor tokens are already widely "
-                    "recognized. Notably, one currency being pegged to another currency is not "
-                    "a good reason for the pegged currency to have the same `ownUnit` as the peg "
-                    "currency. In practice, many of creditor's accounts might be pegged to other "
-                    "accounts, and only a few would need to have their `ownUnit` field set.",
-        example='USD',
-    )
-
-
 class AccountLedgerSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -184,9 +142,7 @@ class AccountInfoSchema(Schema):
         lambda obj: 'AccountInfo',
         required=True,
         type='string',
-        description='The type of this object. Different debtors may use different '
-                    '**additional fields**, providing more information about the '
-                    'account. This field contains the name of the used schema.',
+        description='The type of this object.',
         example='AccountInfo',
     )
     account = fields.Nested(
@@ -250,24 +206,12 @@ class AccountInfoSchema(Schema):
                     "differently from normal accounts, or not displayed at all.",
         example=False,
     )
-    currencyPeg = fields.Nested(
-        CurrencyPegSchema,
-        dump_only=True,
-        description="Optional `CurrencyPeg`, announced by the debtor. A currency peg is a policy "
-                    "in which the debtor sets a specific fixed exchange rate for its currency "
-                    "with other debtor's currency (the peg currency).",
-    )
     debtorUrl = fields.Url(
         dump_only=True,
         relative=False,
         format='uri',
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
-    )
-    recommendedDisplay = fields.Nested(
-        DisplaySchema,
-        dump_only=True,
-        description='Optional recommended `Display` settings.',
     )
     latestUpdateId = fields.Integer(
         required=True,
@@ -416,7 +360,7 @@ class AccountExchangeSchema(Schema):
     )
 
 
-class AccountDisplaySchema(DisplaySchema):
+class AccountDisplaySchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -454,6 +398,33 @@ class AccountDisplaySchema(DisplaySchema):
                     "exchange rate between the tokens of two of his accounts (the pegged "
                     "currency, and the peg currency). Sometimes the peg currency is itself "
                     "pegged to another currency. This is called a \"peg-chain\".",
+    )
+    amountDivisor = fields.Float(
+        missing=1.0,
+        validate=validate.Range(min=0.0, min_inclusive=False),
+        description="Account's amounts should be divided by this number before being "
+                    "displayed. Important note: This value should be used for display "
+                    "purposes only. Notably, the value of this field must be ignored when "
+                    "the exchange rate between pegged accounts is being calculated.",
+        example=100.0,
+    )
+    decimalPlaces = fields.Integer(
+        missing=0,
+        description='The number of digits to show after the decimal point, when displaying '
+                    'the amount.',
+        example=2,
+    )
+    ownUnit = fields.String(
+        description="Optional abbreviation for a value measurement unit that is unique for the "
+                    "account's debtor. It should be shown right after the displayed amount, "
+                    "\"500.00 USD\" for example. All accounts belonging to a given creditor must "
+                    "have different `ownUnit`s. Thus, setting this field for an account is most "
+                    "probably a bad idea, unless the account's debtor tokens are already widely "
+                    "recognized. Notably, one currency being pegged to another currency is not "
+                    "a good reason for the pegged currency to have the same `ownUnit` as the peg "
+                    "currency. In practice, many of creditor's accounts might be pegged to other "
+                    "accounts, and only a few would need to have their `ownUnit` field set.",
+        example='USD',
     )
     ownUnitPreference = fields.Integer(
         missing=0,
