@@ -178,18 +178,6 @@ class AccountInfoSchema(Schema):
                     'can not receive incoming transfers.',
         example=False,
     )
-    dummy = fields.Boolean(
-        missing=False,
-        description="Whether the account is a *dummy account*. Dummy accounts are accounts whose "
-                    "balances are always zero, and no transfers can be made from/to them. Dummy "
-                    "accounts can be useful for two purposes: 1) They can represent physical "
-                    "value measurement units (like ounces of gold), to which debtors can peg "
-                    "their currencies; 2) They can represent accounts with debtors to which no "
-                    "network connection is available, still allowing those accounts to act as "
-                    "links in a chain of currency pegs. Dummy accounts might be displayed "
-                    "differently from normal accounts, or not displayed at all.",
-        example=False,
-    )
     debtorUrl = fields.Url(
         dump_only=True,
         relative=False,
@@ -424,6 +412,19 @@ class AccountDisplaySchema(Schema):
                     "chain of pegs should be preferred. If no unit is found, the generic currency "
                     "sign (\u00a4), or the \"XXX\" ISO 4217 currency code should be shown.",
         example=0,
+    )
+    hide = fields.Boolean(
+        missing=False,
+        description="If `true`, the account should not be shown in the list of accounts "
+                    "belonging to the creditor. This may be convenient for special-purpose "
+                    "accounts. For example, *dummy accounts* are accounts whose balances "
+                    "are always zero, and no transfers can be made from/to them. Dummy "
+                    "accounts can be useful for two purposes: 1) They can represent physical "
+                    "value measurement units (like ounces of gold), to which debtors can peg "
+                    "their currencies; 2) They can represent accounts with debtors to which no "
+                    "network connection is available, still allowing those accounts to act as "
+                    "links in a chain of currency pegs.",
+        example=False,
     )
     latestUpdateId = fields.Integer(
         required=True,
