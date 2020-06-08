@@ -143,7 +143,8 @@ class DebtorLookupEndpoint(MethodView):
     @accounts_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
     @accounts_api.doc(operationId='debtorLookup',
                       responses={204: specs.NO_MATCHING_ACCOUNT,
-                                 404: specs.CREDITOR_DOES_NOT_EXIST})
+                                 404: specs.CREDITOR_DOES_NOT_EXIST,
+                                 422: specs.UNRECOGNIZED_DEBTOR})
     def post(self, account_info, creditorId):
         """Try to find an existing account with a given debtor.
 
@@ -271,7 +272,8 @@ class AccountDisplayEndpoint(MethodView):
     @accounts_api.response(AccountDisplaySchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountDisplay',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                 409: specs.ACCOUNT_UPDATE_CONFLICT})
+                                 409: specs.ACCOUNT_UPDATE_CONFLICT,
+                                 422: specs.UNRECOGNIZED_PEG_CURRENCY})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's display settings."""
 

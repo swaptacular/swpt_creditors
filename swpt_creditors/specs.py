@@ -131,6 +131,14 @@ ACCOUNT_CAN_NOT_BE_CREATED = {
     'description': "The account can not be created. The debtor's identity might be wrong.",
 }
 
+UNRECOGNIZED_DEBTOR = {
+    'description': "The debtor can not be recognized.",
+}
+
+UNRECOGNIZED_PEG_CURRENCY = {
+    'description': "The peg currency's debtor can not be recognized.",
+}
+
 ACCOUNT_DELETION_NOT_ALLOWED = {
     'description': 'Unsafe deletion of this account is not allowed.',
 }
