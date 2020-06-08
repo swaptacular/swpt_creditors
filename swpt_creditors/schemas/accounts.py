@@ -22,40 +22,24 @@ class DebtorSchema(Schema):
 
 
 class CurrencyPegSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'CurrencyPeg',
-        required=True,
-        type='string',
+    type = fields.String(
+        missing='CurrencyPeg',
         description='The type of this object.',
         example='CurrencyPeg',
+    )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        dump_only=True,
+        description="The URI of the creditor's `Account` in the peg currency. When this field is "
+                    "not present, this means that the creditor does not have an account in the "
+                    "peg currency.",
+        example={'uri': '/creditors/2/accounts/11/'},
     )
     debtor = fields.Nested(
         DebtorSchema,
         required=True,
         description="The peg currency's `Debtor`.",
         example={'type': 'SwptDebtor', 'debtorId': 111},
-    )
-    exchangeRate = fields.Float(
-        required=True,
-        validate=validate.Range(min=0.0),
-        description="The exchange rate between the pegged currency and the peg currency. For "
-                    "example, `2.0` would mean that pegged currency's tokens are twice as "
-                    "valuable as peg currency's tokens.",
-        example=1.0,
-    )
-
-
-class AccountPegSchema(Schema):
-    type = fields.String(
-        missing='AccountPeg',
-        description='The type of this object.',
-        example='AccountPeg',
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        description='The URI of the `Account` which acts as a peg currency.',
-        example={'uri': '/creditors/2/accounts/11/'},
     )
     exchangeRate = fields.Float(
         required=True,
@@ -391,10 +375,10 @@ class AccountDisplaySchema(Schema):
                     'confusion and financial loses.',
         example='United States of America',
     )
-    peg = fields.Nested(
-        AccountPegSchema,
-        description="Optional `AccountPeg`, announced by the owner of the account. An "
-                    "account peg is a policy, in which the creditor sets a specific fixed "
+    currencyPeg = fields.Nested(
+        CurrencyPegSchema,
+        description="Optional `CurrencyPeg`, announced by the owner of the account. A "
+                    "currency peg is a policy, in which the creditor sets a specific fixed "
                     "exchange rate between the tokens of two of his accounts (the pegged "
                     "currency, and the peg currency). Sometimes the peg currency is itself "
                     "pegged to another currency. This is called a \"peg-chain\".",
