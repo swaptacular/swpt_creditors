@@ -27,13 +27,13 @@ class CurrencyPegSchema(Schema):
         description='The type of this object.',
         example='CurrencyPeg',
     )
-    account = fields.Nested(
+    display = fields.Nested(
         ObjectReferenceSchema,
         dump_only=True,
-        description="The URI of the creditor's `Account` in the peg currency. When this field is "
-                    "not present, this means that the creditor does not have an account in the "
-                    "peg currency.",
-        example={'uri': '/creditors/2/accounts/11/'},
+        description="The URI of the peg currency's `AccountDisplay` settings. When this field "
+                    "is not present, this means that the creditor does not have an account in "
+                    "the peg currency.",
+        example={'uri': '/creditors/2/accounts/11/display'},
     )
     debtor = fields.Nested(
         DebtorSchema,
