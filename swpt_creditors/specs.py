@@ -73,6 +73,10 @@ LOCATION_HEADER = {
     },
 }
 
+FAILED_UPDATE = {
+    'description': 'The requested update is not possible.',
+}
+
 CREDITOR_DOES_NOT_EXIST = {
     'description': 'The creditor does not exist.',
 }
@@ -82,15 +86,15 @@ CONFLICTING_CREDITOR = {
 }
 
 TRANSFER_DOES_NOT_EXIST = {
-    'description': 'The transfer entry does not exist.',
+    'description': 'The transfer does not exist.',
 }
 
 TRANSFER_CONFLICT = {
     'description': 'A different transfer entry with the same UUID already exists.',
 }
 
-TRANSFER_UPDATE_CONFLICT = {
-    'description': 'The requested transfer update is not possible.',
+TRANSFER_CANCELLATION_FAILURE = {
+    'description': 'The transfer can not be canceled.',
 }
 
 TOO_MANY_TRANSFERS = {
@@ -103,7 +107,7 @@ TRANSFER_EXISTS = {
 }
 
 INVALID_TRANSFER_CREATION_REQUEST = {
-    'description': "The transfer can not be created. Verify recipient's and sender's accounts.",
+    'description': "The transfer can not be created. Verify recipient's account.",
 }
 
 ACCOUNT_DOES_NOT_EXIST = {
@@ -114,8 +118,8 @@ ACCOUNT_CONFLICT = {
     'description': 'A different account entry with the same debtor ID already exists.',
 }
 
-ACCOUNT_UPDATE_CONFLICT = {
-    'description': 'The requested account update is not possible.',
+ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
+    'description': 'An account with the same `debtorName` or `ownUnit` already exists.',
 }
 
 TOO_MANY_ACCOUNTS = {
@@ -127,20 +131,24 @@ ACCOUNT_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-ACCOUNT_CAN_NOT_BE_CREATED = {
-    'description': "The account can not be created. The debtor's identity might be wrong.",
-}
-
 UNRECOGNIZED_DEBTOR = {
     'description': "The debtor can not be recognized.",
 }
 
 UNRECOGNIZED_PEG_CURRENCY = {
-    'description': "The peg currency's debtor can not be recognized.",
+    'description': "The requested update is not possible. The peg currency's debtor might be wrong.",
 }
 
-ACCOUNT_DELETION_NOT_ALLOWED = {
+UNRECOGNIZED_ACCOUNT_IDENTITY = {
+    'description': "The given account identity can not be recognized.",
+}
+
+UNSAFE_ACCOUNT_DELETION = {
     'description': 'Unsafe deletion of this account is not allowed.',
+}
+
+PEG_ACCOUNT_DELETION = {
+    'description': 'This account acts as a currency peg, unpeg the pegged accounts first.',
 }
 
 ACCOUNT_DOES_NOT_EXIST = {

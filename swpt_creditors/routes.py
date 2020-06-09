@@ -184,8 +184,7 @@ class AccountsEndpoint(MethodView):
                       responses={303: specs.ACCOUNT_EXISTS,
                                  403: specs.TOO_MANY_ACCOUNTS,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
-                                 409: specs.ACCOUNT_CONFLICT,
-                                 422: specs.ACCOUNT_CAN_NOT_BE_CREATED})
+                                 422: specs.UNRECOGNIZED_DEBTOR})
     def post(self, account_creation_request, creditorId):
         """Create a new account belonging to a given creditor."""
 
@@ -224,7 +223,8 @@ class AccountEndpoint(MethodView):
 
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='deleteAccount',
-                      responses={409: specs.ACCOUNT_DELETION_NOT_ALLOWED})
+                      responses={409: specs.PEG_ACCOUNT_DELETION,
+                                 422: specs.UNSAFE_ACCOUNT_DELETION})
     def delete(self, creditorId, debtorId):
         """Delete an account.
 
@@ -251,7 +251,7 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.response(AccountConfigSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountConfig',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                 409: specs.ACCOUNT_UPDATE_CONFLICT})
+                                 422: specs.FAILED_UPDATE})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's configuration."""
 
@@ -272,7 +272,7 @@ class AccountDisplayEndpoint(MethodView):
     @accounts_api.response(AccountDisplaySchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountDisplay',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                 409: specs.ACCOUNT_UPDATE_CONFLICT,
+                                 409: specs.ACCOUNT_DISPLAY_UPDATE_CONFLICT,
                                  422: specs.UNRECOGNIZED_PEG_CURRENCY})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's display settings."""
@@ -294,7 +294,7 @@ class AccountExchangeEndpoint(MethodView):
     @accounts_api.response(AccountExchangeSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountExchange',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                 409: specs.ACCOUNT_UPDATE_CONFLICT})
+                                 422: specs.FAILED_UPDATE})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's exchange settings."""
 
@@ -363,7 +363,8 @@ class AccountLookupEndpoint(MethodView):
     @transfers_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
     @transfers_api.doc(operationId='accountLookup',
                        responses={204: specs.NO_MATCHING_ACCOUNT,
-                                  404: specs.CREDITOR_DOES_NOT_EXIST})
+                                  404: specs.CREDITOR_DOES_NOT_EXIST,
+                                  422: specs.UNRECOGNIZED_ACCOUNT_IDENTITY})
     def post(self, account_info, creditorId):
         """Given recipient's account identity, try to find a matching sender
         account.
@@ -453,7 +454,7 @@ class TransferEndpoint(MethodView):
     @transfers_api.response(TransferSchema(context=CONTEXT))
     @transfers_api.doc(operationId='cancelTransfer',
                        responses={404: specs.TRANSFER_DOES_NOT_EXIST,
-                                  409: specs.TRANSFER_UPDATE_CONFLICT})
+                                  422: specs.TRANSFER_CANCELLATION_FAILURE})
     def post(self, cancel_transfer_request, creditorId, transferUuid):
         """Cancel a transfer.
 
