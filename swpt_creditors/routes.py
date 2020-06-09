@@ -10,7 +10,7 @@ from .schemas import (
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
-    AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema,
+    AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
     AccountLedgerSchema, AccountInfoSchema, ObjectReferenceSchema,
 )
 from .specs import DID, CID, EPOCH, SEQNUM, TRANSFER_UUID
@@ -297,6 +297,41 @@ class AccountExchangeEndpoint(MethodView):
                                  422: specs.FAILED_UPDATE})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's exchange settings."""
+
+        abort(500)
+
+
+@accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/knowledge', parameters=[CID, DID])
+class AccountKnowledgeEndpoint(MethodView):
+    @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='getAccountKnowledge',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
+    def get(self, creditorId, debtorId):
+        """Return the acknowledged account information.
+
+        The returned object contains information that has been made
+        known to the creditor (the owner of the account). This is
+        useful, for example, to decide whether the creditor has been
+        informed already about an important change in the account's
+        status that has occurred.
+
+        """
+
+        abort(500)
+
+    @accounts_api.arguments(AccountKnowledgeSchema)
+    @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
+    @accounts_api.doc(operationId='updateAccountKnowledge',
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
+                                 422: specs.FAILED_UPDATE})
+    def patch(self, knowledge_update_request, creditorId, debtorId):
+        """Update the acknowledged account information.
+
+        This operation should be performed when an important change in
+        the account's status, that has occurred, has been made known
+        to the creditor (the owner of the account).
+
+        """
 
         abort(500)
 

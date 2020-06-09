@@ -66,6 +66,7 @@ def register_schemas(components):
     components.schema('AccountCommit', schema=schemas.AccountCommitSchema)
     components.schema('AccountUpdate', schema=schemas.AccountUpdateSchema)
     components.schema('AccountInfoUpdate', schema=schemas.AccountInfoUpdateSchema)
+    components.schema('AccountKnowledgeUpdate', schema=schemas.AccountKnowledgeUpdateSchema)
     components.schema('AccountConfigUpdate', schema=schemas.AccountConfigUpdateSchema)
     components.schema('AccountExchangeUpdate', schema=schemas.AccountExchangeUpdateSchema)
     components.schema('AccountDisplayUpdate', schema=schemas.AccountDisplayUpdateSchema)

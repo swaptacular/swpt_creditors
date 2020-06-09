@@ -27,14 +27,6 @@ class CurrencyPegSchema(Schema):
         description='The type of this object.',
         example='CurrencyPeg',
     )
-    display = fields.Nested(
-        ObjectReferenceSchema,
-        dump_only=True,
-        description="The URI of the peg currency's `AccountDisplay` settings. When this field "
-                    "is not present, this means that the creditor does not have an account in "
-                    "the peg currency.",
-        example={'uri': '/creditors/2/accounts/11/display'},
-    )
     debtor = fields.Nested(
         DebtorSchema,
         required=True,
@@ -48,6 +40,22 @@ class CurrencyPegSchema(Schema):
                     "example, `2.0` would mean that pegged currency's tokens are twice as "
                     "valuable as peg currency's tokens.",
         example=1.0,
+    )
+
+
+class AccountPegSchema(CurrencyPegSchema):
+    type = fields.String(
+        missing='AccountPeg',
+        description='The type of this object.',
+        example='AccountPeg',
+    )
+    display = fields.Nested(
+        ObjectReferenceSchema,
+        dump_only=True,
+        description="The URI of the peg currency's `AccountDisplay` settings. When this field "
+                    "is not present, this means that the creditor does not have an account in "
+                    "the peg currency.",
+        example={'uri': '/creditors/2/accounts/11/display'},
     )
 
 
@@ -138,7 +146,6 @@ class AccountInfoSchema(Schema):
     )
     identity = fields.Nested(
         AccountIdentitySchema,
-        dump_only=True,
         description="An `AccountIdentity` object, containing information that uniquely and "
                     "reliably identifies the account when it participates in transfers as "
                     "sender or recipient. For example, if the debtor happens to be a bank, "
@@ -156,14 +163,12 @@ class AccountInfoSchema(Schema):
         example=False,
     )
     interest_rate = fields.Float(
-        dump_only=True,
         data_key='interestRate',
         description='Annual rate (in percents) at which interest accumulates on the account. When '
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
     misconfigured = fields.Boolean(
-        dump_only=True,
         missing=False,
         description='Whether the account is misconfigured. A `true` means that, for some reason, '
                     'the current `AccountConfig` can not be applied, or is not effectual anymore. '
@@ -179,7 +184,6 @@ class AccountInfoSchema(Schema):
         example=False,
     )
     debtorUrl = fields.Url(
-        dump_only=True,
         relative=False,
         format='uri',
         description='Optional link containing additional information about the debtor.',
@@ -197,6 +201,31 @@ class AccountInfoSchema(Schema):
         required=True,
         dump_only=True,
         description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountInfoUpdate'),
+    )
+
+
+class AccountKnowledgeSchema(AccountInfoSchema):
+    class Meta:
+        exclude = ['is_deletion_safe', 'unreachable']
+
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/knowledge',
+    )
+    type = fields.String(
+        missing='AccountKnowledge',
+        description='The type of this object.',
+        example='AccountKnowledge',
+    )
+    currencyPeg = fields.Nested(
+        CurrencyPegSchema,
+        description="Optional `CurrencyPeg`, announced by the debtor. A currency peg is a "
+                    "policy, in which the issuer (the debtor) sets a specific fixed exchange "
+                    "rate for its currency with another debtor's currency.",
     )
 
 
@@ -363,10 +392,10 @@ class AccountDisplaySchema(Schema):
                     'name that is convenient, or easy to remember.',
         example='United States of America',
     )
-    currencyPeg = fields.Nested(
-        CurrencyPegSchema,
-        description="Optional `CurrencyPeg`, announced by the owner of the account. A "
-                    "currency peg is a policy, in which the creditor sets a specific fixed "
+    peg = fields.Nested(
+        AccountPegSchema,
+        description="Optional `AccountPeg`, announced by the owner of the account. An "
+                    "account peg is a policy, in which the creditor sets a specific fixed "
                     "exchange rate between the tokens of two of his accounts (the pegged "
                     "currency, and the peg currency). Sometimes the peg currency is itself "
                     "pegged to another currency. This is called a \"peg-chain\".",
@@ -495,6 +524,12 @@ class AccountSchema(Schema):
         required=True,
         dump_only=True,
         description="Account's `AccountInfo`.",
+    )
+    knowledge = fields.Nested(
+        AccountKnowledgeSchema,
+        required=True,
+        dump_only=True,
+        description="Account's `AccountKnowledge`.",
     )
     config = fields.Nested(
         AccountConfigSchema,

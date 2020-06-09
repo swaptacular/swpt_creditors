@@ -235,6 +235,23 @@ class AccountInfoUpdateSchema(LogEntrySchema):
     )
 
 
+class AccountKnowledgeUpdateSchema(LogEntrySchema):
+    type = fields.Function(
+        lambda obj: 'AccountKnowledgeUpdate',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountKnowledgeUpdate',
+    )
+    object = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the updated `AccountKnowledge`.",
+        example={'uri': '/creditors/2/accounts/1/knowledge'},
+    )
+
+
 class AccountConfigUpdateSchema(LogEntrySchema):
     type = fields.Function(
         lambda obj: 'AccountConfigUpdate',
