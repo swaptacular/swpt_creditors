@@ -119,7 +119,7 @@ ACCOUNT_CONFLICT = {
 }
 
 ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
-    'description': 'An account with the same `debtorName` or `ownUnit` already exists.',
+    'description': 'Another account with the same `debtorName` or `ownUnit` already exists.',
 }
 
 TOO_MANY_ACCOUNTS = {
