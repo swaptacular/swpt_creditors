@@ -354,13 +354,13 @@ class AccountDisplaySchema(Schema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     debtorName = fields.String(
-        description='The name of the debtor. All accounts belonging to a given creditor '
-                    'must have different `debtorName`s. The creditor may choose any '
-                    'name that is convenient, or easy to remember. Initially (when a '
-                    'new account is created) this field will not be set, and **it should '
+        description='The name of the debtor. **All accounts belonging to a given '
+                    'creditor must have different `debtorName`s. When a new account '
+                    'has been created, this field will not be present, and it must '
                     'be set as soon as possible**, otherwise the real identity of the '
                     'debtor may remain unknown to the creditor, which may lead to '
-                    'confusion and financial loses.',
+                    'confusion and financial loses. The creditor may choose any '
+                    'name that is convenient, or easy to remember.',
         example='United States of America',
     )
     currencyPeg = fields.Nested(
@@ -389,8 +389,8 @@ class AccountDisplaySchema(Schema):
     ownUnit = fields.String(
         description="Optional abbreviation for a value measurement unit that is unique for the "
                     "account's debtor. It should be shown right after the displayed amount, "
-                    "\"500.00 USD\" for example. All accounts belonging to a given creditor must "
-                    "have different `ownUnit`s. Thus, setting this field for an account is most "
+                    "\"500.00 USD\" for example. **All accounts belonging to a given creditor must "
+                    "have different `ownUnit`s**. Thus, setting this field for an account is most "
                     "probably a bad idea, unless the account's debtor tokens are already widely "
                     "recognized. Notably, one currency being pegged to another currency is not "
                     "a good reason for the pegged currency to have the same `ownUnit` as the peg "
