@@ -219,10 +219,7 @@ class AccountInfoSchema(Schema):
     )
 
 
-class AccountKnowledgeSchema(AccountInfoSchema):
-    class Meta:
-        exclude = ['is_deletion_safe', 'unreachable']
-
+class AccountKnowledgeSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -236,6 +233,13 @@ class AccountKnowledgeSchema(AccountInfoSchema):
         description='The type of this object.',
         example='AccountKnowledge',
     )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding `Account`.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
     identity = fields.Nested(
         AccountIdentitySchema,
         description="An `AccountIdentity`, which is known to the creditor.",
@@ -246,11 +250,6 @@ class AccountKnowledgeSchema(AccountInfoSchema):
         description='An annual account interest rate (in percents), which is known to the creditor.',
         example=0.0,
     )
-    misconfigured = fields.Boolean(
-        missing=False,
-        description='Whether the creditor knows that the account is misconfigured.',
-        example=False,
-    )
     debtorUrl = fields.String(
         format='uri',
         description='A link for additional information about the debtor, which is known to '
@@ -260,6 +259,19 @@ class AccountKnowledgeSchema(AccountInfoSchema):
     currencyPeg = fields.Nested(
         CurrencyPegSchema,
         description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
+    )
+    latestUpdateId = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=MAX_UINT64),
+        format='uint64',
+        description=UPDATE_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
+        example=351,
+    )
+    latestUpdateAt = fields.DateTime(
+        required=True,
+        dump_only=True,
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountInfoUpdate'),
     )
 
 
