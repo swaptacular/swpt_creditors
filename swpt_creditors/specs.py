@@ -122,8 +122,8 @@ ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
     'description': 'Another account with the same `debtorName` or `ownUnit` already exists.',
 }
 
-TOO_MANY_ACCOUNTS = {
-    'description': 'Too many existing accounts.',
+DENIED_ACCOUNT_CREATION = {
+    'description': 'The account creation is forbidden.',
 }
 
 ACCOUNT_EXISTS = {
@@ -152,7 +152,7 @@ ACCOUNT_DOES_NOT_EXIST = {
 }
 
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
-    "description": "No existing account. The debtor's URI is recognized, though.",
+    "description": "No existing account, although the debtor's URI is recognized.",
 }
 
 NO_MATCHING_ACCOUNT = {

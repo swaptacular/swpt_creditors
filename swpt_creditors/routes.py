@@ -148,8 +148,9 @@ class DebtorLookupEndpoint(MethodView):
     def post(self, account_info, creditorId):
         """Try to find an existing account with a given debtor.
 
-        This is useful when the creditor does not know if he already
-        has an account with a given debtor.
+        This is useful when the creditor wants not know if he already
+        has an account with a given debtor, and if not, whether the
+        debtor's URI is recognized by the system.
 
         """
 
@@ -182,7 +183,7 @@ class AccountsEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
-                                 403: specs.TOO_MANY_ACCOUNTS,
+                                 403: specs.DENIED_ACCOUNT_CREATION,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
                                  422: specs.UNRECOGNIZED_DEBTOR})
     def post(self, debtor, creditorId):
