@@ -73,8 +73,8 @@ LOCATION_HEADER = {
     },
 }
 
-FAILED_UPDATE = {
-    'description': 'The requested update is not possible.',
+INVALID_EXCHANGE_POLICY = {
+    'description': 'The exchange policy may be wrong.',
 }
 
 CREDITOR_DOES_NOT_EXIST = {
@@ -97,8 +97,8 @@ TRANSFER_CANCELLATION_FAILURE = {
     'description': 'The transfer can not be canceled.',
 }
 
-TOO_MANY_TRANSFERS = {
-    'description': 'Too many issuing transfers.',
+DENIED_TRANSFER = {
+    'description': 'The transfer is forbidden.',
 }
 
 TRANSFER_EXISTS = {
@@ -107,7 +107,7 @@ TRANSFER_EXISTS = {
 }
 
 INVALID_TRANSFER_CREATION_REQUEST = {
-    'description': "The transfer can not be created. Verify recipient's account.",
+    'description': "The recipient's account URI may be wrong.",
 }
 
 ACCOUNT_DOES_NOT_EXIST = {
@@ -132,19 +132,15 @@ ACCOUNT_EXISTS = {
 }
 
 UNRECOGNIZED_DEBTOR = {
-    'description': "The debtor can not be recognized.",
+    'description': "The debtor's URI may be wrong.",
 }
 
 UNRECOGNIZED_PEG_CURRENCY = {
-    'description': "The requested update is not possible. The peg currency's debtor might be wrong.",
-}
-
-UNRECOGNIZED_ACCOUNT_IDENTITY = {
-    'description': "The given account identity can not be recognized.",
+    'description': "The peg currency's debtor URI may be wrong.",
 }
 
 UNSAFE_ACCOUNT_DELETION = {
-    'description': 'Unsafe deletion of this account is not allowed.',
+    'description': 'Unsafe deletion of this account is forbidden.',
 }
 
 PEG_ACCOUNT_DELETION = {
@@ -153,6 +149,10 @@ PEG_ACCOUNT_DELETION = {
 
 ACCOUNT_DOES_NOT_EXIST = {
     'description': 'The account does not exist.',
+}
+
+NO_ACCOUNT_WITH_THIS_DEBTOR = {
+    "description": "No existing account. The debtor's URI is recognized, though.",
 }
 
 NO_MATCHING_ACCOUNT = {
@@ -202,9 +202,7 @@ TRANSFER_LINKS_EXAMPLE = {
 }
 
 ACCOUNT_LOOKUP_REQUEST_EXAMPLE = {
-    'type': 'SwptAccount',
-    'debtorId': 1,
-    'creditorId': 2222
+    'uri': 'swpt:1/2222',
 }
 
 ACCOUNT_LOOKUP_RESPONSE_EXAMPLE = {
@@ -212,6 +210,5 @@ ACCOUNT_LOOKUP_RESPONSE_EXAMPLE = {
 }
 
 DEBTOR_EXAMPLE = {
-    'type': 'SwptDebtor',
-    'debtorId': 1,
+    'uri': 'swpt:1',
 }

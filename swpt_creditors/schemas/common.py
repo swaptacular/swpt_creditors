@@ -130,15 +130,18 @@ class ObjectReferencesPageSchema(Schema):
 
 
 class AccountIdentitySchema(Schema):
-    type = fields.String(
+    uri = fields.String(
         required=True,
-        description="The type of this object. Different debtors may use different "
-                    "**additional fields** containing information about the account. The "
-                    "provided additional information must just enough to: 1) uniquely "
-                    "and reliably identify the debtor, 2) uniquely and reliably identify "
-                    "the creditor's account with the debtor. This field contains the "
-                    "name of the used schema.",
-        example='SwptAccount',
+        format='uri',
+        description="The URI of the account. The information contained in the URI must be "
+                    "enough to: 1) uniquely and reliably identify the debtor, 2) uniquely "
+                    "and reliably identify the creditor's account with the debtor. Be aware "
+                    "of the security implications if a network request need to be done in "
+                    "order to identify the account.\n"
+                    "\n"
+                    "For example, if the debtor happens to be a bank, the URI would provide "
+                    "the type of the debtor (a bank), the ID of the bank, and the bank "
+                    "account number.",
     )
 
 

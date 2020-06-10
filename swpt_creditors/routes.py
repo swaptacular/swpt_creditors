@@ -142,7 +142,7 @@ class DebtorLookupEndpoint(MethodView):
     @accounts_api.arguments(DebtorSchema, example=specs.DEBTOR_EXAMPLE)
     @accounts_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
     @accounts_api.doc(operationId='debtorLookup',
-                      responses={204: specs.NO_MATCHING_ACCOUNT,
+                      responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
                                  422: specs.UNRECOGNIZED_DEBTOR})
     def post(self, account_info, creditorId):
@@ -153,7 +153,7 @@ class DebtorLookupEndpoint(MethodView):
 
         """
 
-        abort(500)
+        abort(422, errors={"uri": ["The debtor's URI can not be recognized."]})
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
@@ -185,10 +185,10 @@ class AccountsEndpoint(MethodView):
                                  403: specs.TOO_MANY_ACCOUNTS,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
                                  422: specs.UNRECOGNIZED_DEBTOR})
-    def post(self, account_creation_request, creditorId):
+    def post(self, debtor, creditorId):
         """Create a new account belonging to a given creditor."""
 
-        debtor_uri = account_creation_request['debtor_uri']
+        debtor_uri = debtor['uri']
         try:
             debtor_id = endpoints.match_url('debtor', debtor_uri)['debtorId']
             location = url_for(
@@ -199,7 +199,7 @@ class AccountsEndpoint(MethodView):
             )
             transfer = procedures.create_account(creditorId, debtor_id)
         except endpoints.MatchError:
-            abort(422)
+            abort(422, errors={"uri": ["The debtor's URI can not be recognized."]})
         except procedures.TooManyManagementActionsError:
             abort(403)
         except procedures.CreditorDoesNotExistError:
@@ -223,8 +223,8 @@ class AccountEndpoint(MethodView):
 
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='deleteAccount',
-                      responses={409: specs.PEG_ACCOUNT_DELETION,
-                                 422: specs.UNSAFE_ACCOUNT_DELETION})
+                      responses={403: specs.UNSAFE_ACCOUNT_DELETION,
+                                 409: specs.PEG_ACCOUNT_DELETION})
     def delete(self, creditorId, debtorId):
         """Delete an account.
 
@@ -250,8 +250,7 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountConfig',
-                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                 422: specs.FAILED_UPDATE})
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's configuration."""
 
@@ -294,7 +293,7 @@ class AccountExchangeEndpoint(MethodView):
     @accounts_api.response(AccountExchangeSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountExchange',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                 422: specs.FAILED_UPDATE})
+                                 422: specs.INVALID_EXCHANGE_POLICY})
     def patch(self, config_update_request, creditorId, debtorId):
         """Update account's exchange settings."""
 
@@ -322,8 +321,7 @@ class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.arguments(AccountKnowledgeSchema)
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountKnowledge',
-                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
-                                 422: specs.FAILED_UPDATE})
+                      responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def patch(self, knowledge_update_request, creditorId, debtorId):
         """Update the acknowledged account information.
 
@@ -398,8 +396,7 @@ class AccountLookupEndpoint(MethodView):
     @transfers_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
     @transfers_api.doc(operationId='accountLookup',
                        responses={204: specs.NO_MATCHING_ACCOUNT,
-                                  404: specs.CREDITOR_DOES_NOT_EXIST,
-                                  422: specs.UNRECOGNIZED_ACCOUNT_IDENTITY})
+                                  404: specs.CREDITOR_DOES_NOT_EXIST})
     def post(self, account_info, creditorId):
         """Given recipient's account identity, try to find a matching sender
         account.
@@ -441,7 +438,7 @@ class TransfersEndpoint(MethodView):
     @transfers_api.response(TransferSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @transfers_api.doc(operationId='createTransfer',
                        responses={303: specs.TRANSFER_EXISTS,
-                                  403: specs.TOO_MANY_TRANSFERS,
+                                  403: specs.DENIED_TRANSFER,
                                   404: specs.CREDITOR_DOES_NOT_EXIST,
                                   409: specs.TRANSFER_CONFLICT,
                                   422: specs.INVALID_TRANSFER_CREATION_REQUEST})
@@ -454,7 +451,7 @@ class TransfersEndpoint(MethodView):
             # TODO: parse `transfer_creation_request['recipient']`.
             debtor_id, recipient = 1, 'xxx'
         except ValueError:
-            abort(422)
+            abort(422, errors={"recipient": {"uri": ["The recipient's URI can not be recognized."]}})
         try:
             transfer = procedures.initiate_transfer(
                 creditor_id=creditorId,
@@ -488,8 +485,8 @@ class TransferEndpoint(MethodView):
     @transfers_api.arguments(CancelTransferRequestSchema)
     @transfers_api.response(TransferSchema(context=CONTEXT))
     @transfers_api.doc(operationId='cancelTransfer',
-                       responses={404: specs.TRANSFER_DOES_NOT_EXIST,
-                                  422: specs.TRANSFER_CANCELLATION_FAILURE})
+                       responses={403: specs.TRANSFER_CANCELLATION_FAILURE,
+                                  404: specs.TRANSFER_DOES_NOT_EXIST})
     def post(self, cancel_transfer_request, creditorId, transferUuid):
         """Cancel a transfer.
 

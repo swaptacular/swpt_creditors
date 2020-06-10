@@ -11,13 +11,21 @@ gets bigger after each update.'
 
 
 class DebtorSchema(Schema):
-    type = fields.String(
+    uri = fields.String(
         required=True,
-        description="The type of this object. Different debtors may use different "
-                    "**additional fields** containing information about the debtor. The "
-                    "provided information must be just enough to uniquely and reliably "
-                    "identify the debtor. This field contains the name of the used schema.",
-        example='Debtor',
+        format='uri',
+        description="The URI of the debtor. The information contained in the URI must be "
+                    "enough to uniquely and reliably identify the debtor. Be aware of the "
+                    "security implications if a network request need to be done in order "
+                    "to identify the debtor.\n"
+                    "\n"
+                    "For example, if the debtor happens to be a bank, the URI would provide "
+                    "the type of the debtor (a bank), and the ID of the bank. Note that "
+                    "some debtors may be used only to represent a physical value measurement "
+                    "unit (like ounces of gold). Those *dummy debtors* do not represent a "
+                    "person or an organization, do not owe anything to anyone, and are used "
+                    "solely as identifiers of value measurement units.",
+        example='swpt:1',
     )
 
 
@@ -31,7 +39,7 @@ class CurrencyPegSchema(Schema):
         DebtorSchema,
         required=True,
         description="The peg currency's `Debtor`.",
-        example={'type': 'SwptDebtor', 'debtorId': 111},
+        example={'uri': 'swpt:111'},
     )
     exchangeRate = fields.Float(
         required=True,
@@ -146,14 +154,19 @@ class AccountInfoSchema(Schema):
     )
     identity = fields.Nested(
         AccountIdentitySchema,
-        description="An `AccountIdentity` object, containing information that uniquely and "
-                    "reliably identifies the account when it participates in transfers as "
-                    "sender or recipient. For example, if the debtor happens to be a bank, "
-                    "this would contain the type of the debtor (a bank), the ID of the "
-                    "bank, and the bank account number. When this field is not present, "
-                    "this means that the account has not obtained identity yet, and can "
-                    "not participate in transfers.",
-        example={'type': 'SwptAccount', 'debtorId': 1, 'creditorId': 2},
+        dump_only=True,
+        description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
+                    "account when it participates in transfers as sender or recipient. When "
+                    "this field is not present, this means that the account has not "
+                    "obtained identity yet, and can not participate in transfers.\n"
+                    "\n"
+                    "Note that some accounts may be used only to represent a physical value "
+                    "measurement unit (like ounces of gold), and are useful only as links in "
+                    "a chain of currency pegs. Those *dummy accounts* will have *dummy debtors*, "
+                    "which do not represent a person or an organization, do not owe anything "
+                    "to anyone, and are used solely as identifiers of value measurement "
+                    "units. For dummy accounts, this field will never be present.",
+        example={'uri': 'swpt:1/2'},
     )
     is_deletion_safe = fields.Boolean(
         dump_only=True,
@@ -163,12 +176,14 @@ class AccountInfoSchema(Schema):
         example=False,
     )
     interest_rate = fields.Float(
+        dump_only=True,
         data_key='interestRate',
         description='Annual rate (in percents) at which interest accumulates on the account. When '
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
     misconfigured = fields.Boolean(
+        dump_only=True,
         missing=False,
         description='Whether the account is misconfigured. A `true` means that, for some reason, '
                     'the current `AccountConfig` can not be applied, or is not effectual anymore. '
@@ -183,8 +198,8 @@ class AccountInfoSchema(Schema):
                     'can not receive incoming transfers.',
         example=False,
     )
-    debtorUrl = fields.Url(
-        relative=False,
+    debtorUrl = fields.String(
+        dump_only=True,
         format='uri',
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
@@ -221,11 +236,30 @@ class AccountKnowledgeSchema(AccountInfoSchema):
         description='The type of this object.',
         example='AccountKnowledge',
     )
+    identity = fields.Nested(
+        AccountIdentitySchema,
+        description="An `AccountIdentity`, which is known to the creditor.",
+        example={'uri': 'swpt:1/2'},
+    )
+    interest_rate = fields.Float(
+        data_key='interestRate',
+        description='An annual account interest rate (in percents), which is known to the creditor.',
+        example=0.0,
+    )
+    misconfigured = fields.Boolean(
+        missing=False,
+        description='Whether the creditor knows that the account is misconfigured.',
+        example=False,
+    )
+    debtorUrl = fields.String(
+        format='uri',
+        description='A link for additional information about the debtor, which is known to '
+                    'the creditor.',
+        example='https://example.com/debtors/1/',
+    )
     currencyPeg = fields.Nested(
         CurrencyPegSchema,
-        description="Optional `CurrencyPeg`, announced by the debtor. A currency peg is a "
-                    "policy, in which the issuer (the debtor) sets a specific fixed exchange "
-                    "rate for its currency with another debtor's currency.",
+        description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
     )
 
 
@@ -496,16 +530,8 @@ class AccountSchema(Schema):
     debtor = fields.Nested(
         DebtorSchema,
         required=True,
-        description="A `Debtor` object, containing information that uniquely and "
-                    "reliably identifies the debtor. For example, if the debtor happens "
-                    "to be a  bank, this would contain the type of the debtor (a bank), "
-                    "and the ID of the bank. Note that some accounts may represent a "
-                    "physical value measurement unit (like ounces of gold), and be "
-                    "useful only as links in a chain of currency pegs. Those *dummy "
-                    "accounts* will have *dummy debtors*, which do not represent a "
-                    "person or an organization, do not owe anything to anyone, and are "
-                    "used solely as identifiers of value measurement units.",
-        example={'type': 'SwptDebtor', 'debtorId': 1},
+        description="Account's `Debtor`.",
+        example={'uri': 'swpt:1'},
     )
     created_at_ts = fields.DateTime(
         required=True,

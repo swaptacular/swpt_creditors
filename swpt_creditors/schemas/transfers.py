@@ -22,13 +22,13 @@ class BaseTransferSchema(Schema):
         required=True,
         dump_only=True,
         description="The sender's `AccountIdentity` information.",
-        example={'type': 'SwptAccount', 'debtorId': 1, 'creditorId': 2222},
+        example={'uri': 'swpt:1/2'}
     )
     recipient = fields.Nested(
         AccountIdentitySchema,
         required=True,
         description="The recipient's `AccountIdentity` information.",
-        example={'type': 'SwptAccount', 'debtorId': 1, 'creditorId': 2222},
+        example={'uri': 'swpt:1/2222'}
     )
     amount = fields.Integer(
         required=True,
