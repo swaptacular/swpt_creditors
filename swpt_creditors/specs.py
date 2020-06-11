@@ -171,7 +171,7 @@ ACCOUNT_LEDGER_UPDATES_EXAMPLE = {
             'postedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,
             'previousEntryId': 122,
-            'amount': 1000
+            'aquiredAmount': 1000
         },
     ],
     'next': '?prev=123',
