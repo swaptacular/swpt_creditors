@@ -313,7 +313,7 @@ def process_account_transfer_signal(
         transfer_number: int,
         coordinator_type: str,
         committed_at_ts: datetime,
-        amount: int,
+        acquired_amount: int,
         transfer_message: str,
         transfer_flags: int,
         creation_date: date,
@@ -326,8 +326,8 @@ def process_account_transfer_signal(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_number <= MAX_INT64
     assert len(coordinator_type) <= 30
-    assert amount != 0
-    assert -MAX_INT64 <= amount <= MAX_INT64
+    assert acquired_amount != 0
+    assert -MAX_INT64 <= acquired_amount <= MAX_INT64
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert 0 <= previous_transfer_number <= MAX_INT64
     assert previous_transfer_number < transfer_number
@@ -343,7 +343,7 @@ def process_account_transfer_signal(
         transfer_number=transfer_number,
         coordinator_type=coordinator_type,
         committed_at_ts=committed_at_ts,
-        committed_amount=amount,
+        committed_amount=acquired_amount,
         transfer_message=transfer_message,
         transfer_flags=transfer_flags,
         account_creation_date=creation_date,
@@ -372,7 +372,7 @@ def process_account_transfer_signal(
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
         _update_ledger(ledger, principal, current_ts)
-        _insert_ledger_entry(creditor_id, debtor_id, transfer_number, amount, principal)
+        _insert_ledger_entry(creditor_id, debtor_id, transfer_number, acquired_amount, principal)
     elif transfer_number >= ledger.next_transfer_number:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_account_commits()`.)
@@ -380,7 +380,7 @@ def process_account_transfer_signal(
             account_commit=account_commit,
             account_new_principal=principal,
             committed_at_ts=committed_at_ts,
-            committed_amount=amount,
+            committed_amount=acquired_amount,
         ))
 
 
