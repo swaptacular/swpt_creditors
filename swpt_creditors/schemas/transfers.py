@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate, missing
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, TransferErrorSchema,
-    MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    MIN_INT64, MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -16,13 +16,17 @@ The URI of the debtor through which the transfer should go. This is analogous to
 the currency code in "normal" bank transfers.'
 
 
-class BaseTransferSchema(Schema):
-    sender = fields.Nested(
-        AccountIdentitySchema,
+class TransferCreationRequestSchema(Schema):
+    type = fields.String(
+        missing='TransferCreationRequest',
+        description='The type of this object.',
+        example='TransferCreationRequest',
+    )
+    transfer_uuid = fields.UUID(
         required=True,
-        dump_only=True,
-        description="The sender's `AccountIdentity` information.",
-        example={'uri': 'swpt:1/2'}
+        data_key='transferUuid',
+        description="A client-generated UUID for the transfer.",
+        example='123e4567-e89b-12d3-a456-426655440000',
     )
     recipient = fields.Nested(
         AccountIdentitySchema,
@@ -39,27 +43,15 @@ class BaseTransferSchema(Schema):
     )
     notes = fields.Dict(
         missing={},
-        description='Notes from the committer of the transfer. Can be any JSON object '
-                    'containing information that whoever committed the transfer wants the '
-                    'recipient (and the sender) to see.',
+        description='Notes from the sender. Can be any JSON object containing information '
+                    'that the sender wants the recipient to see.',
     )
 
 
-class TransferCreationRequestSchema(BaseTransferSchema):
-    type = fields.String(
-        missing='TransferCreationRequest',
-        description='The type of this object.',
-        example='TransferCreationRequest',
-    )
-    transfer_uuid = fields.UUID(
-        required=True,
-        data_key='transferUuid',
-        description="A client-generated UUID for the transfer.",
-        example='123e4567-e89b-12d3-a456-426655440000',
-    )
+class TransferSchema(TransferCreationRequestSchema):
+    class Meta:
+        exclude = ['transfer_uuid']
 
-
-class TransferSchema(BaseTransferSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -152,7 +144,7 @@ class CancelTransferRequestSchema(Schema):
     )
 
 
-class CommittedTransferSchema(BaseTransferSchema):
+class CommittedTransferSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -168,10 +160,53 @@ class CommittedTransferSchema(BaseTransferSchema):
         description='The type of this object.',
         example='CommittedTransfer',
     )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the affected `Account`.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
+    coordinator = fields.String(
+        required=True,
+        dump_only=True,
+        description='Indicates the subsystem which requested the transfer.',
+        example='direct',
+    )
+    sender = fields.Nested(
+        AccountIdentitySchema,
+        dump_only=True,
+        description="The sender's `AccountIdentity` information. When this field is not "
+                    "present, this means that the sender is unknown.",
+        example={'uri': 'swpt:1/2'}
+    )
+    recipient = fields.Nested(
+        AccountIdentitySchema,
+        dump_only=True,
+        description="The recipient's `AccountIdentity` information. When this field is not "
+                    "present, this means that the recipient is unknown.",
+        example={'uri': 'swpt:1/2222'}
+    )
+    acquiredAmount = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
+        format='int64',
+        description="The amount that this transfer has added to the account's principal. This "
+                    "can be a positive number (an incoming transfer), a negative number (an "
+                    "outgoing transfer), or zero (a dummy transfer).",
+        example=1000,
+    )
+    notes = fields.Dict(
+        missing={},
+        dump_only=True,
+        description='Notes from the committer of the transfer. Can be any JSON object '
+                    'containing information that whoever committed the transfer wants the '
+                    'recipient (and the sender) to see.',
+    )
     committed_at_ts = fields.DateTime(
+        required=True,
         dump_only=True,
         data_key='committedAt',
-        description='The moment at which the transfer was committed. If this field is '
-                    'not present, this means that the moment at which the transfer was '
-                    'committed is unknown.',
+        description='The moment at which the transfer was committed.',
     )
