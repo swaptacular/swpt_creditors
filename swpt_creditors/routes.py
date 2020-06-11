@@ -7,7 +7,7 @@ from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorSchema,
-    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
+    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerUpdatesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
@@ -358,25 +358,25 @@ class AccountLedgerEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
-class AccountLedgerEntriesEndpoint(MethodView):
+class AccountLedgerUpdatesEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(LedgerEntriesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
-    @accounts_api.doc(operationId='getAccountLedgerEntriesPage',
+    @accounts_api.response(LedgerUpdatesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_UPDATES_EXAMPLE)
+    @accounts_api.doc(operationId='getAccountLedgerUpdatesPage',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
         """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recent ledger entries
-        for a given account. The returned fragment will be sorted in
-        reverse-chronological order (bigger entry IDs go first). The
-        entries will constitute a singly linked list, each entry
-        (except the most ancient one) referring to its ancestor.
+        list. The paginated list contains all recent `LedgerUpdate`
+        log entries for a given account. The returned fragment will be
+        sorted in reverse-chronological order (bigger entry IDs go
+        first). The entries will constitute a singly linked list, each
+        entry (except the most ancient one) referring to its ancestor.
 
-        The `prev` URL query parameter should contain the `entryId` of
-        the latest seen ledger entry. Then, the returned fragment will
-        start with the immediate predecessor of that entry, continuing
-        with older entries (having smaller, and smaller `entryId`s).
+        When the `prev` URL query parameter contains an `entryId` of a
+        `LedgerUpdate` log entry, then the returned fragment will
+        start with the immediate predecessor of that entry, followed
+        by older entries (having smaller, and smaller `entryId`s).
 
         """
 

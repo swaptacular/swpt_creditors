@@ -2,12 +2,9 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
-    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
+    UPDATE_ID_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
-
-UPDATE_ID_DESCRIPTION = '\
-The ID of the latest `{type}` entry for this account in the log. It \
-gets bigger after each update.'
 
 
 class DebtorSchema(Schema):
@@ -101,13 +98,14 @@ class AccountLedgerSchema(Schema):
     entries = fields.Nested(
         PaginatedListSchema,
         required=True,
-        description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers for '
-                    'which the account is either the sender or the recipient. The paginated '
-                    'list will be sorted in reverse-chronological order (bigger entry IDs go '
-                    'first). The entries will constitute a singly linked list, each entry '
-                    '(except the most ancient one) referring to its ancestor.',
+        description='A `PaginatedList` of account `LedgerUpdate` log entries. That is: '
+                    'transfers for which the account is either the sender or the recipient. '
+                    'The paginated list will be sorted in reverse-chronological order '
+                    '(bigger entry IDs go first). The entries will constitute a singly '
+                    'linked list, each entry (except the most ancient one) referring to its '
+                    'ancestor.',
         example={
-            'itemsType': 'LedgerEntry',
+            'itemsType': 'LedgerUpdate',
             'type': 'PaginatedList',
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
@@ -117,15 +115,13 @@ class AccountLedgerSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description='The ID of the latest `LedgerEntry` for this account in the log.',
+        description=UPDATE_ID_DESCRIPTION.format(type='LedgerUpdate'),
         example=123,
     )
     latestEntryAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description='The moment of the latest update on this object. The value is the same as '
-                    'the value of the `postedAt` field of the latest `LedgerEntry` for this '
-                    'account in the log.',
+        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='LedgerUpdate'),
     )
 
 

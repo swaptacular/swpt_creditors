@@ -2,7 +2,8 @@ from marshmallow import Schema, fields, validate, missing
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, TransferErrorSchema,
-    MIN_INT64, MAX_INT64, MAX_UINT64, URI_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    MIN_INT64, MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
+    UPDATE_ID_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -114,8 +115,7 @@ class TransferSchema(TransferCreationRequestSchema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description='The ID of the latest `TransferUpdate` entry for this transfer in '
-                    'the log. It gets bigger after each update.',
+        description=UPDATE_ID_DESCRIPTION.format(type='TransferUpdate'),
         example=345,
     )
     latestUpdateAt = fields.DateTime(
