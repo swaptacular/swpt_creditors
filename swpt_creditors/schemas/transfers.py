@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate, missing
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, TransferErrorSchema, MutableResourceSchema,
+    ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema,
     MIN_INT64, MAX_INT64, URI_DESCRIPTION,
 )
 
@@ -14,6 +14,28 @@ The moment at which the transfer was initiated.'
 _TRANSFER_DEBTOR_URI_DESCRIPTION = '\
 The URI of the debtor through which the transfer should go. This is analogous to \
 the currency code in "normal" bank transfers.'
+
+
+class TransferErrorSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'TransferError',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferError',
+    )
+    errorCode = fields.String(
+        required=True,
+        dump_only=True,
+        description='The error code.',
+        example='INSUFFICIENT_AVAILABLE_AMOUNT',
+    )
+    avlAmount = fields.Integer(
+        dump_only=True,
+        format='int64',
+        description='The amount currently available on the account.',
+        example=10000,
+    )
 
 
 class TransferCreationRequestSchema(Schema):

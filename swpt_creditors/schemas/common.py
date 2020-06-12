@@ -135,28 +135,6 @@ class AccountIdentitySchema(Schema):
     )
 
 
-class TransferErrorSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'TransferError',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='TransferError',
-    )
-    errorCode = fields.String(
-        required=True,
-        dump_only=True,
-        description='The error code.',
-        example='INSUFFICIENT_AVAILABLE_AMOUNT',
-    )
-    avlAmount = fields.Integer(
-        dump_only=True,
-        format='int64',
-        description='The amount currently available on the account.',
-        example=10000,
-    )
-
-
 class MutableResourceSchema(Schema):
     latest_update_id = fields.Integer(
         required=True,
