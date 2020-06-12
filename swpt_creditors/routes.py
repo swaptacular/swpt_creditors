@@ -7,7 +7,7 @@ from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorSchema,
-    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerUpdatesPageSchema,
+    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
@@ -120,9 +120,14 @@ class LogEntriesEndpoint(MethodView):
         """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recently posted log
-        entries. The returned fragment will be sorted in chronological
-        order (smaller entry IDs go first).
+        list. The paginated list contains all posted log entries. The
+        returned fragment will be sorted in chronological order
+        (smaller `entryId`s go first).
+
+        **Note:** When the `prev` URL query parameter contains an
+        `entryId` of a log entry, then the returned fragment will
+        start with the immediate successor of that log entry, followed
+        by newer entries (having bigger, and bigger entry IDs).
 
         """
 
@@ -167,7 +172,7 @@ class AccountsEndpoint(MethodView):
         """Return a collection of accounts belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains references to all accounts
+        list. The paginated list contains references to all `Account`s
         belonging to a given creditor. The returned fragment will not
         be sorted in any particular order.
 
@@ -358,25 +363,25 @@ class AccountLedgerEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
-class AccountLedgerUpdatesEndpoint(MethodView):
+class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(LedgerUpdatesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_UPDATES_EXAMPLE)
-    @accounts_api.doc(operationId='getAccountLedgerUpdatesPage',
+    @accounts_api.response(LedgerEntriesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
+    @accounts_api.doc(operationId='getAccountLedgerEntriesPage',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
         """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recent `LedgerUpdate`
-        log entries for a given account. The returned fragment will be
-        sorted in reverse-chronological order (bigger entry IDs go
-        first). The entries will constitute a singly linked list, each
-        entry (except the most ancient one) referring to its ancestor.
+        list. The paginated list contains all ledger entries for a
+        given account. The returned fragment will be sorted in
+        reverse-chronological order (bigger `entryId`s go first). The
+        entries will constitute a singly linked list, each entry
+        (except the most ancient one) referring to its predecessor.
 
-        When the `prev` URL query parameter contains an `entryId` of a
-        `LedgerUpdate` log entry, then the returned fragment will
-        start with the immediate predecessor of that entry, followed
-        by older entries (having smaller, and smaller `entryId`s).
+        **Note:** When the `prev` URL query parameter contains an
+        `entryId` of a ledger entry, then the returned fragment will
+        start with the ancestor of that ledger entry, followed by
+        older entries (having smaller, and smaller entry IDs).
 
         """
 

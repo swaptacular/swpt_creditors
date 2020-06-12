@@ -26,13 +26,12 @@ a continuous stream of new items. This field will not be present when the \
 `next` field is present. This can be a relative URI.'
 
 UPDATE_ID_DESCRIPTION = '\
-The ID of the latest `{type}` entry for this object in the log. It \
-gets bigger after each update.'
+The ID of the latest `LogEntry` for this object in the log. It gets bigger \
+after each update.'
 
 LATEST_UPDATE_AT_DESCRIPTION = '\
 The moment of the latest update on this object. The value is the same as the \
-value of the `postedAt` field of the latest `{type}` entry for this object \
-in the log.'
+value of the `postedAt` field of the latest `LogEntry` for this object in the log.'
 
 
 class PaginationParametersSchema(Schema):

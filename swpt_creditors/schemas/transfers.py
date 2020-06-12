@@ -91,7 +91,7 @@ class TransferSchema(TransferCreationRequestSchema):
                     "this means either that the status of the transfer is not expected to "
                     "change, or that the moment of the expected change can not be guessed. "
                     "Note that the value of this field is calculated on-the-fly, so it may "
-                    "change from one request to another, and no `TransferUpdate` entry for "
+                    "change from one request to another, and no `LogEntry` entry for "
                     "the change will be posted to the log.",
     )
     finalized_at_ts = fields.DateTime(
@@ -115,13 +115,13 @@ class TransferSchema(TransferCreationRequestSchema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='TransferUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=345,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='TransferUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
     def get_uri(self, obj):

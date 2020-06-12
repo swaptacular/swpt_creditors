@@ -98,14 +98,14 @@ class AccountLedgerSchema(Schema):
     entries = fields.Nested(
         PaginatedListSchema,
         required=True,
-        description='A `PaginatedList` of account `LedgerUpdate` log entries. That is: '
-                    'transfers for which the account is either the sender or the recipient. '
-                    'The paginated list will be sorted in reverse-chronological order '
-                    '(bigger entry IDs go first). The entries will constitute a singly '
-                    'linked list, each entry (except the most ancient one) referring to its '
-                    'ancestor.',
+        description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers '
+                    'for which the account is either the sender or the recipient. The '
+                    'paginated list will be sorted in reverse-chronological order '
+                    '(bigger `entryId`s go first). The entries will constitute a singly '
+                    'linked list, each entry (except the most ancient one) referring to '
+                    'its ancestor.',
         example={
-            'itemsType': 'LedgerUpdate',
+            'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
@@ -115,13 +115,13 @@ class AccountLedgerSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='LedgerUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=123,
     )
     latestEntryAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='LedgerUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -205,13 +205,13 @@ class AccountInfoSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=349,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountInfoUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -261,13 +261,13 @@ class AccountKnowledgeSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=351,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountInfoUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -332,13 +332,13 @@ class AccountConfigSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountConfigUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=346,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountConfigUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -393,13 +393,13 @@ class AccountExchangeSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountExchangeUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=347,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountExchangeUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -502,13 +502,13 @@ class AccountDisplaySchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountDisplayUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=348,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountDisplayUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
 
@@ -585,13 +585,13 @@ class AccountSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountUpdate'),
+        description=UPDATE_ID_DESCRIPTION,
         example=344,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
     def get_uri(self, obj):

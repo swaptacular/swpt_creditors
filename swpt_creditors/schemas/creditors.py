@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, PaginatedListSchema,
-    URI_DESCRIPTION, MAX_UINT64, LATEST_UPDATE_AT_DESCRIPTION,
+    URI_DESCRIPTION, MAX_UINT64, UPDATE_ID_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
 )
 
 
@@ -48,14 +48,13 @@ class CreditorSchema(Schema):
         dump_only=True,
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
-        description='The ID of the latest `CreditorUpdate` entry for this creditor in '
-                    'the log. It gets bigger after each update.',
+        description=UPDATE_ID_DESCRIPTION,
         example=350,
     )
     latestUpdateAt = fields.DateTime(
         required=True,
         dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='CreditorUpdate'),
+        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
     def get_uri(self, obj):

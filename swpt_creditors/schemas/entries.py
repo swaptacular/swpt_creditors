@@ -93,13 +93,35 @@ class LogEntriesPageSchema(Schema):
     )
 
 
-class LedgerUpdateSchema(LogEntrySchema):
+class LedgerEntrySchema(Schema):
     type = fields.Function(
-        lambda obj: 'LedgerUpdate',
+        lambda obj: 'LedgerEntry',
         required=True,
         type='string',
         description='The type of this object.',
-        example='LedgerUpdate',
+        example='LedgerEntry',
+    )
+    ledger = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='The URI of the corresponding `AccountLedger`..',
+        example={'uri': '/creditors/2/accounts/1/ledger'},
+    )
+    entry_id = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=1, max=MAX_UINT64),
+        format='uint64',
+        data_key='entryId',
+        description='The ID of this ledger entry. Later ledger entries have bigger IDs.',
+        example=12345,
+    )
+    posted_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='postedAt',
+        description='The moment at which the entry was added to the ledger.',
     )
     aquiredAmount = fields.Integer(
         required=True,
@@ -132,14 +154,14 @@ class LedgerUpdateSchema(LogEntrySchema):
         data_key='previousEntryId',
         validate=validate.Range(min=1, max=MAX_UINT64),
         format='uint64',
-        description="The `entryId` of the previous `LedgerUpdate` log entry for this account. "
-                    "Previous entries have smaller IDs. When this field is not present, this "
-                    "means that there are no previous entries in the account's ledger.",
+        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
+                    "entries have smaller IDs. When this field is not present, this means "
+                    "that there are no previous entries in the account's ledger.",
         example=122,
     )
 
 
-class LedgerUpdatesPageSchema(Schema):
+class LedgerEntriesPageSchema(Schema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -149,21 +171,21 @@ class LedgerUpdatesPageSchema(Schema):
         example='/creditors/2/accounts/1/entries?prev=124',
     )
     type = fields.Function(
-        lambda obj: 'LedgerUpdatesPage',
+        lambda obj: 'LedgerEntriesPage',
         required=True,
         type='string',
         description='The type of this object.',
-        example='LedgerUpdatesPage',
+        example='LedgerEntriesPage',
     )
     items = fields.Nested(
-        LedgerUpdateSchema(many=True),
+        LedgerEntrySchema(many=True),
         required=True,
         dump_only=True,
-        description='An array of `LedgerUpdate`s. Can be empty.',
+        description='An array of `LedgerEntry`s. Can be empty.',
     )
     next = fields.Method(
         'get_next_uri',
         type='string',
         format='uri-reference',
-        description=PAGE_NEXT_DESCRIPTION.format(type='LedgerUpdatesPage'),
+        description=PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
     )
