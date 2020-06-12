@@ -1,9 +1,8 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
-    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
-    UPDATE_ID_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
+    MIN_INT32, MAX_INT32, MAX_INT64, URI_DESCRIPTION,
 )
 
 
@@ -64,7 +63,7 @@ class AccountPegSchema(CurrencyPegSchema):
     )
 
 
-class AccountLedgerSchema(Schema):
+class AccountLedgerSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -110,22 +109,9 @@ class AccountLedgerSchema(Schema):
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
-    latestEntryId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=123,
-    )
-    latestEntryAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
-    )
 
 
-class AccountInfoSchema(Schema):
+class AccountInfoSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -200,22 +186,9 @@ class AccountInfoSchema(Schema):
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=349,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
-    )
 
 
-class AccountKnowledgeSchema(Schema):
+class AccountKnowledgeSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -256,22 +229,9 @@ class AccountKnowledgeSchema(Schema):
         CurrencyPegSchema,
         description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=351,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
-    )
 
 
-class AccountConfigSchema(Schema):
+class AccountConfigSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -327,22 +287,9 @@ class AccountConfigSchema(Schema):
                     'non-negligible amount of money on the account.',
         example=False,
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=346,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
-    )
 
 
-class AccountExchangeSchema(Schema):
+class AccountExchangeSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -388,22 +335,9 @@ class AccountExchangeSchema(Schema):
                     'enforced on "best effort" bases.',
         example=5000,
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=347,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
-    )
 
 
-class AccountDisplaySchema(Schema):
+class AccountDisplaySchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -497,22 +431,9 @@ class AccountDisplaySchema(Schema):
                     "links in a chain of currency pegs.",
         example=False,
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=348,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
-    )
 
 
-class AccountSchema(Schema):
+class AccountSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -579,19 +500,6 @@ class AccountSchema(Schema):
         AccountExchangeSchema,
         required=True,
         description="Account's `AccountExchange` settings.",
-    )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=344,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
     def get_uri(self, obj):

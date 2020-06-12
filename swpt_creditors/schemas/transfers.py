@@ -1,9 +1,8 @@
 from marshmallow import Schema, fields, validate, missing
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, TransferErrorSchema,
-    MIN_INT64, MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
-    UPDATE_ID_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    ObjectReferenceSchema, AccountIdentitySchema, TransferErrorSchema, MutableResourceSchema,
+    MIN_INT64, MAX_INT64, URI_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -49,7 +48,7 @@ class TransferCreationRequestSchema(Schema):
     )
 
 
-class TransferSchema(TransferCreationRequestSchema):
+class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     class Meta:
         exclude = ['transfer_uuid']
 
@@ -109,19 +108,6 @@ class TransferSchema(TransferCreationRequestSchema):
         description='Errors that have occurred during the execution of the transfer. If '
                     'the transfer has been completed successfully, this field will not '
                     'be present, or it will contain an empty array.',
-    )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION,
-        example=345,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION,
     )
 
     def get_uri(self, obj):
