@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, validate
 from .common import (
-    ObjectReferenceSchema, TransferErrorSchema,
+    ObjectReferenceSchema,
     MAX_INT64, MAX_UINT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
 )
 
@@ -10,9 +10,7 @@ class LogEntrySchema(Schema):
         lambda obj: 'LogEntry',
         required=True,
         type='string',
-        description='The type of this object. Different kinds of log entries may use different '
-                    '**additional fields**, providing more data. This field contains the name '
-                    'of the used schema.',
+        description='The type of this object.',
         example='LogEntry',
     )
     entry_id = fields.Integer(
@@ -28,19 +26,32 @@ class LogEntrySchema(Schema):
         required=True,
         dump_only=True,
         data_key='postedAt',
-        description='The moment at which this entry was added to the log.',
+        description='The moment at which the entry was added to the log.',
+    )
+    objectType = fields.String(
+        required=True,
+        dump_only=True,
+        description='The type of the object that has been created, updated, or deleted.',
+        example='AccountInfo',
     )
     object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the object that has been created, updated, or deleted.",
+        description='The URI of the object that has been created, updated, or deleted.',
         example={'uri': '/objects/123'},
     )
     deleted = fields.Boolean(
-        dump_only=True,
         missing=False,
-        description="Whether the object has been deleted.",
+        dump_only=True,
+        description='Whether the object has been deleted.',
+    )
+    data = fields.Dict(
+        dump_only=True,
+        description='Optional information about the new state of the created/updated '
+                    'object. It can be used so as to avoid making a network request '
+                    'to obtain the new state. This field will not be present when '
+                    'the object has been deleted.',
     )
 
 
@@ -155,135 +166,4 @@ class LedgerUpdatesPageSchema(Schema):
         type='string',
         format='uri-reference',
         description=PAGE_NEXT_DESCRIPTION.format(type='LedgerUpdatesPage'),
-    )
-
-
-class AccountCommitSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountCommit',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountCommit',
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the affected `Account`.",
-        example={'uri': '/creditors/2/accounts/1/'},
-    )
-    acquiredAmount = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        format='int64',
-        description="The amount that will eventually be added to the affected account's "
-                    "principal. Can be a positive number (the affected account is the "
-                    "recipient), a negative number (the affected account is the sender), "
-                    "or zero (a dummy transfer).",
-        example=1000,
-    )
-    reference = fields.String(
-        dump_only=True,
-        description="An optional payment reference. A payment reference is a short string "
-                    "that may be included with transfers to help identify the transfer. For "
-                    "incoming transfers this will be the transfer's *payee reference*. For "
-                    "outgoing transfers this will be the transfer's *payer reference*.",
-        example='PAYMENT 123',
-    )
-
-
-class AccountUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountUpdate',
-    )
-
-
-class AccountInfoUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountInfoUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountInfoUpdate',
-    )
-
-
-class AccountKnowledgeUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountKnowledgeUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountKnowledgeUpdate',
-    )
-
-
-class AccountConfigUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountConfigUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountConfigUpdate',
-    )
-
-
-class AccountExchangeUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountExchangeUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountExchangeUpdate',
-    )
-
-
-class AccountDisplayUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'AccountDisplayUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='AccountDisplayUpdate',
-    )
-
-
-class TransferUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'TransferUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='TransferUpdate',
-    )
-    finalized_at_ts = fields.DateTime(
-        dump_only=True,
-        data_key='finalizedAt',
-        description='The value of the `finalizedAt` field in the created/updated `Transfer`. '
-                    'This field will not be present when the transfer has been deleted, or '
-                    'when the field is not present in the created/updated transfer.',
-    )
-    errors = fields.Nested(
-        TransferErrorSchema(many=True),
-        missing=[],
-        dump_only=True,
-        description='The value of the `errors` field in the created/updated `Transfer`.'
-                    'This field will not be present when the transfer has been deleted, or '
-                    'when the field is not present in the created/updated transfer.',
-    )
-
-
-class CreditorUpdateSchema(LogEntrySchema):
-    type = fields.Function(
-        lambda obj: 'CreditorUpdate',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='CreditorUpdate',
     )
