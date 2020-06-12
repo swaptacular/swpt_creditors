@@ -146,11 +146,11 @@ class DirectTransfer(db.Model):
         nullable=False,
         comment='The amount to be transferred. Must be positive.',
     )
-    transfer_notes = db.Column(
+    transfer_note = db.Column(
         pg.JSON,
         nullable=False,
         default={},
-        comment='Notes from the sender. Can be any JSON object that the sender wants the '
+        comment='A note from the sender. Can be any JSON object that the sender wants the '
                 'recipient to see.',
     )
     initiated_at_ts = db.Column(
@@ -170,7 +170,7 @@ class DirectTransfer(db.Model):
         default=False,
         comment='Whether the transfer has been successful or not.',
     )
-    error = db.Column(
+    json_error = db.Column(
         pg.JSON,
         comment='Describes the reason of the failure, in case the transfer has not been successful.',
     )
@@ -178,7 +178,7 @@ class DirectTransfer(db.Model):
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(amount > 0),
         db.CheckConstraint(or_(is_successful == false(), finalized_at_ts != null())),
-        db.CheckConstraint(or_(finalized_at_ts == null(), is_successful == true(), error != null())),
+        db.CheckConstraint(or_(finalized_at_ts == null(), is_successful == true(), json_error != null())),
         {
             'comment': 'Represents an initiated direct transfer. A new row is inserted when '
                        'a creditor creates a new direct transfer. The row is deleted when the '
@@ -196,10 +196,10 @@ class DirectTransfer(db.Model):
         return bool(self.finalized_at_ts)
 
     @property
-    def errors(self):
+    def error(self):
         if self.is_finalized and not self.is_successful:
-            return [self.error]
-        return []
+            return self.json_error
+        return missing
 
 
 class RunningTransfer(db.Model):
@@ -222,10 +222,10 @@ class RunningTransfer(db.Model):
         nullable=False,
         comment='The amount to be transferred. Must be positive.',
     )
-    transfer_notes = db.Column(
+    transfer_note = db.Column(
         pg.JSON,
         nullable=False,
-        comment='Notes from the debtor. Can be any JSON object that the debtor wants the recipient '
+        comment='A note from the debtor. Can be any JSON object that the debtor wants the recipient '
                 'to see.',
     )
     started_at_ts = db.Column(

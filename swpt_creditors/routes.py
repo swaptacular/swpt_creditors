@@ -7,7 +7,7 @@ from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorSchema,
-    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerUpdatesPageSchema,
+    AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
@@ -22,7 +22,6 @@ class PaginatedList(NamedTuple):
     itemsType: str
     first: str
     forthcoming: str = missing
-    totalItems: int = missing
 
 
 CONTEXT = {
@@ -99,12 +98,10 @@ class WalletEndpoint(MethodView):
         wallet.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
 
         transfers_url = url_for('transfers.TransfersEndpoint', creditorId=creditorId)
-        transfers_count = wallet.direct_transfers_count
-        wallet.transfers = PaginatedList('string', transfers_url, totalItems=transfers_count)
+        wallet.transfers = PaginatedList('string', transfers_url)
 
         accounts_url = url_for('accounts.AccountsEndpoint', creditorId=creditorId)
-        accounts_count = wallet.accounts_count
-        wallet.accounts = PaginatedList('string', accounts_url, totalItems=accounts_count)
+        wallet.accounts = PaginatedList('string', accounts_url)
 
         wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=wallet.creditor_id)}
         return wallet
@@ -120,9 +117,9 @@ class LogEntriesEndpoint(MethodView):
         """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recently posted log
-        entries. The returned fragment will be sorted in chronological
-        order (smaller entry IDs go first).
+        list. The paginated list contains all recent log entries. The
+        returned fragment will be sorted in chronological order
+        (smaller `entryId`s go first).
 
         """
 
@@ -167,7 +164,7 @@ class AccountsEndpoint(MethodView):
         """Return a collection of accounts belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains references to all accounts
+        list. The paginated list contains references to all `Account`s
         belonging to a given creditor. The returned fragment will not
         be sorted in any particular order.
 
@@ -358,25 +355,38 @@ class AccountLedgerEndpoint(MethodView):
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
-class AccountLedgerUpdatesEndpoint(MethodView):
+class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(PaginationParametersSchema, location='query')
-    @accounts_api.response(LedgerUpdatesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_UPDATES_EXAMPLE)
-    @accounts_api.doc(operationId='getAccountLedgerUpdatesPage',
+    @accounts_api.response(LedgerEntriesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
+    @accounts_api.doc(operationId='getAccountLedgerEntriesPage',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
     def get(self, pagination_parameters, creditorId, debtorId):
         """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recent `LedgerUpdate`
-        log entries for a given account. The returned fragment will be
-        sorted in reverse-chronological order (bigger entry IDs go
-        first). The entries will constitute a singly linked list, each
-        entry (except the most ancient one) referring to its ancestor.
+        list. The paginated list contains the ledger entries for a
+        given account. The returned fragment, and all the subsequent
+        fragments, will be sorted in reverse-chronological order
+        (bigger `entryId`s go first). The entries will constitute a
+        singly linked list, each entry (except the most ancient one)
+        referring to its ancestor. Note that:
 
-        When the `prev` URL query parameter contains an `entryId` of a
-        `LedgerUpdate` log entry, then the returned fragment will
-        start with the immediate predecessor of that entry, followed
-        by older entries (having smaller, and smaller `entryId`s).
+        * If the `prev` URL query parameter is not specified, then the
+          returned fragment will start with the latest ledger entry
+          for the given account.
+
+        * If the `prev` URL query parameter is specified, then the
+          returned fragment will start with the latest ledger entry
+          for the given account, which have smaller `entryId` than the
+          specified value.
+
+        * When the `stop` URL query parameter contains the `entryId`
+          of a ledger entry, then the returned fragment, and all the
+          subsequent fragments, will contain only ledger entries that
+          are newer than that entry (have bigger entry IDs than the
+          specified one). This can be used to prevent repeatedly
+          receiving ledger entries that the client already knows
+          about.
 
         """
 
@@ -460,7 +470,7 @@ class TransfersEndpoint(MethodView):
                 debtor_id=debtor_id,
                 recipient=recipient,
                 amount=transfer_creation_request['amount'],
-                transfer_notes=transfer_creation_request['notes'],
+                transfer_note=transfer_creation_request['note'],
             )
         except procedures.TooManyManagementActionsError:
             abort(403)

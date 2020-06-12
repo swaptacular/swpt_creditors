@@ -1,9 +1,8 @@
 from marshmallow import Schema, fields, validate, missing
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, TransferErrorSchema,
-    MIN_INT64, MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
-    UPDATE_ID_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema,
+    MIN_INT64, MAX_INT64, URI_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -15,6 +14,28 @@ The moment at which the transfer was initiated.'
 _TRANSFER_DEBTOR_URI_DESCRIPTION = '\
 The URI of the debtor through which the transfer should go. This is analogous to \
 the currency code in "normal" bank transfers.'
+
+
+class TransferErrorSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'TransferError',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferError',
+    )
+    errorCode = fields.String(
+        required=True,
+        dump_only=True,
+        description='The error code.',
+        example='INSUFFICIENT_AVAILABLE_AMOUNT',
+    )
+    avlAmount = fields.Integer(
+        dump_only=True,
+        format='int64',
+        description='The amount currently available on the account.',
+        example=10000,
+    )
 
 
 class TransferCreationRequestSchema(Schema):
@@ -42,14 +63,14 @@ class TransferCreationRequestSchema(Schema):
         description='The transferred amount. Must be positive.',
         example=1000,
     )
-    notes = fields.Dict(
+    note = fields.Dict(
         missing={},
-        description='Notes from the sender. Can be any JSON object containing information '
+        description='A note from the sender. Can be any JSON object containing information '
                     'that the sender wants the recipient to see.',
     )
 
 
-class TransferSchema(TransferCreationRequestSchema):
+class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     class Meta:
         exclude = ['transfer_uuid']
 
@@ -91,8 +112,8 @@ class TransferSchema(TransferCreationRequestSchema):
                     "this means either that the status of the transfer is not expected to "
                     "change, or that the moment of the expected change can not be guessed. "
                     "Note that the value of this field is calculated on-the-fly, so it may "
-                    "change from one request to another, and no `TransferUpdate` entry for "
-                    "the change will be posted to the log.",
+                    "change from one request to another, and no `LogEntry` entry for the "
+                    "change will be added to the log.",
     )
     finalized_at_ts = fields.DateTime(
         dump_only=True,
@@ -100,28 +121,15 @@ class TransferSchema(TransferCreationRequestSchema):
         description='The moment at which the transfer has been finalized. If the transfer '
                     'has not been finalized yet, this field will not be present. '
                     'A finalized transfer can be either successful (no errors), or '
-                    'unsuccessful (one or more `errors`).',
+                    'unsuccessful. When the transfer is unsuccessful, the `error` field '
+                    'will contain information about the error that occurred.',
     )
-    errors = fields.Nested(
-        TransferErrorSchema(many=True),
-        missing=[],
+    error = fields.Nested(
+        TransferErrorSchema,
         dump_only=True,
-        description='Errors that have occurred during the execution of the transfer. If '
+        description='An error that have occurred during the execution of the transfer. If '
                     'the transfer has been completed successfully, this field will not '
-                    'be present, or it will contain an empty array.',
-    )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='TransferUpdate'),
-        example=345,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='TransferUpdate'),
+                    'be present.',
     )
 
     def get_uri(self, obj):
@@ -197,10 +205,10 @@ class CommittedTransferSchema(Schema):
                     "outgoing transfer), or zero (a dummy transfer).",
         example=1000,
     )
-    notes = fields.Dict(
+    note = fields.Dict(
         missing={},
         dump_only=True,
-        description='Notes from the committer of the transfer. Can be any JSON object '
+        description='A note from the committer of the transfer. Can be any JSON object '
                     'containing information that whoever committed the transfer wants the '
                     'recipient (and the sender) to see.',
     )

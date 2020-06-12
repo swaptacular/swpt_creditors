@@ -56,10 +56,8 @@ def test_get_wallet(client, creditor):
     dt = data['transfers']
     assert dt['type'] == 'PaginatedList'
     assert dt['first'] == '/creditors/2/transfers/'
-    assert dt['totalItems'] == 0
     assert dt['itemsType'] == 'string'
     ar = data['accounts']
     assert ar['type'] == 'PaginatedList'
     assert ar['first'] == '/creditors/2/accounts/'
-    assert ar['totalItems'] == 0
     assert ar['itemsType'] == 'string'

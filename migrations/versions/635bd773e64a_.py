@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cc0c367dfef5
+Revision ID: 635bd773e64a
 Revises: 8d8c816257ce
-Create Date: 2020-05-23 15:27:51.094128
+Create Date: 2020-06-12 18:50:28.727464
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'cc0c367dfef5'
+revision = '635bd773e64a'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -48,7 +48,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False, comment='The debtor through which the transfer should go.'),
     sa.Column('recipient', sa.String(), nullable=False, comment='The recipient of the transfer.'),
     sa.Column('amount', sa.BigInteger(), nullable=False, comment='The amount to be transferred. Must be positive.'),
-    sa.Column('transfer_notes', postgresql.JSON(astext_type=sa.Text()), nullable=False, comment='Notes from the debtor. Can be any JSON object that the debtor wants the recipient to see.'),
+    sa.Column('transfer_note', postgresql.JSON(astext_type=sa.Text()), nullable=False, comment='A note from the debtor. Can be any JSON object that the debtor wants the recipient to see.'),
     sa.Column('started_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was started.'),
     sa.Column('direct_coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('direct_coordinator_request_id_seq')"), nullable=False, comment='This is the value of the `coordinator_request_id` parameter, which has been sent with the `prepare_transfer` message for the transfer. The value of `creditor_id` is sent as the `coordinator_id` parameter. `coordinator_type` is "direct".'),
     sa.Column('direct_transfer_id', sa.BigInteger(), nullable=True, comment='This value, along with `debtor_id` and `creditor_id` uniquely identifies the successfully prepared transfer.'),
@@ -77,13 +77,13 @@ def upgrade():
     sa.Column('debtor_uri', sa.String(), nullable=False, comment="The debtor's URI."),
     sa.Column('recipient_uri', sa.String(), nullable=False, comment="The recipient's URI."),
     sa.Column('amount', sa.BigInteger(), nullable=False, comment='The amount to be transferred. Must be positive.'),
-    sa.Column('transfer_notes', postgresql.JSON(astext_type=sa.Text()), nullable=False, comment='Notes from the sender. Can be any JSON object that the sender wants the recipient to see.'),
+    sa.Column('transfer_note', postgresql.JSON(astext_type=sa.Text()), nullable=False, comment='A note from the sender. Can be any JSON object that the sender wants the recipient to see.'),
     sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was initiated.'),
     sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the transfer was finalized. A `null` means that the transfer has not been finalized yet.'),
     sa.Column('is_successful', sa.BOOLEAN(), nullable=False, comment='Whether the transfer has been successful or not.'),
-    sa.Column('error', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Describes the reason of the failure, in case the transfer has not been successful.'),
+    sa.Column('json_error', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Describes the reason of the failure, in case the transfer has not been successful.'),
     sa.CheckConstraint('amount > 0'),
-    sa.CheckConstraint('finalized_at_ts IS NULL OR is_successful = true OR error IS NOT NULL'),
+    sa.CheckConstraint('finalized_at_ts IS NULL OR is_successful = true OR json_error IS NOT NULL'),
     sa.CheckConstraint('is_successful = false OR finalized_at_ts IS NOT NULL'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),

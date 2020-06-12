@@ -25,20 +25,15 @@ but may become available in the future. This is useful when we want to follow \
 a continuous stream of new items. This field will not be present when the \
 `next` field is present. This can be a relative URI.'
 
-UPDATE_ID_DESCRIPTION = '\
-The ID of the latest `{type}` entry for this object in the log. It \
-gets bigger after each update.'
-
-LATEST_UPDATE_AT_DESCRIPTION = '\
-The moment of the latest update on this object. The value is the same as the \
-value of the `postedAt` field of the latest `{type}` entry for this object \
-in the log.'
-
 
 class PaginationParametersSchema(Schema):
     prev = fields.String(
-        description='Return items which follow the item with this index.',
-        example='0',
+        description='Start with the item that follows the item with this index.',
+        example='1',
+    )
+    stop = fields.String(
+        description='Return only items which precedes the item with this index.',
+        example='100',
     )
 
 
@@ -60,22 +55,13 @@ class PaginatedListSchema(Schema):
         required=True,
         dump_only=True,
         format='uri-reference',
-        description='The URI of the first page in the paginated list. The object retrieved from '
-                    'this URI will have: 1) An `items` property (an array), which will contain the '
-                    'first items of the paginated list; 2) May have a `next` property (a string), '
-                    'which would contain the URI of the next page in the list; 3) May itself have '
-                    'a `forthcoming` property, for obtaining items that might be added to the '
-                    'paginated list in the future. This can be a relative URI.',
+        description='The URI of the first page in the paginated list. This can be a relative URI. '
+                    'The object retrieved from this URI will have: 1) An `items` property (an '
+                    'array), which will contain the first items of the paginated list; 2) May '
+                    'have a `next` property (a string), which would contain the URI of the next '
+                    'page in the list; 3) May have a `forthcoming` property, for obtaining items '
+                    'that might be added to the paginated list in the future.',
         example='/list?page=1',
-    )
-    totalItems = fields.Integer(
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description='An approximation for the total number of items in the paginated list. Will '
-                    'not be present if the total number of items can not, or should not be '
-                    'approximated.',
-        example=123,
     )
     forthcoming = fields.String(
         dump_only=True,
@@ -149,23 +135,22 @@ class AccountIdentitySchema(Schema):
     )
 
 
-class TransferErrorSchema(Schema):
-    type = fields.Function(
-        lambda obj: 'TransferError',
-        required=True,
-        type='string',
-        description='The type of this object.',
-        example='TransferError',
-    )
-    errorCode = fields.String(
+class MutableResourceSchema(Schema):
+    latest_update_id = fields.Integer(
         required=True,
         dump_only=True,
-        description='The error code.',
-        example='INSUFFICIENT_AVAILABLE_AMOUNT',
+        data_key='latestUpdateId',
+        validate=validate.Range(min=1, max=MAX_UINT64),
+        format='uint64',
+        description='The ID of the latest `LogEntry` for this object in the log. This will be '
+                    'a positive number, which gets bigger after each update.',
+        example=123,
     )
-    avlAmount = fields.Integer(
+    latest_update_ts = fields.DateTime(
+        required=True,
         dump_only=True,
-        format='int64',
-        description='The amount currently available on the account.',
-        example=10000,
+        data_key='latestUpdateAt',
+        description='The moment of the latest update on this object. The value is the same as '
+                    'the value of the `addedAt` field in the latest `LogEntry` for this object '
+                    'in the log.',
     )

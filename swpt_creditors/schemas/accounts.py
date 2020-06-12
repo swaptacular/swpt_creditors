@@ -1,9 +1,8 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
-    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION,
-    UPDATE_ID_DESCRIPTION, LATEST_UPDATE_AT_DESCRIPTION,
+    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
+    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
 )
 
 
@@ -64,7 +63,107 @@ class AccountPegSchema(CurrencyPegSchema):
     )
 
 
-class AccountLedgerSchema(Schema):
+class LedgerEntrySchema(Schema):
+    type = fields.Function(
+        lambda obj: 'LedgerEntry',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='LedgerEntry',
+    )
+    ledger = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='The URI of the corresponding `AccountLedger`.',
+        example={'uri': '/creditors/2/accounts/1/ledger'},
+    )
+    entry_id = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=1, max=MAX_UINT64),
+        format='uint64',
+        data_key='entryId',
+        description='The ID of the ledger entry. Later ledger entries have bigger IDs. Note '
+                    'that those IDs are the same as the IDs of the `LogEntry`s added to '
+                    'the log to inform about the change in the corresponding `AccountLedger`.',
+        example=12345,
+    )
+    added_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='addedAt',
+        description='The moment at which the entry was added to the ledger.',
+    )
+    aquiredAmount = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format='int64',
+        description="The amount added to the account's principal. Can be a positive number (an "
+                    "increase), or a negative number (a decrease). Can not be zero.",
+        example=1000,
+    )
+    principal = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format='int64',
+        description='The new principal amount on the account, as it is after the transfer. Unless '
+                    'a principal overflow has occurred, the new principal amount will be equal to '
+                    '`aquiredAmount` plus the old principal amount.',
+        example=1500,
+    )
+    transfer = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='The URI of the corresponding `CommittedTransfer`.',
+        example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
+    )
+    previous_entry_id = fields.Integer(
+        dump_only=True,
+        data_key='previousEntryId',
+        validate=validate.Range(min=1, max=MAX_UINT64),
+        format='uint64',
+        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
+                    "entries have smaller IDs. When this field is not present, this means "
+                    "that there are no previous entries in the account's ledger.",
+        example=122,
+    )
+
+
+class LedgerEntriesPageSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/entries?prev=124',
+    )
+    type = fields.Function(
+        lambda obj: 'LedgerEntriesPage',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='LedgerEntriesPage',
+    )
+    items = fields.Nested(
+        LedgerEntrySchema(many=True),
+        required=True,
+        dump_only=True,
+        description='An array of `LedgerEntry`s. Can be empty.',
+    )
+    next = fields.Method(
+        'get_next_uri',
+        type='string',
+        format='uri-reference',
+        description=PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
+    )
+
+
+class AccountLedgerSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -98,34 +197,21 @@ class AccountLedgerSchema(Schema):
     entries = fields.Nested(
         PaginatedListSchema,
         required=True,
-        description='A `PaginatedList` of account `LedgerUpdate` log entries. That is: '
-                    'transfers for which the account is either the sender or the recipient. '
-                    'The paginated list will be sorted in reverse-chronological order '
-                    '(bigger entry IDs go first). The entries will constitute a singly '
-                    'linked list, each entry (except the most ancient one) referring to its '
-                    'ancestor.',
+        description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers '
+                    'for which the account is either the sender or the recipient. The '
+                    'paginated list will be sorted in reverse-chronological order '
+                    '(bigger `entryId`s go first). The entries will constitute a singly '
+                    'linked list, each entry (except the most ancient one) referring to '
+                    'its ancestor.',
         example={
-            'itemsType': 'LedgerUpdate',
+            'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
-    latestEntryId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='LedgerUpdate'),
-        example=123,
-    )
-    latestEntryAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='LedgerUpdate'),
-    )
 
 
-class AccountInfoSchema(Schema):
+class AccountInfoSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -200,22 +286,9 @@ class AccountInfoSchema(Schema):
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
-        example=349,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountInfoUpdate'),
-    )
 
 
-class AccountKnowledgeSchema(Schema):
+class AccountKnowledgeSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -256,22 +329,9 @@ class AccountKnowledgeSchema(Schema):
         CurrencyPegSchema,
         description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountInfoUpdate'),
-        example=351,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountInfoUpdate'),
-    )
 
 
-class AccountConfigSchema(Schema):
+class AccountConfigSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -327,22 +387,9 @@ class AccountConfigSchema(Schema):
                     'non-negligible amount of money on the account.',
         example=False,
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountConfigUpdate'),
-        example=346,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountConfigUpdate'),
-    )
 
 
-class AccountExchangeSchema(Schema):
+class AccountExchangeSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -388,22 +435,9 @@ class AccountExchangeSchema(Schema):
                     'enforced on "best effort" bases.',
         example=5000,
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountExchangeUpdate'),
-        example=347,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountExchangeUpdate'),
-    )
 
 
-class AccountDisplaySchema(Schema):
+class AccountDisplaySchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -497,22 +531,9 @@ class AccountDisplaySchema(Schema):
                     "links in a chain of currency pegs.",
         example=False,
     )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountDisplayUpdate'),
-        example=348,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountDisplayUpdate'),
-    )
 
 
-class AccountSchema(Schema):
+class AccountSchema(MutableResourceSchema):
     uri = fields.Method(
         'get_uri',
         required=True,
@@ -579,19 +600,6 @@ class AccountSchema(Schema):
         AccountExchangeSchema,
         required=True,
         description="Account's `AccountExchange` settings.",
-    )
-    latestUpdateId = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description=UPDATE_ID_DESCRIPTION.format(type='AccountUpdate'),
-        example=344,
-    )
-    latestUpdateAt = fields.DateTime(
-        required=True,
-        dump_only=True,
-        description=LATEST_UPDATE_AT_DESCRIPTION.format(type='AccountUpdate'),
     )
 
     def get_uri(self, obj):

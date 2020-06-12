@@ -159,16 +159,16 @@ NO_MATCHING_ACCOUNT = {
     'description': 'No matching account.',
 }
 
-ACCOUNT_LEDGER_UPDATES_EXAMPLE = {
+ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
     'uri': '/creditors/2/accounts/1/entries?prev=124',
-    'type': 'LedgerUpdatesPage',
+    'type': 'LedgerEntriesPage',
     'items': [
         {
-            'type': 'LedgerUpdate',
-            'object': {'uri': '/creditors/2/accounts/1/ledger'},
+            'type': 'LedgerEntry',
+            'ledger': {'uri': '/creditors/2/accounts/1/ledger'},
             'transfer': {'uri': '/creditors/2/accounts/1/transfers/18444/999'},
             'entryId': 123,
-            'postedAt': '2020-04-03T18:42:44Z',
+            'addedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,
             'previousEntryId': 122,
             'aquiredAmount': 1000
@@ -182,10 +182,11 @@ LOG_ENTRIES_EXAMPLE = {
     'type': 'LogEntriesPage',
     'items': [
         {
+            'type': 'LogEntry',
             'entryId': 12345,
-            'postedAt': '2020-04-06T14:22:11Z',
+            'addedAt': '2020-04-06T14:22:11Z',
+            'objectType': 'Account',
             'object': {'uri': '/creditors/2/accounts/1/'},
-            'type': 'AccountUpdate',
         },
     ],
     'forthcoming': '?prev=12345',
