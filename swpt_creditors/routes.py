@@ -22,7 +22,6 @@ class PaginatedList(NamedTuple):
     itemsType: str
     first: str
     forthcoming: str = missing
-    totalItems: int = missing
 
 
 CONTEXT = {
@@ -99,12 +98,10 @@ class WalletEndpoint(MethodView):
         wallet.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
 
         transfers_url = url_for('transfers.TransfersEndpoint', creditorId=creditorId)
-        transfers_count = wallet.direct_transfers_count
-        wallet.transfers = PaginatedList('string', transfers_url, totalItems=transfers_count)
+        wallet.transfers = PaginatedList('string', transfers_url)
 
         accounts_url = url_for('accounts.AccountsEndpoint', creditorId=creditorId)
-        accounts_count = wallet.accounts_count
-        wallet.accounts = PaginatedList('string', accounts_url, totalItems=accounts_count)
+        wallet.accounts = PaginatedList('string', accounts_url)
 
         wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=wallet.creditor_id)}
         return wallet

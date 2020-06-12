@@ -63,15 +63,6 @@ class PaginatedListSchema(Schema):
                     'that might be added to the paginated list in the future.',
         example='/list?page=1',
     )
-    totalItems = fields.Integer(
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_UINT64),
-        format='uint64',
-        description='An approximation for the total number of items in the paginated list. Will '
-                    'not be present if the total number of items can not, or do not need to be '
-                    'approximated.',
-        example=123,
-    )
     forthcoming = fields.String(
         dump_only=True,
         format='uri-reference',

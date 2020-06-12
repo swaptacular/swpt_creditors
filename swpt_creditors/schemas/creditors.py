@@ -77,7 +77,6 @@ class WalletSchema(Schema):
         description='A `PaginatedList` of `ObjectReference`s to all `Account`s belonging to the '
                     'creditor. The paginated list will not be sorted in any particular order.',
         example={
-            'totalItems': 20,
             'first': '/creditors/2/accounts/',
             'itemsType': 'ObjectReference',
             'type': 'PaginatedList',
@@ -105,7 +104,6 @@ class WalletSchema(Schema):
                     'by the creditor, that have not been deleted yet. The paginated list will '
                     'not be sorted in any particular order.',
         example={
-            'totalItems': 5,
             'first': '/creditors/2/transfers/',
             'itemsType': 'ObjectReference',
             'type': 'PaginatedList',
