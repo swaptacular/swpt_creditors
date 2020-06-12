@@ -146,11 +146,11 @@ class DirectTransfer(db.Model):
         nullable=False,
         comment='The amount to be transferred. Must be positive.',
     )
-    transfer_notes = db.Column(
+    transfer_note = db.Column(
         pg.JSON,
         nullable=False,
         default={},
-        comment='Notes from the sender. Can be any JSON object that the sender wants the '
+        comment='A note from the sender. Can be any JSON object that the sender wants the '
                 'recipient to see.',
     )
     initiated_at_ts = db.Column(
@@ -222,10 +222,10 @@ class RunningTransfer(db.Model):
         nullable=False,
         comment='The amount to be transferred. Must be positive.',
     )
-    transfer_notes = db.Column(
+    transfer_note = db.Column(
         pg.JSON,
         nullable=False,
-        comment='Notes from the debtor. Can be any JSON object that the debtor wants the recipient '
+        comment='A note from the debtor. Can be any JSON object that the debtor wants the recipient '
                 'to see.',
     )
     started_at_ts = db.Column(

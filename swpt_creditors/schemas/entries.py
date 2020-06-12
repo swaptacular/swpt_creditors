@@ -116,7 +116,7 @@ class LedgerEntrySchema(Schema):
         data_key='entryId',
         description='The ID of the ledger entry. Later ledger entries have bigger IDs. Note '
                     'that those IDs are the same as the IDs of the `LogEntry`s added to '
-                    'the log for the corresponding `AccountLedger`.',
+                    'the log to inform about the change in the corresponding `AccountLedger`.',
         example=12345,
     )
     added_at_ts = fields.DateTime(

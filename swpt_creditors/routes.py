@@ -473,7 +473,7 @@ class TransfersEndpoint(MethodView):
                 debtor_id=debtor_id,
                 recipient=recipient,
                 amount=transfer_creation_request['amount'],
-                transfer_notes=transfer_creation_request['notes'],
+                transfer_note=transfer_creation_request['note'],
             )
         except procedures.TooManyManagementActionsError:
             abort(403)

@@ -41,9 +41,9 @@ class TransferCreationRequestSchema(Schema):
         description='The transferred amount. Must be positive.',
         example=1000,
     )
-    notes = fields.Dict(
+    note = fields.Dict(
         missing={},
-        description='Notes from the sender. Can be any JSON object containing information '
+        description='A note from the sender. Can be any JSON object containing information '
                     'that the sender wants the recipient to see.',
     )
 
@@ -183,10 +183,10 @@ class CommittedTransferSchema(Schema):
                     "outgoing transfer), or zero (a dummy transfer).",
         example=1000,
     )
-    notes = fields.Dict(
+    note = fields.Dict(
         missing={},
         dump_only=True,
-        description='Notes from the committer of the transfer. Can be any JSON object '
+        description='A note from the committer of the transfer. Can be any JSON object '
                     'containing information that whoever committed the transfer wants the '
                     'recipient (and the sender) to see.',
     )
