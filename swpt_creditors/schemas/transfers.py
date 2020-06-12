@@ -99,15 +99,15 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description='The moment at which the transfer has been finalized. If the transfer '
                     'has not been finalized yet, this field will not be present. '
                     'A finalized transfer can be either successful (no errors), or '
-                    'unsuccessful (one or more `errors`).',
+                    'unsuccessful. When the transfer is unsuccessful, the `error` field '
+                    'will contain information about the error that occurred.',
     )
-    errors = fields.Nested(
-        TransferErrorSchema(many=True),
-        missing=[],
+    error = fields.Nested(
+        TransferErrorSchema,
         dump_only=True,
-        description='Errors that have occurred during the execution of the transfer. If '
+        description='An error that have occurred during the execution of the transfer. If '
                     'the transfer has been completed successfully, this field will not '
-                    'be present, or it will contain an empty array.',
+                    'be present.',
     )
 
     def get_uri(self, obj):
