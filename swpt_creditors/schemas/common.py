@@ -36,8 +36,12 @@ value of the `addedAt` field in the latest `LogEntry` for this object in the log
 
 class PaginationParametersSchema(Schema):
     prev = fields.String(
-        description='Return items which follow the item with this index.',
-        example='0',
+        description='Start with the item that follows the item with this index.',
+        example='1',
+    )
+    stop = fields.String(
+        description='Return only items which precedes the item with this index.',
+        example='100',
     )
 
 

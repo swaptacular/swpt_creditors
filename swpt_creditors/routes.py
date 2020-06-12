@@ -124,11 +124,6 @@ class LogEntriesEndpoint(MethodView):
         returned fragment will be sorted in chronological order
         (smaller `entryId`s go first).
 
-        **Note:** When the `prev` URL query parameter contains an
-        `entryId` of a log entry, then the returned fragment will
-        start with the immediate successor of that log entry, followed
-        by newer entries (having bigger, and bigger entry IDs).
-
         """
 
         abort(500)
@@ -372,16 +367,29 @@ class AccountLedgerEntriesEndpoint(MethodView):
         """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all ledger entries for a
-        given account. The returned fragment will be sorted in
-        reverse-chronological order (bigger `entryId`s go first). The
-        entries will constitute a singly linked list, each entry
-        (except the most ancient one) referring to its predecessor.
+        list. The paginated list contains the ledger entries for a
+        given account. The returned fragment, and all the subsequent
+        fragments, will be sorted in reverse-chronological order
+        (bigger `entryId`s go first). The entries will constitute a
+        singly linked list, each entry (except the most ancient one)
+        referring to its ancestor. Note that:
 
-        **Note:** When the `prev` URL query parameter contains an
-        `entryId` of a ledger entry, then the returned fragment will
-        start with the ancestor of that ledger entry, followed by
-        older entries (having smaller, and smaller entry IDs).
+        * If the `prev` URL query parameter is not specified, then the
+          returned fragment will start with the latest ledger entry
+          for the given account.
+
+        * If the `prev` URL query parameter is specified, then the
+          returned fragment will start with the latest ledger entry
+          for the given account, which have smaller `entryId` than the
+          specified value.
+
+        * When the `stop` URL query parameter contains the `entryId`
+          of a ledger entry, then the returned fragment, and all the
+          subsequent fragments, will contain only ledger entries that
+          are newer than that entry (have bigger entry IDs than the
+          specified one). This can be used to prevent repeatedly
+          receiving ledger entries that the client already knows
+          about.
 
         """
 
