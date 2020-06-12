@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
-    MIN_INT32, MAX_INT32, MAX_INT64, URI_DESCRIPTION,
+    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
 )
 
 
@@ -60,6 +60,106 @@ class AccountPegSchema(CurrencyPegSchema):
                     "is not present, this means that the creditor does not have an account in "
                     "the peg currency.",
         example={'uri': '/creditors/2/accounts/11/display'},
+    )
+
+
+class LedgerEntrySchema(Schema):
+    type = fields.Function(
+        lambda obj: 'LedgerEntry',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='LedgerEntry',
+    )
+    ledger = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='The URI of the corresponding `AccountLedger`.',
+        example={'uri': '/creditors/2/accounts/1/ledger'},
+    )
+    entry_id = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=1, max=MAX_UINT64),
+        format='uint64',
+        data_key='entryId',
+        description='The ID of the ledger entry. Later ledger entries have bigger IDs. Note '
+                    'that those IDs are the same as the IDs of the `LogEntry`s added to '
+                    'the log to inform about the change in the corresponding `AccountLedger`.',
+        example=12345,
+    )
+    added_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='addedAt',
+        description='The moment at which the entry was added to the ledger.',
+    )
+    aquiredAmount = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format='int64',
+        description="The amount added to the account's principal. Can be a positive number (an "
+                    "increase), or a negative number (a decrease). Can not be zero.",
+        example=1000,
+    )
+    principal = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        format='int64',
+        description='The new principal amount on the account, as it is after the transfer. Unless '
+                    'a principal overflow has occurred, the new principal amount will be equal to '
+                    '`aquiredAmount` plus the old principal amount.',
+        example=1500,
+    )
+    transfer = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description='The URI of the corresponding `CommittedTransfer`.',
+        example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
+    )
+    previous_entry_id = fields.Integer(
+        dump_only=True,
+        data_key='previousEntryId',
+        validate=validate.Range(min=1, max=MAX_UINT64),
+        format='uint64',
+        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
+                    "entries have smaller IDs. When this field is not present, this means "
+                    "that there are no previous entries in the account's ledger.",
+        example=122,
+    )
+
+
+class LedgerEntriesPageSchema(Schema):
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/accounts/1/entries?prev=124',
+    )
+    type = fields.Function(
+        lambda obj: 'LedgerEntriesPage',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='LedgerEntriesPage',
+    )
+    items = fields.Nested(
+        LedgerEntrySchema(many=True),
+        required=True,
+        dump_only=True,
+        description='An array of `LedgerEntry`s. Can be empty.',
+    )
+    next = fields.Method(
+        'get_next_uri',
+        type='string',
+        format='uri-reference',
+        description=PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
     )
 
 
