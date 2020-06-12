@@ -182,6 +182,7 @@ LOG_ENTRIES_EXAMPLE = {
     'type': 'LogEntriesPage',
     'items': [
         {
+            'type': 'LogEntry',
             'entryId': 12345,
             'addedAt': '2020-04-06T14:22:11Z',
             'objectType': 'Account',

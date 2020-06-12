@@ -89,7 +89,7 @@ class LogEntriesPageSchema(Schema):
         type='string',
         format='uri-reference',
         description=PAGE_FORTHCOMING_DESCRIPTION.format(type='LogEntriesPage'),
-        example='?prev=1234567890',
+        example='?prev=12345',
     )
 
 

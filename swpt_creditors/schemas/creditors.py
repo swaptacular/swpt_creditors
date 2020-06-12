@@ -92,7 +92,7 @@ class WalletSchema(Schema):
                     "clients of the API to synchronize their data by looking at the \"log\".",
         example={
             'first': '/creditors/2/log',
-            'forthcoming': '/creditors/2/log?prev=1234567890',
+            'forthcoming': '/creditors/2/log?prev=12345',
             'itemsType': 'LogEntry',
             'type': 'PaginatedList',
         },
