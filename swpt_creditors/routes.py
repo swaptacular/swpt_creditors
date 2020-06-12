@@ -120,7 +120,7 @@ class LogEntriesEndpoint(MethodView):
         """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all posted log entries. The
+        list. The paginated list contains all recent log entries. The
         returned fragment will be sorted in chronological order
         (smaller `entryId`s go first).
 

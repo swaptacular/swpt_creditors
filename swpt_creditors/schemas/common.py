@@ -31,7 +31,7 @@ after each update.'
 
 LATEST_UPDATE_AT_DESCRIPTION = '\
 The moment of the latest update on this object. The value is the same as the \
-value of the `postedAt` field of the latest `LogEntry` for this object in the log.'
+value of the `addedAt` field in the latest `LogEntry` for this object in the log.'
 
 
 class PaginationParametersSchema(Schema):
@@ -59,12 +59,12 @@ class PaginatedListSchema(Schema):
         required=True,
         dump_only=True,
         format='uri-reference',
-        description='The URI of the first page in the paginated list. The object retrieved from '
-                    'this URI will have: 1) An `items` property (an array), which will contain the '
-                    'first items of the paginated list; 2) May have a `next` property (a string), '
-                    'which would contain the URI of the next page in the list; 3) May itself have '
-                    'a `forthcoming` property, for obtaining items that might be added to the '
-                    'paginated list in the future. This can be a relative URI.',
+        description='The URI of the first page in the paginated list. This can be a relative URI. '
+                    'The object retrieved from this URI will have: 1) An `items` property (an '
+                    'array), which will contain the first items of the paginated list; 2) May '
+                    'have a `next` property (a string), which would contain the URI of the next '
+                    'page in the list; 3) May have a `forthcoming` property, for obtaining items '
+                    'that might be added to the paginated list in the future.',
         example='/list?page=1',
     )
     totalItems = fields.Integer(
@@ -72,7 +72,7 @@ class PaginatedListSchema(Schema):
         validate=validate.Range(min=0, max=MAX_UINT64),
         format='uint64',
         description='An approximation for the total number of items in the paginated list. Will '
-                    'not be present if the total number of items can not, or should not be '
+                    'not be present if the total number of items can not, or do not need to be '
                     'approximated.',
         example=123,
     )

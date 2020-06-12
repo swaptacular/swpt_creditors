@@ -91,8 +91,8 @@ class TransferSchema(TransferCreationRequestSchema):
                     "this means either that the status of the transfer is not expected to "
                     "change, or that the moment of the expected change can not be guessed. "
                     "Note that the value of this field is calculated on-the-fly, so it may "
-                    "change from one request to another, and no `LogEntry` entry for "
-                    "the change will be posted to the log.",
+                    "change from one request to another, and no `LogEntry` entry for the "
+                    "change will be added to the log.",
     )
     finalized_at_ts = fields.DateTime(
         dump_only=True,

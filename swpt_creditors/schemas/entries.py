@@ -22,10 +22,10 @@ class LogEntrySchema(Schema):
         description='The ID of this log entry. Later log entries have bigger IDs.',
         example=12345,
     )
-    posted_at_ts = fields.DateTime(
+    added_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
-        data_key='postedAt',
+        data_key='addedAt',
         description='The moment at which the entry was added to the log.',
     )
     objectType = fields.String(
@@ -105,7 +105,7 @@ class LedgerEntrySchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description='The URI of the corresponding `AccountLedger`..',
+        description='The URI of the corresponding `AccountLedger`.',
         example={'uri': '/creditors/2/accounts/1/ledger'},
     )
     entry_id = fields.Integer(
@@ -114,13 +114,15 @@ class LedgerEntrySchema(Schema):
         validate=validate.Range(min=1, max=MAX_UINT64),
         format='uint64',
         data_key='entryId',
-        description='The ID of this ledger entry. Later ledger entries have bigger IDs.',
+        description='The ID of the ledger entry. Later ledger entries have bigger IDs. Note '
+                    'that those IDs are the same as the IDs of the `LogEntry`s added to '
+                    'the log for the corresponding `AccountLedger`.',
         example=12345,
     )
-    posted_at_ts = fields.DateTime(
+    added_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
-        data_key='postedAt',
+        data_key='addedAt',
         description='The moment at which the entry was added to the ledger.',
     )
     aquiredAmount = fields.Integer(
