@@ -167,6 +167,16 @@ class LogEntrySchema(Schema):
         description='The ID of this log entry. Later log entries have bigger IDs.',
         example=12345,
     )
+    previous_entry_id = fields.Integer(
+        dump_only=True,
+        data_key='previousEntryId',
+        validate=validate.Range(min=1, max=MAX_UINT64),
+        format='uint64',
+        description="The `entryId` of the previous `LogEntry` for the creditor. Previous "
+                    "log entries have smaller IDs. When this field is not present, this "
+                    "means that the entry is the first log entry for the creditor.",
+        example=12344,
+    )
     added_at_ts = fields.DateTime(
         required=True,
         dump_only=True,

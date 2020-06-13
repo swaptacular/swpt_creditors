@@ -184,6 +184,7 @@ LOG_ENTRIES_EXAMPLE = {
         {
             'type': 'LogEntry',
             'entryId': 12345,
+            'previousEntryId': 12344,
             'addedAt': '2020-04-06T14:22:11Z',
             'objectType': 'Account',
             'object': {'uri': '/creditors/2/accounts/1/'},
