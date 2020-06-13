@@ -205,11 +205,12 @@ class LogEntrySchema(Schema):
         description='Whether the object has been deleted.',
     )
     data = fields.Dict(
+        missing={},
         dump_only=True,
-        description='Optional information about the new state of the created/updated '
-                    'object. It can be used so as to avoid making a network request '
-                    'to obtain the new state. This field will not be present when '
-                    'the object has been deleted.',
+        description='Information about the new state of the created/updated object. Generally, '
+                    'what data is being provided depends on the specified `objectType`. The '
+                    'data can be used so as to avoid making a network request to obtain the '
+                    'new state. This field will not be present when the object has been deleted.',
     )
 
 
