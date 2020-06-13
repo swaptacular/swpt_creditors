@@ -46,9 +46,9 @@ SEQNUM = {
     'description': "The sequential number of the transfer",
     'schema': {
         'type': 'integer',
-        'format': 'uint64',
-        'minimum': 0,
-        'maximum': (1 << 64) - 1,
+        'format': 'int64',
+        'minimum': 1,
+        'maximum': (1 << 63) - 1,
     },
 }
 

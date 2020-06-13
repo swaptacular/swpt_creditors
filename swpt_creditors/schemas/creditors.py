@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema, URI_DESCRIPTION,
-    MAX_UINT64, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
+    MAX_INT64, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
 )
 
 
@@ -164,17 +164,18 @@ class LogEntrySchema(Schema):
     entry_id = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=1, max=MAX_UINT64),
-        format='uint64',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format='int64',
         data_key='entryId',
-        description='The ID of this log entry. Later log entries have bigger IDs.',
+        description='The ID of this log entry. Later log entries have bigger IDs. This '
+                    'will always be a positive number.',
         example=12345,
     )
     previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
-        validate=validate.Range(min=1, max=MAX_UINT64),
-        format='uint64',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format='int64',
         description="The `entryId` of the previous `LogEntry` for the creditor. Previous "
                     "log entries have smaller IDs. When this field is not present, this "
                     "means that the entry is the first log entry for the creditor.",

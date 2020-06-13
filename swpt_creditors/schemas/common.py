@@ -140,8 +140,8 @@ class MutableResourceSchema(Schema):
         required=True,
         dump_only=True,
         data_key='latestUpdateId',
-        validate=validate.Range(min=1, max=MAX_UINT64),
-        format='uint64',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format='int64',
         description='The ID of the latest `LogEntry` for this object in the log. This will be '
                     'a positive number, which gets bigger after each update.',
         example=123,

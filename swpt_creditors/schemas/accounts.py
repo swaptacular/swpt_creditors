@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
-    MIN_INT32, MAX_INT32, MAX_INT64, MAX_UINT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
+    MIN_INT32, MAX_INT32, MAX_INT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
 )
 
 
@@ -81,8 +81,8 @@ class LedgerEntrySchema(Schema):
     entry_id = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=1, max=MAX_UINT64),
-        format='uint64',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format='int64',
         data_key='entryId',
         description='The ID of the ledger entry. Later ledger entries have bigger IDs. Note '
                     'that those IDs are the same as the IDs of the `LogEntry`s added to '
@@ -124,8 +124,8 @@ class LedgerEntrySchema(Schema):
     previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
-        validate=validate.Range(min=1, max=MAX_UINT64),
-        format='uint64',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format='int64',
         description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
                     "entries have smaller IDs. When this field is not present, this means "
                     "that there are no previous entries in the account's ledger.",
