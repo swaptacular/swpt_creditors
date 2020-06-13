@@ -66,12 +66,12 @@ class PaginatedListSchema(Schema):
     forthcoming = fields.String(
         dump_only=True,
         format='uri-reference',
-        description='An URI for obtaining items that might be added to the paginated list in the '
-                    'future. This is useful when we want to skip all items currently in the list, '
-                    'but follow the forthcoming stream of new items. If this field is not '
+        description='An optional URI for obtaining items that might be added to the paginated list '
+                    'in the future. This is useful when we want to skip all items currently in the '
+                    'list, but follow the forthcoming stream of new items. If this field is not '
                     'present, this means that the "streaming" feature is not supported by the '
-                    'paginated list. The object retrieved from this URI will be of the same type '
-                    'as the one retrieved from the `first` field. This can be a relative URI.',
+                    'paginated list. The object retrieved from this URI will be of the same type as '
+                    'the one retrieved from the `first` field. This can be a relative URI.',
         example='/list?page=1000',
     )
 
