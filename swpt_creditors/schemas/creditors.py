@@ -190,14 +190,14 @@ class LogEntrySchema(Schema):
         required=True,
         dump_only=True,
         description='The type of the object that has been created, updated, or deleted.',
-        example='AccountInfo',
+        example='Account',
     )
     object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         description='The URI of the object that has been created, updated, or deleted.',
-        example={'uri': '/objects/123'},
+        example={'uri': '/creditors/2/accounts/1/'},
     )
     deleted = fields.Boolean(
         missing=False,
