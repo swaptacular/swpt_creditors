@@ -87,9 +87,12 @@ class WalletSchema(Schema):
         PaginatedListSchema,
         required=True,
         dump_only=True,
-        description="A `PaginatedList` of `LogEntry`s. The paginated list will be sorted "
-                    "in chronological order (smaller entry IDs go first). This allows the "
-                    "clients of the API to synchronize their data by looking at the \"log\".",
+        description="A `PaginatedList` of creditor's `LogEntry`s. The paginated list will be "
+                    "sorted in chronological order (smaller entry IDs go first). The entries "
+                    "will constitute a singly linked list, each entry (except the most "
+                    "ancient one) referring to its ancestor. This allows the clients of the "
+                    "API to reliably and efficiently invalidate their caches by following "
+                    "the \"log\".",
         example={
             'first': '/creditors/2/log',
             'forthcoming': '/creditors/2/log?prev=12345',
