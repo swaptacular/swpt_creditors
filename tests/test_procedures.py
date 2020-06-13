@@ -49,7 +49,7 @@ def test_process_pending_account_commits(db_session, setup_account, current_ts):
         coordinator_type='direct',
         committed_at_ts=current_ts,
         acquired_amount=1000,
-        transfer_message='',
+        transfer_note='',
         transfer_flags=0,
         creation_date=ny2019,
         principal=1000,

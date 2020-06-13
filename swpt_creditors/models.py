@@ -283,7 +283,7 @@ class AccountCommit(db.Model):
     coordinator_type = db.Column(db.String(30), nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
-    transfer_message = db.Column(pg.TEXT, nullable=False)
+    transfer_note = db.Column(pg.TEXT, nullable=False)
     transfer_flags = db.Column(db.Integer, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
