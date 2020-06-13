@@ -268,9 +268,9 @@ class AccountInfoSchema(MutableResourceSchema):
         dump_only=True,
         missing=False,
         description='Whether the account is misconfigured. A `true` means that, for some reason, '
-                    'the current `AccountConfig` can not be applied, or is not effectual anymore. '
-                    'Usually this means that there has been some kind of network communication '
-                    'or system configuration problem.',
+                    'the current `AccountConfig` settings can not be applied, or is not effectual '
+                    'anymore. Usually this means that there has been some kind of network '
+                    'communication or system configuration problem.',
         example=False,
     )
     unreachable = fields.Boolean(
@@ -584,12 +584,12 @@ class AccountSchema(MutableResourceSchema):
         AccountKnowledgeSchema,
         required=True,
         dump_only=True,
-        description="Account's `AccountKnowledge`.",
+        description="Account's `AccountKnowledge` settings.",
     )
     config = fields.Nested(
         AccountConfigSchema,
         required=True,
-        description="Account's `AccountConfig`.",
+        description="Account's `AccountConfig` settings.",
     )
     display = fields.Nested(
         AccountDisplaySchema,
