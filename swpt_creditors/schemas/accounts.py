@@ -89,6 +89,16 @@ class LedgerEntrySchema(Schema):
                     'the log to inform about the change in the corresponding `AccountLedger`.',
         example=12345,
     )
+    previous_entry_id = fields.Integer(
+        dump_only=True,
+        data_key='previousEntryId',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format='int64',
+        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
+                    "entries have smaller IDs. When this field is not present, this means "
+                    "that there are no previous entries in the account's ledger.",
+        example=122,
+    )
     added_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
@@ -120,16 +130,6 @@ class LedgerEntrySchema(Schema):
         dump_only=True,
         description='The URI of the corresponding `CommittedTransfer`.',
         example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
-    )
-    previous_entry_id = fields.Integer(
-        dump_only=True,
-        data_key='previousEntryId',
-        validate=validate.Range(min=1, max=MAX_INT64),
-        format='int64',
-        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
-                    "entries have smaller IDs. When this field is not present, this means "
-                    "that there are no previous entries in the account's ledger.",
-        example=122,
     )
 
 
