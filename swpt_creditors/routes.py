@@ -106,7 +106,7 @@ class WalletEndpoint(MethodView):
         wallet.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
         wallet.transferList = {'uri': url_for('creditors.TransferListEndpoint', creditorId=creditorId)}
         wallet.accountList = {'uri': url_for('creditors.AccountListEndpoint', creditorId=creditorId)}
-        wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=wallet.creditor_id)}
+        wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=creditorId)}
         return wallet
 
 
