@@ -36,6 +36,8 @@ def test_create_creditor(client):
     assert data['active'] is False
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
+    assert data['latestUpdateId']
+    assert data['latestUpdateAt']
 
 
 def test_get_wallet(client, creditor):
@@ -54,10 +56,18 @@ def test_get_wallet(client, creditor):
     assert log['forthcoming'] == '/creditors/2/log?prev=0'
     assert log['itemsType'] == 'LogEntry'
     dt = data['transfers']
-    assert dt['type'] == 'PaginatedList'
+    assert dt['uri'] == '/creditors/2/transfer-list'
+    assert dt['type'] == 'TransferList'
     assert dt['first'] == '/creditors/2/transfers/'
     assert dt['itemsType'] == 'string'
+    assert dt['wallet'] == {'uri': '/creditors/2/wallet'}
+    assert dt['latestUpdateId']
+    assert dt['latestUpdateAt']
     ar = data['accounts']
-    assert ar['type'] == 'PaginatedList'
+    assert ar['uri'] == '/creditors/2/account-list'
+    assert ar['type'] == 'AccountList'
     assert ar['first'] == '/creditors/2/accounts/'
     assert ar['itemsType'] == 'string'
+    assert ar['wallet'] == {'uri': '/creditors/2/wallet'}
+    assert ar['latestUpdateId']
+    assert ar['latestUpdateAt']

@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
+from swpt_creditors import specs
 from .common import (
     ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema, URI_DESCRIPTION,
     MAX_INT64, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
@@ -48,6 +49,68 @@ class CreditorSchema(MutableResourceSchema):
         return url_for(self.context['Creditor'], creditorId=obj.creditor_id)
 
 
+class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
+    class Meta:
+        exclude = ['forthcoming']
+
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/account-list',
+    )
+    type = fields.Function(
+        lambda obj: 'AccountList',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='AccountList',
+    )
+    wallet = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the creditor's `Wallet` that contains the account list.",
+        example={'uri': '/creditors/2/wallet'},
+    )
+
+    def get_uri(self, obj):
+        return url_for(self.context['AccountList'], creditorId=obj.creditorId)
+
+
+class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
+    class Meta:
+        exclude = ['forthcoming']
+
+    uri = fields.Method(
+        'get_uri',
+        required=True,
+        type='string',
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/transfer-list',
+    )
+    type = fields.Function(
+        lambda obj: 'TransferList',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferList',
+    )
+    wallet = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the creditor's `Wallet` that contains the transfer list.",
+        example={'uri': '/creditors/2/wallet'},
+    )
+
+    def get_uri(self, obj):
+        return url_for(self.context['TransferList'], creditorId=obj.creditorId)
+
+
 class WalletSchema(Schema):
     uri = fields.Method(
         'get_uri',
@@ -72,16 +135,13 @@ class WalletSchema(Schema):
         example={'uri': '/creditors/2/'},
     )
     accounts = fields.Nested(
-        PaginatedListSchema,
+        AccountListSchema,
         required=True,
         dump_only=True,
-        description='A `PaginatedList` of `ObjectReference`s to all `Account`s belonging to the '
-                    'creditor. The paginated list will not be sorted in any particular order.',
-        example={
-            'first': '/creditors/2/accounts/',
-            'itemsType': 'ObjectReference',
-            'type': 'PaginatedList',
-        },
+        description="Creditor's `AccountList`. That is: a `PaginatedList` of `ObjectReference`s to "
+                    "all `Account`s belonging to the creditor. The paginated list will not be "
+                    "sorted in any particular order.",
+        example=specs.ACCOUNT_LIST_EXAMPLE,
     )
     log = fields.Nested(
         PaginatedListSchema,
@@ -102,17 +162,13 @@ class WalletSchema(Schema):
         },
     )
     transfers = fields.Nested(
-        PaginatedListSchema,
+        TransferListSchema,
         required=True,
         dump_only=True,
-        description='A `PaginatedList` of `ObjectReference`s to all `Transfer`s initiated '
-                    'by the creditor, that have not been deleted yet. The paginated list will '
-                    'not be sorted in any particular order.',
-        example={
-            'first': '/creditors/2/transfers/',
-            'itemsType': 'ObjectReference',
-            'type': 'PaginatedList',
-        },
+        description="Creditor's `TransferList`. That is: a `PaginatedList` of `ObjectReference`s to "
+                    "all `Transfer`s initiated by the creditor, that have not been deleted yet. "
+                    "The paginated list will not be sorted in any particular order.",
+        example=specs.TRANSFER_LIST_EXAMPLE,
     )
     createAccount = fields.Nested(
         ObjectReferenceSchema,

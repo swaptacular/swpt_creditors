@@ -1,12 +1,12 @@
 from typing import NamedTuple
 from urllib.parse import urlencode
-from flask import redirect, url_for
+from flask import request, redirect, url_for
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
-    CreditorCreationRequestSchema, CreditorSchema, DebtorSchema,
+    CreditorCreationRequestSchema, CreditorSchema, DebtorSchema, AccountListSchema, TransferListSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
@@ -22,12 +22,20 @@ class PaginatedList(NamedTuple):
     itemsType: str
     first: str
     forthcoming: str = missing
+    creditorId: int = None
+
+    @property
+    def wallet(self):
+        if self.creditorId is None:
+            return missing
+        return {'uri': url_for('creditors.WalletEndpoint', creditorId=self.creditorId)}
 
 
 CONTEXT = {
     'Creditor': 'creditors.CreditorEndpoint',
     'Wallet': 'creditors.WalletEndpoint',
-    'AccountList': 'accounts.AccountListEndpoint',
+    'AccountList': 'creditors.AccountListEndpoint',
+    'TransferList': 'creditors.TransferListEndpoint',
     'Account': 'accounts.AccountEndpoint',
     'Accounts': 'accounts.AccountsEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
@@ -98,10 +106,10 @@ class WalletEndpoint(MethodView):
         wallet.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
 
         transfers_url = url_for('transfers.TransfersEndpoint', creditorId=creditorId)
-        wallet.transfers = PaginatedList('string', transfers_url)
+        wallet.transfers = PaginatedList('string', transfers_url, creditorId=creditorId)
 
         accounts_url = url_for('accounts.AccountsEndpoint', creditorId=creditorId)
-        wallet.accounts = PaginatedList('string', accounts_url)
+        wallet.accounts = PaginatedList('string', accounts_url, creditorId=creditorId)
 
         wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=wallet.creditor_id)}
         return wallet
@@ -120,6 +128,38 @@ class LogEntriesEndpoint(MethodView):
         list. The paginated list contains all recent log entries. The
         returned fragment will be sorted in chronological order
         (smaller `entryId`s go first).
+
+        """
+
+        abort(500)
+
+
+@creditors_api.route('/<i64:creditorId>/account-list', parameters=[CID])
+class AccountListEndpoint(MethodView):
+    @creditors_api.response(AccountListSchema(context=CONTEXT), example=specs.ACCOUNT_LIST_EXAMPLE)
+    @creditors_api.doc(operationId='getAccountList',
+                       responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def get(self, pagination_parameters, creditorId):
+        """Return a paginated list of links to all accounts belonging to a
+        creditor.
+
+        The paginated list will not be sorted in any particular order.
+
+        """
+
+        abort(500)
+
+
+@creditors_api.route('/<i64:creditorId>/transfer-list', parameters=[CID])
+class TransferListEndpoint(MethodView):
+    @creditors_api.response(TransferListSchema(context=CONTEXT), example=specs.TRANSFER_LIST_EXAMPLE)
+    @creditors_api.doc(operationId='getTransferList',
+                       responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def get(self, pagination_parameters, creditorId):
+        """Return a paginated list of links to all transfers belonging to a
+        creditor.
+
+        The paginated list will not be sorted in any particular order.
 
         """
 

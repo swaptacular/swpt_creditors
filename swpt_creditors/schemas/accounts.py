@@ -549,12 +549,12 @@ class AccountSchema(MutableResourceSchema):
         description='The type of this object.',
         example='Account',
     )
-    wallet = fields.Nested(
+    accounts = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Wallet` that contains this account.",
-        example={'uri': '/creditors/2/wallet'},
+        description="The URI of the creditor's `AccountList`.",
+        example={'uri': '/creditors/2/account-list'},
     )
     debtor = fields.Nested(
         DebtorSchema,
