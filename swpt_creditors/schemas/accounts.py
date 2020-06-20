@@ -549,11 +549,11 @@ class AccountSchema(MutableResourceSchema):
         description='The type of this object.',
         example='Account',
     )
-    accounts = fields.Nested(
+    accountList = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `AccountList`.",
+        description="The URI of creditor's `AccountList`.",
         example={'uri': '/creditors/2/account-list'},
     )
     debtor = fields.Nested(

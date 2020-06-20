@@ -134,7 +134,7 @@ class WalletSchema(Schema):
         description="The URI of the `Creditor`.",
         example={'uri': '/creditors/2/'},
     )
-    accounts = fields.Nested(
+    accountList = fields.Nested(
         AccountListSchema,
         required=True,
         dump_only=True,
@@ -161,7 +161,7 @@ class WalletSchema(Schema):
             'type': 'PaginatedList',
         },
     )
-    transfers = fields.Nested(
+    transferList = fields.Nested(
         TransferListSchema,
         required=True,
         dump_only=True,

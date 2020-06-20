@@ -98,11 +98,11 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description='The type of this object.',
         example='Transfer',
     )
-    transfers = fields.Nested(
+    transferList = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `TransferList`.",
+        description="The URI of creditor's `TransferList`.",
         example={'uri': '/creditors/2/transfer-list'},
     )
     initiated_at_ts = fields.DateTime(
