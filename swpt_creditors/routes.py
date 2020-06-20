@@ -1,6 +1,6 @@
 from typing import NamedTuple
 from urllib.parse import urlencode
-from flask import request, redirect, url_for
+from flask import redirect, url_for
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from marshmallow import missing
@@ -104,13 +104,8 @@ class WalletEndpoint(MethodView):
         log_url = url_for('.LogEntriesEndpoint', creditorId=creditorId)
         log_q = urlencode({'prev': wallet.latest_log_entry_id})
         wallet.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
-
-        transfers_url = url_for('transfers.TransfersEndpoint', creditorId=creditorId)
-        wallet.transfers = PaginatedList('string', transfers_url, creditorId=creditorId)
-
-        accounts_url = url_for('accounts.AccountsEndpoint', creditorId=creditorId)
-        wallet.accounts = PaginatedList('string', accounts_url, creditorId=creditorId)
-
+        wallet.transferList = {'uri': url_for('creditors.TransferListEndpoint', creditorId=creditorId)}
+        wallet.accountList = {'uri': url_for('creditors.AccountListEndpoint', creditorId=creditorId)}
         wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=wallet.creditor_id)}
         return wallet
 

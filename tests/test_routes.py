@@ -55,19 +55,7 @@ def test_get_wallet(client, creditor):
     assert log['first'] == '/creditors/2/log'
     assert log['forthcoming'] == '/creditors/2/log?prev=0'
     assert log['itemsType'] == 'LogEntry'
-    dt = data['transfers']
+    dt = data['transferList']
     assert dt['uri'] == '/creditors/2/transfer-list'
-    assert dt['type'] == 'TransferList'
-    assert dt['first'] == '/creditors/2/transfers/'
-    assert dt['itemsType'] == 'string'
-    assert dt['wallet'] == {'uri': '/creditors/2/wallet'}
-    assert dt['latestUpdateId']
-    assert dt['latestUpdateAt']
-    ar = data['accounts']
+    ar = data['accountList']
     assert ar['uri'] == '/creditors/2/account-list'
-    assert ar['type'] == 'AccountList'
-    assert ar['first'] == '/creditors/2/accounts/'
-    assert ar['itemsType'] == 'string'
-    assert ar['wallet'] == {'uri': '/creditors/2/wallet'}
-    assert ar['latestUpdateId']
-    assert ar['latestUpdateAt']

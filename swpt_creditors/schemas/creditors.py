@@ -1,6 +1,5 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
-from swpt_creditors import specs
 from .common import (
     ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema, URI_DESCRIPTION,
     MAX_INT64, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
@@ -135,13 +134,13 @@ class WalletSchema(Schema):
         example={'uri': '/creditors/2/'},
     )
     accountList = fields.Nested(
-        AccountListSchema,
+        ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="Creditor's `AccountList`. That is: a `PaginatedList` of `ObjectReference`s to "
-                    "all `Account`s belonging to the creditor. The paginated list will not be "
-                    "sorted in any particular order.",
-        example=specs.ACCOUNT_LIST_EXAMPLE,
+        description="The URI of creditor's `AccountList`. That is: an URI of a `PaginatedList` of "
+                    "`ObjectReference`s to all `Account`s belonging to the creditor. The paginated "
+                    "list will not be sorted in any particular order.",
+        example={'uri': '/creditors/2/account-list'},
     )
     log = fields.Nested(
         PaginatedListSchema,
@@ -162,13 +161,13 @@ class WalletSchema(Schema):
         },
     )
     transferList = fields.Nested(
-        TransferListSchema,
+        ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="Creditor's `TransferList`. That is: a `PaginatedList` of `ObjectReference`s to "
-                    "all `Transfer`s initiated by the creditor, that have not been deleted yet. "
-                    "The paginated list will not be sorted in any particular order.",
-        example=specs.TRANSFER_LIST_EXAMPLE,
+        description="The URI of creditor's `TransferList`. That is: an URI of a `PaginatedList` of "
+                    "`ObjectReference`s to all `Transfer`s initiated by the creditor, which have not "
+                    "been deleted yet. The paginated list will not be sorted in any particular order.",
+        example={'uri': '/creditors/2/transfer-list'},
     )
     createAccount = fields.Nested(
         ObjectReferenceSchema,
