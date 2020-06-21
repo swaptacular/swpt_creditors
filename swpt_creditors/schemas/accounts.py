@@ -264,14 +264,13 @@ class AccountInfoSchema(MutableResourceSchema):
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
-    misconfigured = fields.Boolean(
+    configError = fields.String(
         dump_only=True,
-        missing=False,
-        description='Whether the account is misconfigured. A `true` means that, for some reason, '
-                    'the current `AccountConfig` settings can not be applied, or is not effectual '
-                    'anymore. Usually this means that there has been some kind of network '
-                    'communication or system configuration problem.',
-        example=False,
+        description='When this field is present, this means that for some reason, the current '
+                    '`AccountConfig` settings can not be applied, or are not effectual anymore. '
+                    'Usually this means that there has been a network communication problem, or a '
+                    'system configuration problem. The value alludes to the cause of the problem.',
+        example='CONFIG_IS_INEFFECTUAL',
     )
     unreachable = fields.Boolean(
         dump_only=True,
