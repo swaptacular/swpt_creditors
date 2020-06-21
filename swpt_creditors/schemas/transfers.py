@@ -72,6 +72,19 @@ class TransferCreationRequestSchema(Schema):
         description='The transferred amount. Must be positive.',
         example=1000,
     )
+    spareAmount = fields.Integer(
+        missing=0,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        description="The spare amount. The sum of the values of `amount` and `spareAmount` fields "
+                    "determines the total amount that should be secured (locked) for the transfer. "
+                    "Nevertheless, when that total amount is successfully secured, only the `amount` "
+                    "will be committed, and the rest will be released (unlocked). This behavior can "
+                    "be useful when the interest rate on the account is negative, and the possible "
+                    "delay between transfer's preparation and transfer's finalization need to be "
+                    "anticipated.",
+        example=0,
+    )
     note = fields.Dict(
         missing={},
         description='A note from the sender. Can be any JSON object containing information '
