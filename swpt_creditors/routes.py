@@ -489,7 +489,7 @@ class TransfersEndpoint(MethodView):
                                   409: specs.TRANSFER_CONFLICT,
                                   422: specs.INVALID_TRANSFER_CREATION_REQUEST})
     def post(self, transfer_creation_request, creditorId):
-        """Create a new transfer, initiated by a given creditor."""
+        """Initiate a transfer."""
 
         uuid = transfer_creation_request['transfer_uuid']
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
