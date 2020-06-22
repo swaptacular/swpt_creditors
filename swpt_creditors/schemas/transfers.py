@@ -128,7 +128,7 @@ class TransferCreationRequestSchema(Schema):
 
 class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     class Meta:
-        exclude = ['transfer_uuid', 'spare_amount']
+        exclude = ['spare_amount']
 
     uri = fields.Method(
         'get_uri',
