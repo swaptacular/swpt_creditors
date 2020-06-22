@@ -104,16 +104,17 @@ class TransferCreationRequestSchema(Schema):
         description='The amount that has to be transferred. Must be a positive number.',
         example=1000,
     )
-    spareAmount = fields.Integer(
+    spare_amount = fields.Integer(
         missing=0,
         validate=validate.Range(min=0, max=MAX_INT64),
         format='int64',
+        data_key='spareAmount',
         description="The spare amount. The sum of the values of `amount` and `spareAmount` fields "
                     "determines the total amount that should be secured (locked) for the transfer. "
                     "Nevertheless, once the total amount gets secured, only the `amount` will be "
                     "committed, and the rest will be released (unlocked).\n"
                     "\n"
-                    "Normally, passing this field whould not bee necessary, except for the cases "
+                    "Normally, passing this field would not bee necessary, except for the cases "
                     "when the interest rate on the account is negative, and the delay between "
                     "transfer's preparation and transfer's finalization need to be anticipated.",
         example=0,
@@ -127,7 +128,7 @@ class TransferCreationRequestSchema(Schema):
 
 class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     class Meta:
-        exclude = ['transfer_uuid']
+        exclude = ['transfer_uuid', 'spare_amount']
 
     uri = fields.Method(
         'get_uri',
