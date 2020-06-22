@@ -150,7 +150,7 @@ class WalletSchema(Schema):
                     "sorted in chronological order (smaller entry IDs go first). The entries "
                     "will constitute a singly linked list, each entry (except the most ancient "
                     "one) referring to its ancestor. Also, this is a \"streaming\" paginated "
-                    "list (the `forthcoming` property will be present), allowing the clients "
+                    "list (the `forthcoming` field will be present), allowing the clients "
                     "of the API to reliably and efficiently invalidate their caches, simply "
                     "by following the \"log\" .",
         example={

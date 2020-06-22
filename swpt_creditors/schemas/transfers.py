@@ -28,9 +28,9 @@ class TransferErrorSchema(Schema):
         required=True,
         dump_only=True,
         description='The error code. If the value is `"INSUFFICIENT_AVAILABLE_AMOUNT"`, this '
-                    'means that transfer was rejected due to insufficient available amount, '
-                    'and there is no other impediment to the transfer. In this case, the '
-                    '`availableAmount` and `lockedAmount` properties will be present as well.',
+                    'means that transfer was rejected due to insufficient available amount. '
+                    'In this case, the `availableAmount` and `lockedAmount` fields will be '
+                    'present as well.',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
     availableAmount = fields.Integer(

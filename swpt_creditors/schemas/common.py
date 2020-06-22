@@ -56,10 +56,10 @@ class PaginatedListSchema(Schema):
         dump_only=True,
         format='uri-reference',
         description='The URI of the first page in the paginated list. This can be a relative URI. '
-                    'The object retrieved from this URI will have: 1) An `items` property (an '
+                    'The object retrieved from this URI will have: 1) An `items` field (an '
                     'array), which will contain the first items of the paginated list; 2) May '
-                    'have a `next` property (a string), which would contain the URI of the next '
-                    'page in the list; 3) May have a `forthcoming` property, for obtaining items '
+                    'have a `next` field (a string), which would contain the URI of the next '
+                    'page in the list; 3) May have a `forthcoming` field, for obtaining items '
                     'that might be added to the paginated list in the future.',
         example='/list?page=1',
     )
