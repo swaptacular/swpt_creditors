@@ -30,7 +30,7 @@ class TransferErrorSchema(Schema):
         description='The error code. If the value is `"INSUFFICIENT_AVAILABLE_AMOUNT"`, this '
                     'means that transfer was rejected due to insufficient available amount. '
                     'In this case, the `availableAmount` and `lockedAmount` fields will be '
-                    'present as well.',
+                    'present.',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
     availableAmount = fields.Integer(
@@ -44,6 +44,38 @@ class TransferErrorSchema(Schema):
         format="int64",
         description='The total amount secured (locked) for prepared transfers on the account.',
         example=0,
+    )
+
+
+class TransferResultSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'TransferResult',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='TransferResult',
+    )
+    finalized_at_ts = fields.DateTime(
+        required=True,
+        dump_only=True,
+        data_key='finalizedAt',
+        description='The moment at which the transfer was finalized.',
+    )
+    committedAmount = fields.Integer(
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        description='The transferred amount. If the transfer has been successful, the value will '
+                    'be equal to the requested transfer amount. If the transfer has been '
+                    'unsuccessful, the value will be zero.',
+        example=0,
+    )
+    error = fields.Nested(
+        TransferErrorSchema,
+        dump_only=True,
+        description='An error that has occurred during the execution of the transfer. If this '
+                    'field is present, this means that the transfer has been unsuccessful.',
     )
 
 
@@ -133,35 +165,17 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description="The moment at which the sender is advised to look at the transfer "
                     "again, to see if it's status has changed. If this field is not present, "
                     "this means either that the status of the transfer is not expected to "
-                    "change, or that the moment of the expected change can not be guessed. "
+                    "change, or that the moment of the expected change can not be predicted. "
                     "Note that the value of this field is calculated on-the-fly, so it may "
                     "change from one request to another, and no `LogEntry` for the change "
                     "will be added to the log.",
     )
-    finalized_at_ts = fields.DateTime(
+    result = fields.Nested(
+        TransferResultSchema,
         dump_only=True,
-        data_key='finalizedAt',
-        description='The moment at which the transfer has been finalized. If the transfer '
-                    'has not been finalized yet, this field will not be present. '
-                    'A finalized transfer can be either successful (no errors), or '
-                    'unsuccessful. When the transfer is unsuccessful, the `error` field '
-                    'will contain information about the error that has occurred.',
-    )
-    committedAmount = fields.Integer(
-        required=True,
-        dump_only=True,
-        validate=validate.Range(min=0, max=MAX_INT64),
-        format='int64',
-        description='The transferred amount. It the transfer has been successfull, this will '
-                    'be equal to the value of the `amount` field. Otherwise, it will be zero.',
-        example=0,
-    )
-    error = fields.Nested(
-        TransferErrorSchema,
-        dump_only=True,
-        description='An error that occurred during the execution of the transfer. If this field '
-                    'is present, this means that: 1) the transfer has been finalized (the '
-                    '`finalizedAt` field will be also present); 2) the transfer is unsuccessful.',
+        description='Contains information about the outcome of the transfer. This field will '
+                    'be preset if, and only if, the transfer has been finalized. Note that a '
+                    'finalized transfer can be either successful, or unsuccessful.',
     )
 
     def get_uri(self, obj):
