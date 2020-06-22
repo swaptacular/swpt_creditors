@@ -69,7 +69,7 @@ class TransferCreationRequestSchema(Schema):
         required=True,
         validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
-        description='The transferred amount. Must be positive.',
+        description='The amount that has to be transferred. Must be a positive number.',
         example=1000,
     )
     spareAmount = fields.Integer(
@@ -134,8 +134,8 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
                     "this means either that the status of the transfer is not expected to "
                     "change, or that the moment of the expected change can not be guessed. "
                     "Note that the value of this field is calculated on-the-fly, so it may "
-                    "change from one request to another, and no `LogEntry` entry for the "
-                    "change will be added to the log.",
+                    "change from one request to another, and no `LogEntry` for the change "
+                    "will be added to the log.",
     )
     finalized_at_ts = fields.DateTime(
         dump_only=True,
@@ -144,14 +144,22 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
                     'has not been finalized yet, this field will not be present. '
                     'A finalized transfer can be either successful (no errors), or '
                     'unsuccessful. When the transfer is unsuccessful, the `error` field '
-                    'will contain information about the error that occurred.',
+                    'will contain information about the error that has occurred.',
+    )
+    committedAmount = fields.Integer(
+        required=True,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        description='The transferred amount. It the transfer has been successfull, this will '
+                    'be equal to the value of the `amount` field. Otherwise, it will be zero.',
+        example=0,
     )
     error = fields.Nested(
         TransferErrorSchema,
         dump_only=True,
-        description='An error that have occurred during the execution of the transfer. If '
-                    'the transfer has been completed successfully, this field will not '
-                    'be present.',
+        description='An error that occurred during the execution of the transfer. If this field '
+                    'is present, this means that the transfer has been finalized (the '
+                    '`finalizedAt` field will be also present), and the transfer is unsuccessful.',
     )
 
     def get_uri(self, obj):
