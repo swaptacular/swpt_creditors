@@ -78,11 +78,12 @@ class TransferCreationRequestSchema(Schema):
         format='int64',
         description="The spare amount. The sum of the values of `amount` and `spareAmount` fields "
                     "determines the total amount that should be secured (locked) for the transfer. "
-                    "Nevertheless, when that total amount is successfully secured, only the `amount` "
-                    "will be committed, and the rest will be released (unlocked). This behavior can "
-                    "be useful when the interest rate on the account is negative, and the possible "
-                    "delay between transfer's preparation and transfer's finalization need to be "
-                    "anticipated.",
+                    "Nevertheless, once the total amount gets secured, only the `amount` will be "
+                    "committed, and the rest will be released (unlocked).\n"
+                    "\n"
+                    "Normally, passing this field whould not bee necessary, except for the cases "
+                    "when the interest rate on the account is negative, and the delay between "
+                    "transfer's preparation and transfer's finalization need to be anticipated.",
         example=0,
     )
     note = fields.Dict(
