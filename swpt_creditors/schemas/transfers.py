@@ -114,7 +114,7 @@ class TransferCreationRequestSchema(Schema):
                     "Nevertheless, once the total amount gets secured, only the `amount` will be "
                     "committed, and the rest will be released (unlocked).\n"
                     "\n"
-                    "Normally, passing this field will not bee necessary, except for the cases "
+                    "Normally, passing this field will not be necessary, except for the cases "
                     "when the interest rate on the account is negative, and the delay between "
                     "transfer's preparation and transfer's finalization need to be anticipated.",
         example=0,
