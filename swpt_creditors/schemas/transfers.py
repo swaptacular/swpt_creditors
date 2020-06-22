@@ -149,6 +149,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     )
     committedAmount = fields.Integer(
         required=True,
+        dump_only=True,
         validate=validate.Range(min=0, max=MAX_INT64),
         format='int64',
         description='The transferred amount. It the transfer has been successfull, this will '
