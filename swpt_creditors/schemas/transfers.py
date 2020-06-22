@@ -159,8 +159,8 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         TransferErrorSchema,
         dump_only=True,
         description='An error that occurred during the execution of the transfer. If this field '
-                    'is present, this means that the transfer has been finalized (the '
-                    '`finalizedAt` field will be also present), and the transfer is unsuccessful.',
+                    'is present, this means that: 1) the transfer has been finalized (the '
+                    '`finalizedAt` field will be also present); 2) the transfer is unsuccessful.',
     )
 
     def get_uri(self, obj):
