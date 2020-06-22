@@ -74,8 +74,8 @@ class TransferResultSchema(Schema):
     error = fields.Nested(
         TransferErrorSchema,
         dump_only=True,
-        description='An error that has occurred during the execution of the transfer. If this '
-                    'field is present, this means that the transfer has been unsuccessful.',
+        description='An error that has occurred during the execution of the transfer. This field '
+                    'will be present if, and only if, the transfer has been unsuccessful.',
     )
 
 
