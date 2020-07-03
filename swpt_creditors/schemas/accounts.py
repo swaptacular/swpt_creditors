@@ -279,6 +279,13 @@ class AccountInfoSchema(MutableResourceSchema):
                     'can not receive incoming transfers.',
         example=False,
     )
+    overflown = fields.Boolean(
+        dump_only=True,
+        missing=False,
+        description='Whether the account is "overflown". A `true` indicates that the account\'s '
+                    'principal have breached the `int64` boundaries.',
+        example=False,
+    )
     debtorUrl = fields.String(
         dump_only=True,
         format='uri',
