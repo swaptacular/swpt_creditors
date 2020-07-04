@@ -264,6 +264,11 @@ class AccountInfoSchema(MutableResourceSchema):
                     'this field is not present, this means that the interest rate is unknown.',
         example=0.0,
     )
+    interest_rate_changed_at_ts = fields.DateTime(
+        dump_only=True,
+        data_key='interestRateChangedAt',
+        description='The moment at which the latest change in the interest rate happened.',
+    )
     configError = fields.String(
         dump_only=True,
         description='When this field is present, this means that for some reason, the current '
@@ -320,7 +325,7 @@ class AccountKnowledgeSchema(MutableResourceSchema):
         description="An `AccountIdentity`, which is known to the creditor.",
         example={'uri': 'swpt:1/2'},
     )
-    interest_rate = fields.Float(
+    interest_rate = fields.Float(  # TODO: Do we need `interestRateChangedAt` as well/instead?
         data_key='interestRate',
         description='An annual account interest rate (in percents), which is known to the creditor.',
         example=0.0,
