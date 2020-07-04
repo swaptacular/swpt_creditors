@@ -325,7 +325,7 @@ class AccountKnowledgeSchema(MutableResourceSchema):
         description="An `AccountIdentity`, which is known to the creditor.",
         example={'uri': 'swpt:1/2'},
     )
-    interest_rate = fields.Float(  # TODO: Do we need `interestRateChangedAt` as well/instead?
+    interest_rate = fields.Float(
         data_key='interestRate',
         description='An annual account interest rate (in percents), which is known to the creditor.',
         example=0.0,

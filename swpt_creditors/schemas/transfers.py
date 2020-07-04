@@ -30,6 +30,13 @@ class TransferErrorSchema(Schema):
         description='The error code.',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
+    accumulatedInterest = fields.Float(
+        required=True,
+        dump_only=True,
+        description='The amount of interest accumulated on the account, which is not added to '
+                    'the principal yet. Can be a negative number.',
+        example=0.0,
+    )
     totalLockedAmount = fields.Integer(
         required=True,
         dump_only=True,
