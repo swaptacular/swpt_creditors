@@ -330,6 +330,11 @@ class AccountKnowledgeSchema(MutableResourceSchema):
         description='An annual account interest rate (in percents), which is known to the creditor.',
         example=0.0,
     )
+    interest_rate_changed_at_ts = fields.DateTime(
+        data_key='interestRateChangedAt',
+        description='The moment at which the latest change in the interest rate, which is known '
+                    'to the creditor, happened.',
+    )
     debtorUrl = fields.String(
         format='uri',
         description='A link for additional information about the debtor, which is known to '
