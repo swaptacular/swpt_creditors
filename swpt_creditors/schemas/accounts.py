@@ -335,6 +335,14 @@ class AccountKnowledgeSchema(MutableResourceSchema):
         CurrencyPegSchema,
         description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
     )
+    allow_unsafe_deletion = fields.Boolean(
+        missing=False,
+        data_key='allowUnsafeDeletion',
+        description='Whether unsafe deletion of the account is allowed by the creditor. Note '
+                    'that the deletion of an account which allows unsafe deletion may result in '
+                    'losing a non-negligible amount of money on the account.',
+        example=False,
+    )
 
 
 class AccountConfigSchema(MutableResourceSchema):
@@ -384,14 +392,6 @@ class AccountConfigSchema(MutableResourceSchema):
         description='Additional account configuration settings. Different debtors may '
                     'use different formats for this field.',
         example='',
-    )
-    allow_unsafe_deletion = fields.Boolean(
-        missing=False,
-        data_key='allowUnsafeDeletion',
-        description='Whether to allow unsafe deletion of the account. The deletion '
-                    'of an account that allows unsafe deletion may result in losing a '
-                    'non-negligible amount of money on the account.',
-        example=False,
     )
 
 
