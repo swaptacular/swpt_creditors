@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate, missing
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema,
-    MIN_INT64, MAX_INT64, URI_DESCRIPTION,
+    MAX_INT32, MIN_INT64, MAX_INT64, URI_DESCRIPTION,
 )
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -36,6 +36,50 @@ class TransferErrorSchema(Schema):
         format="int64",
         description='The total amount secured (locked) for prepared transfers on the account.',
         example=0,
+    )
+
+
+class TransferOptionsSchema(Schema):
+    type = fields.String(
+        missing='TransferOptions',
+        description='The type of this object.',
+        example='TransferOptions',
+    )
+    min_amount = fields.Integer(
+        missing=0,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        data_key='minAmount',
+        description='The secured amount should be equal or bigger than this value.',
+        example=0,
+    )
+    max_amount = fields.Integer(
+        missing=0,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        data_key='maxAmount',
+        description='The secured amount should not exceed this value. Note that this value '
+                    'must be equal or bigger than the value of `min_amount`.',
+        example=0,
+    )
+    min_interest_rate = fields.Float(
+        missing=-100.0,
+        validate=validate.Range(min=-100.0),
+        data_key='minInterestRate',
+        description='The minimal acceptable interest rate. If the interest rate on the '
+                    'account becomes lower than this value, the transfer will not be '
+                    'successful. This can be useful when the transferred amount may need '
+                    'to be decreased if the interest rate on the account has decreased.',
+        example=-100.0,
+    )
+    max_commit_delay = fields.Integer(
+        missing=MAX_INT32,
+        validate=validate.Range(min=0, max=MAX_INT32),
+        format='int32',
+        data_key='maxCommitDelay',
+        description='The period (in seconds) during which the prepared transfer can be '
+                    'committed successfully.',
+        example=MAX_INT32,
     )
 
 
@@ -96,20 +140,10 @@ class TransferCreationRequestSchema(Schema):
         description='The amount that has to be transferred. Must be a positive number.',
         example=1000,
     )
-    spare_amount = fields.Integer(
-        missing=0,
-        validate=validate.Range(min=0, max=MAX_INT64),
-        format='int64',
-        data_key='spareAmount',
-        description="The spare amount. The sum of the values of `amount` and `spareAmount` fields "
-                    "determines the total amount that should be secured (locked) for the transfer. "
-                    "Nevertheless, once the total amount gets secured, only the `amount` will be "
-                    "committed, and the rest will be released (unlocked).\n"
-                    "\n"
-                    "Normally, passing this field will not be necessary, except for the cases "
-                    "when the interest rate on the account is negative, and the delay between "
-                    "transfer's preparation and transfer's finalization need to be anticipated.",
-        example=0,
+    options = fields.Nested(
+        TransferOptionsSchema,
+        missing={},
+        description="Transfer's `TransferOptions`.",
     )
     note = fields.Dict(
         missing={},
@@ -119,9 +153,6 @@ class TransferCreationRequestSchema(Schema):
 
 
 class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
-    class Meta:
-        exclude = ['spare_amount']
-
     uri = fields.Method(
         'get_uri',
         required=True,
