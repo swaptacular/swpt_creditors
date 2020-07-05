@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
-    MIN_INT32, MAX_INT32, MAX_INT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
+    MIN_INT32, MAX_INT32, MAX_INT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, BEGINNING_OF_TIME
 )
 
 
@@ -258,13 +258,14 @@ class AccountInfoSchema(MutableResourceSchema):
         example=False,
     )
     interest_rate = fields.Float(
+        required=True,
         dump_only=True,
         data_key='interestRate',
-        description='Annual rate (in percents) at which interest accumulates on the account. When '
-                    'this field is not present, this means that the interest rate is unknown.',
+        description='Annual rate (in percents) at which interest accumulates on the account.',
         example=0.0,
     )
     interest_rate_changed_at_ts = fields.DateTime(
+        required=True,
         dump_only=True,
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
@@ -326,14 +327,16 @@ class AccountKnowledgeSchema(MutableResourceSchema):
         example={'uri': 'swpt:1/2'},
     )
     interest_rate = fields.Float(
+        missing=0.0,
         data_key='interestRate',
         description='An annual account interest rate (in percents), which is known to the creditor.',
         example=0.0,
     )
     interest_rate_changed_at_ts = fields.DateTime(
+        missing=BEGINNING_OF_TIME,
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate, which is known '
-                    'to the creditor, happened.',
+                    'to the creditor, has happened.',
     )
     debtorUrl = fields.String(
         format='uri',
