@@ -30,13 +30,6 @@ class TransferErrorSchema(Schema):
         description='The error code.',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
-    accumulatedInterest = fields.Float(
-        required=True,
-        dump_only=True,
-        description='The amount of interest accumulated on the account, which is not added to '
-                    'the principal yet. Can be a negative number.',
-        example=0.0,
-    )
     totalLockedAmount = fields.Integer(
         required=True,
         dump_only=True,
@@ -196,8 +189,9 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description="The moment at which the sender is advised to look at the transfer "
                     "again, to see if it's status has changed. If this field is not present, "
                     "this means either that the status of the transfer is not expected to "
-                    "change, or that the moment of the expected change can not be predicted. "
-                    "Note that the value of this field is calculated on-the-fly, so it may "
+                    "change, or that the moment of the expected change can not be predicted."
+                    "\n\n"
+                    "**Note:** The value of this field is calculated on-the-fly, so it may "
                     "change from one request to another, and no `LogEntry` for the change "
                     "will be added to the log.",
     )

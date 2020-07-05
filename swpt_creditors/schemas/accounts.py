@@ -194,6 +194,23 @@ class AccountLedgerSchema(MutableResourceSchema):
         description='The principal amount on the account.',
         example=0,
     )
+    interest = fields.Method(
+        'get_interest',
+        required=True,
+        dump_only=True,
+        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        type='integer',
+        format='int64',
+        description='The approximate amount of interest accumulated on the account, which '
+                    'has not been added to the principal yet. This can be a negative number. '
+                    'Once in a while, the accumulated interest will be zeroed out and added '
+                    'to the principal (an interest payment).'
+                    '\n\n'
+                    '**Note:** The value of this field is calculated on-the-fly, so it may '
+                    'change from one request to another, and no `LogEntry` for the change '
+                    'will be added to the log.',
+        example=0,
+    )
     entries = fields.Nested(
         PaginatedListSchema,
         required=True,
@@ -209,6 +226,9 @@ class AccountLedgerSchema(MutableResourceSchema):
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
+
+    def get_interest(self, obj):
+        return 0
 
 
 class AccountInfoSchema(MutableResourceSchema):
