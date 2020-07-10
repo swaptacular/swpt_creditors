@@ -247,7 +247,7 @@ class CommittedTransferSchema(Schema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     coordinator = fields.String(
-        required=True,
+        missing='direct',
         dump_only=True,
         description='Indicates the subsystem which requested the transfer.',
         example='direct',
