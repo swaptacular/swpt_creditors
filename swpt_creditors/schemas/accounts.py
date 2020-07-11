@@ -501,7 +501,6 @@ class AccountExchangeSchema(MutableResourceSchema):
         if value != 'AccountExchange':
             raise ValidationError('Invalid type.')
 
-
     @validates_schema
     def validate_max_principal(self, data, **kwargs):
         if data['min_principal'] > data['max_principal']:
