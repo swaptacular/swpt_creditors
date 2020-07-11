@@ -84,14 +84,10 @@ def test_deserialize_account_display(app):
     data = ads.load({})
     assert data == {
         'type': 'AccountDisplay',
-        'own_unit': None,
         'own_unit_preference': 0,
         'amount_divisor': 1.0,
         'decimal_places': 0,
         'hide': False,
-        'debtor_name': None,
-        'peg_exchange_rate': None,
-        'peg_debtor_uri': None,
     }
 
     data = ads.load({
@@ -116,6 +112,9 @@ def test_deserialize_account_display(app):
         'decimal_places': 2,
         'hide': False,
         'debtor_name': 'Test Debtor',
-        'peg_exchange_rate': 1.5,
-        'peg_debtor_uri': 'https://example.com/gold',
+        'peg': {
+            'type': 'AccountPeg',
+            'exchange_rate': 1.5,
+            'debtor': {'uri': 'https://example.com/gold'},
+        },
     }

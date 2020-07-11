@@ -596,50 +596,25 @@ class AccountDisplaySchema(MutableResourceSchema):
             debtorId=obj.debtor_id,
         )}
 
-        if obj.peg_exchange_rate is None:
-            obj.peg = missing
-        else:
-            if obj.peg_debtor_id is None:
-                display = missing
-            else:
-                display = {'uri': url_for(
+        if obj.peg_exchange_rate is not None:
+            peg = {
+                'exchange_rate': obj.peg_exchange_rate,
+                'debtor': {'uri': obj.peg_debtor_uri},
+            }
+            if obj.peg_debtor_id is not None:
+                peg['display'] = {'uri': url_for(
                     self.context['AccountDisplay'],
                     _external=False,
                     creditorId=obj.creditor_id,
                     debtorId=obj.peg_debtor_id,
                 )}
-            obj.peg = {
-                'exchange_rate': obj.peg_exchange_rate,
-                'debtor': {'uri': obj.peg_debtor_uri},
-                'display': display,
-            }
+            obj.peg = peg
 
         if obj.own_unit is None:
             obj.own_unit = missing
 
         if obj.debtor_name is None:
             obj.debtor_name = missing
-
-        return obj
-
-    @post_load
-    def refine_object(self, obj, many, **kwargs):
-        assert not many
-
-        if 'own_unit' not in obj:
-            obj['own_unit'] = None
-
-        if 'debtor_name' not in obj:
-            obj['debtor_name'] = None
-
-        if 'peg' not in obj:
-            obj['peg_exchange_rate'] = None
-            obj['peg_debtor_uri'] = None
-        else:
-            peg = obj['peg']
-            del obj['peg']
-            obj['peg_exchange_rate'] = peg['exchange_rate']
-            obj['peg_debtor_uri'] = peg['debtor']['uri']
 
         return obj
 
