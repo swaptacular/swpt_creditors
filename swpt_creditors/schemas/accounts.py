@@ -530,6 +530,7 @@ class AccountDisplaySchema(MutableResourceSchema):
     )
     decimal_places = fields.Integer(
         missing=0,
+        validate=validate.Range(min=-20, max=20),
         description='The number of digits to show after the decimal point, when displaying '
                     'the amount.',
         data_key='decimalPlaces',

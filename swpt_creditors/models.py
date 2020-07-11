@@ -4,7 +4,7 @@ from datetime import datetime, timezone, date
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, false, or_, FunctionElement
+from sqlalchemy.sql.expression import null, true, false, or_, and_, FunctionElement
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
 from swpt_lib.utils import date_to_int24
@@ -106,6 +106,10 @@ class AccountDisplay(db.Model):
         db.CheckConstraint(amount_divisor > 0.0),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(peg_exchange_rate >= 0.0),
+        db.CheckConstraint(and_(
+            decimal_places >= -20,
+            decimal_places <= 20,
+        )),
         db.CheckConstraint(or_(
             peg_exchange_rate != null(),
             peg_debtor_id == null(),
