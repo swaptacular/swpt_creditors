@@ -13,7 +13,7 @@ APP_QUEUE_NAME = os.environ.get('APP_QUEUE_NAME', 'swpt_creditors')
 
 warnings.filterwarnings(
     'ignore',
-    r"this is a regular expression for the text of the warning",
+    r"Reset agent is not active.  This should not occur unless there was already a connectivity error in progress",
     SAWarning,
 )
 
