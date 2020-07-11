@@ -492,7 +492,8 @@ class AccountExchangeSchema(MutableResourceSchema):
         data_key='maxPrincipal',
         description='The principal amount on the account should not exceed this value. '
                     'Note that this limit applies only for automatic exchanges, and is '
-                    'enforced on "best effort" bases.',
+                    'enforced on "best effort" bases. The value of `maxPrincipal` must '
+                    'be equal or greater than the value of `minPrincipal`',
         example=5000,
     )
 
