@@ -579,7 +579,7 @@ class AccountDisplaySchema(MutableResourceSchema):
     )
 
     @pre_dump
-    def transform_account_display_instance(self, obj, many):
+    def process_account_display_instance(self, obj, many):
         assert not many
         assert isinstance(obj, AccountDisplay)
         obj = copy(obj)
