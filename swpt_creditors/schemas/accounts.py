@@ -1,10 +1,11 @@
 from copy import copy
-from marshmallow import Schema, fields, validate, pre_dump, post_load, missing
+from marshmallow import (
+    Schema, fields, validate, pre_dump, post_load, missing, validates_schema, ValidationError)
 from flask import url_for
-from swpt_creditors.models import AccountDisplay
+from swpt_creditors.models import AccountDisplay, AccountExchange
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
-    MIN_INT32, MAX_INT32, MAX_INT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, BEGINNING_OF_TIME
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, BEGINNING_OF_TIME
 )
 
 
@@ -42,10 +43,10 @@ class CurrencyPegSchema(Schema):
     exchange_rate = fields.Float(
         required=True,
         validate=validate.Range(min=0.0),
+        data_key='exchangeRate',
         description="The exchange rate between the pegged currency and the peg currency. For "
                     "example, `2.0` would mean that pegged currency's tokens are twice as "
                     "valuable as peg currency's tokens.",
-        data_key='exchangeRate',
         example=1.0,
     )
 
@@ -432,10 +433,9 @@ class AccountConfigSchema(MutableResourceSchema):
 
 
 class AccountExchangeSchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/exchange',
@@ -461,22 +461,54 @@ class AccountExchangeSchema(MutableResourceSchema):
                     'participate in automatic exchanges.',
         example='conservative',
     )
-    minPrincipal = fields.Integer(
-        missing=-MAX_INT64,
+    min_principal = fields.Integer(
+        missing=MIN_INT64,
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
+        data_key='minPrincipal',
         description='The principal amount on the account should not fall below this value. '
                     'Note that this limit applies only for automatic exchanges, and is '
                     'enforced on "best effort" bases.',
         example=1000,
     )
-    maxPrincipal = fields.Integer(
+    max_principal = fields.Integer(
         missing=MAX_INT64,
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
+        data_key='maxPrincipal',
         description='The principal amount on the account should not exceed this value. '
                     'Note that this limit applies only for automatic exchanges, and is '
                     'enforced on "best effort" bases.',
         example=5000,
     )
+
+    @validates_schema
+    def validate_max_principal(self, data, **kwargs):
+        if data['min_principal'] > data['max_principal']:
+            raise ValidationError("max_principal must be equal or greater than min_principal")
+
+    @pre_dump
+    def process_account_exchange_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, AccountExchange)
+        obj = copy(obj)
+        obj.uri = url_for(
+            self.context['AccountExchange'],
+            _external=True,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
+        obj.account = {'uri': url_for(
+            self.context['Account'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )}
+
+        if obj.policy is None:
+            obj.policy = missing
+
+        return obj
 
 
 class AccountDisplaySchema(MutableResourceSchema):
@@ -500,6 +532,7 @@ class AccountDisplaySchema(MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     debtor_name = fields.String(
+        data_key='debtorName',
         description='The name of the debtor. **All accounts belonging to a given '
                     'creditor must have different `debtorName`s. When a new account '
                     'has been created, this field will not be present, and it must '
@@ -507,7 +540,6 @@ class AccountDisplaySchema(MutableResourceSchema):
                     'debtor may remain unknown to the creditor, which may lead to '
                     'confusion and financial loses. The creditor may choose any '
                     'name that is convenient, or easy to remember.',
-        data_key='debtorName',
         example='United States of America',
     )
     peg = fields.Nested(
@@ -521,22 +553,23 @@ class AccountDisplaySchema(MutableResourceSchema):
     amount_divisor = fields.Float(
         missing=1.0,
         validate=validate.Range(min=0.0, min_inclusive=False),
+        data_key='amountDivisor',
         description="Account's amounts should be divided by this number before being "
                     "displayed. Important note: This value should be used for display "
                     "purposes only. Notably, the value of this field must be ignored when "
                     "the exchange rate between pegged accounts is being calculated.",
-        data_key='amountDivisor',
         example=100.0,
     )
     decimal_places = fields.Integer(
         missing=0,
         validate=validate.Range(min=-20, max=20),
+        data_key='decimalPlaces',
         description='The number of digits to show after the decimal point, when displaying '
                     'the amount.',
-        data_key='decimalPlaces',
         example=2,
     )
     own_unit = fields.String(
+        data_key='ownUnit',
         description="Optional abbreviation for a value measurement unit that is unique for the "
                     "account's debtor. It should be shown right after the displayed amount, "
                     "\"500.00 USD\" for example. **All accounts belonging to a given creditor must "
@@ -546,14 +579,13 @@ class AccountDisplaySchema(MutableResourceSchema):
                     "a good reason for the pegged currency to have the same `ownUnit` as the peg "
                     "currency. In practice, many of creditor's accounts might be pegged to other "
                     "accounts, and only a few would need to have their `ownUnit` field set.",
-        data_key='ownUnit',
         example='USD',
     )
     own_unit_preference = fields.Integer(
         missing=0,
         validate=validate.Range(min=MIN_INT32, max=MAX_INT32),
-        format='int32',
         data_key='ownUnitPreference',
+        format='int32',
         description="A number that expresses creditor's preference for seeing the balances on "
                     "other accounts, measured in this account's `ownUnit`. A bigger number "
                     "indicates a bigger preference (negative numbers are allowed too). To "

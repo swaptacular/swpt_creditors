@@ -121,6 +121,20 @@ class AccountDisplay(db.Model):
     )
 
 
+class AccountExchange(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    policy = db.Column(db.String)
+    min_principal = db.Column(db.BigInteger, nullable=False)
+    max_principal = db.Column(db.BigInteger, nullable=False)
+    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __table_args__ = (
+        db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(min_principal <= max_principal),
+    )
+
+
 class Creditor(db.Model):
     STATUS_IS_ACTIVE_FLAG = 1
 

@@ -1,3 +1,5 @@
+import pytest
+from marshmallow import ValidationError
 from datetime import datetime
 from swpt_creditors import schemas
 from swpt_creditors import models
@@ -118,3 +120,69 @@ def test_deserialize_account_display(app):
             'debtor': {'uri': 'https://example.com/gold'},
         },
     }
+
+
+def test_serialize_account_exchange(app):
+    ad = models.AccountExchange(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        policy='test policy',
+        min_principal=1000,
+        max_principal=5000,
+        latest_update_id=1,
+        latest_update_ts=datetime(2020, 1, 1),
+    )
+    ads = schemas.AccountExchangeSchema(context=CONTEXT)
+    assert ads.dump(ad) == {
+        'type': 'AccountExchange',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/exchange',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'policy': 'test policy',
+        'minPrincipal': 1000,
+        'maxPrincipal': 5000,
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+    ad.policy = None
+    assert ads.dump(ad) == {
+        'type': 'AccountExchange',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/exchange',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'minPrincipal': 1000,
+        'maxPrincipal': 5000,
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+
+def test_deserialize_account_exchange(app):
+    ads = schemas.AccountExchangeSchema(context=CONTEXT)
+
+    data = ads.load({})
+    assert data == {
+        'type': 'AccountExchange',
+        'min_principal': models.MIN_INT64,
+        'max_principal': models.MAX_INT64,
+    }
+
+    data = ads.load({
+        'type': 'AccountExchange',
+        'policy': 'test policy',
+        'minPrincipal': 1000,
+        'maxPrincipal': 5000,
+    })
+    assert data == {
+        'type': 'AccountExchange',
+        'policy': 'test policy',
+        'min_principal': 1000,
+        'max_principal': 5000,
+    }
+
+    with pytest.raises(ValidationError):
+        data = ads.load({
+            'type': 'AccountExchange',
+            'policy': 'test policy',
+            'minPrincipal': 5000,
+            'maxPrincipal': 1000,
+        })

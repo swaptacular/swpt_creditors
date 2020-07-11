@@ -38,6 +38,7 @@ CONTEXT = {
     'TransferList': 'creditors.TransferListEndpoint',
     'Account': 'accounts.AccountEndpoint',
     'AccountDisplay': 'accounts.AccountDisplayEndpoint',
+    'AccountExchange': 'accounts.AccountExchangeEndpoint',
     'Accounts': 'accounts.AccountsEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'Transfers': 'transfers.TransfersEndpoint',

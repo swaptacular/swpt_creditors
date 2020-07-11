@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: af067be9f7c6
+Revision ID: 80fd3658b2d2
 Revises: 8d8c816257ce
-Create Date: 2020-07-11 17:19:12.990651
+Create Date: 2020-07-11 23:12:09.501596
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'af067be9f7c6'
+revision = '80fd3658b2d2'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -33,6 +33,7 @@ def upgrade():
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount_divisor > 0.0'),
+    sa.CheckConstraint('decimal_places >= -20 AND decimal_places <= 20'),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('peg_exchange_rate >= 0.0'),
     sa.CheckConstraint('peg_exchange_rate IS NOT NULL OR peg_debtor_id IS NULL'),
@@ -41,6 +42,18 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
     op.create_index('idx_peg_debtor_id', 'account_display', ['creditor_id', 'peg_debtor_id'], unique=False, postgresql_where=sa.text('peg_debtor_id IS NOT NULL'))
+    op.create_table('account_exchange',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('policy', sa.String(), nullable=True),
+    sa.Column('min_principal', sa.BigInteger(), nullable=False),
+    sa.Column('max_principal', sa.BigInteger(), nullable=False),
+    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('min_principal <= max_principal'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
+    )
     op.create_table('configure_account_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -216,6 +229,7 @@ def downgrade():
     op.drop_table('running_transfer')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
+    op.drop_table('account_exchange')
     op.drop_index('idx_peg_debtor_id', table_name='account_display')
     op.drop_table('account_display')
     # ### end Alembic commands ###
