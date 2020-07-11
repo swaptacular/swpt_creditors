@@ -1,6 +1,8 @@
 from copy import copy
 from marshmallow import (
-    Schema, fields, validate, pre_dump, post_load, missing, validates_schema, ValidationError)
+    Schema, ValidationError, fields, validate, pre_dump, post_load, missing, validates_schema,
+    validates,
+)
 from flask import url_for
 from swpt_creditors.models import AccountDisplay, AccountExchange
 from .common import (
@@ -51,6 +53,11 @@ class CurrencyPegSchema(Schema):
         example=1.0,
     )
 
+    @validates('type')
+    def validate_type(self, value):
+        if value != 'CurrencyPeg':
+            raise ValidationError('Invalid type.')
+
 
 class AccountPegSchema(CurrencyPegSchema):
     type = fields.String(
@@ -66,6 +73,11 @@ class AccountPegSchema(CurrencyPegSchema):
                     "the peg currency.",
         example={'uri': '/creditors/2/accounts/11/display'},
     )
+
+    @validates('type')
+    def validate_type(self, value):
+        if value != 'AccountPeg':
+            raise ValidationError('Invalid type.')
 
 
 class LedgerEntrySchema(Schema):
@@ -484,6 +496,12 @@ class AccountExchangeSchema(MutableResourceSchema):
         example=5000,
     )
 
+    @validates('type')
+    def validate_type(self, value):
+        if value != 'AccountExchange':
+            raise ValidationError('Invalid type.')
+
+
     @validates_schema
     def validate_max_principal(self, data, **kwargs):
         if data['min_principal'] > data['max_principal']:
@@ -614,6 +632,11 @@ class AccountDisplaySchema(MutableResourceSchema):
                     "links in a chain of currency pegs.",
         example=False,
     )
+
+    @validates('type')
+    def validate_type(self, value):
+        if value != 'AccountDisplay':
+            raise ValidationError('Invalid type.')
 
     @pre_dump
     def process_account_display_instance(self, obj, many):

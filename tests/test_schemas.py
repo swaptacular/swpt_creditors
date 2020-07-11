@@ -121,9 +121,49 @@ def test_deserialize_account_display(app):
         },
     }
 
+    with pytest.raises(ValidationError):
+        data = ads.load({'type': 'WrongType'})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'ownUnit': 1000 * 'x'})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'ownUnitPreference': models.MIN_INT32 - 1})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'ownUnitPreference': models.MAX_INT32 + 1})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'amountDivisor': 0.0})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'amountDivisor': -0.01})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'decimalPlaces': 10000})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'debtor_name': 1000 * 'x'})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'peg': {
+            'type': 'WrongType',
+            'debtor': {'uri': 'https://example.com/gold'},
+            'exchangeRate': 1.5,
+        }})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'peg': {'debtor': {'uri': 'https://example.com/gold'}, 'exchangeRate': -1.5}})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'peg': {'debtor': {'uri': 'https://example.com/gold'}, 'exchangeRate': -1.5}})
+
+    with pytest.raises(ValidationError):
+        data = ads.load({'peg': {'debtor': {'uri': 1000 * 'x'}, 'exchangeRate': 1.5}})
+
 
 def test_serialize_account_exchange(app):
-    ad = models.AccountExchange(
+    ae = models.AccountExchange(
         creditor_id=C_ID,
         debtor_id=D_ID,
         policy='test policy',
@@ -132,8 +172,8 @@ def test_serialize_account_exchange(app):
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
-    ads = schemas.AccountExchangeSchema(context=CONTEXT)
-    assert ads.dump(ad) == {
+    aes = schemas.AccountExchangeSchema(context=CONTEXT)
+    assert aes.dump(ae) == {
         'type': 'AccountExchange',
         'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/exchange',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
@@ -144,8 +184,8 @@ def test_serialize_account_exchange(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
 
-    ad.policy = None
-    assert ads.dump(ad) == {
+    ae.policy = None
+    assert aes.dump(ae) == {
         'type': 'AccountExchange',
         'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/exchange',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
@@ -157,16 +197,16 @@ def test_serialize_account_exchange(app):
 
 
 def test_deserialize_account_exchange(app):
-    ads = schemas.AccountExchangeSchema(context=CONTEXT)
+    aes = schemas.AccountExchangeSchema(context=CONTEXT)
 
-    data = ads.load({})
+    data = aes.load({})
     assert data == {
         'type': 'AccountExchange',
         'min_principal': models.MIN_INT64,
         'max_principal': models.MAX_INT64,
     }
 
-    data = ads.load({
+    data = aes.load({
         'type': 'AccountExchange',
         'policy': 'test policy',
         'minPrincipal': 1000,
@@ -180,9 +220,16 @@ def test_deserialize_account_exchange(app):
     }
 
     with pytest.raises(ValidationError):
-        data = ads.load({
-            'type': 'AccountExchange',
-            'policy': 'test policy',
-            'minPrincipal': 5000,
-            'maxPrincipal': 1000,
-        })
+        data = aes.load({'type': 'WrongType'})
+
+    with pytest.raises(ValidationError):
+        data = aes.load({'minPrincipal': 5000, 'maxPrincipal': 1000})
+
+    with pytest.raises(ValidationError):
+        data = aes.load({'minPrincipal': models.MIN_INT64 - 1})
+
+    with pytest.raises(ValidationError):
+        data = aes.load({'maxPrincipal': models.MAX_INT64 + 1})
+
+    with pytest.raises(ValidationError):
+        data = aes.load({'policy': 1000 * 'x'})
