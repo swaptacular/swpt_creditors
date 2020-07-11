@@ -12,6 +12,7 @@ from .common import (
 class DebtorSchema(Schema):
     uri = fields.String(
         required=True,
+        validate=validate.Length(min=1, max=100),
         format='uri',
         description="The URI of the debtor. The information contained in the URI must be "
                     "enough to uniquely and reliably identify the debtor. Be aware of the "
@@ -455,6 +456,7 @@ class AccountExchangeSchema(MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     policy = fields.String(
+        validate=validate.Length(min=1, max=100),
         description='The name of the active automatic exchange policy. Different '
                     'implementations may define different exchange policies. This field is '
                     'optional. If it not present, this means that the account will not '
@@ -532,6 +534,7 @@ class AccountDisplaySchema(MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     debtor_name = fields.String(
+        validate=validate.Length(min=1, max=100),
         data_key='debtorName',
         description='The name of the debtor. **All accounts belonging to a given '
                     'creditor must have different `debtorName`s. When a new account '
@@ -569,6 +572,7 @@ class AccountDisplaySchema(MutableResourceSchema):
         example=2,
     )
     own_unit = fields.String(
+        validate=validate.Length(min=1, max=10),
         data_key='ownUnit',
         description="Optional abbreviation for a value measurement unit that is unique for the "
                     "account's debtor. It should be shown right after the displayed amount, "
