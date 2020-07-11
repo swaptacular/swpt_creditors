@@ -302,9 +302,6 @@ def process_account_update_signal(
     #       Consider adding `Account.last_transfer_committed_at_ts`
     #       and `Account.last_transfer_ts`.
 
-    # TODO: Detect a change in the interest rate. Make sure there is
-    #       an `AccountIssue` record informing for the event.
-
 
 @atomic
 def process_account_transfer_signal(
@@ -632,8 +629,7 @@ def _revise_account_config_effectuality(
 
     # TODO: Detect the situation when the account is scheduled for
     #       deletion, but `config.negligible_amount` is smaller than
-    #       available amount. Make sure there is an `AccountIssue`
-    #       record informing for the event.
+    #       available amount?
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:

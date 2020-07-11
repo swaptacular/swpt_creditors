@@ -78,6 +78,39 @@ class Signal(db.Model):
 #       messing up with accounts belonging to other instances.
 
 
+class AccountDisplay(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_name = db.Column(db.String)
+    amount_divisor = db.Column(db.FLOAT, nullable=False, default=1.0)
+    decimal_places = db.Column(db.Integer, nullable=False, default=0)
+    own_unit = db.Column(db.String)
+    own_unit_preference = db.Column(db.Integer, nullable=False, default=0)
+    hide = db.Column(db.BOOLEAN, nullable=False, default=False)
+    peg_exchange_rate = db.Column(db.FLOAT)
+    peg_debtor_uri = db.Column(db.String)
+    peg_debtor_id = db.Column(db.BigInteger)
+    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'peg_debtor_id'],
+            ['account_display.creditor_id', 'account_display.debtor_id'],
+        ),
+        db.CheckConstraint(amount_divisor > 0.0),
+        db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(peg_exchange_rate >= 0.0),
+        db.CheckConstraint(or_(
+            peg_exchange_rate != null(),
+            peg_debtor_id == null(),
+        )),
+        db.CheckConstraint(or_(
+            peg_exchange_rate == null(),
+            peg_debtor_uri != null(),
+        )),
+    )
+
+
 class Creditor(db.Model):
     STATUS_IS_ACTIVE_FLAG = 1
 
@@ -199,7 +232,7 @@ class DirectTransfer(db.Model):
     def error(self):
         if self.is_finalized and not self.is_successful:
             return self.json_error
-        return missing
+        return None  # TODO: is this correct?
 
 
 class RunningTransfer(db.Model):
@@ -351,10 +384,6 @@ class PendingAccountCommit(db.Model):
 
 
 class AccountConfig(db.Model):
-    ISSUE_ACCOUNT_IS_FUNCTIONAL_FLAG = 1
-    ISSUE_CONFIG_IS_NOT_EFFECTUAL_FLAG = 2
-    ISSUE_ACCOUNT_CAN_BE_REMOVED_FLAG = 4
-
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
@@ -385,14 +414,14 @@ class AccountConfig(db.Model):
                 '`last_ts` column, allows to reliably determine the correct order of changes, '
                 'even if they occur in a very short period of time.',
     )
-    issues = db.Column(
-        db.SmallInteger,
-        nullable=False,
-        default=0,
-        comment="Issues for which the user has been notified (status bits): "
-                f"{ISSUE_ACCOUNT_IS_FUNCTIONAL_FLAG} - the account is functional, "
-                f"{ISSUE_CONFIG_IS_NOT_EFFECTUAL_FLAG} - the configuration is not effectual, "
-                f"{ISSUE_ACCOUNT_CAN_BE_REMOVED_FLAG} - the account can be removed.",
+    is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
+    negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
+
+    # TODO: Those does not belong here.
+    account_identity = db.Column(
+        db.String,
+        comment='The value of the `account_identity` field from the first received '
+                '`AccountChangeSignal` for the account.',
     )
     allow_unsafe_removal = db.Column(
         db.BOOLEAN,
@@ -401,25 +430,6 @@ class AccountConfig(db.Model):
         comment='Whether the owner approved unsafe removal of the account. In extraordinary '
                 'circumstances it might be necessary to forcefully remove an account, accepting '
                 'the risk of losing the available amount.',
-    )
-    is_scheduled_for_deletion = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether the account is scheduled for deletion.',
-    )
-    negligible_amount = db.Column(
-        db.REAL,
-        nullable=False,
-        default=0.0,
-        comment='An amount that is considered negligible. It is used to: 1) '
-                'decide whether an account can be safely deleted; 2) decide '
-                'whether an incoming transfer is insignificant.',
-    )
-    account_identity = db.Column(
-        db.String,
-        comment='The value of the `account_identity` field from the first received '
-                '`AccountChangeSignal` for the account.',
     )
 
     __table_args__ = (
@@ -439,32 +449,6 @@ class AccountConfig(db.Model):
     account_ledger = db.relationship(
         'AccountLedger',
         backref=db.backref('account_config', uselist=False),
-    )
-
-
-class AccountIssue(db.Model):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    issue_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    debtor_id = db.Column(db.BigInteger, nullable=False)
-    issue_type = db.Column(db.String(30), nullable=False)
-    issue_can_be_discarded = db.Column(db.BOOLEAN, nullable=False, default=False)
-    issue_raised_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    details = db.Column(pg.JSON, nullable=False, default={})
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_config.creditor_id', 'account_config.debtor_id'],
-            ondelete='CASCADE',
-        ),
-        db.Index('idx_account_issue_debtor_id', creditor_id, debtor_id),
-        {
-            'comment': 'Represents a problem with a given account that needs attention.',
-        }
-    )
-
-    account_config = db.relationship(
-        'AccountConfig',
-        backref=db.backref('account_issues', cascade="all, delete-orphan", passive_deletes=True),
     )
 
 
@@ -596,15 +580,6 @@ class Account(db.Model):
     STATUS_DELETED_FLAG = 1 << 16
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
 
-    # TODO: Do we need those flags? If the checking for issues is done
-    #       when the `AccountChangeSignal` is processed, we probably
-    #       can read the `AccountIssue` table directly. Also, the
-    #       change in the interest rate is tricky, because there might
-    #       be several of them, while the user acknowledges one.
-    ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG = 1
-    ISSUE_CHANGED_INTEREST_RATE_FLAG = 2
-    ISSUE_OVERFLOW_FLAG = 4
-
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
@@ -624,14 +599,6 @@ class Account(db.Model):
         comment='The moment at which the last `AccountChangeSignal` has been processed. It is '
                 'used to detect "dead" accounts. A "dead" account is an account that have been '
                 'removed from the `swpt_accounts` service, but still exist in this table.',
-    )
-    issues = db.Column(
-        db.SmallInteger,
-        nullable=False,
-        default=0,
-        comment="Issues for which the user has been notified (status bits): "
-                f"{ISSUE_AVL_AMOUNT_IS_NOT_NEGLIGIBLE_FLAG} - the available amount is not negligible, "
-                f"{ISSUE_CHANGED_INTEREST_RATE_FLAG} - changed interest rate.",
     )
     __table_args__ = (
         db.ForeignKeyConstraint(
