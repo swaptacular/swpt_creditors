@@ -1,5 +1,7 @@
-from marshmallow import Schema, fields, validate
+from copy import copy
+from marshmallow import Schema, fields, validate, pre_dump, missing
 from flask import url_for
+from swpt_creditors.models import AccountDisplay
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
     MIN_INT32, MAX_INT32, MAX_INT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, BEGINNING_OF_TIME
@@ -28,8 +30,8 @@ class DebtorSchema(Schema):
 class CurrencyPegSchema(Schema):
     type = fields.String(
         missing='CurrencyPeg',
+        default='CurrencyPeg',
         description='The type of this object.',
-        example='CurrencyPeg',
     )
     debtor = fields.Nested(
         DebtorSchema,
@@ -51,8 +53,8 @@ class CurrencyPegSchema(Schema):
 class AccountPegSchema(CurrencyPegSchema):
     type = fields.String(
         missing='AccountPeg',
+        default='AccountPeg',
         description='The type of this object.',
-        example='AccountPeg',
     )
     display = fields.Nested(
         ObjectReferenceSchema,
@@ -332,8 +334,8 @@ class AccountKnowledgeSchema(MutableResourceSchema):
     )
     type = fields.String(
         missing='AccountKnowledge',
+        default='AccountKnowledge',
         description='The type of this object.',
-        example='AccountKnowledge',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -390,8 +392,8 @@ class AccountConfigSchema(MutableResourceSchema):
     )
     type = fields.String(
         missing='AccountConfig',
+        default='AccountConfig',
         description='The type of this object.',
-        example='AccountConfig',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -440,10 +442,10 @@ class AccountExchangeSchema(MutableResourceSchema):
     )
     type = fields.String(
         missing='AccountExchange',
+        default='AccountExchange',
         description='The type of this object. Different implementations may use different '
                     '**additional fields**, providing more exchange settings for the '
                     'account. This field contains the name of the used schema.',
-        example='AccountExchange',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -478,18 +480,17 @@ class AccountExchangeSchema(MutableResourceSchema):
 
 
 class AccountDisplaySchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/display',
     )
     type = fields.String(
         missing='AccountDisplay',
+        default='AccountDisplay',
         description='The type of this object.',
-        example='AccountDisplay',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -576,6 +577,50 @@ class AccountDisplaySchema(MutableResourceSchema):
                     "links in a chain of currency pegs.",
         example=False,
     )
+
+    @pre_dump
+    def transform_account_display_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, AccountDisplay)
+        obj = copy(obj)
+        obj.uri = url_for(
+            self.context['AccountDisplay'],
+            _external=True,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
+        obj.account = {'uri': url_for(
+            self.context['Account'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )}
+
+        if obj.peg_exchange_rate is None:
+            obj.peg = missing
+        else:
+            if obj.peg_debtor_id is None:
+                display = missing
+            else:
+                display = {'uri': url_for(
+                    self.context['AccountDisplay'],
+                    _external=False,
+                    creditorId=obj.creditor_id,
+                    debtorId=obj.peg_debtor_id,
+                )}
+            obj.peg = {
+                'exchange_rate': obj.peg_exchange_rate,
+                'debtor': {'uri': obj.peg_debtor_uri},
+                'display': display,
+            }
+
+        if obj.own_unit is None:
+            obj.own_unit = missing
+
+        if obj.debtor_name is None:
+            obj.debtor_name = missing
+
+        return obj
 
 
 class AccountSchema(MutableResourceSchema):

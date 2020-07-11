@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 2f2f0ad9959a
+Revision ID: af067be9f7c6
 Revises: 8d8c816257ce
-Create Date: 2020-07-11 17:12:45.096575
+Create Date: 2020-07-11 17:19:12.990651
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '2f2f0ad9959a'
+revision = 'af067be9f7c6'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -40,6 +40,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id', 'peg_debtor_id'], ['account_display.creditor_id', 'account_display.debtor_id'], ),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
+    op.create_index('idx_peg_debtor_id', 'account_display', ['creditor_id', 'peg_debtor_id'], unique=False, postgresql_where=sa.text('peg_debtor_id IS NOT NULL'))
     op.create_table('configure_account_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -215,5 +216,6 @@ def downgrade():
     op.drop_table('running_transfer')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
+    op.drop_index('idx_peg_debtor_id', table_name='account_display')
     op.drop_table('account_display')
     # ### end Alembic commands ###

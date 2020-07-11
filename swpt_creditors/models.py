@@ -93,6 +93,12 @@ class AccountDisplay(db.Model):
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
+        db.Index(
+            'idx_peg_debtor_id',
+            creditor_id,
+            peg_debtor_id,
+            postgresql_where=peg_debtor_id != null(),
+        ),
         db.ForeignKeyConstraint(
             ['creditor_id', 'peg_debtor_id'],
             ['account_display.creditor_id', 'account_display.debtor_id'],

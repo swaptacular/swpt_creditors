@@ -42,8 +42,8 @@ class TransferErrorSchema(Schema):
 class TransferOptionsSchema(Schema):
     type = fields.String(
         missing='TransferOptions',
+        default='TransferOptions',
         description='The type of this object.',
-        example='TransferOptions',
     )
     min_locked_amount = fields.Integer(
         missing=0,
@@ -118,8 +118,8 @@ class TransferResultSchema(Schema):
 class TransferCreationRequestSchema(Schema):
     type = fields.String(
         missing='TransferCreationRequest',
+        default='TransferCreationRequest',
         description='The type of this object.',
-        example='TransferCreationRequest',
     )
     transfer_uuid = fields.UUID(
         required=True,
@@ -218,8 +218,8 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
 class CancelTransferRequestSchema(Schema):
     type = fields.String(
         missing='CancelTransferRequest',
+        default='CancelTransferRequest',
         description='The type of this object.',
-        example='CancelTransferRequest',
     )
 
 

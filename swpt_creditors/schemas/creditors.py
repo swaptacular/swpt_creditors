@@ -9,8 +9,8 @@ from .common import (
 class CreditorCreationRequestSchema(Schema):
     type = fields.String(
         missing='CreditorCreationRequest',
+        default='CreditorCreationRequest',
         description='The type of this object.',
-        example='CreditorCreationRequest',
     )
 
 
