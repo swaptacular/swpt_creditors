@@ -7,7 +7,7 @@ D_ID = -1
 C_ID = 1
 
 
-def test_account_display_schema(app, current_ts):
+def test_serialize_account_display(app):
     ad = models.AccountDisplay(
         creditor_id=C_ID,
         debtor_id=D_ID,
@@ -75,4 +75,47 @@ def test_account_display_schema(app, current_ts):
         'hide': False,
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+
+def test_deserialize_account_display(app):
+    ads = schemas.AccountDisplaySchema(context=CONTEXT)
+
+    data = ads.load({})
+    assert data == {
+        'type': 'AccountDisplay',
+        'own_unit': None,
+        'own_unit_preference': 0,
+        'amount_divisor': 1.0,
+        'decimal_places': 0,
+        'hide': False,
+        'debtor_name': None,
+        'peg_exchange_rate': None,
+        'peg_debtor_uri': None,
+    }
+
+    data = ads.load({
+        'type': 'AccountDisplay',
+        'debtorName': 'Test Debtor',
+        'ownUnit': 'XXX',
+        'ownUnitPreference': 1,
+        'peg': {
+            'type': 'AccountPeg',
+            'debtor': {'uri': 'https://example.com/gold'},
+            'exchangeRate': 1.5,
+        },
+        'amountDivisor': 100.0,
+        'decimalPlaces': 2,
+        'hide': False,
+    })
+    assert data == {
+        'type': 'AccountDisplay',
+        'own_unit': 'XXX',
+        'own_unit_preference': 1,
+        'amount_divisor': 100.0,
+        'decimal_places': 2,
+        'hide': False,
+        'debtor_name': 'Test Debtor',
+        'peg_exchange_rate': 1.5,
+        'peg_debtor_uri': 'https://example.com/gold',
     }
