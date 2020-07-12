@@ -43,23 +43,6 @@ class TransferOptionsSchema(Schema):
         default='TransferOptions',
         description='The type of this object.',
     )
-    min_locked_amount = fields.Integer(
-        missing=0,
-        validate=validate.Range(min=0, max=MAX_INT64),
-        format='int64',
-        data_key='minLockedAmount',
-        description='The secured amount should be equal or bigger than this value.',
-        example=0,
-    )
-    max_locked_amount = fields.Integer(
-        missing=0,
-        validate=validate.Range(min=0, max=MAX_INT64),
-        format='int64',
-        data_key='maxLockedAmount',
-        description='The secured amount should not exceed this value. Note that this value '
-                    'must be equal or bigger than the value of `minLockedAmount`.',
-        example=0,
-    )
     min_interest_rate = fields.Float(
         missing=-100.0,
         validate=validate.Range(min=-100.0),
