@@ -53,14 +53,12 @@ class TransferOptionsSchema(Schema):
                     'to be decreased if the interest rate on the account has decreased.',
         example=-100.0,
     )
-    max_commit_delay = fields.Integer(
-        missing=MAX_INT32,
-        validate=validate.Range(min=0, max=MAX_INT32),
-        format='int32',
-        data_key='maxCommitDelay',
-        description='The period (in seconds) during which the prepared transfer can be '
-                    'committed successfully.',
-        example=MAX_INT32,
+    deadline = fields.DateTime(
+        description='The transfer will be successful only if it is committed before this moment. '
+                    'This can be useful, for example, when the transferred amount may need to be '
+                    'decreased if the transfer can not be committed in time. When this field is '
+                    'not present, this means that the deadline for the transfer will not be '
+                    'earlier than normal.',
     )
 
 
