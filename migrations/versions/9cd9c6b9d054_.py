@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d00313f74cf5
+Revision ID: 9cd9c6b9d054
 Revises: 8d8c816257ce
-Create Date: 2020-07-12 12:58:24.825720
+Create Date: 2020-07-12 13:57:41.234317
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'd00313f74cf5'
+revision = '9cd9c6b9d054'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -54,6 +54,23 @@ def upgrade():
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('min_principal <= max_principal'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
+    )
+    op.create_table('account_knowledge',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('interest_rate', sa.REAL(), nullable=False),
+    sa.Column('interest_rate_changed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('identity_uri', sa.String(), nullable=True),
+    sa.Column('debtor_url', sa.String(), nullable=True),
+    sa.Column('peg_exchange_rate', sa.FLOAT(), nullable=True),
+    sa.Column('peg_debtor_uri', sa.String(), nullable=True),
+    sa.Column('allow_unsafe_deletion', sa.BOOLEAN(), nullable=False),
+    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('peg_exchange_rate >= 0.0'),
+    sa.CheckConstraint('peg_exchange_rate IS NULL OR peg_debtor_uri IS NOT NULL'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
     op.create_table('configure_account_signal',
@@ -231,6 +248,7 @@ def downgrade():
     op.drop_table('running_transfer')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
+    op.drop_table('account_knowledge')
     op.drop_table('account_exchange')
     op.drop_index('idx_peg_debtor_id', table_name='account_display')
     op.drop_index('idx_own_unit', table_name='account_display')

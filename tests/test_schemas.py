@@ -122,44 +122,44 @@ def test_deserialize_account_display(app):
     }
 
     with pytest.raises(ValidationError):
-        data = ads.load({'type': 'WrongType'})
+        ads.load({'type': 'WrongType'})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'ownUnit': 1000 * 'x'})
+        ads.load({'ownUnit': 1000 * 'x'})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'ownUnitPreference': models.MIN_INT32 - 1})
+        ads.load({'ownUnitPreference': models.MIN_INT32 - 1})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'ownUnitPreference': models.MAX_INT32 + 1})
+        ads.load({'ownUnitPreference': models.MAX_INT32 + 1})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'amountDivisor': 0.0})
+        ads.load({'amountDivisor': 0.0})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'amountDivisor': -0.01})
+        ads.load({'amountDivisor': -0.01})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'decimalPlaces': 10000})
+        ads.load({'decimalPlaces': 10000})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'debtor_name': 1000 * 'x'})
+        ads.load({'debtor_name': 1000 * 'x'})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'peg': {
+        ads.load({'peg': {
             'type': 'WrongType',
             'debtor': {'uri': 'https://example.com/gold'},
             'exchangeRate': 1.5,
         }})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'peg': {'debtor': {'uri': 'https://example.com/gold'}, 'exchangeRate': -1.5}})
+        ads.load({'peg': {'debtor': {'uri': 'https://example.com/gold'}, 'exchangeRate': -1.5}})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'peg': {'debtor': {'uri': 'https://example.com/gold'}, 'exchangeRate': -1.5}})
+        ads.load({'peg': {'debtor': {'uri': 'https://example.com/gold'}, 'exchangeRate': -1.5}})
 
     with pytest.raises(ValidationError):
-        data = ads.load({'peg': {'debtor': {'uri': 1000 * 'x'}, 'exchangeRate': 1.5}})
+        ads.load({'peg': {'debtor': {'uri': 1000 * 'x'}, 'exchangeRate': 1.5}})
 
 
 def test_serialize_account_exchange(app):
@@ -220,16 +220,112 @@ def test_deserialize_account_exchange(app):
     }
 
     with pytest.raises(ValidationError):
-        data = aes.load({'type': 'WrongType'})
+        aes.load({'type': 'WrongType'})
 
     with pytest.raises(ValidationError):
-        data = aes.load({'minPrincipal': 5000, 'maxPrincipal': 1000})
+        aes.load({'minPrincipal': 5000, 'maxPrincipal': 1000})
 
     with pytest.raises(ValidationError):
-        data = aes.load({'minPrincipal': models.MIN_INT64 - 1})
+        aes.load({'minPrincipal': models.MIN_INT64 - 1})
 
     with pytest.raises(ValidationError):
-        data = aes.load({'maxPrincipal': models.MAX_INT64 + 1})
+        aes.load({'maxPrincipal': models.MAX_INT64 + 1})
 
     with pytest.raises(ValidationError):
-        data = aes.load({'policy': 1000 * 'x'})
+        aes.load({'policy': 1000 * 'x'})
+
+
+def test_serialize_account_knowledge(app):
+    ak = models.AccountKnowledge(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        identity_uri='https://example.com/USD/accounts/123',
+        interest_rate=11.0,
+        interest_rate_changed_at_ts=datetime(2020, 1, 2),
+        debtor_url='https://example.com/USD',
+        peg_exchange_rate=2000.0,
+        peg_debtor_uri='https://example.com/gold',
+        allow_unsafe_deletion=True,
+        latest_update_id=1,
+        latest_update_ts=datetime(2020, 1, 1),
+    )
+    aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
+    assert aks.dump(ak) == {
+        'type': 'AccountKnowledge',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'identity': {'uri': 'https://example.com/USD/accounts/123'},
+        'currencyPeg': {
+            'type': 'CurrencyPeg',
+            'debtor': {'uri': 'https://example.com/gold'},
+            'exchangeRate': 2000.0,
+        },
+        'debtorUrl': 'https://example.com/USD',
+        'allowUnsafeDeletion': True,
+        'interestRate': 11.0,
+        'interestRateChangedAt': '2020-01-02T00:00:00',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+    ak.identity_uri = None
+    ak.debtor_url = None
+    ak.peg_exchange_rate = None
+    assert aks.dump(ak) == {
+        'type': 'AccountKnowledge',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'allowUnsafeDeletion': True,
+        'interestRate': 11.0,
+        'interestRateChangedAt': '2020-01-02T00:00:00',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+
+def test_deserialize_account_knowledge(app):
+    aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
+
+    data = aks.load({})
+    assert data == {
+        'type': 'AccountKnowledge',
+        'allow_unsafe_deletion': False,
+        'interest_rate': 0.0,
+        'interest_rate_changed_at_ts': models.BEGINNING_OF_TIME,
+    }
+
+    data = aks.load({
+        'type': 'AccountKnowledge',
+        'identity': {'uri': 'https://example.com/USD/accounts/123'},
+        'currencyPeg': {
+            'type': 'CurrencyPeg',
+            'debtor': {'uri': 'https://example.com/gold'},
+            'exchangeRate': 2000.0,
+        },
+        'debtorUrl': 'https://example.com/USD',
+        'allowUnsafeDeletion': True,
+        'interestRate': 11.0,
+        'interestRateChangedAt': '2020-01-02T00:00:00',
+    })
+    assert data == {
+        'type': 'AccountKnowledge',
+        'identity': {'uri': 'https://example.com/USD/accounts/123'},
+        'currency_peg': {
+            'type': 'CurrencyPeg',
+            'debtor': {'uri': 'https://example.com/gold'},
+            'exchange_rate': 2000.0,
+        },
+        'debtor_url': 'https://example.com/USD',
+        'allow_unsafe_deletion': True,
+        'interest_rate': 11.0,
+        'interest_rate_changed_at_ts': datetime(2020, 1, 2),
+    }
+
+    with pytest.raises(ValidationError):
+        aks.load({'type': 'WrongType'})
+
+    with pytest.raises(ValidationError):
+        aks.load({'identity': {'uri': 1000 * 'x'}})
+
+    with pytest.raises(ValidationError):
+        aks.load({'debtorUrl': 1000 * 'x'})

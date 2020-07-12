@@ -79,6 +79,28 @@ class Signal(db.Model):
 #       messing up with accounts belonging to other instances.
 
 
+class AccountKnowledge(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
+    interest_rate_changed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    identity_uri = db.Column(db.String)
+    debtor_url = db.Column(db.String)
+    peg_exchange_rate = db.Column(db.FLOAT)
+    peg_debtor_uri = db.Column(db.String)
+    allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
+    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __table_args__ = (
+        db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(peg_exchange_rate >= 0.0),
+        db.CheckConstraint(or_(
+            peg_exchange_rate == null(),
+            peg_debtor_uri != null(),
+        )),
+    )
+
+
 class AccountExchange(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)

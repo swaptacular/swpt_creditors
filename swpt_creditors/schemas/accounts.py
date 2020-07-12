@@ -4,7 +4,8 @@ from marshmallow import (
 )
 from flask import url_for
 from swpt_creditors.models import (
-    AccountDisplay, AccountExchange, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
+    AccountDisplay, AccountExchange, AccountKnowledge,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
 )
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
@@ -328,11 +329,10 @@ class AccountInfoSchema(MutableResourceSchema):
     )
 
 
-class AccountKnowledgeSchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/knowledge',
@@ -366,14 +366,17 @@ class AccountKnowledgeSchema(MutableResourceSchema):
         description='The moment at which the latest change in the interest rate, which is known '
                     'to the creditor, has happened.',
     )
-    debtorUrl = fields.String(
+    debtor_url = fields.String(
+        validate=validate.Length(min=1, max=100),
         format='uri',
+        data_key='debtorUrl',
         description='A link for additional information about the debtor, which is known to '
                     'the creditor.',
         example='https://example.com/debtors/1/',
     )
-    currencyPeg = fields.Nested(
+    currency_peg = fields.Nested(
         CurrencyPegSchema,
+        data_key='currencyPeg',
         description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
     )
     allow_unsafe_deletion = fields.Boolean(
@@ -384,6 +387,39 @@ class AccountKnowledgeSchema(MutableResourceSchema):
                     'losing a non-negligible amount of money on the account.',
         example=False,
     )
+
+    @pre_dump
+    def process_account_knowledge_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, AccountKnowledge)
+        obj = copy(obj)
+        obj.uri = url_for(
+            self.context['AccountKnowledge'],
+            _external=True,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
+        obj.account = {'uri': url_for(
+            self.context['Account'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )}
+
+        if obj.peg_exchange_rate is not None:
+            currency_peg = {
+                'exchange_rate': obj.peg_exchange_rate,
+                'debtor': {'uri': obj.peg_debtor_uri},
+            }
+            obj.currency_peg = currency_peg
+
+        if obj.identity_uri is not None:
+            obj.identity = {'uri': obj.identity_uri}
+
+        if obj.debtor_url is None:
+            obj.debtor_url = missing
+
+        return obj
 
 
 class AccountConfigSchema(MutableResourceSchema):

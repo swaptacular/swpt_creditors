@@ -122,6 +122,7 @@ class ObjectReferencesPageSchema(Schema):
 class AccountIdentitySchema(Schema):
     uri = fields.String(
         required=True,
+        validate=validate.Length(min=1, max=100),
         format='uri',
         description="The URI of the account. The information contained in the URI must be "
                     "enough to: 1) uniquely and reliably identify the debtor, 2) uniquely "

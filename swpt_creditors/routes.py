@@ -39,6 +39,7 @@ CONTEXT = {
     'Account': 'accounts.AccountEndpoint',
     'AccountDisplay': 'accounts.AccountDisplayEndpoint',
     'AccountExchange': 'accounts.AccountExchangeEndpoint',
+    'AccountKnowledge': 'accounts.AccountKnowledgeEndpoint',
     'Accounts': 'accounts.AccountsEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'Transfers': 'transfers.TransfersEndpoint',
