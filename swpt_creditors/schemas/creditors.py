@@ -1,8 +1,9 @@
 from marshmallow import Schema, fields, validate
 from flask import url_for
+from swpt_creditors.models import MAX_INT64
 from .common import (
-    ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema, URI_DESCRIPTION,
-    MAX_INT64, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
+    ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema,
+    URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
 )
 
 

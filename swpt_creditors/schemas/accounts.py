@@ -4,10 +4,12 @@ from marshmallow import (
     validates,
 )
 from flask import url_for
-from swpt_creditors.models import AccountDisplay, AccountExchange
+from swpt_creditors.models import (
+    AccountDisplay, AccountExchange, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
+)
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, BEGINNING_OF_TIME
+    URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
 
 

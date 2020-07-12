@@ -16,6 +16,7 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
+MAX_UINT64 = (1 << 64) - 1
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
