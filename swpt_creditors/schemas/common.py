@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, validates, ValidationError
 from swpt_lib import endpoints
 from swpt_creditors.models import MAX_INT64
 
@@ -17,6 +17,13 @@ might be added in the future. That is: items that are not currently available, \
 but may become available in the future. This is useful when we want to follow \
 a continuous stream of new items. This field will not be present when the \
 `next` field is present. This can be a relative URI.'
+
+
+class ValidateTypeMixin:
+    @validates('type')
+    def validate_type(self, value):
+        if f'{value}Schema' != type(self).__name__:
+            raise ValidationError('Invalid type.')
 
 
 class PaginationParametersSchema(Schema):
