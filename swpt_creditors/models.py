@@ -100,6 +100,20 @@ class AccountDisplay(db.Model):
             peg_debtor_id,
             postgresql_where=peg_debtor_id != null(),
         ),
+        db.Index(
+            'idx_debtor_name',
+            creditor_id,
+            debtor_name,
+            unique=True,
+            postgresql_where=debtor_name != null(),
+        ),
+        db.Index(
+            'idx_own_unit',
+            creditor_id,
+            own_unit,
+            unique=True,
+            postgresql_where=own_unit != null(),
+        ),
         db.ForeignKeyConstraint(
             ['creditor_id', 'peg_debtor_id'],
             ['account_display.creditor_id', 'account_display.debtor_id'],

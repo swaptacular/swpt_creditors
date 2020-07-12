@@ -538,7 +538,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     debtor_name = fields.String(
-        validate=validate.Length(min=1, max=100),
+        validate=validate.Length(min=1, max=40),
         data_key='debtorName',
         description='The name of the debtor. **All accounts belonging to a given '
                     'creditor must have different `debtorName`s. When a new account '
@@ -576,7 +576,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         example=2,
     )
     own_unit = fields.String(
-        validate=validate.Length(min=1, max=10),
+        validate=validate.Length(min=1, max=4),
         data_key='ownUnit',
         description="Optional abbreviation for a value measurement unit that is unique for the "
                     "account's debtor. It should be shown right after the displayed amount, "
