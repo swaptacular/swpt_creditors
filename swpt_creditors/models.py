@@ -79,6 +79,30 @@ class Signal(db.Model):
 #       messing up with accounts belonging to other instances.
 
 
+class AccountData(db.Model):
+    STATUS_UNREACHABLE_FLAG = 1 << 0
+    STATUS_OVERFLOWN_FLAG = 1 << 1
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, nullable=False)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_change_seqnum = db.Column(db.Integer, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
+    interest = db.Column(db.FLOAT, nullable=False)
+    interest_rate = db.Column(db.REAL, nullable=False)
+    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_transfer_number = db.Column(db.BigInteger, nullable=False)
+    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_config_seqnum = db.Column(db.Integer, nullable=False)
+    status_flags = db.Column(db.Integer, nullable=False)
+    last_heartbeat_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    __table_args__ = (
+        db.CheckConstraint(last_transfer_number >= 0),
+    )
+
+
 class AccountKnowledge(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
