@@ -459,7 +459,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     policy = fields.String(
-        validate=validate.Length(min=1, max=100),
+        validate=validate.Length(min=1, max=40),
         description='The name of the active automatic exchange policy. Different '
                     'implementations may define different exchange policies. This field is '
                     'optional. If it not present, this means that the account will not '
