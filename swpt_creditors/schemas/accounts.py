@@ -444,7 +444,7 @@ class AccountConfigSchema(MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     is_scheduled_for_deletion = fields.Boolean(
-        missing=False,
+        required=True,
         data_key='scheduledForDeletion',
         description='Whether the account is scheduled for deletion. The safest way to '
                     'delete an account whose status (`AccountInfo`) indicates that deletion '
@@ -455,7 +455,7 @@ class AccountConfigSchema(MutableResourceSchema):
         example=False,
     )
     negligible_amount = fields.Float(
-        missing=0.0,
+        required=True,
         validate=validate.Range(min=0.0),
         data_key='negligibleAmount',
         description='The maximum amount that is considered negligible. It can be used '
