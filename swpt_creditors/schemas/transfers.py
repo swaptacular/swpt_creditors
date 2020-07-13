@@ -256,11 +256,12 @@ class CommittedTransferSchema(Schema):
         example=1000,
     )
     note = fields.Dict(
-        missing={},
+        required=True,
         dump_only=True,
         description='A note from the committer of the transfer. Can be any JSON object '
                     'containing information that whoever committed the transfer wants the '
-                    'recipient (and the sender) to see.',
+                    'recipient (and the sender) to see. If there is no note, this will be '
+                    'an empty object (`{}`).',
     )
     committed_at_ts = fields.DateTime(
         required=True,
