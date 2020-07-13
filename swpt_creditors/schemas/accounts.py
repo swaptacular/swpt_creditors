@@ -449,7 +449,7 @@ class AccountConfigSchema(MutableResourceSchema):
         description='Whether the account is scheduled for deletion. The safest way to '
                     'delete an account whose status (`AccountInfo`) indicates that deletion '
                     'is not safe, is to first schedule it for deletion, and delete it only '
-                    'when the account status indicates that deletion is safe. Note that'
+                    'when the account status indicates that deletion is safe. Note that '
                     'this may also require making outgoing transfers, so as to reduce the '
                     'balance on the account to a negligible amount.',
         example=False,
@@ -461,7 +461,8 @@ class AccountConfigSchema(MutableResourceSchema):
         description='The maximum amount that is considered negligible. It can be used '
                     'to decide whether the account can be safely deleted, and whether an '
                     'incoming transfer should be considered as insignificant. Must be '
-                    'non-negative.',
+                    'non-negative. **For new accounts, the value of this field will be '
+                    'a huge number** (`1e30` for example).',
         example=0.0,
     )
     config = fields.String(
