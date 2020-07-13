@@ -233,16 +233,16 @@ class CommittedTransferSchema(Schema):
     )
     sender = fields.Nested(
         AccountIdentitySchema,
+        required=True,
         dump_only=True,
-        description="The sender's `AccountIdentity` information. When this field is not "
-                    "present, this means that the sender is unknown.",
+        description="The sender's `AccountIdentity` information.",
         example={'uri': 'swpt:1/2'}
     )
     recipient = fields.Nested(
         AccountIdentitySchema,
+        required=True,
         dump_only=True,
-        description="The recipient's `AccountIdentity` information. When this field is not "
-                    "present, this means that the recipient is unknown.",
+        description="The recipient's `AccountIdentity` information.",
         example={'uri': 'swpt:1/2222'}
     )
     acquiredAmount = fields.Integer(
