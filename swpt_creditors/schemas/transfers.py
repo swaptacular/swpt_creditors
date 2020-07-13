@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, validate, missing
 from flask import url_for
-from swpt_creditors.models import MAX_INT32, MIN_INT64, MAX_INT64
+from swpt_creditors.models import MIN_INT64, MAX_INT64
 from .common import ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -29,7 +29,7 @@ class TransferErrorSchema(Schema):
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
     totalLockedAmount = fields.Integer(
-        required=True,
+        missing=0,
         dump_only=True,
         format="int64",
         description='The total amount secured (locked) for prepared transfers on the account.',
