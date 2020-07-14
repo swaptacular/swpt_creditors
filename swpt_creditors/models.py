@@ -112,7 +112,6 @@ class AccountKnowledge(db.Model):
     debtor_url = db.Column(db.String)
     peg_exchange_rate = db.Column(db.FLOAT)
     peg_debtor_uri = db.Column(db.String)
-    allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (

@@ -245,7 +245,6 @@ def test_serialize_account_knowledge(app):
         debtor_url='https://example.com/USD',
         peg_exchange_rate=2000.0,
         peg_debtor_uri='https://example.com/gold',
-        allow_unsafe_deletion=True,
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
@@ -261,7 +260,6 @@ def test_serialize_account_knowledge(app):
             'exchangeRate': 2000.0,
         },
         'debtorUrl': 'https://example.com/USD',
-        'allowUnsafeDeletion': True,
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
@@ -275,7 +273,6 @@ def test_serialize_account_knowledge(app):
         'type': 'AccountKnowledge',
         'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'allowUnsafeDeletion': True,
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
@@ -289,7 +286,6 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({})
     assert data == {
         'type': 'AccountKnowledge',
-        'allow_unsafe_deletion': False,
         'interest_rate': 0.0,
         'interest_rate_changed_at_ts': models.BEGINNING_OF_TIME,
     }
@@ -303,7 +299,6 @@ def test_deserialize_account_knowledge(app):
             'exchangeRate': 2000.0,
         },
         'debtorUrl': 'https://example.com/USD',
-        'allowUnsafeDeletion': True,
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
     })
@@ -316,7 +311,6 @@ def test_deserialize_account_knowledge(app):
             'exchange_rate': 2000.0,
         },
         'debtor_url': 'https://example.com/USD',
-        'allow_unsafe_deletion': True,
         'interest_rate': 11.0,
         'interest_rate_changed_at_ts': datetime(2020, 1, 2),
     }
