@@ -287,14 +287,14 @@ class AccountInfoSchema(MutableResourceSchema):
         example=False,
     )
     interest_rate = fields.Float(
-        required=True,
+        missing=0.0,
         dump_only=True,
         data_key='interestRate',
         description='Annual rate (in percents) at which interest accumulates on the account.',
         example=0.0,
     )
     interest_rate_changed_at_ts = fields.DateTime(
-        required=True,
+        missing=BEGINNING_OF_TIME,
         dump_only=True,
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
