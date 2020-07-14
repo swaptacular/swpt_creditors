@@ -307,13 +307,6 @@ class AccountInfoSchema(MutableResourceSchema):
                     'system configuration problem. The value alludes to the cause of the problem.',
         example='CONFIG_IS_INEFFECTUAL',
     )
-    unreachable = fields.Boolean(
-        dump_only=True,
-        missing=False,
-        description='Whether the account is "unreachable". A `true` indicates that the account '
-                    'can not receive incoming transfers.',
-        example=False,
-    )
     overflown = fields.Boolean(
         dump_only=True,
         missing=False,
