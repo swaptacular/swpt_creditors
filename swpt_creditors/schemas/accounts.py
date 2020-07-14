@@ -280,8 +280,8 @@ class AccountInfoSchema(MutableResourceSchema):
         example={'uri': 'swpt:1/2'},
     )
     is_deletion_safe = fields.Boolean(
+        required=True,
         dump_only=True,
-        missing=False,
         data_key='safeToDelete',
         description='Whether it is safe to delete this account.',
         example=False,
