@@ -98,7 +98,7 @@ class AccountData(db.Model):
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
     account_identity = db.Column(db.String, nullable=False, default='')
-    debtor_url = db.Column(db.String, nullable=False, default='')
+    debtor_url = db.Column(db.String)
     config_error = db.Column(db.String)
     config_is_effectual = db.Column(
         db.BOOLEAN,
