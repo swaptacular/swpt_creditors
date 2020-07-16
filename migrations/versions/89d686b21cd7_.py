@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cb8762f3c271
+Revision ID: 89d686b21cd7
 Revises: 8d8c816257ce
-Create Date: 2020-07-14 15:05:11.517817
+Create Date: 2020-07-16 17:24:21.721714
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'cb8762f3c271'
+revision = '89d686b21cd7'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -33,8 +33,17 @@ def upgrade():
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False),
-    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('account_identity', sa.String(), nullable=False),
+    sa.Column('debtor_url', sa.String(), nullable=False),
+    sa.Column('config_error', sa.String(), nullable=True),
+    sa.Column('config_is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
+    sa.Column('has_account', sa.BOOLEAN(), nullable=False, comment='Whether a corresponding record for the account exist on the `swpt_accounts` service.'),
+    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdate` message has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
+    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('interest_rate >= -100.0'),
     sa.CheckConstraint('last_transfer_number >= 0'),
+    sa.CheckConstraint('latest_update_id > 0'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
     op.create_table('account_display',

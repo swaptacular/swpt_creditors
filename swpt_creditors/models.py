@@ -85,22 +85,52 @@ class AccountData(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, nullable=False)
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_change_seqnum = db.Column(db.Integer, nullable=False)
-    principal = db.Column(db.BigInteger, nullable=False)
-    interest = db.Column(db.FLOAT, nullable=False)
-    interest_rate = db.Column(db.REAL, nullable=False)
-    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_transfer_number = db.Column(db.BigInteger, nullable=False)
-    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_config_seqnum = db.Column(db.Integer, nullable=False)
-    status_flags = db.Column(db.Integer, nullable=False)
-    last_heartbeat_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    __table_args__ = (
-        db.CheckConstraint(last_transfer_number >= 0),
+    creation_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_change_seqnum = db.Column(db.Integer, nullable=False, default=0)
+    principal = db.Column(db.BigInteger, nullable=False, default=0)
+    interest = db.Column(db.FLOAT, nullable=False, default=0.0)
+    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
+    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
+    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
+    status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
+    account_identity = db.Column(db.String, nullable=False, default='')
+    debtor_url = db.Column(db.String, nullable=False, default='')
+    config_error = db.Column(db.String)
+    config_is_effectual = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether the last change in the configuration has been successfully applied.',
     )
+    has_account = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether a corresponding record for the account exist on the `swpt_accounts` service.',
+    )
+    last_heartbeat_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=get_now_utc,
+        comment='The moment at which the last `AccountUpdate` message has been processed. It is '
+                'used to detect "dead" accounts. A "dead" account is an account that have been '
+                'removed from the `swpt_accounts` service, but still exist in this table.',
+    )
+    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __table_args__ = (
+        db.CheckConstraint(interest_rate >= -100.0),
+        db.CheckConstraint(last_transfer_number >= 0),
+        db.CheckConstraint(latest_update_id > 0),
+    )
+
+    @property
+    def overflown(self):
+        return bool(self.status_flags & self.STATUS_OVERFLOWN_FLAG)
 
 
 class AccountKnowledge(db.Model):
