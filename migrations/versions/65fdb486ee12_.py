@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5cbb77f5da89
+Revision ID: 65fdb486ee12
 Revises: 8d8c816257ce
-Create Date: 2020-07-18 20:53:33.120686
+Create Date: 2020-07-18 21:28:05.353562
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5cbb77f5da89'
+revision = '65fdb486ee12'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -92,7 +92,7 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config', sa.String(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
-    sa.Column('allow_unsafe_deletion', sa.BOOLEAN(), nullable=False, comment='Whether the owner approved unsafe removal of the account. In extraordinary circumstances it might be necessary to forcefully remove an account, accepting the risk of losing the available amount.'),
+    sa.Column('allow_unsafe_deletion', sa.BOOLEAN(), nullable=False),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('latest_update_id > 0'),
@@ -144,7 +144,6 @@ def upgrade():
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount_divisor > 0.0'),
-    sa.CheckConstraint('decimal_places >= -20 AND decimal_places <= 20'),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('peg_exchange_rate >= 0.0'),
     sa.CheckConstraint('peg_exchange_rate IS NOT NULL OR peg_debtor_id IS NULL'),
