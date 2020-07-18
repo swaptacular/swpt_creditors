@@ -113,7 +113,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         debtor_url='',
     )
     account = Account.query.one()
-    assert not account.account_config.is_scheduled_for_deletion
+    assert not account.config.is_scheduled_for_deletion
     assert not p.try_to_remove_account(C_ID, D_ID)
     assert AccountConfig.query.one()
     p.change_account_config(C_ID, D_ID, True, 0.0, False)

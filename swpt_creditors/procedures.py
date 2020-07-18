@@ -109,7 +109,7 @@ def create_account(creditor_id: int, debtor_id: int) -> bool:
     account_needs_to_be_created = _get_account(creditor_id, debtor_id) is None
     if account_needs_to_be_created:
         account = _create_account(creditor_id, debtor_id)
-        _insert_configure_account_signal(account.account_config, account.account_data, account.created_at_ts)
+        _insert_configure_account_signal(account.config, account.data, account.created_at_ts)
 
     return account_needs_to_be_created
 
@@ -135,8 +135,8 @@ def change_account_config(
     if account is None:
         raise AccountDoesNotExistError()
 
-    config = account.account_config
-    data = account.account_data
+    config = account.config
+    data = account.data
     if allow_unsafe_deletion is not None and config.allow_unsafe_deletion != allow_unsafe_deletion:
         config.allow_unsafe_deletion = allow_unsafe_deletion
 
@@ -167,8 +167,8 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
 
     account = _get_account(creditor_id, debtor_id)  # TODO: use joinedload.
     if account:
-        config = account.account_config
-        data = account.account_data
+        config = account.config
+        data = account.data
         if not config.allow_unsafe_deletion:
             days_since_last_config_signal = (datetime.now(tz=timezone.utc) - data.last_config_ts).days
             is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
@@ -582,27 +582,29 @@ def _get_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Option
     return account
 
 
-def _create_account(creditor_id: int, debtor_id: int) -> Account:
-    if Creditor.get_instance(creditor_id) is None:
+def _create_account(creditor_id: int, debtor_id: int, current_ts: datetime = None) -> Account:
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    creditor = Creditor.lock_instance(creditor_id)
+    if creditor is None:
         raise CreditorDoesNotExistError()
 
-    current_ts = datetime.now(tz=timezone.utc)
-    latest_update_id = 1
-    latest_update = {'latest_update_id': latest_update_id, 'latest_update_ts': current_ts}
+    log_entry_id = creditor.generate_log_entry_id()
+    latest_update = {'latest_update_id': log_entry_id, 'latest_update_ts': current_ts}
     account = Account(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         created_at_ts=current_ts,
-        account_data=AccountData(**latest_update),
-        account_knowledge=AccountKnowledge(**latest_update),
-        account_exchange=AccountExchange(**latest_update),
-        account_display=AccountDisplay(**latest_update),
-        account_config=AccountConfig(**latest_update),
-        account_ledger=AccountLedger(**latest_update),
+        data=AccountData(**latest_update),
+        knowledge=AccountKnowledge(**latest_update),
+        exchange=AccountExchange(**latest_update),
+        display=AccountDisplay(**latest_update),
+        config=AccountConfig(**latest_update),
+        ledger=AccountLedger(**latest_update),
         **latest_update,
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
+
     return account
 
 

@@ -90,12 +90,12 @@ class Account(db.Model):
         db.CheckConstraint(latest_update_id > 0),
     )
 
-    account_data = db.relationship('AccountData', uselist=False)
-    account_knowledge = db.relationship('AccountKnowledge', uselist=False)
-    account_exchange = db.relationship('AccountExchange', uselist=False)
-    account_display = db.relationship('AccountDisplay', uselist=False)
-    account_config = db.relationship('AccountConfig', uselist=False)
-    account_ledger = db.relationship('AccountLedger', uselist=False)
+    data = db.relationship('AccountData', uselist=False)
+    knowledge = db.relationship('AccountKnowledge', uselist=False)
+    exchange = db.relationship('AccountExchange', uselist=False)
+    display = db.relationship('AccountDisplay', uselist=False)
+    config = db.relationship('AccountConfig', uselist=False)
+    ledger = db.relationship('AccountLedger', uselist=False)
 
 
 class AccountConfig(db.Model):
@@ -398,6 +398,12 @@ class Creditor(db.Model):
             self.status |= Creditor.STATUS_IS_ACTIVE_FLAG
         else:
             self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
+
+    def generate_log_entry_id(self):
+        log_entry_id = self.latest_log_entry_id + 1
+        assert log_entry_id <= MAX_INT64
+        self.latest_log_entry_id = log_entry_id
+        return log_entry_id
 
 
 class DirectTransfer(db.Model):
