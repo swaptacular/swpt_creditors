@@ -106,14 +106,7 @@ class AccountConfig(db.Model):
     negligible_amount = db.Column(db.REAL, nullable=False, default=1e30)
     config = db.Column(db.String, nullable=False, default='')
     config_flags = db.Column(db.Integer, nullable=False, default=0)
-    allow_unsafe_deletion = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether the owner approved unsafe removal of the account. In extraordinary '
-                'circumstances it might be necessary to forcefully remove an account, accepting '
-                'the risk of losing the available amount.',
-    )
+    allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
@@ -335,10 +328,6 @@ class AccountDisplay(db.Model):
         db.CheckConstraint(amount_divisor > 0.0),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(peg_exchange_rate >= 0.0),
-        db.CheckConstraint(and_(
-            decimal_places >= -20,
-            decimal_places <= 20,
-        )),
         db.CheckConstraint(or_(
             peg_exchange_rate != null(),
             peg_debtor_id == null(),
