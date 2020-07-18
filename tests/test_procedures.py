@@ -2,7 +2,7 @@ import pytest
 from datetime import date, timedelta
 from uuid import UUID
 from swpt_creditors import procedures as p
-from swpt_creditors.models import Creditor, Account, AccountConfig, ConfigureAccountSignal
+from swpt_creditors.models import Creditor, Account, AccountData, AccountConfig, ConfigureAccountSignal
 
 D_ID = -1
 C_ID = 1
@@ -97,8 +97,9 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         principal=1000,
         interest=0.0,
         interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts,
         last_transfer_number=1,
-        last_transfer_committed_at=current_ts,
+        last_transfer_committed_at_ts=current_ts,
         last_config_ts=current_ts,
         last_config_seqnum=1,
         creation_date=date(2020, 1, 15),
@@ -109,6 +110,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         account_identity=str(C_ID),
         config='',
         config_flags=0,
+        debtor_url='',
     )
     account = Account.query.one()
     assert not account.account_config.is_scheduled_for_deletion
@@ -120,11 +122,14 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
 
 
 def test_process_account_update_signal(db_session, creditor, setup_account, current_ts):
+    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert not ac.is_effectual
-    assert ac.negligible_amount == 0.0
-    last_ts = ac.last_ts
-    last_seqnum = ac.last_seqnum
+    assert not ad.config_is_effectual
+    assert ac.negligible_amount > 1e20
+    assert ac.config == ''
+    assert ac.config_flags == 0
+    last_ts = ad.last_config_ts
+    last_seqnum = ad.last_config_seqnum
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -134,24 +139,25 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         principal=1000,
         interest=0.0,
         interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts,
         last_transfer_number=1,
-        last_transfer_committed_at=current_ts,
+        last_transfer_committed_at_ts=current_ts,
         last_config_ts=last_ts,
         last_config_seqnum=last_seqnum,
         creation_date=date(2020, 1, 15),
-        negligible_amount=0.0,
+        negligible_amount=1e30,
         status_flags=0,
         ts=current_ts,
         ttl=1000000,
         account_identity=str(C_ID),
         config='',
         config_flags=0,
+        debtor_url='',
     )
-    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert last_ts == ac.last_ts
-    assert last_seqnum == ac.last_seqnum
-    assert ac.is_effectual
-    assert ac.negligible_amount == 0.0
+    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+    assert last_ts == ad.last_config_ts
+    assert last_seqnum == ad.last_config_seqnum
+    assert ad.config_is_effectual
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -161,8 +167,9 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         principal=1100,
         interest=0.0,
         interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts,
         last_transfer_number=2,
-        last_transfer_committed_at=current_ts,
+        last_transfer_committed_at_ts=current_ts,
         last_config_ts=last_ts,
         last_config_seqnum=last_seqnum,
         creation_date=date(2020, 1, 15),
@@ -173,12 +180,12 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=0,
+        debtor_url='',
     )
-    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert last_ts == ac.last_ts
-    assert last_seqnum == ac.last_seqnum
-    assert not ac.is_effectual
-    assert ac.negligible_amount == 0.0
+    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+    assert last_ts == ad.last_config_ts
+    assert last_seqnum == ad.last_config_seqnum
+    assert not ad.config_is_effectual
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -188,24 +195,25 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         principal=1100,
         interest=0.0,
         interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts,
         last_transfer_number=2,
-        last_transfer_committed_at=current_ts,
+        last_transfer_committed_at_ts=current_ts,
         last_config_ts=last_ts,
         last_config_seqnum=last_seqnum,
         creation_date=date(2020, 1, 15),
-        negligible_amount=0.0,
+        negligible_amount=1e30,
         status_flags=0,
         ts=current_ts,
         ttl=1000000,
         account_identity=str(C_ID),
         config='',
         config_flags=0,
+        debtor_url='',
     )
-    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert last_ts == ac.last_ts
-    assert last_seqnum == ac.last_seqnum
-    assert ac.is_effectual
-    assert ac.negligible_amount == 0.0
+    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+    assert last_ts == ad.last_config_ts
+    assert last_seqnum == ad.last_config_seqnum
+    assert ad.config_is_effectual
 
     # Discard orphaned account.
     p.process_account_update_signal(
@@ -216,8 +224,9 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         principal=1100,
         interest=0.0,
         interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts,
         last_transfer_number=1,
-        last_transfer_committed_at=current_ts,
+        last_transfer_committed_at_ts=current_ts,
         last_config_ts=current_ts - timedelta(days=5),
         last_config_seqnum=1,
         creation_date=date(2020, 1, 15),
@@ -228,6 +237,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=0,
+        debtor_url='',
     )
     cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
     assert cas.negligible_amount > 1e22
@@ -240,8 +250,9 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         principal=1100,
         interest=0.0,
         interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts,
         last_transfer_number=1,
-        last_transfer_committed_at=current_ts,
+        last_transfer_committed_at_ts=current_ts,
         last_config_ts=current_ts - timedelta(days=5),
         last_config_seqnum=1,
         creation_date=date(2020, 1, 15),
@@ -252,16 +263,17 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
+        debtor_url='',
     )
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
 
 
 def test_process_account_purge_signal(db_session, creditor, setup_account, current_ts):
-    config = AccountConfig.query.one()
-    assert config.debtor_id == D_ID
-    assert config.creditor_id == C_ID
-    assert not config.has_account
-    assert len(Account.query.all()) == 0
+    data = AccountData.query.one()
+    assert data.debtor_id == D_ID
+    assert data.creditor_id == C_ID
+    assert not data.has_account
+    assert len(Account.query.all()) == 1
     p.process_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -270,8 +282,9 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         principal=1000,
         interest=0.0,
         interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts,
         last_transfer_number=1,
-        last_transfer_committed_at=current_ts,
+        last_transfer_committed_at_ts=current_ts,
         last_config_ts=current_ts,
         last_config_seqnum=1,
         creation_date=date(2020, 1, 15),
@@ -282,9 +295,10 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         account_identity=str(C_ID),
         config='',
         config_flags=0,
+        debtor_url='',
     )
-    config = AccountConfig.query.one()
-    assert config.has_account
+    data = AccountData.query.one()
+    assert data.has_account
     assert len(Account.query.all()) == 1
 
     # Wrong creation date:
@@ -293,8 +307,8 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         creditor_id=C_ID,
         creation_date=date(2021, 1, 2),
     )
-    config = AccountConfig.query.one()
-    assert config.has_account
+    data = AccountData.query.one()
+    assert data.has_account
     assert len(Account.query.all()) == 1
 
     # Wrong creditor_id:
@@ -303,8 +317,8 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         creditor_id=1234,
         creation_date=date(2020, 1, 15),
     )
-    config = AccountConfig.query.one()
-    assert config.has_account
+    data = AccountData.query.one()
+    assert data.has_account
     assert len(Account.query.all()) == 1
 
     # Everything is correct:
@@ -313,6 +327,6 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         creditor_id=C_ID,
         creation_date=date(2020, 1, 15),
     )
-    config = AccountConfig.query.one()
-    assert not config.has_account
-    assert len(Account.query.all()) == 0
+    data = AccountData.query.one()
+    assert not data.has_account
+    assert len(AccountData.query.all()) == 1

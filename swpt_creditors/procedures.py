@@ -3,15 +3,15 @@ from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import tuple_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.sql.expression import tuple_, and_
+from sqlalchemy.orm import joinedload, exc
 from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
 from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
-    Account, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
-    DirectTransfer, RunningTransfer, \
+    Account, AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
+    AccountDisplay, AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, \
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
-    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
+    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -23,6 +23,10 @@ PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.debtor_id,
     PendingAccountCommit.creditor_id,
     PendingAccountCommit.transfer_number,
+)
+ACCOUNT_CONFIG_JOIN_CLAUSE = and_(
+    AccountConfig.creditor_id == AccountData.creditor_id,
+    AccountConfig.debtor_id == AccountData.debtor_id,
 )
 
 
@@ -102,19 +106,19 @@ def create_account(creditor_id: int, debtor_id: int) -> bool:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    config_needs_to_be_created = _get_account_config(creditor_id, debtor_id) is None
-    if config_needs_to_be_created:
-        config = _create_account_config(creditor_id, debtor_id)
-        _insert_configure_account_signal(config)
+    account_needs_to_be_created = _get_account(creditor_id, debtor_id) is None
+    if account_needs_to_be_created:
+        account = _create_account(creditor_id, debtor_id)
+        _insert_configure_account_signal(account.account_config, account.account_data, account.created_at_ts)
 
-    return config_needs_to_be_created
+    return account_needs_to_be_created
 
 
 @atomic
 def change_account_config(
         creditor_id: int,
         debtor_id: int,
-        allow_unsafe_removal: bool = None,
+        allow_unsafe_deletion: bool = None,
         negligible_amount: float = None,
         is_scheduled_for_deletion: bool = None) -> None:
 
@@ -127,24 +131,26 @@ def change_account_config(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    config = _get_account_config(creditor_id, debtor_id, lock=True)
-    if config is None:
+    account = _get_account(creditor_id, debtor_id)  # TODO: use lock and joinedload
+    if account is None:
         raise AccountDoesNotExistError()
 
-    if allow_unsafe_removal is not None and config.allow_unsafe_removal != allow_unsafe_removal:
-        config.allow_unsafe_removal = allow_unsafe_removal
+    config = account.account_config
+    data = account.account_data
+    if allow_unsafe_deletion is not None and config.allow_unsafe_deletion != allow_unsafe_deletion:
+        config.allow_unsafe_deletion = allow_unsafe_deletion
 
     if negligible_amount is not None and config.negligible_amount != negligible_amount:
         assert negligible_amount >= 0.0
         config.negligible_amount = negligible_amount
-        config.is_effectual = False
+        data.config_is_effectual = False
 
     if is_scheduled_for_deletion is not None and config.is_scheduled_for_deletion != is_scheduled_for_deletion:
         config.is_scheduled_for_deletion = is_scheduled_for_deletion
-        config.is_effectual = False
+        data.config_is_effectual = False
 
-    if not config.is_effectual:
-        _insert_configure_account_signal(config)
+    if not data.config_is_effectual:
+        _insert_configure_account_signal(config, data)
 
 
 @atomic
@@ -159,20 +165,19 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    config = _get_account_config(creditor_id, debtor_id)
-    if config:
-        if not config.allow_unsafe_removal:
-            days_since_last_config_signal = (datetime.now(tz=timezone.utc) - config.last_ts).days
+    account = _get_account(creditor_id, debtor_id)  # TODO: use joinedload.
+    if account:
+        config = account.account_config
+        data = account.account_data
+        if not config.allow_unsafe_deletion:
+            days_since_last_config_signal = (datetime.now(tz=timezone.utc) - data.last_config_ts).days
             is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
-            is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and config.is_effectual
-            is_removal_safe = not config.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
+            is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and data.config_is_effectual
+            is_removal_safe = not data.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
             if not is_removal_safe:
                 return False
 
-        AccountConfig.query.\
-            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-            delete(synchronize_session=False)
-        AccountLedger.query.\
+        Account.query.\
             filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
             delete(synchronize_session=False)
 
@@ -184,14 +189,12 @@ def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date
     # TODO: Do not foget to do the same thing when the account is dead
     #       (no heartbeat for a long time).
 
-    account = Account.lock_instance(
-        (creditor_id, debtor_id),
-        joinedload('account_config', innerjoin=True),
-    )
-    if account and account.creation_date == creation_date:
-        config = account.account_config
-        config.has_account = False
-        db.session.delete(account)
+    account_data = AccountData.lock_instance((creditor_id, debtor_id))
+    if account_data and account_data.creation_date == creation_date:
+        # TODO: reset other fields as well?
+        account_data.has_account = False
+        account_data.principal = 0
+        account_data.interest = 0.0
 
 
 @atomic
@@ -203,8 +206,9 @@ def process_account_update_signal(
         principal: int,
         interest: float,
         interest_rate: float,
+        last_interest_rate_change_ts: datetime,
         last_transfer_number: int,
-        last_transfer_committed_at: datetime,
+        last_transfer_committed_at_ts: datetime,
         last_config_ts: datetime,
         last_config_seqnum: int,
         creation_date: date,
@@ -214,7 +218,8 @@ def process_account_update_signal(
         status_flags: int,
         ts: datetime,
         ttl: int,
-        account_identity: str) -> None:
+        account_identity: str,
+        debtor_url: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -229,78 +234,65 @@ def process_account_update_signal(
     assert ttl > 0
 
     current_ts = datetime.now(tz=timezone.utc)
-    ts = min(ts, current_ts)
     if (current_ts - ts).total_seconds() > ttl:
         return
 
-    account = Account.lock_instance(
-        (creditor_id, debtor_id),
-        joinedload('account_config', innerjoin=True),
-        of=Account,
-    )
-    if account:
-        if ts > account.last_heartbeat_ts:
-            account.last_heartbeat_ts = ts
-        if account.creation_date > creation_date:  # pragma: no cover
-            # This should never happen, given that the `swpt_accounts`
-            # service behaves adequately. Nevertheless, it is good to
-            # be prepared for all eventualities.
-            return
-        prev_event = (account.creation_date, account.last_change_ts, Seqnum(account.last_change_seqnum))
-        this_event = (creation_date, last_change_ts, Seqnum(last_change_seqnum))
-        if this_event <= prev_event:
-            return
-        new_account = account.creation_date < creation_date
-        account.last_change_ts = last_change_ts
-        account.last_change_seqnum = last_change_seqnum
-        account.principal = principal
-        account.interest = interest
-        account.interest_rate = interest_rate
-        account.last_transfer_number = last_transfer_number
-        account.creation_date = creation_date
-        account.negligible_amount = negligible_amount
-        account.config_flags = config_flags
-        account.status_flags = status_flags
-    else:
-        config = _get_account_config(creditor_id, debtor_id, lock=True)
-        if config is None:
-            # TODO: This is very dangerous. Ensure that `creditor_id`
-            #       matches the CREDITORSPACE/CREDITORSPACE_MASK.
+    query = db.session.query(AccountData, AccountConfig).\
+        outerjoin(AccountConfig, ACCOUNT_CONFIG_JOIN_CLAUSE).\
+        filter(AccountData.creditor_id == creditor_id, AccountData.debtor_id == debtor_id).\
+        with_for_update(of=AccountData)
 
-            # The user have removed the account. The "orphaned"
-            # `Account` record should be scheduled for deletion.
-            _discard_orphaned_account(creditor_id, debtor_id, status_flags, config_flags, negligible_amount)
-            return
-        new_account = True
-        account = Account(
-            account_config=config,
-            last_change_ts=last_change_ts,
-            last_change_seqnum=last_change_seqnum,
-            principal=principal,
-            interest=interest,
-            interest_rate=interest_rate,
-            last_transfer_number=last_transfer_number,
-            creation_date=creation_date,
-            negligible_amount=negligible_amount,
-            config_flags=config_flags,
-            status_flags=status_flags,
-            last_heartbeat_ts=ts,
-        )
-        with db.retry_on_integrity_error():
-            db.session.add(account)
+    try:
+        account_data, account_config = query.one()
+    except exc.NoResultFound:
+        # TODO: Should we schedule the account for deletion here?
+        return
 
-    _revise_account_config_effectuality(
-        account,
-        last_config_ts,
-        last_config_seqnum,
-        new_account,
-        account_identity,
-        config,
-    )
+    if creation_date < account_data.creation_date:
+        return
 
-    # TODO: Reset the ledger if it has been outdated for a long time.
-    #       Consider adding `Account.last_transfer_committed_at_ts`
-    #       and `Account.last_transfer_ts`.
+    if ts > account_data.last_heartbeat_ts:
+        account_data.last_heartbeat_ts = min(ts, current_ts)
+
+    prev_event = (account_data.creation_date, account_data.last_change_ts, Seqnum(account_data.last_change_seqnum))
+    this_event = (creation_date, last_change_ts, Seqnum(last_change_seqnum))
+    is_new_event = this_event > prev_event
+    if not is_new_event:
+        return
+
+    last_config_request = (account_data.last_config_ts, Seqnum(account_data.last_config_seqnum))
+    applied_config_request = (last_config_ts, Seqnum(last_config_seqnum))
+    is_same_config = all([
+        account_config.negligible_amount == negligible_amount,
+        account_config.config == config,
+        account_config.config_flags == config_flags,
+    ])
+    config_is_effectual = last_config_request == applied_config_request and is_same_config
+
+    account_data.has_account = True
+    account_data.creation_date = creation_date
+    account_data.last_change_ts = last_change_ts
+    account_data.last_change_seqnum = last_change_seqnum
+    account_data.principal = principal
+    account_data.interest = interest
+    account_data.interest_rate = interest_rate
+    account_data.last_interest_rate_change_ts = last_interest_rate_change_ts
+    account_data.last_transfer_number = last_transfer_number,
+    account_data.last_transfer_committed_at_ts = last_transfer_committed_at_ts
+    account_data.status_flags = status_flags
+    account_data.account_identity = account_identity
+    account_data.debtor_url = debtor_url
+    account_data.config_is_effectual = config_is_effectual
+    account_data.latest_update_id = 1  # TODO: generate it.
+    account_data.latest_update_ts = current_ts
+    if config_is_effectual:
+        account_data.config_error = None
+    elif applied_config_request >= last_config_request:
+        # Normally, this should never happen.
+        account_data.config_error = 'SUPERSEDED_CONFIGURATION'
+
+    # TODO: Consider resetting the ledger if
+    #       `account_data.creation_date < creation_date`.
 
 
 @atomic
@@ -483,18 +475,19 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
     return number_of_deleted_rows == 1
 
 
-def _insert_configure_account_signal(config: AccountConfig, current_ts: datetime = None) -> None:
+def _insert_configure_account_signal(config: AccountConfig, data: AccountData, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
-    config.is_effectual = False
-    config.last_ts = max(config.last_ts, current_ts)
-    config.last_seqnum = increment_seqnum(config.last_seqnum)
+    data.config_is_effectual = False
+    data.last_config_ts = max(data.last_config_ts, current_ts)
+    data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     db.session.add(ConfigureAccountSignal(
-        creditor_id=config.creditor_id,
-        debtor_id=config.debtor_id,
-        ts=config.last_ts,
-        seqnum=config.last_seqnum,
+        debtor_id=data.debtor_id,
+        creditor_id=data.creditor_id,
+        ts=data.last_config_ts,
+        seqnum=data.last_config_seqnum,
         negligible_amount=config.negligible_amount,
-        is_scheduled_for_deletion=config.is_scheduled_for_deletion,
+        config_flags=config.config_flags,
+        config=config.config,
     ))
 
 
@@ -505,10 +498,9 @@ def _discard_orphaned_account(
         config_flags: int,
         negligible_amount: float) -> None:
 
-    is_deleted = status_flags & Account.STATUS_DELETED_FLAG
-    is_scheduled_for_deletion = config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    is_scheduled_for_deletion = config_flags & AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     has_huge_negligible_amount = negligible_amount >= HUGE_NEGLIGIBLE_AMOUNT
-    if not is_deleted and not (is_scheduled_for_deletion and has_huge_negligible_amount):
+    if not (is_scheduled_for_deletion and has_huge_negligible_amount):
         db.session.add(ConfigureAccountSignal(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
@@ -582,6 +574,57 @@ def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
     return config
 
 
+def _get_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[Account]:
+    if lock:
+        account = Account.lock_instance((creditor_id, debtor_id))
+    else:
+        account = Account.get_instance((creditor_id, debtor_id))
+    return account
+
+
+def _create_account(creditor_id: int, debtor_id: int) -> Account:
+    if Creditor.get_instance(creditor_id) is None:
+        raise CreditorDoesNotExistError()
+
+    current_ts = datetime.now(tz=timezone.utc)
+    latest_update_id = 1
+    latest_update_ts = current_ts
+    account = Account(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        created_at_ts=current_ts,
+        latest_update_id=latest_update_id,
+        latest_update_ts=latest_update_ts,
+        account_data=AccountData(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        account_knowledge=AccountKnowledge(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        account_exchange=AccountExchange(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        account_display=AccountDisplay(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        account_config=AccountConfig(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+    )
+    with db.retry_on_integrity_error():
+        db.session.add(account)
+    return account
+
+
+def _get_or_create_account(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountLedger:
+    return _get_account(creditor_id, debtor_id, lock=lock) or _create_account(creditor_id, debtor_id)
+
+
 def _get_account_config(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[AccountConfig]:
     if lock:
         config = AccountConfig.lock_instance((creditor_id, debtor_id))
@@ -592,44 +635,6 @@ def _get_account_config(creditor_id: int, debtor_id: int, lock: bool = False) ->
 
 def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountConfig:
     return _get_account_config(creditor_id, debtor_id, lock=lock) or _create_account_config(creditor_id, debtor_id)
-
-
-def _revise_account_config_effectuality(
-        account: Account,
-        last_config_ts: datetime,
-        last_config_seqnum: int,
-        new_account: bool,
-        account_identity: str,
-        config: str) -> None:
-
-    config = account.account_config
-
-    if not config.has_account:
-        config.has_account = True
-
-    if config.account_identity is None:
-        config.account_identity = account_identity
-
-    no_applied_config = last_config_ts - BEGINNING_OF_TIME < TD_SECOND
-    if no_applied_config:
-        # It looks like the account has been resurrected with the
-        # default configuration values, and must be reconfigured. As
-        # an optimization, we do this reconfiguration only once (when
-        # the account is new).
-        if new_account:
-            _insert_configure_account_signal(config)
-    else:
-        last_config_request = (config.last_ts, Seqnum(config.last_seqnum))
-        last_applied_config = (last_config_ts, Seqnum(last_config_seqnum))
-        config_is_effectual = account.check_if_config_is_effectual() and account_identity == config.account_identity
-        if last_applied_config >= last_config_request and config.is_effectual != config_is_effectual:
-            config.is_effectual = config_is_effectual
-
-    # TODO: Verify the effectuallity of the `config.config` field.
-
-    # TODO: Detect the situation when the account is scheduled for
-    #       deletion, but `config.negligible_amount` is smaller than
-    #       available amount?
 
 
 def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:

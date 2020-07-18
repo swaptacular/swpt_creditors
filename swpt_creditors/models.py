@@ -79,6 +79,68 @@ class Signal(db.Model):
 #       messing up with accounts belonging to other instances.
 
 
+class Account(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __table_args__ = (
+        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
+        db.CheckConstraint(latest_update_id > 0),
+    )
+
+    account_data = db.relationship('AccountData', uselist=False)
+    account_knowledge = db.relationship('AccountKnowledge', uselist=False)
+    account_exchange = db.relationship('AccountExchange', uselist=False)
+    account_display = db.relationship('AccountDisplay', uselist=False)
+    account_config = db.relationship('AccountConfig', uselist=False)
+
+
+class AccountConfig(db.Model):
+    CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    negligible_amount = db.Column(db.REAL, nullable=False, default=1e30)
+    config = db.Column(db.String, nullable=False, default='')
+    config_flags = db.Column(db.Integer, nullable=False, default=0)
+    allow_unsafe_deletion = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether the owner approved unsafe removal of the account. In extraordinary '
+                'circumstances it might be necessary to forcefully remove an account, accepting '
+                'the risk of losing the available amount.',
+    )
+    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account.creditor_id', 'account.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.CheckConstraint(negligible_amount >= 0.0),
+        db.CheckConstraint(latest_update_id > 0),
+    )
+
+    @property
+    def is_scheduled_for_deletion(self):
+        return bool(self.config_flags & self.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
+
+    @is_scheduled_for_deletion.setter
+    def is_scheduled_for_deletion(self, value):
+        if value:
+            self.config_flags |= self.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        else:
+            self.config_flags &= ~self.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+
+
+# TODO: Implement a daemon that periodically scan the `AccountData`
+#       table and makes sure that the `config_error` filed is set for
+#       each record that has an old `last_change_ts`, and is not
+#       effectual (`config_is_effectual is False`).
 class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
@@ -123,6 +185,11 @@ class AccountData(db.Model):
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account.creditor_id', 'account.debtor_id'],
+            ondelete='CASCADE',
+        ),
         db.CheckConstraint(interest_rate >= -100.0),
         db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(latest_update_id > 0),
@@ -145,6 +212,11 @@ class AccountKnowledge(db.Model):
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account.creditor_id', 'account.debtor_id'],
+            ondelete='CASCADE',
+        ),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(peg_exchange_rate >= 0.0),
         db.CheckConstraint(or_(
@@ -158,11 +230,16 @@ class AccountExchange(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     policy = db.Column(db.String)
-    min_principal = db.Column(db.BigInteger, nullable=False)
-    max_principal = db.Column(db.BigInteger, nullable=False)
+    min_principal = db.Column(db.BigInteger, nullable=False, default=MIN_INT64)
+    max_principal = db.Column(db.BigInteger, nullable=False, default=MAX_INT64)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account.creditor_id', 'account.debtor_id'],
+            ondelete='CASCADE',
+        ),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(min_principal <= max_principal),
     )
@@ -183,6 +260,15 @@ class AccountDisplay(db.Model):
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account.creditor_id', 'account.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'peg_debtor_id'],
+            ['account_display.creditor_id', 'account_display.debtor_id'],
+        ),
         db.Index(
             'idx_peg_debtor_id',
             creditor_id,
@@ -202,10 +288,6 @@ class AccountDisplay(db.Model):
             own_unit,
             unique=True,
             postgresql_where=own_unit != null(),
-        ),
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'peg_debtor_id'],
-            ['account_display.creditor_id', 'account_display.debtor_id'],
         ),
         db.CheckConstraint(amount_divisor > 0.0),
         db.CheckConstraint(latest_update_id > 0),
@@ -497,75 +579,6 @@ class PendingAccountCommit(db.Model):
     account_commit = db.relationship('AccountCommit')
 
 
-class AccountConfig(db.Model):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    has_account = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether a corresponding `account` record exists.',
-    )
-    is_effectual = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether the last change in the configuration has been successfully applied.',
-    )
-    last_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-        comment='The timestamp of the last sent `configure_account` signal. Must never decrease.',
-    )
-    last_seqnum = db.Column(
-        db.Integer,
-        nullable=False,
-        default=0,
-        comment='The sequential number of the last sent `configure_account` signal. It is '
-                'incremented (with wrapping) on every change. This column, along with the '
-                '`last_ts` column, allows to reliably determine the correct order of changes, '
-                'even if they occur in a very short period of time.',
-    )
-    is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
-    negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
-
-    # TODO: Those does not belong here.
-    account_identity = db.Column(
-        db.String,
-        comment='The value of the `account_identity` field from the first received '
-                '`AccountChangeSignal` for the account.',
-    )
-    allow_unsafe_removal = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether the owner approved unsafe removal of the account. In extraordinary '
-                'circumstances it might be necessary to forcefully remove an account, accepting '
-                'the risk of losing the available amount.',
-    )
-
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
-            ondelete='RESTRICT',
-        ),
-        db.CheckConstraint(negligible_amount >= 0.0),
-        {
-            'comment': "Represents a configured (created) account from users' perspective. Note "
-                       "that a freshly inserted `account_config` record will not have a "
-                       "corresponding `account` record.",
-        },
-    )
-
-    account_ledger = db.relationship(
-        'AccountLedger',
-        backref=db.backref('account_config', uselist=False),
-    )
-
-
 class AccountLedger(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -686,69 +699,6 @@ class LedgerEntry(db.Model):
     account_commit = db.relationship('AccountCommit')
 
 
-class Account(db.Model):
-    CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
-
-    STATUS_UNREACHABLE_FLAG = 1 << 0
-    STATUS_OVERFLOWN_FLAG = 1 << 1
-    STATUS_DELETED_FLAG = 1 << 16
-    STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
-
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_change_seqnum = db.Column(db.Integer, nullable=False)
-    principal = db.Column(db.BigInteger, nullable=False)
-    interest = db.Column(db.FLOAT, nullable=False)
-    interest_rate = db.Column(db.REAL, nullable=False)
-    last_transfer_number = db.Column(db.BigInteger, nullable=False)
-    creation_date = db.Column(db.DATE, nullable=False)
-    negligible_amount = db.Column(db.REAL, nullable=False)
-    config_flags = db.Column(db.Integer, nullable=False)
-    status_flags = db.Column(db.Integer, nullable=False)
-    last_heartbeat_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-        comment='The moment at which the last `AccountChangeSignal` has been processed. It is '
-                'used to detect "dead" accounts. A "dead" account is an account that have been '
-                'removed from the `swpt_accounts` service, but still exist in this table.',
-    )
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_config.creditor_id', 'account_config.debtor_id'],
-            ondelete='CASCADE',
-        ),
-        db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
-        db.CheckConstraint(last_transfer_number >= 0),
-        db.CheckConstraint(principal > MIN_INT64),
-        db.CheckConstraint(negligible_amount >= 0.0),
-        {
-            'comment': 'Tells who owes what to whom. This table is a replica of the table with the '
-                       'same name in the `swpt_accounts` service. It is used to perform maintenance '
-                       'routines like changing interest rates. Most of the columns get their values '
-                       'from the corresponding fields in the last applied `AccountChangeSignal`.',
-        }
-    )
-
-    account_config = db.relationship(
-        'AccountConfig',
-        backref=db.backref('account', uselist=False),
-    )
-
-    @property
-    def is_scheduled_for_deletion(self):
-        return bool(self.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
-
-    def check_if_config_is_effectual(self):
-        config = self.account_config
-        return (
-            config.is_scheduled_for_deletion == self.is_scheduled_for_deletion
-            and config.negligible_amount == self.negligible_amount
-        )
-
-
 class ConfigureAccountSignal(Signal):
     queue_name = 'swpt_accounts'
     actor_name = 'configure_account'
@@ -758,18 +708,14 @@ class ConfigureAccountSignal(Signal):
         creditor_id = fields.Constant(ROOT_CREDITOR_ID)
         ts = fields.DateTime()
         seqnum = fields.Constant(0)
-        negligible_amount = fields.Boolean()
-        config_flags = fields.Method('get_config_flags')
-        config = fields.Constant('')
+        negligible_amount = fields.Float()
+        config = fields.String()
+        config_flags = fields.Integer()
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
     seqnum = db.Column(db.Integer, primary_key=True)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False)
-
-    def get_config_flags(self, obj):
-        if self.is_scheduled_for_deletion:
-            return Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        return 0
+    config = db.Column(db.String, nullable=False)
+    config_flags = db.Column(db.Integer, nullable=False)
