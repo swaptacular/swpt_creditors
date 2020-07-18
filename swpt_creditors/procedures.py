@@ -615,6 +615,10 @@ def _create_account(creditor_id: int, debtor_id: int) -> Account:
             latest_update_id=latest_update_id,
             latest_update_ts=latest_update_ts,
         ),
+        account_ledger=AccountLedger(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
     )
     with db.retry_on_integrity_error():
         db.session.add(account)

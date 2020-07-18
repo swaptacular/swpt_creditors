@@ -95,6 +95,7 @@ class Account(db.Model):
     account_exchange = db.relationship('AccountExchange', uselist=False)
     account_display = db.relationship('AccountDisplay', uselist=False)
     account_config = db.relationship('AccountConfig', uselist=False)
+    account_ledger = db.relationship('AccountLedger', uselist=False)
 
 
 class AccountConfig(db.Model):
@@ -198,6 +199,48 @@ class AccountData(db.Model):
     @property
     def overflown(self):
         return bool(self.status_flags & self.STATUS_OVERFLOWN_FLAG)
+
+
+class AccountLedger(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    principal = db.Column(db.BigInteger, nullable=False, default=0)
+    account_creation_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
+    last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
+    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account.creditor_id', 'account.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.Index(
+            # This index is supposed to allow efficient merge joins
+            # with `PendingAccountCommit`. Not sure if it is really
+            # beneficial in practice.
+            'idx_last_transfer_number',
+            creditor_id,
+            debtor_id,
+            last_transfer_number,
+        ),
+        db.CheckConstraint(last_transfer_number >= 0),
+        db.CheckConstraint(latest_update_id > 0),
+    )
+
+    def reset(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
+        if account:
+            assert account_creation_date is None
+            assert account.creditor_id == self.creditor_id and account.debtor_id == self.debtor_id
+            self.account_creation_date = account.creation_date
+            self.principal = account.principal
+            self.next_transfer_number = account.last_transfer_number + 1
+        else:
+            account_creation_date = account_creation_date or BEGINNING_OF_TIME.date()
+            self.account_creation_date = account_creation_date
+            self.principal = 0
+            self.next_transfer_number = (date_to_int24(account_creation_date) << 40) + 1
+        self.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
 class AccountKnowledge(db.Model):
@@ -577,80 +620,6 @@ class PendingAccountCommit(db.Model):
     )
 
     account_commit = db.relationship('AccountCommit')
-
-
-class AccountLedger(db.Model):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    account_creation_date = db.Column(
-        db.DATE,
-        nullable=False,
-        default=BEGINNING_OF_TIME.date(),
-        comment="The date on which the account was created. This is needed to detect when "
-                "an account has been deleted, and recreated again. (In that case the sequence "
-                "of `transfer_number`s will be broken, the old ledger should be discarded, and "
-                "a brand new ledger created).",
-    )
-    principal = db.Column(
-        db.BigInteger,
-        nullable=False,
-        default=0,
-        comment='The account principal, as it is after the last transfer has been added to the ledger.'
-    )
-    next_transfer_number = db.Column(
-        db.BigInteger,
-        nullable=False,
-        default=1,
-        comment="The anticipated `transfer_number` for the next transfer. It gets incremented when a "
-                "new transfer is added to the ledger. For a newly created (or purged, and then "
-                "recreated) account, the sequential number of the first transfer will have its lower "
-                "40 bits set to `0x0000000001`, and its higher 24 bits calculated from the account's "
-                "creation date (the number of days since Jan 1st, 1970). Note that when an account "
-                "has been removed from the database, and then recreated again, for this account, a "
-                "gap will occur in the generated sequence of `transfer_number`s.",
-    )
-    last_update_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-        comment='The moment at which the most recent change in the row happened.',
-    )
-    __table_args__ = (
-        db.Index(
-            # This index is supposed to allow efficient merge joins
-            # with `PendingAccountCommit`. Not sure if it is really
-            # beneficial in practice.
-            'idx_next_transfer_number',
-            creditor_id,
-            debtor_id,
-            next_transfer_number,
-        ),
-        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
-        db.CheckConstraint(principal > MIN_INT64),
-        db.CheckConstraint(next_transfer_number > 0),
-        {
-            'comment': 'Represents essential information about the ledger of a given account. Logically '
-                       'those columns belong to the `account_config` table, but they are isolated '
-                       'here mainly for peformace reasons. The thing is that we want really fast '
-                       'index-only scans on the `account_config` table. Normally, the account config '
-                       'rarely changes (which is good for the index-only scans), while the account '
-                       'ledger information may change very frequently.',
-        }
-    )
-
-    def reset(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
-        if account:
-            assert account_creation_date is None
-            assert account.creditor_id == self.creditor_id and account.debtor_id == self.debtor_id
-            self.account_creation_date = account.creation_date
-            self.principal = account.principal
-            self.next_transfer_number = account.last_transfer_number + 1
-        else:
-            account_creation_date = account_creation_date or BEGINNING_OF_TIME.date()
-            self.account_creation_date = account_creation_date
-            self.principal = 0
-            self.next_transfer_number = (date_to_int24(account_creation_date) << 40) + 1
-        self.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
 class LedgerEntry(db.Model):
