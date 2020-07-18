@@ -588,37 +588,18 @@ def _create_account(creditor_id: int, debtor_id: int) -> Account:
 
     current_ts = datetime.now(tz=timezone.utc)
     latest_update_id = 1
-    latest_update_ts = current_ts
+    latest_update = {'latest_update_id': latest_update_id, 'latest_update_ts': current_ts}
     account = Account(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         created_at_ts=current_ts,
-        latest_update_id=latest_update_id,
-        latest_update_ts=latest_update_ts,
-        account_data=AccountData(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        account_knowledge=AccountKnowledge(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        account_exchange=AccountExchange(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        account_display=AccountDisplay(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        account_config=AccountConfig(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        account_ledger=AccountLedger(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
+        account_data=AccountData(**latest_update),
+        account_knowledge=AccountKnowledge(**latest_update),
+        account_exchange=AccountExchange(**latest_update),
+        account_display=AccountDisplay(**latest_update),
+        account_config=AccountConfig(**latest_update),
+        account_ledger=AccountLedger(**latest_update),
+        **latest_update,
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
