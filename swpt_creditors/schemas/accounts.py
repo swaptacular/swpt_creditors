@@ -1,16 +1,21 @@
+import re
+from base64 import urlsafe_b64encode
 from copy import copy
 from marshmallow import (
-    Schema, ValidationError, fields, validate, pre_dump, post_load, missing, validates_schema,
+    Schema, ValidationError, fields, validate, pre_dump, missing, validates_schema,
 )
 from flask import url_for
+from swpt_lib.utils import i64_to_u64
 from swpt_creditors.models import (
-    AccountDisplay, AccountExchange, AccountKnowledge,
+    AccountDisplay, AccountExchange, AccountKnowledge, AccountConfig, Account, AccountData,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
 )
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
     ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
+
+URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
 
 
 class DebtorSchema(Schema):
@@ -173,10 +178,9 @@ class LedgerEntriesPageSchema(Schema):
 
 
 class AccountLedgerSchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/ledger',
@@ -203,12 +207,10 @@ class AccountLedgerSchema(MutableResourceSchema):
         description='The principal amount on the account.',
         example=0,
     )
-    interest = fields.Method(
-        'get_interest',
+    interest = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
-        type='integer',
         format='int64',
         description='The approximate amount of interest accumulated on the account, which '
                     'has not been added to the principal yet. This can be a negative number. '
@@ -236,15 +238,36 @@ class AccountLedgerSchema(MutableResourceSchema):
         },
     )
 
-    def get_interest(self, obj):
-        return 0
+    @pre_dump
+    def process_account_data_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, AccountData)
+        obj = copy(obj)
+        obj.uri = url_for(
+            self.context['AccountLedger'],
+            _external=True,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
+        obj.account = {'uri': url_for(
+            self.context['Account'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )}
+        obj.latest_update_id = obj.ledger_latest_update_id
+        obj.latest_update_ts = obj.ledger_latest_update_ts
+        obj.principal = obj.ledger_principal
+        obj.interest = obj.interest  # TODO: calculate the interest precisely.
+        obj.entries = {}  # TODO: pass a paginated list here.
+
+        return obj
 
 
 class AccountInfoSchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/info',
@@ -293,14 +316,15 @@ class AccountInfoSchema(MutableResourceSchema):
         description='Annual rate (in percents) at which interest accumulates on the account.',
         example=0.0,
     )
-    interest_rate_changed_at_ts = fields.DateTime(
+    last_interest_rate_change_ts = fields.DateTime(
         missing=BEGINNING_OF_TIME,
         dump_only=True,
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
     )
-    configError = fields.String(
+    config_error = fields.String(
         dump_only=True,
+        data_key='configError',
         description='When this field is present, this means that for some reason, the current '
                     '`AccountConfig` settings can not be applied, or are not effectual anymore. '
                     'Usually this means that there has been a network communication problem, or a '
@@ -314,12 +338,51 @@ class AccountInfoSchema(MutableResourceSchema):
                     'principal have breached the `int64` boundaries.',
         example=False,
     )
-    debtorUrl = fields.String(
+    debtor_url = fields.String(
         dump_only=True,
         format='uri',
+        data_key='debtorUrl',
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
+
+    @pre_dump
+    def process_account_data_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, AccountData)
+        obj = copy(obj)
+        obj.uri = url_for(
+            self.context['AccountInfo'],
+            _external=True,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
+        obj.account = {'uri': url_for(
+            self.context['Account'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )}
+        obj.latest_update_id = obj.info_latest_update_id
+        obj.latest_update_ts = obj.info_latest_update_ts
+
+        if obj.account_identity != '':
+            account_identity = obj.account_identity
+
+            # TODO: Use a `swpt_lib.utils` function for this.
+            if not URLSAFE_B64.match(account_identity):
+                base64encoded = urlsafe_b64encode(account_identity.encode('utf8'))
+                account_identity = f'!{base64encoded.decode()}'
+
+            obj.identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_identity}'}
+
+        if obj.config_error is None:
+            obj.config_error = missing
+
+        if obj.debtor_url is None:
+            obj.debtor_url = missing
+
+        return obj
 
 
 class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
@@ -407,11 +470,10 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
 
-class AccountConfigSchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/config',
@@ -452,6 +514,7 @@ class AccountConfigSchema(MutableResourceSchema):
     )
     config = fields.String(
         missing='',
+        validate=validate.Length(max=400),
         description='Additional account configuration settings. Different debtors may '
                     'use different formats for this field.',
         example='',
@@ -464,6 +527,26 @@ class AccountConfigSchema(MutableResourceSchema):
                     'losing a non-negligible amount of money on the account.',
         example=False,
     )
+
+    @pre_dump
+    def process_account_config_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, AccountConfig)
+        obj = copy(obj)
+        obj.uri = url_for(
+            self.context['AccountConfig'],
+            _external=True,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
+        obj.account = {'uri': url_for(
+            self.context['Account'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )}
+
+        return obj
 
 
 class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
@@ -691,10 +774,9 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
 
 
 class AccountSchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/',
@@ -706,10 +788,11 @@ class AccountSchema(MutableResourceSchema):
         description='The type of this object.',
         example='Account',
     )
-    accountList = fields.Nested(
+    account_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='accountList',
         description="The URI of creditor's `AccountList`.",
         example={'uri': '/creditors/2/account-list'},
     )
@@ -759,10 +842,24 @@ class AccountSchema(MutableResourceSchema):
         description="Account's `AccountExchange` settings.",
     )
 
-    def get_uri(self, obj):
-        return url_for(
+    @pre_dump
+    def process_account_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, Account)
+        obj = copy(obj)
+        obj.uri = url_for(
             self.context['Account'],
             _external=True,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
+        obj.debtor = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
+        obj.account_list = {'uri': url_for(
+            self.context['AccountList'],
+            _external=False,
+            creditorId=obj.creditor_id,
+        )}
+        obj.info = obj.data
+        obj.ledger = obj.data
+
+        return obj

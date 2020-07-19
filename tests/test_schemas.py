@@ -3,6 +3,7 @@ from marshmallow import ValidationError
 from datetime import datetime
 from swpt_creditors import schemas
 from swpt_creditors import models
+from swpt_creditors import procedures
 from swpt_creditors.routes import CONTEXT
 
 D_ID = -1
@@ -323,3 +324,177 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError):
         aks.load({'debtorUrl': 1000 * 'x'})
+
+
+def test_serialize_account_config(app):
+    ac = models.AccountConfig(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        negligible_amount=101.0,
+        config='test config',
+        config_flags=models.AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
+        allow_unsafe_deletion=True,
+        latest_update_id=1,
+        latest_update_ts=datetime(2020, 1, 1),
+    )
+    acs = schemas.AccountConfigSchema(context=CONTEXT)
+    assert acs.dump(ac) == {
+        'type': 'AccountConfig',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/config',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'negligibleAmount': 101.0,
+        'scheduledForDeletion': True,
+        'allowUnsafeDeletion': True,
+        'config': 'test config',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+    ac.negligible_amount = 1e30
+    ac.config = ''
+    ac.config_flags = 0
+    ac.allow_unsafe_deletion = False
+    assert acs.dump(ac) == {
+        'type': 'AccountConfig',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/config',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'negligibleAmount': 1e30,
+        'scheduledForDeletion': False,
+        'allowUnsafeDeletion': False,
+        'config': '',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+
+def test_deserialize_account_config(app):
+    acs = schemas.AccountConfigSchema(context=CONTEXT)
+
+    data = acs.load({
+        'negligibleAmount': 1.0,
+        'scheduledForDeletion': True,
+    })
+    assert data == {
+        'type': 'AccountConfig',
+        'negligible_amount': 1.0,
+        'is_scheduled_for_deletion': True,
+        'allow_unsafe_deletion': False,
+        'config': '',
+    }
+
+    data = acs.load({
+        'type': 'AccountConfig',
+        'negligibleAmount': 1.0,
+        'allowUnsafeDeletion': True,
+        'scheduledForDeletion': False,
+        'config': 'test config',
+    })
+    assert data == {
+        'type': 'AccountConfig',
+        'negligible_amount': 1.0,
+        'is_scheduled_for_deletion': False,
+        'allow_unsafe_deletion': True,
+        'config': 'test config',
+    }
+
+    with pytest.raises(ValidationError):
+        acs.load({'type': 'WrongType'})
+
+    with pytest.raises(ValidationError):
+        acs.load({'config': {'uri': 1000 * 'x'}})
+
+
+def test_serialize_account_info(app):
+    ad = models.AccountData(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        creation_date=datetime(2019, 1, 1),
+        last_change_ts=datetime(2019, 1, 3),
+        last_change_seqnum=-5,
+        principal=1000,
+        interest=11.0,
+        last_transfer_number=123,
+        last_transfer_committed_at_ts=datetime(2019, 1, 2),
+        last_config_ts=datetime(2019, 1, 5),
+        last_config_seqnum=5,
+        last_heartbeat_ts=datetime(2020, 1, 3),
+        interest_rate=7.0,
+        last_interest_rate_change_ts=datetime(2000, 1, 1),
+        status_flags=models.AccountData.STATUS_OVERFLOWN_FLAG,
+        account_identity='',
+        debtor_url=None,
+        config_error=None,
+        is_config_effectual=True,
+        is_scheduled_for_deletion=False,
+        has_server_account=True,
+        info_latest_update_id=1,
+        info_latest_update_ts=datetime(2020, 1, 1),
+        ledger_principal=999,
+        ledger_last_transfer_number=122,
+        ledger_latest_update_id=2,
+        ledger_latest_update_ts=datetime(2020, 1, 2),
+    )
+    ais = schemas.AccountInfoSchema(context=CONTEXT)
+    assert ais.dump(ad) == {
+        'type': 'AccountInfo',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/info',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'interestRate': 7.0,
+        'interestRateChangedAt': '2000-01-01T00:00:00',
+        'overflown': True,
+        'safeToDelete': False,
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+
+    }
+
+    ad.interest_rate = 0.0
+    ad.status_flags = 0
+    ad.account_identity = 'not URL safe'
+    ad.debtor_url = 'https://example.com/debtor'
+    ad.config_error = 'TEST_ERROR'
+    ad.is_scheduled_for_deletion = True
+    ad.is_config_effectual = True
+    ad.has_server_account = False
+    assert ais.dump(ad) == {
+        'type': 'AccountInfo',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/info',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'interestRate': 0.0,
+        'interestRateChangedAt': '2000-01-01T00:00:00',
+        'overflown': False,
+        'safeToDelete': True,
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+        'identity': {'uri': 'swpt:18446744073709551615/!bm90IFVSTCBzYWZl'},
+        'configError': 'TEST_ERROR',
+        'debtorUrl': 'https://example.com/debtor',
+    }
+
+
+def test_serialize_account(db_session):
+    assert procedures.create_new_creditor(C_ID)
+    assert procedures.create_account(C_ID, D_ID)
+    account = models.Account.get_instance((C_ID, D_ID))
+    account_schema = schemas.AccountSchema(context=CONTEXT)
+    ads = schemas.AccountDisplaySchema(context=CONTEXT)
+    acs = schemas.AccountConfigSchema(context=CONTEXT)
+    ais = schemas.AccountInfoSchema(context=CONTEXT)
+    als = schemas.AccountLedgerSchema(context=CONTEXT)
+    aes = schemas.AccountExchangeSchema(context=CONTEXT)
+    aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
+    assert account_schema.dump(account) == {
+        'type': 'Account',
+        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/',
+        'accountList': {'uri': '/creditors/1/account-list'},
+        'createdAt': account.created_at_ts.isoformat(),
+        'latestUpdateId': account.latest_update_id,
+        'latestUpdateAt': account.latest_update_ts.isoformat(),
+        'debtor': {'uri': 'swpt:18446744073709551615'},
+        'display': ads.dump(account.display),
+        'config': acs.dump(account.config),
+        'info': ais.dump(account.data),
+        'ledger': als.dump(account.data),
+        'exchange': aes.dump(account.exchange),
+        'knowledge': aks.dump(account.knowledge),
+    }
