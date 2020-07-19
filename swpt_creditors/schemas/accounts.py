@@ -1,18 +1,15 @@
 import re
 from base64 import urlsafe_b64encode
 from copy import copy
-from marshmallow import (
-    Schema, ValidationError, fields, validate, pre_dump, validates_schema,
-)
+from marshmallow import Schema, ValidationError, fields, validate, pre_dump, validates_schema
 from flask import url_for
 from swpt_lib.utils import i64_to_u64
-from swpt_creditors.models import (
-    AccountDisplay, AccountExchange, AccountKnowledge, AccountConfig, Account, AccountData,
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
-)
+from swpt_creditors import models
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
-    ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, exclude_if_none,
+    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
+    MutableResourceSchema, ValidateTypeMixin, exclude_if_none,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
+    URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
 
 URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
@@ -243,7 +240,7 @@ class AccountLedgerSchema(MutableResourceSchema):
     @pre_dump
     def process_account_data_instance(self, obj, many):
         assert not many
-        assert isinstance(obj, AccountData)
+        assert isinstance(obj, models.AccountData)
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountLedger'],
@@ -351,7 +348,7 @@ class AccountInfoSchema(MutableResourceSchema):
     @pre_dump
     def process_account_data_instance(self, obj, many):
         assert not many
-        assert isinstance(obj, AccountData)
+        assert isinstance(obj, models.AccountData)
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountInfo'],
@@ -437,7 +434,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_knowledge_instance(self, obj, many):
         assert not many
-        assert isinstance(obj, AccountKnowledge)
+        assert isinstance(obj, models.AccountKnowledge)
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountKnowledge'],
@@ -526,7 +523,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_config_instance(self, obj, many):
         assert not many
-        assert isinstance(obj, AccountConfig)
+        assert isinstance(obj, models.AccountConfig)
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountConfig'],
@@ -605,7 +602,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_exchange_instance(self, obj, many):
         assert not many
-        assert isinstance(obj, AccountExchange)
+        assert isinstance(obj, models.AccountExchange)
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountExchange'],
@@ -730,7 +727,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_display_instance(self, obj, many):
         assert not many
-        assert isinstance(obj, AccountDisplay)
+        assert isinstance(obj, models.AccountDisplay)
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountDisplay'],
@@ -836,7 +833,7 @@ class AccountSchema(MutableResourceSchema):
     @pre_dump
     def process_account_instance(self, obj, many):
         assert not many
-        assert isinstance(obj, Account)
+        assert isinstance(obj, models.Account)
         obj = copy(obj)
         obj.uri = url_for(
             self.context['Account'],

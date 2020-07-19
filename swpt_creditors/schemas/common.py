@@ -1,6 +1,11 @@
+from datetime import datetime, timezone
 from marshmallow import Schema, fields, validate, missing, validates, ValidationError
-from swpt_lib import endpoints
-from swpt_creditors.models import MAX_INT64
+
+MIN_INT32 = -1 << 31
+MAX_INT32 = (1 << 31) - 1
+MIN_INT64 = -1 << 63
+MAX_INT64 = (1 << 63) - 1
+BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 URI_DESCRIPTION = '\
 The URI of this object. Can be a relative URI.'
@@ -86,7 +91,6 @@ class ObjectReferenceSchema(Schema):
     uri = fields.Url(
         required=True,
         relative=True,
-        schemes=[endpoints.get_url_scheme()],
         format='uri-reference',
         description="The URI of the object. Can be a relative URI.",
         example='https://example.com/objects/1',

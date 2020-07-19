@@ -1,7 +1,9 @@
 from marshmallow import Schema, fields, validate, missing
 from flask import url_for
-from swpt_creditors.models import MIN_INT64, MAX_INT64
-from .common import ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema, URI_DESCRIPTION
+from .common import (
+    ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema,
+    URI_DESCRIPTION, MIN_INT64, MAX_INT64,
+)
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
