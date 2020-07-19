@@ -299,6 +299,12 @@ class AccountDisplay(db.Model):
             postgresql_where=peg_debtor_id != null(),
         ),
         db.Index(
+            'idx_peg_debtor_uri',
+            creditor_id,
+            peg_debtor_uri,
+            postgresql_where=peg_debtor_uri != null(),
+        ),
+        db.Index(
             'idx_debtor_name',
             creditor_id,
             debtor_name,

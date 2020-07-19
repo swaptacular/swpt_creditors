@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: efa6544d0a55
+Revision ID: fd22f12fa098
 Revises: 8d8c816257ce
-Create Date: 2020-07-19 13:51:28.229277
+Create Date: 2020-07-19 14:11:25.686635
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'efa6544d0a55'
+revision = 'fd22f12fa098'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -163,6 +163,7 @@ def upgrade():
     op.create_index('idx_debtor_name', 'account_display', ['creditor_id', 'debtor_name'], unique=True, postgresql_where=sa.text('debtor_name IS NOT NULL'))
     op.create_index('idx_own_unit', 'account_display', ['creditor_id', 'own_unit'], unique=True, postgresql_where=sa.text('own_unit IS NOT NULL'))
     op.create_index('idx_peg_debtor_id', 'account_display', ['creditor_id', 'peg_debtor_id'], unique=False, postgresql_where=sa.text('peg_debtor_id IS NOT NULL'))
+    op.create_index('idx_peg_debtor_uri', 'account_display', ['creditor_id', 'peg_debtor_uri'], unique=False, postgresql_where=sa.text('peg_debtor_uri IS NOT NULL'))
     op.create_table('account_exchange',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -251,6 +252,7 @@ def downgrade():
     op.drop_table('account_commit')
     op.drop_table('account_knowledge')
     op.drop_table('account_exchange')
+    op.drop_index('idx_peg_debtor_uri', table_name='account_display')
     op.drop_index('idx_peg_debtor_id', table_name='account_display')
     op.drop_index('idx_own_unit', table_name='account_display')
     op.drop_index('idx_debtor_name', table_name='account_display')
