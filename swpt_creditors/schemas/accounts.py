@@ -2,7 +2,7 @@ import re
 from base64 import urlsafe_b64encode
 from copy import copy
 from marshmallow import (
-    Schema, ValidationError, fields, validate, pre_dump, missing, validates_schema,
+    Schema, ValidationError, fields, validate, pre_dump, validates_schema,
 )
 from flask import url_for
 from swpt_lib.utils import i64_to_u64
@@ -12,7 +12,7 @@ from swpt_creditors.models import (
 )
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, MutableResourceSchema,
-    ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
+    ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, exclude_if_none,
 )
 
 URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
@@ -199,19 +199,21 @@ class AccountLedgerSchema(MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    principal = fields.Integer(
+    ledger_principal = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
         format='int64',
+        data_key='principal',
         description='The principal amount on the account.',
         example=0,
     )
-    interest = fields.Integer(
+    ledger_interest = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
         format='int64',
+        data_key='interest',
         description='The approximate amount of interest accumulated on the account, which '
                     'has not been added to the principal yet. This can be a negative number. '
                     'Once in a while, the accumulated interest will be zeroed out and added '
@@ -257,8 +259,8 @@ class AccountLedgerSchema(MutableResourceSchema):
         )}
         obj.latest_update_id = obj.ledger_latest_update_id
         obj.latest_update_ts = obj.ledger_latest_update_ts
-        obj.principal = obj.ledger_principal
-        obj.interest = obj.interest  # TODO: calculate the interest precisely.
+        obj.ledger_principal = obj.ledger_principal
+        obj.ledger_interest = obj.interest  # TODO: calculate the interest precisely.
         obj.entries = {}  # TODO: pass a paginated list here.
 
         return obj
@@ -322,7 +324,14 @@ class AccountInfoSchema(MutableResourceSchema):
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
     )
-    config_error = fields.String(
+    overflown = fields.Boolean(
+        dump_only=True,
+        missing=False,
+        description='Whether the account is "overflown". A `true` indicates that the account\'s '
+                    'principal have breached the `int64` boundaries.',
+        example=False,
+    )
+    optional_config_error = fields.String(
         dump_only=True,
         data_key='configError',
         description='When this field is present, this means that for some reason, the current '
@@ -331,14 +340,7 @@ class AccountInfoSchema(MutableResourceSchema):
                     'system configuration problem. The value alludes to the cause of the problem.',
         example='CONFIG_IS_INEFFECTUAL',
     )
-    overflown = fields.Boolean(
-        dump_only=True,
-        missing=False,
-        description='Whether the account is "overflown". A `true` indicates that the account\'s '
-                    'principal have breached the `int64` boundaries.',
-        example=False,
-    )
-    debtor_url = fields.String(
+    optional_debtor_url = fields.String(
         dump_only=True,
         format='uri',
         data_key='debtorUrl',
@@ -365,22 +367,17 @@ class AccountInfoSchema(MutableResourceSchema):
         )}
         obj.latest_update_id = obj.info_latest_update_id
         obj.latest_update_ts = obj.info_latest_update_ts
+        obj.optional_config_error = exclude_if_none(obj.config_error)
+        obj.optional_debtor_url = exclude_if_none(obj.debtor_url)
 
-        if obj.account_identity != '':
-            account_identity = obj.account_identity
-
+        account_identity = obj.account_identity
+        if account_identity:
             # TODO: Use a `swpt_lib.utils` function for this.
             if not URLSAFE_B64.match(account_identity):
                 base64encoded = urlsafe_b64encode(account_identity.encode('utf8'))
                 account_identity = f'!{base64encoded.decode()}'
 
             obj.identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_identity}'}
-
-        if obj.config_error is None:
-            obj.config_error = missing
-
-        if obj.debtor_url is None:
-            obj.debtor_url = missing
 
         return obj
 
@@ -405,11 +402,6 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    identity = fields.Nested(
-        AccountIdentitySchema,
-        description="An `AccountIdentity`, which is known to the creditor.",
-        example={'uri': 'swpt:1/2'},
-    )
     interest_rate = fields.Float(
         missing=0.0,
         data_key='interestRate',
@@ -422,7 +414,13 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         description='The moment at which the latest change in the interest rate, which is known '
                     'to the creditor, has happened.',
     )
-    debtor_url = fields.String(
+    optional_identity = fields.Nested(
+        AccountIdentitySchema,
+        data_key='identity',
+        description="An `AccountIdentity`, which is known to the creditor.",
+        example={'uri': 'swpt:1/2'},
+    )
+    optional_debtor_url = fields.String(
         validate=validate.Length(min=1, max=100),
         format='uri',
         data_key='debtorUrl',
@@ -430,7 +428,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
                     'the creditor.',
         example='https://example.com/debtors/1/',
     )
-    currency_peg = fields.Nested(
+    optional_currency_peg = fields.Nested(
         CurrencyPegSchema,
         data_key='currencyPeg',
         description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
@@ -453,19 +451,16 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )}
+        obj.optional_debtor_url = exclude_if_none(obj.debtor_url)
 
         if obj.peg_exchange_rate is not None:
-            currency_peg = {
+            obj.optional_currency_peg = {
                 'exchange_rate': obj.peg_exchange_rate,
                 'debtor': {'uri': obj.peg_debtor_uri},
             }
-            obj.currency_peg = currency_peg
 
         if obj.identity_uri is not None:
-            obj.identity = {'uri': obj.identity_uri}
-
-        if obj.debtor_url is None:
-            obj.debtor_url = missing
+            obj.optional_identity = {'uri': obj.identity_uri}
 
         return obj
 
@@ -571,8 +566,9 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    policy = fields.String(
+    optional_policy = fields.String(
         validate=validate.Length(min=1, max=40),
+        data_key='policy',
         description='The name of the active automatic exchange policy. Different '
                     'implementations may define different exchange policies. This field is '
                     'optional. If it not present, this means that the account will not '
@@ -623,9 +619,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )}
-
-        if obj.policy is None:
-            obj.policy = missing
+        obj.optional_policy = exclude_if_none(obj.policy)
 
         return obj
 
@@ -650,26 +644,6 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    debtor_name = fields.String(
-        validate=validate.Length(min=1, max=40),
-        data_key='debtorName',
-        description='The name of the debtor. **All accounts belonging to a given '
-                    'creditor must have different `debtorName`s. When a new account '
-                    'has been created, this field will not be present, and it must '
-                    'be set as soon as possible**, otherwise the real identity of the '
-                    'debtor may remain unknown to the creditor, which may lead to '
-                    'confusion and financial loses. The creditor may choose any '
-                    'name that is convenient, or easy to remember.',
-        example='United States of America',
-    )
-    peg = fields.Nested(
-        AccountPegSchema,
-        description="Optional `AccountPeg`, announced by the owner of the account. An "
-                    "account peg is a policy, in which the creditor sets a specific fixed "
-                    "exchange rate between the tokens of two of his accounts (the pegged "
-                    "currency, and the peg currency). Sometimes the peg currency is itself "
-                    "pegged to another currency. This is called a \"peg-chain\".",
-    )
     amount_divisor = fields.Float(
         missing=1.0,
         validate=validate.Range(min=0.0, min_inclusive=False),
@@ -688,7 +662,28 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     'the amount.',
         example=2,
     )
-    own_unit = fields.String(
+    optional_debtor_name = fields.String(
+        validate=validate.Length(min=1, max=40),
+        data_key='debtorName',
+        description='The name of the debtor. **All accounts belonging to a given '
+                    'creditor must have different `debtorName`s. When a new account '
+                    'has been created, this field will not be present, and it must '
+                    'be set as soon as possible**, otherwise the real identity of the '
+                    'debtor may remain unknown to the creditor, which may lead to '
+                    'confusion and financial loses. The creditor may choose any '
+                    'name that is convenient, or easy to remember.',
+        example='United States of America',
+    )
+    optional_peg = fields.Nested(
+        AccountPegSchema,
+        data_key='peg',
+        description="Optional `AccountPeg`, announced by the owner of the account. An "
+                    "account peg is a policy, in which the creditor sets a specific fixed "
+                    "exchange rate between the tokens of two of his accounts (the pegged "
+                    "currency, and the peg currency). Sometimes the peg currency is itself "
+                    "pegged to another currency. This is called a \"peg-chain\".",
+    )
+    optional_own_unit = fields.String(
         validate=validate.Length(min=1, max=4),
         data_key='ownUnit',
         description="Optional abbreviation for a value measurement unit that is unique for the "
@@ -749,6 +744,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )}
+        obj.optional_own_unit = exclude_if_none(obj.own_unit)
+        obj.optional_debtor_name = exclude_if_none(obj.debtor_name)
 
         if obj.peg_exchange_rate is not None:
             peg = {
@@ -762,13 +759,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     creditorId=obj.creditor_id,
                     debtorId=obj.peg_debtor_id,
                 )}
-            obj.peg = peg
-
-        if obj.own_unit is None:
-            obj.own_unit = missing
-
-        if obj.debtor_name is None:
-            obj.debtor_name = missing
+            obj.optional_peg = peg
 
         return obj
 

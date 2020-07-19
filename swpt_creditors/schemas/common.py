@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate, validates, ValidationError
+from marshmallow import Schema, fields, validate, missing, validates, ValidationError
 from swpt_lib import endpoints
 from swpt_creditors.models import MAX_INT64
 
@@ -17,6 +17,12 @@ might be added in the future. That is: items that are not currently available, \
 but may become available in the future. This is useful when we want to follow \
 a continuous stream of new items. This field will not be present when the \
 `next` field is present. This can be a relative URI.'
+
+
+def exclude_if_none(value):
+    if value is None:
+        return missing
+    return value
 
 
 class ValidateTypeMixin:

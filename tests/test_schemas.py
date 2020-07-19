@@ -109,13 +109,13 @@ def test_deserialize_account_display(app):
     })
     assert data == {
         'type': 'AccountDisplay',
-        'own_unit': 'XXX',
         'own_unit_preference': 1,
         'amount_divisor': 100.0,
         'decimal_places': 2,
         'hide': False,
-        'debtor_name': 'Test Debtor',
-        'peg': {
+        'optional_own_unit': 'XXX',
+        'optional_debtor_name': 'Test Debtor',
+        'optional_peg': {
             'type': 'AccountPeg',
             'exchange_rate': 1.5,
             'debtor': {'uri': 'https://example.com/gold'},
@@ -209,15 +209,15 @@ def test_deserialize_account_exchange(app):
 
     data = aes.load({
         'type': 'AccountExchange',
-        'policy': 'test policy',
         'minPrincipal': 1000,
         'maxPrincipal': 5000,
+        'policy': 'test policy',
     })
     assert data == {
         'type': 'AccountExchange',
-        'policy': 'test policy',
         'min_principal': 1000,
         'max_principal': 5000,
+        'optional_policy': 'test policy',
     }
 
     with pytest.raises(ValidationError):
@@ -305,15 +305,15 @@ def test_deserialize_account_knowledge(app):
     })
     assert data == {
         'type': 'AccountKnowledge',
-        'identity': {'uri': 'https://example.com/USD/accounts/123'},
-        'currency_peg': {
+        'interest_rate': 11.0,
+        'interest_rate_changed_at_ts': datetime(2020, 1, 2),
+        'optional_identity': {'uri': 'https://example.com/USD/accounts/123'},
+        'optional_currency_peg': {
             'type': 'CurrencyPeg',
             'debtor': {'uri': 'https://example.com/gold'},
             'exchange_rate': 2000.0,
         },
-        'debtor_url': 'https://example.com/USD',
-        'interest_rate': 11.0,
-        'interest_rate_changed_at_ts': datetime(2020, 1, 2),
+        'optional_debtor_url': 'https://example.com/USD',
     }
 
     with pytest.raises(ValidationError):
