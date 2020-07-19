@@ -7,8 +7,8 @@ from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.orm import joinedload, exc
 from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
-from .models import Creditor, AccountLedger, LedgerEntry, AccountCommit,  \
-    Account, AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
+from .models import Creditor, LedgerEntry, AccountCommit, Account, \
+    AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     AccountDisplay, AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, \
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
@@ -143,13 +143,13 @@ def change_account_config(
     if negligible_amount is not None and config.negligible_amount != negligible_amount:
         assert negligible_amount >= 0.0
         config.negligible_amount = negligible_amount
-        data.config_is_effectual = False
+        data.is_config_effectual = False
 
     if is_scheduled_for_deletion is not None and config.is_scheduled_for_deletion != is_scheduled_for_deletion:
         config.is_scheduled_for_deletion = is_scheduled_for_deletion
-        data.config_is_effectual = False
+        data.is_config_effectual = False
 
-    if not data.config_is_effectual:
+    if not data.is_config_effectual:
         _insert_configure_account_signal(config, data)
 
 
@@ -172,8 +172,8 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
         if not config.allow_unsafe_deletion:
             days_since_last_config_signal = (datetime.now(tz=timezone.utc) - data.last_config_ts).days
             is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
-            is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and data.config_is_effectual
-            is_removal_safe = not data.has_account and (is_effectually_scheduled_for_deletion or is_timed_out)
+            is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and data.is_config_effectual
+            is_removal_safe = not data.has_server_account and (is_effectually_scheduled_for_deletion or is_timed_out)
             if not is_removal_safe:
                 return False
 
@@ -192,7 +192,7 @@ def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date
     account_data = AccountData.lock_instance((creditor_id, debtor_id))
     if account_data and account_data.creation_date == creation_date:
         # TODO: reset other fields as well?
-        account_data.has_account = False
+        account_data.has_server_account = False
         account_data.principal = 0
         account_data.interest = 0.0
 
@@ -267,9 +267,9 @@ def process_account_update_signal(
         account_config.config == config,
         account_config.config_flags == config_flags,
     ])
-    config_is_effectual = last_config_request == applied_config_request and is_same_config
+    is_config_effectual = last_config_request == applied_config_request and is_same_config
 
-    account_data.has_account = True
+    account_data.has_server_account = True
     account_data.creation_date = creation_date
     account_data.last_change_ts = last_change_ts
     account_data.last_change_seqnum = last_change_seqnum
@@ -282,10 +282,12 @@ def process_account_update_signal(
     account_data.status_flags = status_flags
     account_data.account_identity = account_identity
     account_data.debtor_url = debtor_url
-    account_data.config_is_effectual = config_is_effectual
-    account_data.latest_update_id = 1  # TODO: generate it.
-    account_data.latest_update_ts = current_ts
-    if config_is_effectual:
+    account_data.is_config_effectual = is_config_effectual
+    account_data.info_latest_update_id = 1  # TODO: generate it.
+    account_data.info_latest_update_ts = current_ts
+    account_data.ledger_latest_update_id = 1  # TODO: generate it.
+    account_data.ledger_latest_update_ts = current_ts
+    if is_config_effectual:
         account_data.config_error = None
     elif applied_config_request >= last_config_request:
         # Normally, this should never happen.
@@ -323,12 +325,12 @@ def process_account_transfer_signal(
     assert MIN_INT32 <= transfer_flags <= MAX_INT32
 
     try:
-        ledger = _get_or_create_ledger(creditor_id, debtor_id)
+        account_data = AccountData.get_instance((creditor_id, debtor_id))
     except CreditorDoesNotExistError:
         return
 
     account_commit = AccountCommit(
-        account_ledger=ledger,
+        account_data=account_data,
         transfer_number=transfer_number,
         coordinator_type=coordinator_type,
         committed_at_ts=committed_at_ts,
@@ -351,18 +353,18 @@ def process_account_transfer_signal(
         return
 
     current_ts = datetime.now(tz=timezone.utc)
-    if creation_date > ledger.account_creation_date:
-        ledger.reset(account_creation_date=creation_date, current_ts=current_ts)
+    if creation_date > account_data.creation_date:
+        account_data.reset(account_creation_date=creation_date, current_ts=current_ts)
 
-    ledger_has_not_been_updated_soon = current_ts - ledger.last_update_ts > TD_5_SECONDS
-    if transfer_number == ledger.next_transfer_number and ledger_has_not_been_updated_soon:
+    ledger_has_not_been_updated_soon = current_ts - account_data.ledger_latest_update_ts > TD_5_SECONDS
+    if transfer_number == account_data.ledger_next_transfer_number and ledger_has_not_been_updated_soon:
         # If account commits come in the right order, it is faster to
         # update the account ledger right away. We must be careful,
         # though, not to update the account ledger too often, because
         # this can cause a row lock contention.
-        _update_ledger(ledger, principal, current_ts)
+        _update_ledger(account_data, principal, current_ts)
         _insert_ledger_entry(creditor_id, debtor_id, transfer_number, acquired_amount, principal)
-    elif transfer_number >= ledger.next_transfer_number:
+    elif transfer_number >= account_data.ledger_next_transfer_number:
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_account_commits()`.)
         db.session.add(PendingAccountCommit(
@@ -407,7 +409,7 @@ def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count:
 @atomic
 def find_legible_pending_account_commits(max_count: int = None):
     pac = PendingAccountCommit
-    al = AccountLedger
+    al = 'AccountLedger'
     query = db.session.query(pac.creditor_id, pac.debtor_id).filter(
         al.creditor_id == pac.creditor_id,
         al.debtor_id == pac.debtor_id,
@@ -477,7 +479,7 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
 
 def _insert_configure_account_signal(config: AccountConfig, data: AccountData, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
-    data.config_is_effectual = False
+    data.is_config_effectual = False
     data.last_config_ts = max(data.last_config_ts, current_ts)
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     db.session.add(ConfigureAccountSignal(
@@ -511,36 +513,6 @@ def _discard_orphaned_account(
         ))
 
 
-def _get_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[AccountLedger]:
-    if lock:
-        ledger = AccountLedger.lock_instance((creditor_id, debtor_id))
-    else:
-        ledger = AccountLedger.get_instance((creditor_id, debtor_id))
-    return ledger
-
-
-def _create_ledger(creditor_id: int, debtor_id: int) -> AccountLedger:
-    """Insert an `AccountLedger` row with a corresponding `AccountConfig` row."""
-
-    if Creditor.get_instance(creditor_id) is None:
-        raise CreditorDoesNotExistError()
-
-    ledger = AccountLedger(creditor_id=creditor_id, debtor_id=debtor_id, account_config=AccountConfig())
-    with db.retry_on_integrity_error():
-        db.session.add(ledger)
-    return ledger
-
-
-def _get_or_create_ledger(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountLedger:
-    return _get_ledger(creditor_id, debtor_id, lock=lock) or _create_ledger(creditor_id, debtor_id)
-
-
-def _update_ledger(ledger: AccountLedger, account_new_principal: int, current_ts: datetime = None) -> None:
-    ledger.principal = account_new_principal
-    ledger.next_transfer_number += 1
-    ledger.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
-
-
 def _insert_ledger_entry(
         creditor_id: int,
         debtor_id: int,
@@ -555,23 +527,6 @@ def _insert_ledger_entry(
         committed_amount=committed_amount,
         account_new_principal=account_new_principal,
     ))
-
-
-def _create_account_config(creditor_id: int, debtor_id: int) -> AccountConfig:
-    ledger = _get_ledger(creditor_id, debtor_id)
-
-    # When this function is called, it is almost 100% certain that
-    # there will be no corresponding ledger record. Nevertheless, it
-    # is good to be prepared for this eventuality.
-    if ledger is None:
-        config = _create_ledger(creditor_id, debtor_id).account_config
-    else:
-        config = AccountConfig(account_ledger=ledger)
-        with db.retry_on_integrity_error():
-            db.session.add(config)
-
-    assert config
-    return config
 
 
 def _get_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[Account]:
@@ -594,12 +549,16 @@ def _create_account(creditor_id: int, debtor_id: int, current_ts: datetime = Non
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         created_at_ts=current_ts,
-        data=AccountData(**latest_update),
         knowledge=AccountKnowledge(**latest_update),
         exchange=AccountExchange(**latest_update),
         display=AccountDisplay(**latest_update),
         config=AccountConfig(**latest_update),
-        ledger=AccountLedger(**latest_update),
+        data=AccountData(
+            info_latest_update_id=log_entry_id,
+            info_latest_update_ts=current_ts,
+            ledger_latest_update_id=log_entry_id,
+            ledger_latest_update_ts=current_ts,
+        ),
         **latest_update,
     )
     with db.retry_on_integrity_error():
@@ -608,25 +567,13 @@ def _create_account(creditor_id: int, debtor_id: int, current_ts: datetime = Non
     return account
 
 
-def _get_or_create_account(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountLedger:
+def _get_or_create_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Account:
     return _get_account(creditor_id, debtor_id, lock=lock) or _create_account(creditor_id, debtor_id)
 
 
-def _get_account_config(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[AccountConfig]:
-    if lock:
-        config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    else:
-        config = AccountConfig.get_instance((creditor_id, debtor_id))
-    return config
-
-
-def _get_or_create_account_config(creditor_id: int, debtor_id: int, lock: bool = False) -> AccountConfig:
-    return _get_account_config(creditor_id, debtor_id, lock=lock) or _create_account_config(creditor_id, debtor_id)
-
-
-def _get_ordered_pending_transfers(ledger: AccountLedger, max_count: int = None) -> List[Tuple[int, int]]:
-    creditor_id = ledger.creditor_id
-    debtor_id = ledger.debtor_id
+def _get_ordered_pending_transfers(account_data: AccountData, max_count: int = None) -> List[Tuple[int, int]]:
+    creditor_id = account_data.creditor_id
+    debtor_id = account_data.debtor_id
     query = db.session.\
         query(
             PendingAccountCommit.transfer_number,

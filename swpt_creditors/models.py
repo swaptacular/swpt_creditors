@@ -95,7 +95,6 @@ class Account(db.Model):
     exchange = db.relationship('AccountExchange', uselist=False)
     display = db.relationship('AccountDisplay', uselist=False)
     config = db.relationship('AccountConfig', uselist=False)
-    ledger = db.relationship('AccountLedger', uselist=False)
 
 
 class AccountConfig(db.Model):
@@ -134,7 +133,7 @@ class AccountConfig(db.Model):
 # TODO: Implement a daemon that periodically scan the `AccountData`
 #       table and makes sure that the `config_error` filed is set for
 #       each record that has an old `last_change_ts`, and is not
-#       effectual (`config_is_effectual is False`).
+#       effectual (`is_config_effectual is False`).
 class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
@@ -146,28 +145,10 @@ class AccountData(db.Model):
     last_change_seqnum = db.Column(db.Integer, nullable=False, default=0)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
-    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
     last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
-    status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
-    account_identity = db.Column(db.String, nullable=False, default='')
-    debtor_url = db.Column(db.String)
-    config_error = db.Column(db.String)
-    config_is_effectual = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether the last change in the configuration has been successfully applied.',
-    )
-    has_account = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether a corresponding record for the account exist on the `swpt_accounts` service.',
-    )
     last_heartbeat_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
@@ -176,32 +157,26 @@ class AccountData(db.Model):
                 'used to detect "dead" accounts. A "dead" account is an account that have been '
                 'removed from the `swpt_accounts` service, but still exist in this table.',
     )
-    latest_update_id = db.Column(db.BigInteger, nullable=False)
-    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account.creditor_id', 'account.debtor_id'],
-            ondelete='CASCADE',
-        ),
-        db.CheckConstraint(interest_rate >= -100.0),
-        db.CheckConstraint(last_transfer_number >= 0),
-        db.CheckConstraint(latest_update_id > 0),
-    )
 
-    @property
-    def overflown(self):
-        return bool(self.status_flags & self.STATUS_OVERFLOWN_FLAG)
+    # AccountInfo data
+    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
+    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
+    account_identity = db.Column(db.String, nullable=False, default='')
+    debtor_url = db.Column(db.String)
+    config_error = db.Column(db.String)
+    is_config_effectual = db.Column(db.BOOLEAN, nullable=False, default=False)
+    is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
+    has_server_account = db.Column(db.BOOLEAN, nullable=False, default=False)
+    info_latest_update_id = db.Column(db.BigInteger, nullable=False)
+    info_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
+    # AccountLedger data
+    ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
+    ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
+    ledger_latest_update_id = db.Column(db.BigInteger, nullable=False)
+    ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
-class AccountLedger(db.Model):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    principal = db.Column(db.BigInteger, nullable=False, default=0)
-    account_creation_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
-    last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    latest_update_id = db.Column(db.BigInteger, nullable=False)
-    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
@@ -210,18 +185,30 @@ class AccountLedger(db.Model):
         ),
         db.Index(
             # This index is supposed to allow efficient merge joins
-            # with `PendingAccountCommit`. Not sure if it is really
+            # with `PendingAccountCommit`. Not sure if it is actually
             # beneficial in practice.
-            'idx_last_transfer_number',
+            'idx_ledger_last_transfer_number',
             creditor_id,
             debtor_id,
-            last_transfer_number,
+            ledger_last_transfer_number,
         ),
+        db.CheckConstraint(interest_rate >= -100.0),
         db.CheckConstraint(last_transfer_number >= 0),
-        db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(info_latest_update_id > 0),
+        db.CheckConstraint(ledger_last_transfer_number >= 0),
+        db.CheckConstraint(ledger_latest_update_id > 0),
     )
 
-    def reset(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
+    @property
+    def overflown(self):
+        return bool(self.status_flags & self.STATUS_OVERFLOWN_FLAG)
+
+    @property
+    def is_deletion_safe(self):
+        return not self.has_server_account and self.is_scheduled_for_deletion and self.is_config_effectual
+
+    # TODO: remove this method?
+    def reset_ledger(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
         if account:
             assert account_creation_date is None
             assert account.creditor_id == self.creditor_id and account.debtor_id == self.debtor_id
@@ -233,7 +220,7 @@ class AccountLedger(db.Model):
             self.account_creation_date = account_creation_date
             self.principal = 0
             self.next_transfer_number = (date_to_int24(account_creation_date) << 40) + 1
-        self.last_update_ts = current_ts or datetime.now(tz=timezone.utc)
+        self.ledger_latest_update_ts = current_ts or datetime.now(tz=timezone.utc)
 
 
 class AccountKnowledge(db.Model):
@@ -559,7 +546,7 @@ class AccountCommit(db.Model):
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
-            ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
+            ['account_data.creditor_id', 'account_data.debtor_id'],
             ondelete='CASCADE',
         ),
         db.CheckConstraint(transfer_number > 0),
@@ -572,7 +559,7 @@ class AccountCommit(db.Model):
         }
     )
 
-    account_ledger = db.relationship('AccountLedger')
+    account_data = db.relationship('AccountData')
 
 
 # TODO: Implement a daemon that periodically scan the
@@ -643,7 +630,7 @@ class LedgerEntry(db.Model):
         ),
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
-            ['account_ledger.creditor_id', 'account_ledger.debtor_id'],
+            ['account_data.creditor_id', 'account_data.debtor_id'],
             ondelete='CASCADE',
         ),
         db.ForeignKeyConstraint(

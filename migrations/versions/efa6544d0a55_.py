@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 65fdb486ee12
+Revision ID: efa6544d0a55
 Revises: 8d8c816257ce
-Create Date: 2020-07-18 21:28:05.353562
+Create Date: 2020-07-19 13:51:28.229277
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '65fdb486ee12'
+revision = 'efa6544d0a55'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -108,27 +108,35 @@ def upgrade():
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
-    sa.Column('interest_rate', sa.REAL(), nullable=False),
-    sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
+    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdate` message has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
+    sa.Column('interest_rate', sa.REAL(), nullable=False),
+    sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.Column('account_identity', sa.String(), nullable=False),
     sa.Column('debtor_url', sa.String(), nullable=True),
     sa.Column('config_error', sa.String(), nullable=True),
-    sa.Column('config_is_effectual', sa.BOOLEAN(), nullable=False, comment='Whether the last change in the configuration has been successfully applied.'),
-    sa.Column('has_account', sa.BOOLEAN(), nullable=False, comment='Whether a corresponding record for the account exist on the `swpt_accounts` service.'),
-    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdate` message has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
-    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
-    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('is_config_effectual', sa.BOOLEAN(), nullable=False),
+    sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False),
+    sa.Column('has_server_account', sa.BOOLEAN(), nullable=False),
+    sa.Column('info_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('info_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('ledger_principal', sa.BigInteger(), nullable=False),
+    sa.Column('ledger_last_transfer_number', sa.BigInteger(), nullable=False),
+    sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('info_latest_update_id > 0'),
     sa.CheckConstraint('interest_rate >= -100.0'),
     sa.CheckConstraint('last_transfer_number >= 0'),
-    sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('ledger_last_transfer_number >= 0'),
+    sa.CheckConstraint('ledger_latest_update_id > 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
+    op.create_index('idx_ledger_last_transfer_number', 'account_data', ['creditor_id', 'debtor_id', 'ledger_last_transfer_number'], unique=False)
     op.create_table('account_display',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -185,20 +193,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
-    op.create_table('account_ledger',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('account_creation_date', sa.DATE(), nullable=False),
-    sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
-    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('last_transfer_number >= 0'),
-    sa.CheckConstraint('latest_update_id > 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
-    )
-    op.create_index('idx_last_transfer_number', 'account_ledger', ['creditor_id', 'debtor_id', 'last_transfer_number'], unique=False)
     op.create_table('account_commit',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -215,7 +209,7 @@ def upgrade():
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('transfer_number > 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number'),
     comment='Represents an account commit. A new row is inserted when a `AccountCommitSignal` is received. The row is deleted when some time (few months for example) has passed.'
     )
@@ -229,7 +223,7 @@ def upgrade():
     sa.CheckConstraint('account_new_principal > -9223372036854775808'),
     sa.CheckConstraint('committed_amount != 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_ledger.creditor_id', 'account_ledger.debtor_id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number'),
     comment="Represents an entry in one of creditor's account ledgers. This table allows users to ask only for transfers that have occurred before or after a given moment in time."
     )
@@ -255,14 +249,13 @@ def downgrade():
     op.drop_index('idx_ledger_entry_added_at_ts', table_name='ledger_entry')
     op.drop_table('ledger_entry')
     op.drop_table('account_commit')
-    op.drop_index('idx_last_transfer_number', table_name='account_ledger')
-    op.drop_table('account_ledger')
     op.drop_table('account_knowledge')
     op.drop_table('account_exchange')
     op.drop_index('idx_peg_debtor_id', table_name='account_display')
     op.drop_index('idx_own_unit', table_name='account_display')
     op.drop_index('idx_debtor_name', table_name='account_display')
     op.drop_table('account_display')
+    op.drop_index('idx_ledger_last_transfer_number', table_name='account_data')
     op.drop_table('account_data')
     op.drop_table('account_config')
     op.drop_table('direct_transfer')

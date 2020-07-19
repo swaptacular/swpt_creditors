@@ -124,7 +124,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
 def test_process_account_update_signal(db_session, creditor, setup_account, current_ts):
     ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert not ad.config_is_effectual
+    assert not ad.is_config_effectual
     assert ac.negligible_amount > 1e20
     assert ac.config == ''
     assert ac.config_flags == 0
@@ -157,7 +157,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
     ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_ts == ad.last_config_ts
     assert last_seqnum == ad.last_config_seqnum
-    assert ad.config_is_effectual
+    assert ad.is_config_effectual
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -185,7 +185,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
     ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_ts == ad.last_config_ts
     assert last_seqnum == ad.last_config_seqnum
-    assert not ad.config_is_effectual
+    assert not ad.is_config_effectual
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -213,7 +213,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
     ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_ts == ad.last_config_ts
     assert last_seqnum == ad.last_config_seqnum
-    assert ad.config_is_effectual
+    assert ad.is_config_effectual
 
     # Discard orphaned account.
     p.process_account_update_signal(
@@ -272,7 +272,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     data = AccountData.query.one()
     assert data.debtor_id == D_ID
     assert data.creditor_id == C_ID
-    assert not data.has_account
+    assert not data.has_server_account
     assert len(Account.query.all()) == 1
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -298,7 +298,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         debtor_url='',
     )
     data = AccountData.query.one()
-    assert data.has_account
+    assert data.has_server_account
     assert len(Account.query.all()) == 1
 
     # Wrong creation date:
@@ -308,7 +308,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         creation_date=date(2021, 1, 2),
     )
     data = AccountData.query.one()
-    assert data.has_account
+    assert data.has_server_account
     assert len(Account.query.all()) == 1
 
     # Wrong creditor_id:
@@ -318,7 +318,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         creation_date=date(2020, 1, 15),
     )
     data = AccountData.query.one()
-    assert data.has_account
+    assert data.has_server_account
     assert len(Account.query.all()) == 1
 
     # Everything is correct:
@@ -328,5 +328,5 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         creation_date=date(2020, 1, 15),
     )
     data = AccountData.query.one()
-    assert not data.has_account
+    assert not data.has_server_account
     assert len(AccountData.query.all()) == 1
