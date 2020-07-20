@@ -110,7 +110,7 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
         account_identity=str(C_ID),
         config='',
         config_flags=0,
-        debtor_url='',
+        debtor_info_url='',
     )
     account = Account.query.one()
     assert not account.config.is_scheduled_for_deletion
@@ -152,7 +152,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=0,
-        debtor_url='',
+        debtor_info_url='',
     )
     ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_ts == ad.last_config_ts
@@ -180,7 +180,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=0,
-        debtor_url='',
+        debtor_info_url='',
     )
     ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_ts == ad.last_config_ts
@@ -208,7 +208,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=0,
-        debtor_url='',
+        debtor_info_url='',
     )
     ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
     assert last_ts == ad.last_config_ts
@@ -237,7 +237,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=0,
-        debtor_url='',
+        debtor_info_url='',
     )
     cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
     assert cas.negligible_amount > 1e22
@@ -263,7 +263,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         account_identity=str(C_ID),
         config='',
         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
-        debtor_url='',
+        debtor_info_url='',
     )
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
 
@@ -295,7 +295,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
         account_identity=str(C_ID),
         config='',
         config_flags=0,
-        debtor_url='',
+        debtor_info_url='',
     )
     data = AccountData.query.one()
     assert data.has_server_account

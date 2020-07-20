@@ -35,7 +35,7 @@ def test_serialize_account_display(app):
         'ownUnit': 'XXX',
         'ownUnitPreference': 0,
         'peg': {
-            'type': 'AccountPeg',
+            'type': 'CurrencyPeg',
             'display': {'uri': '/creditors/1/accounts/18446744073709551614/display'},
             'debtor': {'uri': 'https://example.com/gold'},
             'exchangeRate': 1.0,
@@ -56,7 +56,7 @@ def test_serialize_account_display(app):
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'ownUnitPreference': 0,
         'peg': {
-            'type': 'AccountPeg',
+            'type': 'CurrencyPeg',
             'debtor': {'uri': 'https://example.com/gold'},
             'exchangeRate': 1.0,
         },
@@ -99,7 +99,7 @@ def test_deserialize_account_display(app):
         'ownUnit': 'XXX',
         'ownUnitPreference': 1,
         'peg': {
-            'type': 'AccountPeg',
+            'type': 'CurrencyPeg',
             'debtor': {'uri': 'https://example.com/gold'},
             'exchangeRate': 1.5,
         },
@@ -116,7 +116,7 @@ def test_deserialize_account_display(app):
         'optional_own_unit': 'XXX',
         'optional_debtor_name': 'Test Debtor',
         'optional_peg': {
-            'type': 'AccountPeg',
+            'type': 'CurrencyPeg',
             'exchange_rate': 1.5,
             'debtor': {'uri': 'https://example.com/gold'},
         },
@@ -243,9 +243,7 @@ def test_serialize_account_knowledge(app):
         identity_uri='https://example.com/USD/accounts/123',
         interest_rate=11.0,
         interest_rate_changed_at_ts=datetime(2020, 1, 2),
-        debtor_url='https://example.com/USD',
-        peg_exchange_rate=2000.0,
-        peg_debtor_uri='https://example.com/gold',
+        debtor_info_sha256='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
@@ -255,12 +253,7 @@ def test_serialize_account_knowledge(app):
         'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'identity': {'uri': 'https://example.com/USD/accounts/123'},
-        'currencyPeg': {
-            'type': 'CurrencyPeg',
-            'debtor': {'uri': 'https://example.com/gold'},
-            'exchangeRate': 2000.0,
-        },
-        'debtorUrl': 'https://example.com/USD',
+        'debtorInfoSha256': 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
@@ -268,8 +261,7 @@ def test_serialize_account_knowledge(app):
     }
 
     ak.identity_uri = None
-    ak.debtor_url = None
-    ak.peg_exchange_rate = None
+    ak.debtor_info_sha256 = None
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
         'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
@@ -294,12 +286,7 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({
         'type': 'AccountKnowledge',
         'identity': {'uri': 'https://example.com/USD/accounts/123'},
-        'currencyPeg': {
-            'type': 'CurrencyPeg',
-            'debtor': {'uri': 'https://example.com/gold'},
-            'exchangeRate': 2000.0,
-        },
-        'debtorUrl': 'https://example.com/USD',
+        'debtorInfoSha256': 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
     })
@@ -308,12 +295,7 @@ def test_deserialize_account_knowledge(app):
         'interest_rate': 11.0,
         'interest_rate_changed_at_ts': datetime(2020, 1, 2),
         'optional_identity': {'uri': 'https://example.com/USD/accounts/123'},
-        'optional_currency_peg': {
-            'type': 'CurrencyPeg',
-            'debtor': {'uri': 'https://example.com/gold'},
-            'exchange_rate': 2000.0,
-        },
-        'optional_debtor_url': 'https://example.com/USD',
+        'optional_debtor_info_sha256': 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
     }
 
     with pytest.raises(ValidationError):
@@ -323,7 +305,7 @@ def test_deserialize_account_knowledge(app):
         aks.load({'identity': {'uri': 1000 * 'x'}})
 
     with pytest.raises(ValidationError):
-        aks.load({'debtorUrl': 1000 * 'x'})
+        aks.load({'debtorInfoSha256': 63 * '0'})
 
 
 def test_serialize_account_config(app):
@@ -422,7 +404,7 @@ def test_serialize_account_info(app):
         last_interest_rate_change_ts=datetime(2000, 1, 1),
         status_flags=models.AccountData.STATUS_OVERFLOWN_FLAG,
         account_identity='',
-        debtor_url=None,
+        debtor_info_url=None,
         config_error=None,
         is_config_effectual=True,
         is_scheduled_for_deletion=False,
@@ -451,7 +433,7 @@ def test_serialize_account_info(app):
     ad.interest_rate = 0.0
     ad.status_flags = 0
     ad.account_identity = 'not URL safe'
-    ad.debtor_url = 'https://example.com/debtor'
+    ad.debtor_info_url = 'https://example.com/debtor'
     ad.config_error = 'TEST_ERROR'
     ad.is_scheduled_for_deletion = True
     ad.is_config_effectual = True
@@ -468,7 +450,7 @@ def test_serialize_account_info(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
         'identity': {'uri': 'swpt:18446744073709551615/!bm90IFVSTCBzYWZl'},
         'configError': 'TEST_ERROR',
-        'debtorUrl': 'https://example.com/debtor',
+        'debtorInfoUrl': 'https://example.com/debtor',
     }
 
 

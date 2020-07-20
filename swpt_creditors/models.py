@@ -163,7 +163,7 @@ class AccountData(db.Model):
     last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
     account_identity = db.Column(db.String, nullable=False, default='')
-    debtor_url = db.Column(db.String)
+    debtor_info_url = db.Column(db.String)
     config_error = db.Column(db.String)
     is_config_effectual = db.Column(db.BOOLEAN, nullable=False, default=False)
     is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
@@ -229,9 +229,7 @@ class AccountKnowledge(db.Model):
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest_rate_changed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     identity_uri = db.Column(db.String)
-    debtor_url = db.Column(db.String)
-    peg_exchange_rate = db.Column(db.FLOAT)
-    peg_debtor_uri = db.Column(db.String)
+    debtor_info_sha256 = db.Column(db.String)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
@@ -241,11 +239,6 @@ class AccountKnowledge(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(latest_update_id > 0),
-        db.CheckConstraint(peg_exchange_rate >= 0.0),
-        db.CheckConstraint(or_(
-            peg_exchange_rate == null(),
-            peg_debtor_uri != null(),
-        )),
     )
 
 

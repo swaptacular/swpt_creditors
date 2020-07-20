@@ -56,14 +56,6 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
                     "valuable as peg currency's tokens.",
         example=1.0,
     )
-
-
-class AccountPegSchema(CurrencyPegSchema):
-    type = fields.String(
-        missing='AccountPeg',
-        default='AccountPeg',
-        description='The type of this object.',
-    )
     display = fields.Nested(
         ObjectReferenceSchema,
         dump_only=True,
@@ -337,10 +329,10 @@ class AccountInfoSchema(MutableResourceSchema):
                     'system configuration problem. The value alludes to the cause of the problem.',
         example='CONFIG_IS_INEFFECTUAL',
     )
-    optional_debtor_url = fields.String(
+    optional_debtor_info_url = fields.String(
         dump_only=True,
         format='uri',
-        data_key='debtorUrl',
+        data_key='debtorInfoUrl',
         description='Optional link containing additional information about the debtor.',
         example='https://example.com/debtors/1/',
     )
@@ -368,8 +360,8 @@ class AccountInfoSchema(MutableResourceSchema):
         if obj.config_error is not None:
             obj.optional_config_error = obj.config_error
 
-        if obj.debtor_url is not None:
-            obj.optional_debtor_url = obj.debtor_url
+        if obj.debtor_info_url is not None:
+            obj.optional_debtor_info_url = obj.debtor_info_url
 
         account_identity = obj.account_identity
         if account_identity:
@@ -418,21 +410,17 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     optional_identity = fields.Nested(
         AccountIdentitySchema,
         data_key='identity',
-        description="An `AccountIdentity`, which is known to the creditor.",
+        description="Optional `AccountIdentity`, which is known to the creditor.",
         example={'uri': 'swpt:1/2'},
     )
-    optional_debtor_url = fields.String(
-        validate=validate.Length(min=1, max=100),
-        format='uri',
-        data_key='debtorUrl',
-        description='A link for additional information about the debtor, which is known to '
-                    'the creditor.',
-        example='https://example.com/debtors/1/',
-    )
-    optional_currency_peg = fields.Nested(
-        CurrencyPegSchema,
-        data_key='currencyPeg',
-        description='A `CurrencyPeg` announced by the debtor, which is known to the creditor.',
+    optional_debtor_info_sha256 = fields.String(
+        validate=validate.Length(equal=64),
+        data_key='debtorInfoSha256',
+        description='Optional SHA-256 cryptographic hash (Base16 encoded) of the JSON document '
+                    '(UTF-8 encoded) that contains additional information about the debtor, which '
+                    'is known to the creditor. (The URL of this document is given by the '
+                    '`debtorInfoUrl` field in the `AccountInfo` for the account.)',
+        example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
     )
 
     @pre_dump
@@ -453,14 +441,8 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
             debtorId=obj.debtor_id,
         )}
 
-        if obj.debtor_url is not None:
-            obj.optional_debtor_url = obj.debtor_url
-
-        if obj.peg_exchange_rate is not None:
-            obj.optional_currency_peg = {
-                'exchange_rate': obj.peg_exchange_rate,
-                'debtor': {'uri': obj.peg_debtor_uri},
-            }
+        if obj.debtor_info_sha256 is not None:
+            obj.optional_debtor_info_sha256 = obj.debtor_info_sha256
 
         if obj.identity_uri is not None:
             obj.optional_identity = {'uri': obj.identity_uri}
@@ -679,10 +661,10 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         example='United States of America',
     )
     optional_peg = fields.Nested(
-        AccountPegSchema,
+        CurrencyPegSchema,
         data_key='peg',
-        description="Optional `AccountPeg`, announced by the owner of the account. An "
-                    "account peg is a policy, in which the creditor sets a specific fixed "
+        description="Optional `CurrencyPeg`, announced by the owner of the account. A "
+                    "currency peg is a policy, in which the creditor sets a specific fixed "
                     "exchange rate between the tokens of two of his accounts (the pegged "
                     "currency, and the peg currency). Sometimes the peg currency is itself "
                     "pegged to another currency. This is called a \"peg-chain\".",

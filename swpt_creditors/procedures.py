@@ -219,7 +219,7 @@ def process_account_update_signal(
         ts: datetime,
         ttl: int,
         account_identity: str,
-        debtor_url: str) -> None:
+        debtor_info_url: str) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -281,7 +281,7 @@ def process_account_update_signal(
     account_data.last_transfer_committed_at_ts = last_transfer_committed_at_ts
     account_data.status_flags = status_flags
     account_data.account_identity = account_identity
-    account_data.debtor_url = debtor_url
+    account_data.debtor_info_url = debtor_info_url
     account_data.is_config_effectual = is_config_effectual
     account_data.info_latest_update_id = 1  # TODO: generate it.
     account_data.info_latest_update_ts = current_ts
