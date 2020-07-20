@@ -7,7 +7,7 @@ from swpt_lib.utils import i64_to_u64
 from swpt_creditors import models
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
-    MutableResourceSchema, ValidateTypeMixin, exclude_if_none,
+    MutableResourceSchema, ValidateTypeMixin,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
     URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
@@ -364,8 +364,12 @@ class AccountInfoSchema(MutableResourceSchema):
         )}
         obj.latest_update_id = obj.info_latest_update_id
         obj.latest_update_ts = obj.info_latest_update_ts
-        obj.optional_config_error = exclude_if_none(obj.config_error)
-        obj.optional_debtor_url = exclude_if_none(obj.debtor_url)
+
+        if obj.config_error is not None:
+            obj.optional_config_error = obj.config_error
+
+        if obj.debtor_url is not None:
+            obj.optional_debtor_url = obj.debtor_url
 
         account_identity = obj.account_identity
         if account_identity:
@@ -448,7 +452,9 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )}
-        obj.optional_debtor_url = exclude_if_none(obj.debtor_url)
+
+        if obj.debtor_url is not None:
+            obj.optional_debtor_url = obj.debtor_url
 
         if obj.peg_exchange_rate is not None:
             obj.optional_currency_peg = {
@@ -616,7 +622,8 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )}
-        obj.optional_policy = exclude_if_none(obj.policy)
+        if obj.policy is not None:
+            obj.optional_policy = obj.policy
 
         return obj
 
@@ -741,8 +748,12 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )}
-        obj.optional_own_unit = exclude_if_none(obj.own_unit)
-        obj.optional_debtor_name = exclude_if_none(obj.debtor_name)
+
+        if obj.own_unit is not None:
+            obj.optional_own_unit = obj.own_unit
+
+        if obj.debtor_name is not None:
+            obj.optional_debtor_name = obj.debtor_name
 
         if obj.peg_exchange_rate is not None:
             peg = {

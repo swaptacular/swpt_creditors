@@ -24,12 +24,6 @@ a continuous stream of new items. This field will not be present when the \
 `next` field is present. This can be a relative URI.'
 
 
-def exclude_if_none(value):
-    if value is None:
-        return missing
-    return value
-
-
 class ValidateTypeMixin:
     @validates('type')
     def validate_type(self, value):
