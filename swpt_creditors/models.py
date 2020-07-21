@@ -4,7 +4,7 @@ from datetime import datetime, timezone, date
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, false, or_, and_, FunctionElement
+from sqlalchemy.sql.expression import null, true, false, func, or_, and_, FunctionElement
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
 from swpt_lib.utils import date_to_int24
@@ -239,6 +239,7 @@ class AccountKnowledge(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(func.octet_length(debtor_info_sha256) == 32),
     )
 
 
