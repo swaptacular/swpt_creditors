@@ -183,6 +183,11 @@ class AccountData(db.Model):
             ['account.creditor_id', 'account.debtor_id'],
             ondelete='CASCADE',
         ),
+        db.CheckConstraint(interest_rate >= -100.0),
+        db.CheckConstraint(last_transfer_number >= 0),
+        db.CheckConstraint(info_latest_update_id > 0),
+        db.CheckConstraint(ledger_last_transfer_number >= 0),
+        db.CheckConstraint(ledger_latest_update_id > 0),
         db.Index(
             # This index is supposed to allow efficient merge joins
             # with `PendingAccountCommit`. Not sure if it is actually
@@ -192,11 +197,6 @@ class AccountData(db.Model):
             debtor_id,
             ledger_last_transfer_number,
         ),
-        db.CheckConstraint(interest_rate >= -100.0),
-        db.CheckConstraint(last_transfer_number >= 0),
-        db.CheckConstraint(info_latest_update_id > 0),
-        db.CheckConstraint(ledger_last_transfer_number >= 0),
-        db.CheckConstraint(ledger_latest_update_id > 0),
     )
 
     @property
@@ -286,6 +286,17 @@ class AccountDisplay(db.Model):
             ['creditor_id', 'peg_debtor_id'],
             ['account_display.creditor_id', 'account_display.debtor_id'],
         ),
+        db.CheckConstraint(amount_divisor > 0.0),
+        db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(peg_exchange_rate >= 0.0),
+        db.CheckConstraint(or_(
+            peg_exchange_rate != null(),
+            peg_debtor_id == null(),
+        )),
+        db.CheckConstraint(or_(
+            peg_exchange_rate == null(),
+            peg_debtor_uri != null(),
+        )),
         db.Index(
             'idx_peg_debtor_id',
             creditor_id,
@@ -312,17 +323,6 @@ class AccountDisplay(db.Model):
             unique=True,
             postgresql_where=own_unit != null(),
         ),
-        db.CheckConstraint(amount_divisor > 0.0),
-        db.CheckConstraint(latest_update_id > 0),
-        db.CheckConstraint(peg_exchange_rate >= 0.0),
-        db.CheckConstraint(or_(
-            peg_exchange_rate != null(),
-            peg_debtor_id == null(),
-        )),
-        db.CheckConstraint(or_(
-            peg_exchange_rate == null(),
-            peg_debtor_uri != null(),
-        )),
     )
 
 
@@ -504,13 +504,13 @@ class RunningTransfer(db.Model):
     )
     __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
+        db.CheckConstraint(amount > 0),
         db.Index(
             'idx_direct_coordinator_request_id',
             creditor_id,
             direct_coordinator_request_id,
             unique=True,
         ),
-        db.CheckConstraint(amount > 0),
         {
             'comment': 'Represents a running direct transfer. Important note: The records for the '
                        'successfully finalized direct transfers (those for which `direct_transfer_id` '
@@ -618,16 +618,6 @@ class LedgerEntry(db.Model):
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, server_default=utcnow())
 
     __table_args__ = (
-        db.Index(
-            # Allows index-only scans in chronological order.
-            'idx_ledger_entry_added_at_ts',
-            creditor_id,
-            added_at_ts,
-            debtor_id,
-            transfer_number,
-            committed_amount,
-            account_new_principal,
-        ),
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
             ['account_data.creditor_id', 'account_data.debtor_id'],
@@ -640,6 +630,16 @@ class LedgerEntry(db.Model):
         ),
         db.CheckConstraint(committed_amount != 0),
         db.CheckConstraint(account_new_principal > MIN_INT64),
+        db.Index(
+            # Allows index-only scans in chronological order.
+            'idx_ledger_entry_added_at_ts',
+            creditor_id,
+            added_at_ts,
+            debtor_id,
+            transfer_number,
+            committed_amount,
+            account_new_principal,
+        ),
         {
             'comment': "Represents an entry in one of creditor's account ledgers. This table "
                        "allows users to ask only for transfers that have occurred before or "
