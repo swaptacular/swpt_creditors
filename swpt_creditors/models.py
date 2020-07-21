@@ -188,15 +188,11 @@ class AccountData(db.Model):
         db.CheckConstraint(info_latest_update_id > 0),
         db.CheckConstraint(ledger_last_transfer_number >= 0),
         db.CheckConstraint(ledger_latest_update_id > 0),
-        db.Index(
-            # This index is supposed to allow efficient merge joins
-            # with `PendingAccountCommit`. Not sure if it is actually
-            # beneficial in practice.
-            'idx_ledger_last_transfer_number',
-            creditor_id,
-            debtor_id,
-            ledger_last_transfer_number,
-        ),
+
+        # This index is supposed to allow efficient merge joins with
+        # `PendingAccountCommit`. Not sure if it is actually
+        # beneficial in practice.
+        db.Index('idx_ledger_last_transfer_number', creditor_id, debtor_id, ledger_last_transfer_number),
     )
 
     @property
@@ -289,40 +285,12 @@ class AccountDisplay(db.Model):
         db.CheckConstraint(amount_divisor > 0.0),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(peg_exchange_rate >= 0.0),
-        db.CheckConstraint(or_(
-            peg_exchange_rate != null(),
-            peg_debtor_id == null(),
-        )),
-        db.CheckConstraint(or_(
-            peg_exchange_rate == null(),
-            peg_debtor_uri != null(),
-        )),
-        db.Index(
-            'idx_peg_debtor_id',
-            creditor_id,
-            peg_debtor_id,
-            postgresql_where=peg_debtor_id != null(),
-        ),
-        db.Index(
-            'idx_peg_debtor_uri',
-            creditor_id,
-            peg_debtor_uri,
-            postgresql_where=peg_debtor_uri != null(),
-        ),
-        db.Index(
-            'idx_debtor_name',
-            creditor_id,
-            debtor_name,
-            unique=True,
-            postgresql_where=debtor_name != null(),
-        ),
-        db.Index(
-            'idx_own_unit',
-            creditor_id,
-            own_unit,
-            unique=True,
-            postgresql_where=own_unit != null(),
-        ),
+        db.CheckConstraint(or_(peg_exchange_rate != null(), peg_debtor_id == null())),
+        db.CheckConstraint(or_(peg_exchange_rate == null(), peg_debtor_uri != null())),
+        db.Index('idx_peg_debtor_id', creditor_id, peg_debtor_id, postgresql_where=peg_debtor_id != null()),
+        db.Index('idx_peg_debtor_uri', creditor_id, peg_debtor_uri, postgresql_where=peg_debtor_uri != null()),
+        db.Index('idx_debtor_name', creditor_id, debtor_name, unique=True, postgresql_where=debtor_name != null()),
+        db.Index('idx_own_unit', creditor_id, own_unit, unique=True, postgresql_where=own_unit != null()),
     )
 
 
@@ -505,12 +473,7 @@ class RunningTransfer(db.Model):
     __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.CheckConstraint(amount > 0),
-        db.Index(
-            'idx_direct_coordinator_request_id',
-            creditor_id,
-            direct_coordinator_request_id,
-            unique=True,
-        ),
+        db.Index('idx_direct_coordinator_request_id', creditor_id, direct_coordinator_request_id, unique=True),
         {
             'comment': 'Represents a running direct transfer. Important note: The records for the '
                        'successfully finalized direct transfers (those for which `direct_transfer_id` '
