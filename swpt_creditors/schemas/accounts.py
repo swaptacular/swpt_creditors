@@ -416,10 +416,12 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     optional_debtor_info_sha256 = fields.String(
         validate=validate.Regexp('^[0-9A-Fa-f]{64}$'),
         data_key='debtorInfoSha256',
-        description='Optional SHA-256 cryptographic hash (Base16 encoded) of the JSON document '
-                    '(UTF-8 encoded) that contains additional information about the debtor, which '
-                    'is known to the creditor. (The URL of this document is given by the '
-                    '`debtorInfoUrl` field in the `AccountInfo` for the account.)',
+        description="Optional SHA-256 cryptographic hash (Base16 encoded) of a JSON document "
+                    "(UTF-8 encoded) that contains additional information about the debtor, which "
+                    "is known to the creditor. Normally, the hashed JSON document will be obtained "
+                    "by visiting the `debtorInfoUrl` specified in the account's `AccountInfo`. Note "
+                    "that the hashed JSON document may be a fragment of a bigger containing "
+                    "document (RFC6901).",
         example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
     )
 
