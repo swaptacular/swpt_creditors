@@ -243,7 +243,7 @@ def test_serialize_account_knowledge(app):
         identity_uri='https://example.com/USD/accounts/123',
         interest_rate=11.0,
         interest_rate_changed_at_ts=datetime(2020, 1, 2),
-        debtor_info_sha256='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+        debtor_info_sha256=32 * b'\x01',
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
@@ -253,7 +253,7 @@ def test_serialize_account_knowledge(app):
         'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'identity': {'uri': 'https://example.com/USD/accounts/123'},
-        'debtorInfoSha256': 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+        'debtorInfoSha256': 32 * '01',
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
@@ -286,7 +286,7 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({
         'type': 'AccountKnowledge',
         'identity': {'uri': 'https://example.com/USD/accounts/123'},
-        'debtorInfoSha256': 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+        'debtorInfoSha256': 16 * 'aA01',
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
     })
@@ -295,7 +295,7 @@ def test_deserialize_account_knowledge(app):
         'interest_rate': 11.0,
         'interest_rate_changed_at_ts': datetime(2020, 1, 2),
         'optional_identity': {'uri': 'https://example.com/USD/accounts/123'},
-        'optional_debtor_info_sha256': 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+        'optional_debtor_info_sha256': 16 * 'aA01',
     }
 
     with pytest.raises(ValidationError):
@@ -306,6 +306,9 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError):
         aks.load({'debtorInfoSha256': 63 * '0'})
+
+    with pytest.raises(ValidationError):
+        aks.load({'debtorInfoSha256': 64 * 'g'})
 
 
 def test_serialize_account_config(app):

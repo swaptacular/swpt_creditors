@@ -1,5 +1,5 @@
 import re
-from base64 import urlsafe_b64encode
+from base64 import urlsafe_b64encode, b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, validates_schema
 from flask import url_for
@@ -414,7 +414,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         example={'uri': 'swpt:1/2'},
     )
     optional_debtor_info_sha256 = fields.String(
-        validate=validate.Length(equal=64),
+        validate=validate.Regexp('^[0-9A-Fa-f]{64}$'),
         data_key='debtorInfoSha256',
         description='Optional SHA-256 cryptographic hash (Base16 encoded) of the JSON document '
                     '(UTF-8 encoded) that contains additional information about the debtor, which '
@@ -442,7 +442,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         )}
 
         if obj.debtor_info_sha256 is not None:
-            obj.optional_debtor_info_sha256 = obj.debtor_info_sha256
+            obj.optional_debtor_info_sha256 = b16encode(obj.debtor_info_sha256).decode()
 
         if obj.identity_uri is not None:
             obj.optional_identity = {'uri': obj.identity_uri}
