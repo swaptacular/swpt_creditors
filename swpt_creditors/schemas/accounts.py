@@ -414,7 +414,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         example={'uri': 'swpt:1/2'},
     )
     optional_debtor_info_sha256 = fields.String(
-        validate=validate.Regexp('^[0-9A-Fa-f]{64}$'),
+        validate=validate.Regexp('^[0-9A-F]{64}$'),
         data_key='debtorInfoSha256',
         description="Optional SHA-256 cryptographic hash (Base16 encoded) of a JSON document "
                     "(UTF-8 encoded) that contains additional information about the debtor, which "
