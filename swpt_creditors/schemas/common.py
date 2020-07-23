@@ -84,6 +84,7 @@ class PaginatedListSchema(Schema):
 class ObjectReferenceSchema(Schema):
     uri = fields.Url(
         required=True,
+        dump_only=True,
         relative=True,
         format='uri-reference',
         description="The URI of the object. Can be a relative URI.",
