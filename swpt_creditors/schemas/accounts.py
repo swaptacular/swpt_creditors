@@ -587,7 +587,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
     @validates_schema
     def validate_max_principal(self, data, **kwargs):
         if data['min_principal'] > data['max_principal']:
-            raise ValidationError("max_principal must be equal or greater than min_principal")
+            raise ValidationError("maxPrincipal must be equal or greater than minPrincipal.")
 
     @pre_dump
     def process_account_exchange_instance(self, obj, many):
@@ -714,6 +714,14 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "links in a chain of currency pegs.",
         example=False,
     )
+
+    @validates_schema
+    def validate_debtor_name(self, data, **kwargs):
+        if 'optional_debtor_name' not in data:
+            if 'optional_own_unit' in data:
+                raise ValidationError("Can not set ownUnit without debtorName.")
+            if 'optional_peg' in data:
+                raise ValidationError("Can not set peg without debtorName.")
 
     @pre_dump
     def process_account_display_instance(self, obj, many):

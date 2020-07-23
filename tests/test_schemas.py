@@ -125,8 +125,11 @@ def test_deserialize_account_display(app):
     with pytest.raises(ValidationError):
         ads.load({'type': 'WrongType'})
 
-    with pytest.raises(ValidationError):
-        ads.load({'ownUnit': 1000 * 'x'})
+    with pytest.raises(ValidationError, match='Can not set ownUnit without debtorName.'):
+        ads.load({'ownUnit': 'USD'})
+
+    with pytest.raises(ValidationError, match='Length must be between 1 and 4.'):
+        ads.load({'debtorName': 'Test Debtor', 'ownUnit': 1000 * 'x'})
 
     with pytest.raises(ValidationError):
         ads.load({'ownUnitPreference': models.MIN_INT32 - 1})
@@ -144,14 +147,25 @@ def test_deserialize_account_display(app):
         ads.load({'decimalPlaces': 10000})
 
     with pytest.raises(ValidationError):
-        ads.load({'debtor_name': 1000 * 'x'})
+        ads.load({'debtorName': 1000 * 'x'})
 
-    with pytest.raises(ValidationError):
-        ads.load({'peg': {
-            'type': 'WrongType',
-            'debtor': {'uri': 'https://example.com/gold'},
-            'exchangeRate': 1.5,
-        }})
+    with pytest.raises(ValidationError, match='Can not set peg without debtorName.'):
+        ads.load({
+            'peg': {
+                'debtor': {'uri': 'https://example.com/gold'},
+                'exchangeRate': 1.5,
+            }
+        })
+
+    with pytest.raises(ValidationError, match='Invalid type.'):
+        ads.load({
+            'debtorName': 'Test Debtor',
+            'peg': {
+                'type': 'WrongType',
+                'debtor': {'uri': 'https://example.com/gold'},
+                'exchangeRate': 1.5,
+            }
+        })
 
     with pytest.raises(ValidationError):
         ads.load({'peg': {'debtor': {'uri': 'https://example.com/gold'}, 'exchangeRate': -1.5}})

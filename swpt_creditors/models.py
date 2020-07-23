@@ -285,6 +285,8 @@ class AccountDisplay(db.Model):
         db.CheckConstraint(amount_divisor > 0.0),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(peg_exchange_rate >= 0.0),
+        db.CheckConstraint(or_(debtor_name != null(), own_unit == null())),
+        db.CheckConstraint(or_(debtor_name != null(), peg_exchange_rate == null())),
         db.CheckConstraint(or_(peg_exchange_rate != null(), peg_debtor_id == null())),
         db.CheckConstraint(or_(peg_exchange_rate == null(), peg_debtor_uri != null())),
         db.Index('idx_peg_debtor_id', creditor_id, peg_debtor_id, postgresql_where=peg_debtor_id != null()),
