@@ -22,6 +22,7 @@ def test_serialize_account_display(app):
         hide=False,
         peg_exchange_rate=1.0,
         peg_debtor_uri='https://example.com/gold',
+        peg_debtor_home_url='https://example.com/debtor-home-url',
         peg_debtor_id=-2,
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
@@ -38,6 +39,7 @@ def test_serialize_account_display(app):
             'type': 'CurrencyPeg',
             'display': {'uri': '/creditors/1/accounts/18446744073709551614/display'},
             'debtor': {'uri': 'https://example.com/gold'},
+            'debtorHomeUrl': 'https://example.com/debtor-home-url',
             'exchangeRate': 1.0,
         },
         'amountDivisor': 100.0,
@@ -49,6 +51,7 @@ def test_serialize_account_display(app):
 
     ad.debtor_name = None
     ad.own_unit = None
+    ad.peg_debtor_home_url = None
     ad.peg_debtor_id = None
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
@@ -500,3 +503,93 @@ def test_serialize_account(db_session):
         'exchange': aes.dump(account.exchange),
         'knowledge': aks.dump(account.knowledge),
     }
+
+
+def test_serialize_currency_peg(app):
+    cp = {
+        'type': 'CurrencyPeg',
+        'debtor': {'uri': 'swpt:111'},
+        'optional_debtor_home_url': 'http://example.com/debtor-home-url',
+        'exchange_rate': 2.5,
+        'display': {'uri': '/creditors/2/accounts/11/display'}
+    }
+    cps = schemas.CurrencyPegSchema()
+    assert cps.dump(cp) == {
+        'type': 'CurrencyPeg',
+        'debtor': {'uri': 'swpt:111'},
+        'debtorHomeUrl': 'http://example.com/debtor-home-url',
+        'exchangeRate': 2.5,
+        'display': {'uri': '/creditors/2/accounts/11/display'}
+    }
+
+    del cp['optional_debtor_home_url']
+    del cp['display']
+    assert cps.dump(cp) == {
+        'type': 'CurrencyPeg',
+        'debtor': {'uri': 'swpt:111'},
+        'exchangeRate': 2.5,
+    }
+
+
+def test_deserialize_currency_peg(app):
+    cps = schemas.CurrencyPegSchema()
+
+    data = cps.load({
+        'debtor': {'uri': 'swpt:111'},
+        'exchangeRate': 2.5,
+    })
+    assert data == {
+        'type': 'CurrencyPeg',
+        'debtor': {'uri': 'swpt:111'},
+        'exchange_rate': 2.5,
+    }
+
+    data = cps.load({
+        'type': 'CurrencyPeg',
+        'debtor': {'uri': 'swpt:111'},
+        'exchangeRate': 2.5,
+        'debtorHomeUrl': 'http://example.com/debtor-home-url',
+    })
+    assert data == {
+        'type': 'CurrencyPeg',
+        'debtor': {'uri': 'swpt:111'},
+        'exchange_rate': 2.5,
+        'optional_debtor_home_url': 'http://example.com/debtor-home-url',
+    }
+
+    with pytest.raises(ValidationError):
+        cps.load({
+            'type': 'WrongType',
+            'debtor': {'uri': 'swpt:111'},
+            'exchangeRate': 2.5,
+        })
+
+    with pytest.raises(ValidationError):
+        cps.load({
+            'type': 'CurrencyPeg',
+            'debtor': {'uri': 1000 * 'x'},
+            'exchangeRate': 2.5,
+        })
+
+    with pytest.raises(ValidationError):
+        cps.load({
+            'type': 'CurrencyPeg',
+            'debtor': {'uri': 'swpt:111'},
+            'exchangeRate': -0.01,
+        })
+
+    with pytest.raises(ValidationError, match='Not a valid URL.'):
+        cps.load({
+            'type': 'CurrencyPeg',
+            'debtor': {'uri': 'swpt:111'},
+            'exchangeRate': 2.5,
+            'debtorHomeUrl': '',
+        })
+
+    with pytest.raises(ValidationError, match='Longer than maximum length 200.'):
+        cps.load({
+            'type': 'CurrencyPeg',
+            'debtor': {'uri': 'swpt:111'},
+            'exchangeRate': 2.5,
+            'debtorHomeUrl': 'http://example.com/{}'.format(1000 * 'x'),
+        })

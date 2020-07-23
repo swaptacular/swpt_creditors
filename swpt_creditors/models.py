@@ -269,6 +269,7 @@ class AccountDisplay(db.Model):
     hide = db.Column(db.BOOLEAN, nullable=False, default=False)
     peg_exchange_rate = db.Column(db.FLOAT)
     peg_debtor_uri = db.Column(db.String)
+    peg_debtor_home_url = db.Column(db.String)
     peg_debtor_id = db.Column(db.BigInteger)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

@@ -47,6 +47,15 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
         description="The peg currency's `Debtor`.",
         example={'uri': 'swpt:111'},
     )
+    optional_debtor_home_url = fields.Url(
+        validate=validate.Length(max=200),
+        format='uri',
+        data_key='debtorHomeUrl',
+        description="An optional URL where the creditor can find sufficient information so as to "
+                    "reliably identify the peg currency's debtor, and correctly configure an "
+                    "account with it.",
+        example='https://example.com/debtor-home-url',
+    )
     exchange_rate = fields.Float(
         required=True,
         validate=validate.Range(min=0.0),
@@ -759,6 +768,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     creditorId=obj.creditor_id,
                     debtorId=obj.peg_debtor_id,
                 )}
+            if obj.peg_debtor_home_url is not None:
+                peg['optional_debtor_home_url'] = obj.peg_debtor_home_url
             obj.optional_peg = peg
 
         return obj
