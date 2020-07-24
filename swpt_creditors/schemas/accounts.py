@@ -284,6 +284,13 @@ class AccountInfoSchema(MutableResourceSchema):
         description='The type of this object.',
         example='AccountInfo',
     )
+    account = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the corresponding `Account`.",
+        example={'uri': '/creditors/2/accounts/1/'},
+    )
     optional_account_identity = fields.Nested(
         AccountIdentitySchema,
         dump_only=True,
@@ -300,13 +307,6 @@ class AccountInfoSchema(MutableResourceSchema):
                     "to anyone, and are used solely as identifiers of value measurement "
                     "units. For dummy accounts, this field will never be present.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
-    )
-    account = fields.Nested(
-        ObjectReferenceSchema,
-        required=True,
-        dump_only=True,
-        description="The URI of the corresponding `Account`.",
-        example={'uri': '/creditors/2/accounts/1/'},
     )
     is_deletion_safe = fields.Boolean(
         required=True,
