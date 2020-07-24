@@ -112,7 +112,7 @@ class TransferCreationRequestSchema(Schema):
         AccountIdentitySchema,
         required=True,
         description="The recipient's `AccountIdentity` information.",
-        example={'uri': 'swpt:1/2222'}
+        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
     )
     amount = fields.Integer(
         required=True,
@@ -238,14 +238,14 @@ class CommittedTransferSchema(Schema):
         required=True,
         dump_only=True,
         description="The sender's `AccountIdentity` information.",
-        example={'uri': 'swpt:1/2'}
+        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
     )
     recipient = fields.Nested(
         AccountIdentitySchema,
         required=True,
         dump_only=True,
         description="The recipient's `AccountIdentity` information.",
-        example={'uri': 'swpt:1/2222'}
+        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
     )
     acquiredAmount = fields.Integer(
         required=True,

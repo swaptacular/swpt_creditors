@@ -6,12 +6,12 @@ from flask_smorest import Blueprint, abort
 from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
-    CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, AccountListSchema, TransferListSchema,
+    CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, TransferListSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
-    AccountLedgerSchema, AccountInfoSchema, ObjectReferenceSchema,
+    AccountLedgerSchema, AccountInfoSchema, AccountListSchema,
 )
 from .specs import DID, CID, EPOCH, SEQNUM, TRANSFER_UUID
 from . import specs
