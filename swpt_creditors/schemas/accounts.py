@@ -284,6 +284,23 @@ class AccountInfoSchema(MutableResourceSchema):
         description='The type of this object.',
         example='AccountInfo',
     )
+    optional_account_identity = fields.Nested(
+        AccountIdentitySchema,
+        dump_only=True,
+        data_key='accountIdentity',
+        description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
+                    "account when it participates in transfers as sender or recipient. When "
+                    "this field is not present, this means that the account has not "
+                    "obtained identity yet, and can not participate in transfers.\n"
+                    "\n"
+                    "Note that some accounts may be used only to represent a physical value "
+                    "measurement unit (like ounces of gold), and are useful only as links in "
+                    "a chain of currency pegs. Those *dummy accounts* will have *dummy debtors*, "
+                    "which do not represent a person or an organization, do not owe anything "
+                    "to anyone, and are used solely as identifiers of value measurement "
+                    "units. For dummy accounts, this field will never be present.",
+        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
+    )
     account = fields.Nested(
         ObjectReferenceSchema,
         required=True,
@@ -317,23 +334,6 @@ class AccountInfoSchema(MutableResourceSchema):
         description='Whether the account is "overflown". A `true` indicates that the account\'s '
                     'principal have breached the `int64` boundaries.',
         example=False,
-    )
-    optional_account_identity = fields.Nested(
-        AccountIdentitySchema,
-        dump_only=True,
-        data_key='accountIdentity',
-        description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
-                    "account when it participates in transfers as sender or recipient. When "
-                    "this field is not present, this means that the account has not "
-                    "obtained identity yet, and can not participate in transfers.\n"
-                    "\n"
-                    "Note that some accounts may be used only to represent a physical value "
-                    "measurement unit (like ounces of gold), and are useful only as links in "
-                    "a chain of currency pegs. Those *dummy accounts* will have *dummy debtors*, "
-                    "which do not represent a person or an organization, do not owe anything "
-                    "to anyone, and are used solely as identifiers of value measurement "
-                    "units. For dummy accounts, this field will never be present.",
-        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
     optional_config_error = fields.String(
         dump_only=True,
