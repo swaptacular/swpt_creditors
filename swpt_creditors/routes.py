@@ -6,7 +6,7 @@ from flask_smorest import Blueprint, abort
 from marshmallow import missing
 from swpt_lib import endpoints
 from .schemas import (
-    CreditorCreationRequestSchema, CreditorSchema, DebtorSchema, AccountListSchema, TransferListSchema,
+    CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, AccountListSchema, TransferListSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
@@ -177,10 +177,11 @@ accounts_api = Blueprint(
 
 @accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
 class DebtorLookupEndpoint(MethodView):
-    @accounts_api.arguments(DebtorSchema, example=specs.DEBTOR_EXAMPLE)
-    @accounts_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
+    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_EXAMPLE)
+    @accounts_api.response(code=303)
     @accounts_api.doc(operationId='debtorLookup',
                       responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
+                                 303: specs.ACCOUNT_EXISTS,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
                                  422: specs.UNRECOGNIZED_DEBTOR})
     def post(self, account_info, creditorId):
@@ -188,7 +189,7 @@ class DebtorLookupEndpoint(MethodView):
 
         This is useful when the creditor wants not know if he already
         has an account with a given debtor, and if not, whether the
-        debtor's URI is recognized by the system.
+        debtor's identity is recognized by the system.
 
         """
 
@@ -217,7 +218,7 @@ class AccountsEndpoint(MethodView):
             abort(404)
         return debtor_ids
 
-    @accounts_api.arguments(DebtorSchema, example=specs.DEBTOR_EXAMPLE)
+    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_EXAMPLE)
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
@@ -445,9 +446,10 @@ transfers_api = Blueprint(
 @transfers_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])
 class AccountLookupEndpoint(MethodView):
     @transfers_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_LOOKUP_REQUEST_EXAMPLE)
-    @transfers_api.response(ObjectReferenceSchema(context=CONTEXT), example=specs.ACCOUNT_LOOKUP_RESPONSE_EXAMPLE)
+    @transfers_api.response(code=303)
     @transfers_api.doc(operationId='accountLookup',
                        responses={204: specs.NO_MATCHING_ACCOUNT,
+                                  303: specs.ACCOUNT_EXISTS,
                                   404: specs.CREDITOR_DOES_NOT_EXIST})
     def post(self, account_info, creditorId):
         """Given recipient's account identity, try to find a matching sender

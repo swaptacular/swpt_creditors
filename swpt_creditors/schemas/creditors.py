@@ -173,7 +173,7 @@ class WalletSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description='A URI to which a `Debtor` object can be POST-ed to create a new `Account`.',
+        description='A URI to which a `DebtorIdentity` object can be POST-ed to create a new `Account`.',
         example={'uri': '/creditors/2/accounts/'},
     )
     createTransfer = fields.Nested(
@@ -198,7 +198,7 @@ class WalletSchema(Schema):
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="A URI to which a `Debtor` information can be POST-ed, trying to find an "
+        description="A URI to which a `DebtorIdentity` object can be POST-ed, trying to find an "
                     "existing account with this debtor. If an existing account is found, the "
                     "response will contain an `ObjectReference` to the `Account`. Otherwise, "
                     "the response will be empty (response code 204).",

@@ -123,8 +123,13 @@ class ObjectReferencesPageSchema(Schema):
     )
 
 
-class AccountIdentitySchema(Schema):
-    uri = fields.String(
+class AccountIdentitySchema(ValidateTypeMixin, Schema):
+    type = fields.String(
+        missing='AccountIdentity',
+        default='AccountIdentity',
+        description='The type of this object.',
+    )
+    value = fields.String(
         required=True,
         validate=validate.Length(max=200),
         format='uri',

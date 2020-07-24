@@ -107,7 +107,7 @@ TRANSFER_EXISTS = {
 }
 
 INVALID_TRANSFER_CREATION_REQUEST = {
-    'description': "The recipient's account URI may be wrong.",
+    'description': "The recipient's account identity may be wrong.",
 }
 
 ACCOUNT_DOES_NOT_EXIST = {
@@ -127,16 +127,16 @@ DENIED_ACCOUNT_CREATION = {
 }
 
 ACCOUNT_EXISTS = {
-    'description': 'The same account entry already exists.',
+    'description': 'Account does exist.',
     'headers': LOCATION_HEADER,
 }
 
 UNRECOGNIZED_DEBTOR = {
-    'description': "The debtor's URI may be wrong.",
+    'description': "The debtor's identity may be wrong.",
 }
 
 UNRECOGNIZED_PEG_CURRENCY = {
-    'description': "The peg currency's debtor URI may be wrong.",
+    'description': "The peg currency's debtor identity may be wrong.",
 }
 
 UNSAFE_ACCOUNT_DELETION = {
@@ -152,7 +152,7 @@ ACCOUNT_DOES_NOT_EXIST = {
 }
 
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
-    "description": "No existing account, although the debtor's URI is recognized.",
+    "description": "No existing account, the debtor's identity is recognized.",
 }
 
 NO_MATCHING_ACCOUNT = {
@@ -204,15 +204,13 @@ TRANSFER_LINKS_EXAMPLE = {
 }
 
 ACCOUNT_LOOKUP_REQUEST_EXAMPLE = {
-    'uri': 'swpt:1/2222',
-}
-
-ACCOUNT_LOOKUP_RESPONSE_EXAMPLE = {
-    'uri': '/creditors/2/accounts/1/',
+    'type': 'AccountIdentity',
+    'value': 'swpt:1/2222',
 }
 
 DEBTOR_EXAMPLE = {
-    'uri': 'swpt:1',
+    'type': 'DebtorIdentity',
+    'value': 'swpt:1',
 }
 
 ACCOUNT_LIST_EXAMPLE = {

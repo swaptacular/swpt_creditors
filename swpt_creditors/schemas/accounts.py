@@ -15,8 +15,13 @@ from .common import (
 URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
 
 
-class DebtorSchema(Schema):
-    uri = fields.String(
+class DebtorIdentitySchema(ValidateTypeMixin, Schema):
+    type = fields.String(
+        missing='DebtorIdentity',
+        default='DebtorIdentity',
+        description='The type of this object.',
+    )
+    value = fields.String(
         required=True,
         validate=validate.Length(max=100),
         format='uri',
@@ -41,11 +46,12 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
         default='CurrencyPeg',
         description='The type of this object.',
     )
-    debtor = fields.Nested(
-        DebtorSchema,
+    debtor_identity = fields.Nested(
+        DebtorIdentitySchema,
         required=True,
-        description="The peg currency's `Debtor`.",
-        example={'uri': 'swpt:111'},
+        data_key='debtorIdentity',
+        description="The peg currency's `DebtorIdentity`.",
+        example={'type': 'DebtorIdentity', 'value': 'swpt:111'},
     )
     optional_debtor_home_url = fields.Url(
         validate=validate.Length(max=200),
@@ -286,22 +292,6 @@ class AccountInfoSchema(MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    identity = fields.Nested(
-        AccountIdentitySchema,
-        dump_only=True,
-        description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
-                    "account when it participates in transfers as sender or recipient. When "
-                    "this field is not present, this means that the account has not "
-                    "obtained identity yet, and can not participate in transfers.\n"
-                    "\n"
-                    "Note that some accounts may be used only to represent a physical value "
-                    "measurement unit (like ounces of gold), and are useful only as links in "
-                    "a chain of currency pegs. Those *dummy accounts* will have *dummy debtors*, "
-                    "which do not represent a person or an organization, do not owe anything "
-                    "to anyone, and are used solely as identifiers of value measurement "
-                    "units. For dummy accounts, this field will never be present.",
-        example={'uri': 'swpt:1/2'},
-    )
     is_deletion_safe = fields.Boolean(
         required=True,
         dump_only=True,
@@ -328,6 +318,23 @@ class AccountInfoSchema(MutableResourceSchema):
         description='Whether the account is "overflown". A `true` indicates that the account\'s '
                     'principal have breached the `int64` boundaries.',
         example=False,
+    )
+    optional_account_identity = fields.Nested(
+        AccountIdentitySchema,
+        dump_only=True,
+        data_key='accountIdentity',
+        description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
+                    "account when it participates in transfers as sender or recipient. When "
+                    "this field is not present, this means that the account has not "
+                    "obtained identity yet, and can not participate in transfers.\n"
+                    "\n"
+                    "Note that some accounts may be used only to represent a physical value "
+                    "measurement unit (like ounces of gold), and are useful only as links in "
+                    "a chain of currency pegs. Those *dummy accounts* will have *dummy debtors*, "
+                    "which do not represent a person or an organization, do not owe anything "
+                    "to anyone, and are used solely as identifiers of value measurement "
+                    "units. For dummy accounts, this field will never be present.",
+        example={'type': 'AccountIdentity', 'value': 'swpt:1/2'},
     )
     optional_config_error = fields.String(
         dump_only=True,
@@ -379,7 +386,7 @@ class AccountInfoSchema(MutableResourceSchema):
                 base64encoded = urlsafe_b64encode(account_identity.encode('utf8'))
                 account_identity = f'!{base64encoded.decode()}'
 
-            obj.identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_identity}'}
+            obj.optional_account_identity = {'value': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_identity}'}
 
         return obj
 
@@ -416,11 +423,11 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         description='The moment at which the latest change in the interest rate, which is known '
                     'to the creditor, has happened.',
     )
-    optional_identity = fields.Nested(
+    optional_account_identity = fields.Nested(
         AccountIdentitySchema,
-        data_key='identity',
+        data_key='accountIdentity',
         description="Optional `AccountIdentity`, which is known to the creditor.",
-        example={'uri': 'swpt:1/2'},
+        example={'type': 'AccountIdentity', 'value': 'swpt:1/2'},
     )
     optional_debtor_info_sha256 = fields.String(
         validate=validate.Regexp('^[0-9A-F]{64}$'),
@@ -455,8 +462,8 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         if obj.debtor_info_sha256 is not None:
             obj.optional_debtor_info_sha256 = b16encode(obj.debtor_info_sha256).decode()
 
-        if obj.identity_uri is not None:
-            obj.optional_identity = {'uri': obj.identity_uri}
+        if obj.account_identity is not None:
+            obj.optional_account_identity = {'value': obj.account_identity}
 
         return obj
 
@@ -759,7 +766,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         if obj.peg_exchange_rate is not None:
             peg = {
                 'exchange_rate': obj.peg_exchange_rate,
-                'debtor': {'uri': obj.peg_debtor_uri},
+                'debtor_identity': {'value': obj.peg_debtor_identity},
             }
             if obj.peg_debtor_id is not None:
                 peg['display'] = {'uri': url_for(
@@ -798,11 +805,12 @@ class AccountSchema(MutableResourceSchema):
         description="The URI of creditor's `AccountList`.",
         example={'uri': '/creditors/2/account-list'},
     )
-    debtor = fields.Nested(
-        DebtorSchema,
+    debtor_identity = fields.Nested(
+        DebtorIdentitySchema,
         required=True,
-        description="Account's `Debtor`.",
-        example={'uri': 'swpt:1'},
+        data_key='debtorIdentity',
+        description="Account's `DebtorIdentity`.",
+        example={'type': 'DebtorIdentity', 'value': 'swpt:1'},
     )
     created_at_ts = fields.DateTime(
         required=True,
@@ -855,7 +863,7 @@ class AccountSchema(MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
-        obj.debtor = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
+        obj.debtor_identity = {'value': f'swpt:{i64_to_u64(obj.debtor_id)}'}
         obj.account_list = {'uri': url_for(
             self.context['AccountList'],
             _external=False,
