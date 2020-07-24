@@ -18,13 +18,13 @@ URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
 class DebtorSchema(Schema):
     uri = fields.String(
         required=True,
-        validate=validate.Length(min=1, max=100),
+        validate=validate.Length(max=100),
         format='uri',
         description="The URI of the debtor. The information contained in the URI must be "
                     "enough to uniquely and reliably identify the debtor. Be aware of the "
                     "security implications if a network request need to be done in order "
-                    "to identify the debtor.\n"
-                    "\n"
+                    "to identify the debtor."
+                    "\n\n"
                     "For example, if the debtor happens to be a bank, the URI would provide "
                     "the type of the debtor (a bank), and the ID of the bank. Note that "
                     "some debtors may be used only to represent a physical value measurement "
