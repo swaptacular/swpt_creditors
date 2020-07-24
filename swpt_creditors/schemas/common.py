@@ -138,7 +138,7 @@ class AccountIdentitySchema(ValidateTypeMixin, Schema):
                     "and reliably identify the creditor's account with the debtor. Note that "
                     "a network request *should not be needed* to identify the account. "
                     "\n\n"
-                    "For example, if the debtor happens to be a bank, the URI would provide "
+                    "For example, if the debtor happens to be a bank, the URI would reveal "
                     "the type of the debtor (a bank), the ID of the bank, and the bank "
                     "account number.",
     )
