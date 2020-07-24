@@ -177,7 +177,7 @@ accounts_api = Blueprint(
 
 @accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
 class DebtorLookupEndpoint(MethodView):
-    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_EXAMPLE)
+    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(code=303)
     @accounts_api.doc(operationId='debtorLookup',
                       responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
@@ -218,7 +218,7 @@ class AccountsEndpoint(MethodView):
             abort(404)
         return debtor_ids
 
-    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_EXAMPLE)
+    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
@@ -445,7 +445,7 @@ transfers_api = Blueprint(
 
 @transfers_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])
 class AccountLookupEndpoint(MethodView):
-    @transfers_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_LOOKUP_REQUEST_EXAMPLE)
+    @transfers_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_IDENTITY_EXAMPLE)
     @transfers_api.response(code=303)
     @transfers_api.doc(operationId='accountLookup',
                        responses={204: specs.NO_MATCHING_ACCOUNT,

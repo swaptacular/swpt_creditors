@@ -203,12 +203,12 @@ TRANSFER_LINKS_EXAMPLE = {
     'type': 'ObjectReferencesPage',
 }
 
-ACCOUNT_LOOKUP_REQUEST_EXAMPLE = {
+ACCOUNT_IDENTITY_EXAMPLE = {
     'type': 'AccountIdentity',
     'value': 'swpt:1/2222',
 }
 
-DEBTOR_EXAMPLE = {
+DEBTOR_IDENTITY_EXAMPLE = {
     'type': 'DebtorIdentity',
     'value': 'swpt:1',
 }
