@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from marshmallow import Schema, fields, validate, missing, validates, ValidationError
+from marshmallow import Schema, fields, validate, validates, ValidationError
 
 MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
@@ -82,10 +82,9 @@ class PaginatedListSchema(Schema):
 
 
 class ObjectReferenceSchema(Schema):
-    uri = fields.Url(
+    uri = fields.String(
         required=True,
         dump_only=True,
-        relative=True,
         format='uri-reference',
         description="The URI of the object. Can be a relative URI.",
         example='https://example.com/objects/1',
