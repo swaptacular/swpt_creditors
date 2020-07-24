@@ -21,16 +21,15 @@ class DebtorIdentitySchema(ValidateTypeMixin, Schema):
         default='DebtorIdentity',
         description='The type of this object.',
     )
-    value = fields.String(
+    uri = fields.String(
         required=True,
         validate=validate.Length(max=100),
         format='uri',
         description="The URI of the debtor. The information contained in the URI must be "
-                    "enough to uniquely and reliably identify the debtor. Be aware of the "
-                    "security implications if a network request need to be done in order "
-                    "to identify the debtor."
+                    "enough to uniquely and reliably identify the debtor. Note that "
+                    "a network request *should not be needed* in order to identify the account. "
                     "\n\n"
-                    "For example, if the debtor happens to be a bank, the URI would provide "
+                    "For example, if the debtor happens to be a bank, the URI would reveal "
                     "the type of the debtor (a bank), and the ID of the bank. Note that "
                     "some debtors may be used only to represent a physical value measurement "
                     "unit (like ounces of gold). Those *dummy debtors* do not represent a "
@@ -51,7 +50,7 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
         required=True,
         data_key='debtorIdentity',
         description="The peg currency's `DebtorIdentity`.",
-        example={'type': 'DebtorIdentity', 'value': 'swpt:111'},
+        example={'type': 'DebtorIdentity', 'uri': 'swpt:111'},
     )
     optional_debtor_home_url = fields.Url(
         validate=validate.Length(max=200),
@@ -334,7 +333,7 @@ class AccountInfoSchema(MutableResourceSchema):
                     "which do not represent a person or an organization, do not owe anything "
                     "to anyone, and are used solely as identifiers of value measurement "
                     "units. For dummy accounts, this field will never be present.",
-        example={'type': 'AccountIdentity', 'value': 'swpt:1/2'},
+        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
     optional_config_error = fields.String(
         dump_only=True,
@@ -386,7 +385,7 @@ class AccountInfoSchema(MutableResourceSchema):
                 base64encoded = urlsafe_b64encode(account_identity.encode('utf8'))
                 account_identity = f'!{base64encoded.decode()}'
 
-            obj.optional_account_identity = {'value': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_identity}'}
+            obj.optional_account_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_identity}'}
 
         return obj
 
@@ -427,7 +426,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         AccountIdentitySchema,
         data_key='accountIdentity',
         description="Optional `AccountIdentity`, which is known to the creditor.",
-        example={'type': 'AccountIdentity', 'value': 'swpt:1/2'},
+        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
     optional_debtor_info_sha256 = fields.String(
         validate=validate.Regexp('^[0-9A-F]{64}$'),
@@ -463,7 +462,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
             obj.optional_debtor_info_sha256 = b16encode(obj.debtor_info_sha256).decode()
 
         if obj.account_identity is not None:
-            obj.optional_account_identity = {'value': obj.account_identity}
+            obj.optional_account_identity = {'uri': obj.account_identity}
 
         return obj
 
@@ -766,7 +765,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         if obj.peg_exchange_rate is not None:
             peg = {
                 'exchange_rate': obj.peg_exchange_rate,
-                'debtor_identity': {'value': obj.peg_debtor_identity},
+                'debtor_identity': {'uri': obj.peg_debtor_identity},
             }
             if obj.peg_debtor_id is not None:
                 peg['display'] = {'uri': url_for(
@@ -810,7 +809,7 @@ class AccountSchema(MutableResourceSchema):
         required=True,
         data_key='debtorIdentity',
         description="Account's `DebtorIdentity`.",
-        example={'type': 'DebtorIdentity', 'value': 'swpt:1'},
+        example={'type': 'DebtorIdentity', 'uri': 'swpt:1'},
     )
     created_at_ts = fields.DateTime(
         required=True,
@@ -863,7 +862,7 @@ class AccountSchema(MutableResourceSchema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
-        obj.debtor_identity = {'value': f'swpt:{i64_to_u64(obj.debtor_id)}'}
+        obj.debtor_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
         obj.account_list = {'uri': url_for(
             self.context['AccountList'],
             _external=False,

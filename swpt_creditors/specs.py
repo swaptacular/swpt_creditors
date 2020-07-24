@@ -205,12 +205,12 @@ TRANSFER_LINKS_EXAMPLE = {
 
 ACCOUNT_IDENTITY_EXAMPLE = {
     'type': 'AccountIdentity',
-    'value': 'swpt:1/2222',
+    'uri': 'swpt:1/2222',
 }
 
 DEBTOR_IDENTITY_EXAMPLE = {
     'type': 'DebtorIdentity',
-    'value': 'swpt:1',
+    'uri': 'swpt:1',
 }
 
 ACCOUNT_LIST_EXAMPLE = {
