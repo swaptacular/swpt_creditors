@@ -131,8 +131,12 @@ ACCOUNT_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-UNRECOGNIZED_DEBTOR = {
+UNRECOGNIZED_DEBTOR_IDENTITY = {
     'description': "The debtor's identity may be wrong.",
+}
+
+UNRECOGNIZED_ACCOUNT_IDENTITY = {
+    'description': "The account identity can not be recognized.",
 }
 
 UNRECOGNIZED_PEG_CURRENCY = {
@@ -152,7 +156,7 @@ ACCOUNT_DOES_NOT_EXIST = {
 }
 
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
-    "description": "No existing account, the debtor's identity is recognized.",
+    "description": "The debtor's identity is recognized, but account does not exist.",
 }
 
 NO_MATCHING_ACCOUNT = {

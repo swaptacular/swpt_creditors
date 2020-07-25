@@ -175,6 +175,26 @@ accounts_api = Blueprint(
 )
 
 
+@accounts_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])
+class AccountLookupEndpoint(MethodView):
+    @accounts_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_IDENTITY_EXAMPLE)
+    @accounts_api.response(DebtorIdentitySchema)
+    @accounts_api.doc(operationId='accountLookup',
+                      responses={404: specs.CREDITOR_DOES_NOT_EXIST,
+                                 422: specs.UNRECOGNIZED_ACCOUNT_IDENTITY})
+    def post(self, account_info, creditorId):
+        """Given an account identity, find the debtor's identity.
+
+        This can be useful, for example, when the creditor wants to
+        send money to some other creditor's account, but he does not
+        know if he already has an account with the same debtor (that
+        is: the debtor of the other creditor's account).
+
+        """
+
+        abort(500)
+
+
 @accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
 class DebtorLookupEndpoint(MethodView):
     @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
@@ -183,7 +203,7 @@ class DebtorLookupEndpoint(MethodView):
                       responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
                                  303: specs.ACCOUNT_EXISTS,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
-                                 422: specs.UNRECOGNIZED_DEBTOR})
+                                 422: specs.UNRECOGNIZED_DEBTOR_IDENTITY})
     def post(self, account_info, creditorId):
         """Try to find an existing account with a given debtor.
 
@@ -224,7 +244,7 @@ class AccountsEndpoint(MethodView):
                       responses={303: specs.ACCOUNT_EXISTS,
                                  403: specs.DENIED_ACCOUNT_CREATION,
                                  404: specs.CREDITOR_DOES_NOT_EXIST,
-                                 422: specs.UNRECOGNIZED_DEBTOR})
+                                 422: specs.UNRECOGNIZED_DEBTOR_IDENTITY})
     def post(self, debtor, creditorId):
         """Create a new account belonging to a given creditor."""
 
@@ -441,28 +461,6 @@ transfers_api = Blueprint(
     url_prefix='/creditors',
     description="Make transfers from one account to another account.",
 )
-
-
-@transfers_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])
-class AccountLookupEndpoint(MethodView):
-    @transfers_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_IDENTITY_EXAMPLE)
-    @transfers_api.response(code=303)
-    @transfers_api.doc(operationId='accountLookup',
-                       responses={204: specs.NO_MATCHING_ACCOUNT,
-                                  303: specs.ACCOUNT_EXISTS,
-                                  404: specs.CREDITOR_DOES_NOT_EXIST})
-    def post(self, account_info, creditorId):
-        """Given recipient's account identity, try to find a matching sender
-        account.
-
-        This is useful when the creditor wants to send money to some
-        other creditor's account, but he does not know if he already
-        has an account with the same debtor (that is: the debtor of
-        the other creditor's account).
-
-        """
-
-        abort(500)
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
