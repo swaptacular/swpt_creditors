@@ -337,7 +337,7 @@ def process_account_transfer_signal(
         committed_amount=acquired_amount,
         transfer_note=transfer_note,
         transfer_flags=transfer_flags,
-        account_creation_date=creation_date,
+        creation_date=creation_date,
         account_new_principal=principal,
         sender=sender,
         recipient=recipient,

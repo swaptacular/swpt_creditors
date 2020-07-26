@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 10b92a0345ec
+Revision ID: 49fcda9439ce
 Revises: 8d8c816257ce
-Create Date: 2020-07-26 17:52:13.745203
+Create Date: 2020-07-26 18:09:16.740570
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '10b92a0345ec'
+revision = '49fcda9439ce'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -136,7 +136,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
-    op.create_index('idx_ledger_last_transfer_number', 'account_data', ['creditor_id', 'debtor_id', 'ledger_last_transfer_number'], unique=False)
+    op.create_index('idx_ledger_last_transfer_number', 'account_data', ['creditor_id', 'debtor_id', 'creation_date', 'ledger_last_transfer_number'], unique=False)
     op.create_table('account_display',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -197,13 +197,13 @@ def upgrade():
     op.create_table('account_commit',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
     sa.Column('transfer_flags', sa.Integer(), nullable=False),
-    sa.Column('account_creation_date', sa.DATE(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.Column('sender', sa.String(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
@@ -211,7 +211,7 @@ def upgrade():
     sa.CheckConstraint('committed_amount != 0'),
     sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'creation_date', 'transfer_number'),
     comment='Represents an account commit. A new row is inserted when a `AccountCommitSignal` is received. The row is deleted when some time (few months for example) has passed.'
     )
     op.create_table('ledger_entry',
@@ -227,7 +227,7 @@ def upgrade():
     sa.CheckConstraint('aquired_amount != 0'),
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('previous_entry_id > 0 AND previous_entry_id < entry_id'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.creation_date', 'account_commit.transfer_number'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number')
     )
@@ -235,13 +235,14 @@ def upgrade():
     op.create_table('pending_account_commit',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'transfer_number', 'committed_amount', 'account_new_principal'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.creation_date', 'account_commit.transfer_number'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'creation_date', 'transfer_number', 'committed_amount', 'account_new_principal'),
     comment='Represents an account commit that has not been included in the account ledger yet. A new row is inserted when a `AccountCommitSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because account commits can be received out-of-order, but must be added to the ledgers in-order.'
     )
     # ### end Alembic commands ###

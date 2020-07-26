@@ -195,7 +195,7 @@ class AccountData(db.Model):
         # This index is supposed to allow efficient merge joins with
         # `PendingAccountCommit`. Not sure if it is actually
         # beneficial in practice.
-        db.Index('idx_ledger_last_transfer_number', creditor_id, debtor_id, ledger_last_transfer_number),
+        db.Index('idx_ledger_last_transfer_number', creditor_id, debtor_id, creation_date, ledger_last_transfer_number),
     )
 
     @property
@@ -535,13 +535,13 @@ class AccountCommit(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, primary_key=True)
     transfer_number = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
     transfer_flags = db.Column(db.Integer, nullable=False)
-    account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     sender = db.Column(db.String, nullable=False)
     recipient = db.Column(db.String, nullable=False)
@@ -576,6 +576,7 @@ class PendingAccountCommit(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, primary_key=True)
     transfer_number = db.Column(db.BigInteger, primary_key=True)
 
     # TODO: Normally, these columns are not part of the primary key,
@@ -589,8 +590,13 @@ class PendingAccountCommit(db.Model):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'transfer_number'],
-            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'],
+            ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'],
+            [
+                'account_commit.creditor_id',
+                'account_commit.debtor_id',
+                'account_commit.creation_date',
+                'account_commit.transfer_number',
+            ],
             ondelete='CASCADE',
         ),
         db.CheckConstraint(committed_amount != 0),
@@ -624,11 +630,16 @@ class LedgerEntry(db.Model):
             ondelete='CASCADE',
         ),
         db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'transfer_number'],
-            ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'],
+            ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'],
+            [
+                'account_commit.creditor_id',
+                'account_commit.debtor_id',
+                'account_commit.creation_date',
+                'account_commit.transfer_number',
+            ],
             ondelete='CASCADE',
         ),
-        db.CheckConstraint(aquired_amount != 0),  # TODO: is this necessary?
+        db.CheckConstraint(aquired_amount != 0),
         db.CheckConstraint(entry_id > 0),
         db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
         db.Index(
