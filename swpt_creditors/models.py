@@ -639,7 +639,6 @@ class LedgerEntry(db.Model):
             ],
             ondelete='CASCADE',
         ),
-        db.CheckConstraint(aquired_amount != 0),
         db.CheckConstraint(entry_id > 0),
         db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
         db.Index(

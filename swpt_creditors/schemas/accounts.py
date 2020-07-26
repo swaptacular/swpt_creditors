@@ -129,7 +129,7 @@ class LedgerEntrySchema(Schema):
         format='int64',
         data_key='aquiredAmount',
         description="The amount added to the account's principal. Can be a positive number (an "
-                    "increase), or a negative number (a decrease). Can not be zero.",
+                    "increase), a negative number (a decrease), or zero.",
         example=1000,
     )
     principal = fields.Integer(
