@@ -234,7 +234,7 @@ class AccountData(db.Model):
         assert MIN_INT64 <= interest <= MAX_INT64
         return interest
 
-    # TODO: remove this method?
+    # TODO: Remove this method? Add `ledger_last_transfer_creation_date` column?
     def reset_ledger(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
         if account:
             assert account_creation_date is None
@@ -329,6 +329,59 @@ class AccountDisplay(db.Model):
             creditor_id,
             peg_debtor_identity,
             postgresql_where=peg_debtor_identity != null(),
+        ),
+    )
+
+
+class LedgerEntry(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, nullable=False)
+    transfer_number = db.Column(db.BigInteger, primary_key=True)
+    aquired_amount = db.Column(db.BigInteger, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
+    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    entry_id = db.Column(db.BigInteger, nullable=False)
+    previous_entry_id = db.Column(db.BigInteger)
+
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_data.creditor_id', 'account_data.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'],
+            [
+                'account_commit.creditor_id',
+                'account_commit.debtor_id',
+                'account_commit.creation_date',
+                'account_commit.transfer_number',
+            ],
+            ondelete='CASCADE',
+        ),
+        db.CheckConstraint(transfer_number > 0),
+        db.CheckConstraint(entry_id > 0),
+        db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
+        db.Index('idx_ledger_entry_transfer', creditor_id, debtor_id, creation_date, transfer_number),
+        db.Index(
+            # Allows index-only scans in chronological order.
+            'idx_ledger_entry_entry_id',
+            creditor_id,
+            debtor_id,
+            entry_id,
+
+            # TODO: Normally, these columns should not be part of the
+            #       index, and should only be included in the index to
+            #       allow index-only scans. Because SQLAlchemy does
+            #       not support this yet (2020-01-11), as a temporary
+            #       workaround, we make them part of the index.
+            creation_date,
+            transfer_number,
+            aquired_amount,
+            principal,
+            added_at_ts,
+            previous_entry_id,
         ),
     )
 
@@ -610,59 +663,6 @@ class PendingAccountCommit(db.Model):
     )
 
     account_commit = db.relationship('AccountCommit')
-
-
-class LedgerEntry(db.Model):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, nullable=False)
-    transfer_number = db.Column(db.BigInteger, primary_key=True)
-    aquired_amount = db.Column(db.BigInteger, nullable=False)
-    principal = db.Column(db.BigInteger, nullable=False)
-    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    entry_id = db.Column(db.BigInteger, nullable=False)
-    previous_entry_id = db.Column(db.BigInteger)
-
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_data.creditor_id', 'account_data.debtor_id'],
-            ondelete='CASCADE',
-        ),
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'],
-            [
-                'account_commit.creditor_id',
-                'account_commit.debtor_id',
-                'account_commit.creation_date',
-                'account_commit.transfer_number',
-            ],
-            ondelete='CASCADE',
-        ),
-        db.CheckConstraint(transfer_number > 0),
-        db.CheckConstraint(entry_id > 0),
-        db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
-        db.Index('idx_ledger_entry_transfer', creditor_id, debtor_id, creation_date, transfer_number),
-        db.Index(
-            # Allows index-only scans in chronological order.
-            'idx_ledger_entry_entry_id',
-            creditor_id,
-            debtor_id,
-            entry_id,
-
-            # TODO: Normally, these columns should not be part of the
-            #       index, and should only be included in the index to
-            #       allow index-only scans. Because SQLAlchemy does
-            #       not support this yet (2020-01-11), as a temporary
-            #       workaround, we make them part of the index.
-            creation_date,
-            transfer_number,
-            aquired_amount,
-            principal,
-            added_at_ts,
-            previous_entry_id,
-        ),
-    )
 
 
 class ConfigureAccountSignal(Signal):
