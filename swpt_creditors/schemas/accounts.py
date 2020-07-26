@@ -106,7 +106,7 @@ class LedgerEntrySchema(Schema):
                     'the log to inform about the change in the corresponding `AccountLedger`.',
         example=12345,
     )
-    previous_entry_id = fields.Integer(
+    optional_previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
         validate=validate.Range(min=1, max=MAX_INT64),
@@ -122,11 +122,12 @@ class LedgerEntrySchema(Schema):
         data_key='addedAt',
         description='The moment at which the entry was added to the ledger.',
     )
-    aquiredAmount = fields.Integer(
+    aquired_amount = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
+        data_key='aquiredAmount',
         description="The amount added to the account's principal. Can be a positive number (an "
                     "increase), or a negative number (a decrease). Can not be zero.",
         example=1000,
@@ -134,7 +135,7 @@ class LedgerEntrySchema(Schema):
     principal = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         description='The new principal amount on the account, as it is after the transfer. Unless '
                     'a principal overflow has occurred, the new principal amount will be equal to '
@@ -148,6 +149,30 @@ class LedgerEntrySchema(Schema):
         description='The URI of the corresponding `CommittedTransfer`.',
         example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
     )
+
+    @pre_dump
+    def process_ledger_entry_instance(self, obj, many):
+        assert not many
+        assert isinstance(obj, models.LedgerEntry)
+        obj = copy(obj)
+        obj.ledger = {'uri': url_for(
+            self.context['AccountLedger'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )}
+        obj.transfer = {'uri': url_for(
+            self.context['CommittedTransfer'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+            epoch=obj.creation_date,
+            seqnum=obj.transfer_number,
+        )}
+        if obj.previous_entry_id is not None:
+            obj.optional_previous_entry_id = obj.previous_entry_id
+
+        return obj
 
 
 class LedgerEntriesPageSchema(Schema):
@@ -205,7 +230,7 @@ class AccountLedgerSchema(MutableResourceSchema):
     ledger_principal = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='principal',
         description='The principal amount on the account.',
@@ -214,7 +239,7 @@ class AccountLedgerSchema(MutableResourceSchema):
     ledger_interest = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=-MAX_INT64, max=MAX_INT64),
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='interest',
         description='The approximate amount of interest accumulated on the account, which '
@@ -270,7 +295,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         )
         obj.entries = {
             'items_type': 'LedgerEntry',
-            'first': f'{entries_path}?prev={obj.ledger_last_transfer_number + 1}'
+            'first': f'{entries_path}?prev={obj.ledger_latest_update_id + 1}'
         }
 
         return obj

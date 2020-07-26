@@ -93,10 +93,9 @@ class ObjectReferenceSchema(Schema):
 
 
 class ObjectReferencesPageSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/',
@@ -115,9 +114,8 @@ class ObjectReferencesPageSchema(Schema):
         description='An array of `ObjectReference`s. Can be empty.',
         example=[{'uri': f'{i}/'} for i in [1, 11, 111]],
     )
-    next = fields.Method(
-        'get_next_uri',
-        type='string',
+    next = fields.String(
+        dump_only=True,
         format='uri-reference',
         description=PAGE_NEXT_DESCRIPTION.format(type='ObjectReferencesPage'),
         example='?prev=111',

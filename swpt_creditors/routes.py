@@ -47,6 +47,7 @@ CONTEXT = {
     'Accounts': 'accounts.AccountsEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'Transfers': 'transfers.TransfersEndpoint',
+    'CommittedTransfer': 'transfers.CommittedTransferEndpoint',
 }
 
 

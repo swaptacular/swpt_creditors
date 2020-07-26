@@ -5,7 +5,7 @@ from datetime import datetime, timezone, date
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, false, func, or_, FunctionElement
+from sqlalchemy.sql.expression import null, true, false, func, or_, and_, FunctionElement
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
 from swpt_lib.utils import date_to_int24
@@ -208,19 +208,31 @@ class AccountData(db.Model):
 
     @property
     def ledger_interest(self):
-        ledger_interest = self.interest
-        current_balance = self.principal + ledger_interest
-        if current_balance > 0.0 and math.isfinite(current_balance):
+        interest = self.interest
+        current_balance = self.principal + interest
+        if current_balance > 0.0:
             current_ts = datetime.now(tz=timezone.utc)
             passed_seconds = max(0.0, (current_ts - self.last_change_ts).total_seconds())
             try:
                 k = math.log(1.0 + self.interest_rate / 100.0) / SECONDS_IN_YEAR
                 current_balance *= math.exp(k * passed_seconds)
             except ValueError:
+                assert self.interest_rate < -99.9999
                 current_balance = 0.0
-            ledger_interest = math.floor(current_balance - self.principal)
+            interest = current_balance - self.principal
 
-        return ledger_interest
+        if math.isnan(interest):
+            interest = 0.0
+        if math.isfinite(interest):
+            interest = math.floor(interest)
+        if interest > MAX_INT64:
+            interest = MAX_INT64
+        if interest < MIN_INT64:
+            interest = MIN_INT64
+
+        assert isinstance(interest, int)
+        assert MIN_INT64 <= interest <= MAX_INT64
+        return interest
 
     # TODO: remove this method?
     def reset_ledger(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
@@ -602,10 +614,13 @@ class LedgerEntry(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, nullable=False)
     transfer_number = db.Column(db.BigInteger, primary_key=True)
-    committed_amount = db.Column(db.BigInteger, nullable=False)
-    account_new_principal = db.Column(db.BigInteger, nullable=False)
+    aquired_amount = db.Column(db.BigInteger, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, server_default=utcnow())
+    entry_id = db.Column(db.BigInteger, nullable=False)
+    previous_entry_id = db.Column(db.BigInteger)
 
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -618,26 +633,29 @@ class LedgerEntry(db.Model):
             ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.transfer_number'],
             ondelete='CASCADE',
         ),
-        db.CheckConstraint(committed_amount != 0),
-        db.CheckConstraint(account_new_principal > MIN_INT64),
+        db.CheckConstraint(aquired_amount != 0),  # TODO: is this necessary?
+        db.CheckConstraint(entry_id > 0),
+        db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
         db.Index(
             # Allows index-only scans in chronological order.
-            'idx_ledger_entry_added_at_ts',
+            'idx_ledger_entry_entry_id',
             creditor_id,
-            added_at_ts,
             debtor_id,
-            transfer_number,
-            committed_amount,
-            account_new_principal,
-        ),
-        {
-            'comment': "Represents an entry in one of creditor's account ledgers. This table "
-                       "allows users to ask only for transfers that have occurred before or "
-                       "after a given moment in time.",
-        }
-    )
+            entry_id,
 
-    account_commit = db.relationship('AccountCommit')
+            # TODO: Normally, these columns should not be part of the
+            #       index, and should only be included in the index to
+            #       allow index-only scans. Because SQLAlchemy does
+            #       not support this yet (2020-01-11), as a temporary
+            #       workaround, we make them part of the index.
+            creation_date,
+            transfer_number,
+            aquired_amount,
+            principal,
+            added_at_ts,
+            previous_entry_id,
+        ),
+    )
 
 
 class ConfigureAccountSignal(Signal):

@@ -1,4 +1,5 @@
 import pytest
+import math
 from marshmallow import ValidationError
 from datetime import datetime, timezone
 from swpt_creditors import schemas
@@ -644,7 +645,7 @@ def test_serialize_account_ledger(app):
         'entries': {
             'type': 'PaginatedList',
             'itemsType': 'LedgerEntry',
-            'first': '/creditors/1/accounts/18446744073709551615/entries?prev=123',
+            'first': '/creditors/1/accounts/18446744073709551615/entries?prev=3',
         },
         'latestUpdateId': 2,
         'latestUpdateAt': '2020-01-02T00:00:00',
@@ -653,5 +654,15 @@ def test_serialize_account_ledger(app):
     ad.interest_rate = 7.0
     assert als.dump(ad)['interest'] > 11
 
+    ad.interest = math.nan
+    assert als.dump(ad)['interest'] == 0
+
+    ad.interest = 1e30
+    assert als.dump(ad)['interest'] == models.MAX_INT64
+
+    ad.interest = -1e30
+    assert als.dump(ad)['interest'] == models.MIN_INT64
+
+    ad.interest = 0.0
     ad.interest_rate = -100.0
     assert als.dump(ad)['interest'] == -1000
