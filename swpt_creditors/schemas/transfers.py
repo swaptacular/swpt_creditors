@@ -187,7 +187,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     def get_uri(self, obj):
         return url_for(
             self.context['Transfer'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             transferUuid=obj.transfer_uuid,
         )

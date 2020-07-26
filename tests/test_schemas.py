@@ -1,6 +1,6 @@
 import pytest
 from marshmallow import ValidationError
-from datetime import datetime
+from datetime import datetime, timezone
 from swpt_creditors import schemas
 from swpt_creditors import models
 from swpt_creditors import procedures
@@ -30,7 +30,7 @@ def test_serialize_account_display(app):
     ads = schemas.AccountDisplaySchema(context=CONTEXT)
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/display',
+        'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'debtorName': 'Test Debtor',
         'ownUnit': 'XXX',
@@ -55,7 +55,7 @@ def test_serialize_account_display(app):
     ad.peg_debtor_id = None
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/display',
+        'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'ownUnitPreference': 0,
         'peg': {
@@ -73,7 +73,7 @@ def test_serialize_account_display(app):
     ad.peg_exchange_rate = None
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/display',
+        'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'ownUnitPreference': 0,
         'amountDivisor': 100.0,
@@ -202,7 +202,7 @@ def test_serialize_account_exchange(app):
     aes = schemas.AccountExchangeSchema(context=CONTEXT)
     assert aes.dump(ae) == {
         'type': 'AccountExchange',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/exchange',
+        'uri': '/creditors/1/accounts/18446744073709551615/exchange',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'policy': 'test policy',
         'minPrincipal': 1000,
@@ -214,7 +214,7 @@ def test_serialize_account_exchange(app):
     ae.policy = None
     assert aes.dump(ae) == {
         'type': 'AccountExchange',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/exchange',
+        'uri': '/creditors/1/accounts/18446744073709551615/exchange',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'minPrincipal': 1000,
         'maxPrincipal': 5000,
@@ -276,7 +276,7 @@ def test_serialize_account_knowledge(app):
     aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
+        'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'accountIdentity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
         'debtorInfoSha256': 32 * '01',
@@ -290,7 +290,7 @@ def test_serialize_account_knowledge(app):
     ak.debtor_info_sha256 = None
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/knowledge',
+        'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
@@ -354,7 +354,7 @@ def test_serialize_account_config(app):
     acs = schemas.AccountConfigSchema(context=CONTEXT)
     assert acs.dump(ac) == {
         'type': 'AccountConfig',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/config',
+        'uri': '/creditors/1/accounts/18446744073709551615/config',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'negligibleAmount': 101.0,
         'scheduledForDeletion': True,
@@ -370,7 +370,7 @@ def test_serialize_account_config(app):
     ac.allow_unsafe_deletion = False
     assert acs.dump(ac) == {
         'type': 'AccountConfig',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/config',
+        'uri': '/creditors/1/accounts/18446744073709551615/config',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'negligibleAmount': 1e30,
         'scheduledForDeletion': False,
@@ -451,7 +451,7 @@ def test_serialize_account_info(app):
     ais = schemas.AccountInfoSchema(context=CONTEXT)
     assert ais.dump(ad) == {
         'type': 'AccountInfo',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/info',
+        'uri': '/creditors/1/accounts/18446744073709551615/info',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'interestRate': 7.0,
         'interestRateChangedAt': '2000-01-01T00:00:00',
@@ -472,7 +472,7 @@ def test_serialize_account_info(app):
     ad.has_server_account = False
     assert ais.dump(ad) == {
         'type': 'AccountInfo',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/info',
+        'uri': '/creditors/1/accounts/18446744073709551615/info',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'interestRate': 0.0,
         'interestRateChangedAt': '2000-01-01T00:00:00',
@@ -499,7 +499,7 @@ def test_serialize_account(db_session):
     aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
     assert account_schema.dump(account) == {
         'type': 'Account',
-        'uri': 'http://example.com/creditors/1/accounts/18446744073709551615/',
+        'uri': '/creditors/1/accounts/18446744073709551615/',
         'accountList': {'uri': '/creditors/1/account-list'},
         'createdAt': account.created_at_ts.isoformat(),
         'latestUpdateId': account.latest_update_id,
@@ -602,3 +602,56 @@ def test_deserialize_currency_peg(app):
             'exchangeRate': 2.5,
             'debtorHomeUrl': 'http://example.com/{}'.format(1000 * 'x'),
         })
+
+
+def test_serialize_account_ledger(app):
+    ad = models.AccountData(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        creation_date=datetime(2019, 1, 1),
+        last_change_ts=datetime(2019, 1, 3, tzinfo=timezone.utc),
+        last_change_seqnum=-5,
+        principal=1000,
+        interest=11.0,
+        last_transfer_number=123,
+        last_transfer_committed_at_ts=datetime(2019, 1, 2),
+        last_config_ts=datetime(2019, 1, 5),
+        last_config_seqnum=5,
+        last_heartbeat_ts=datetime(2020, 1, 3),
+        interest_rate=0.0,
+        last_interest_rate_change_ts=datetime(2000, 1, 1),
+        status_flags=models.AccountData.STATUS_OVERFLOWN_FLAG,
+        account_identity='',
+        debtor_info_url=None,
+        config_error=None,
+        is_config_effectual=True,
+        is_scheduled_for_deletion=False,
+        has_server_account=True,
+        info_latest_update_id=1,
+        info_latest_update_ts=datetime(2020, 1, 1),
+        ledger_principal=999,
+        ledger_last_transfer_number=122,
+        ledger_latest_update_id=2,
+        ledger_latest_update_ts=datetime(2020, 1, 2),
+    )
+    als = schemas.AccountLedgerSchema(context=CONTEXT)
+    assert als.dump(ad) == {
+        'type': 'AccountLedger',
+        'uri': '/creditors/1/accounts/18446744073709551615/ledger',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'principal': 999,
+        'interest': 11,
+        'entries': {
+            'type': 'PaginatedList',
+            'itemsType': 'LedgerEntry',
+            'first': '/creditors/1/accounts/18446744073709551615/entries?prev=123',
+        },
+        'latestUpdateId': 2,
+        'latestUpdateAt': '2020-01-02T00:00:00',
+    }
+
+    ad.interest_rate = 7.0
+    assert als.dump(ad)['interest'] > 11
+
+    ad.interest_rate = -100.0
+    assert als.dump(ad)['interest'] == -1000

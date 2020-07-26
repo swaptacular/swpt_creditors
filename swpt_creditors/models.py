@@ -1,10 +1,11 @@
 from __future__ import annotations
+import math
 from typing import Optional
 from datetime import datetime, timezone, date
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, false, func, or_, and_, FunctionElement
+from sqlalchemy.sql.expression import null, true, false, func, or_, FunctionElement
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
 from swpt_lib.utils import date_to_int24
@@ -17,6 +18,8 @@ MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 MAX_UINT64 = (1 << 64) - 1
+SECONDS_IN_DAY = 24 * 60 * 60
+SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
@@ -202,6 +205,22 @@ class AccountData(db.Model):
     @property
     def is_deletion_safe(self):
         return not self.has_server_account and self.is_scheduled_for_deletion and self.is_config_effectual
+
+    @property
+    def ledger_interest(self):
+        ledger_interest = self.interest
+        current_balance = self.principal + ledger_interest
+        if current_balance > 0.0 and math.isfinite(current_balance):
+            current_ts = datetime.now(tz=timezone.utc)
+            passed_seconds = max(0.0, (current_ts - self.last_change_ts).total_seconds())
+            try:
+                k = math.log(1.0 + self.interest_rate / 100.0) / SECONDS_IN_YEAR
+                current_balance *= math.exp(k * passed_seconds)
+            except ValueError:
+                current_balance = 0.0
+            ledger_interest = math.floor(current_balance - self.principal)
+
+        return ledger_interest
 
     # TODO: remove this method?
     def reset_ledger(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):

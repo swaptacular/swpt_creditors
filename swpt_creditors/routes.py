@@ -19,16 +19,16 @@ from . import procedures
 
 
 class PaginatedList(NamedTuple):
-    itemsType: str
+    items_type: str
     first: str
     forthcoming: str = missing
-    creditorId: int = None
+    creditor_id: int = None
 
     @property
     def wallet(self):
         if self.creditorId is None:
             return missing
-        return {'uri': url_for('creditors.WalletEndpoint', creditorId=self.creditorId)}
+        return {'uri': url_for('creditors.WalletEndpoint', _external=False, creditorId=self.creditorId)}
 
 
 CONTEXT = {
@@ -43,6 +43,7 @@ CONTEXT = {
     'AccountExchange': 'accounts.AccountExchangeEndpoint',
     'AccountKnowledge': 'accounts.AccountKnowledgeEndpoint',
     'AccountConfig': 'accounts.AccountConfigEndpoint',
+    'AccountLedgerEntries': 'accounts.AccountLedgerEntriesEndpoint',
     'Accounts': 'accounts.AccountsEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'Transfers': 'transfers.TransfersEndpoint',

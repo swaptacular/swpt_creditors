@@ -50,9 +50,10 @@ class PaginatedListSchema(Schema):
         description='The type of this object.',
         example='PaginatedList',
     )
-    itemsType = fields.String(
+    items_type = fields.String(
         required=True,
         dump_only=True,
+        data_key='itemsType',
         description='The type of the items in the paginated list.',
         example='string',
     )

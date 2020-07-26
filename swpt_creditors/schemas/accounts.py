@@ -250,7 +250,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountLedger'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
@@ -262,9 +262,16 @@ class AccountLedgerSchema(MutableResourceSchema):
         )}
         obj.latest_update_id = obj.ledger_latest_update_id
         obj.latest_update_ts = obj.ledger_latest_update_ts
-        obj.ledger_principal = obj.ledger_principal
-        obj.ledger_interest = obj.interest  # TODO: calculate the interest precisely.
-        obj.entries = {}  # TODO: pass a paginated list here.
+        entries_path = url_for(
+            self.context['AccountLedgerEntries'],
+            _external=False,
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+        )
+        obj.entries = {
+            'items_type': 'LedgerEntry',
+            'first': f'{entries_path}?prev={obj.ledger_last_transfer_number + 1}'
+        }
 
         return obj
 
@@ -359,7 +366,7 @@ class AccountInfoSchema(MutableResourceSchema):
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountInfo'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
@@ -447,7 +454,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountKnowledge'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
@@ -532,7 +539,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountConfig'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
@@ -611,7 +618,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountExchange'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
@@ -745,7 +752,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         obj = copy(obj)
         obj.uri = url_for(
             self.context['AccountDisplay'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )
@@ -858,7 +865,7 @@ class AccountSchema(MutableResourceSchema):
         obj = copy(obj)
         obj.uri = url_for(
             self.context['Account'],
-            _external=True,
+            _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )

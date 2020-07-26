@@ -45,7 +45,7 @@ class CreditorSchema(MutableResourceSchema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['Creditor'], creditorId=obj.creditor_id)
+        return url_for(self.context['Creditor'], _external=False, creditorId=obj.creditor_id)
 
 
 class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
@@ -76,7 +76,7 @@ class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['AccountList'], creditorId=obj.creditorId)
+        return url_for(self.context['AccountList'], _external=False, creditorId=obj.creditorId)
 
 
 class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
@@ -107,7 +107,7 @@ class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['TransferList'], creditorId=obj.creditorId)
+        return url_for(self.context['TransferList'], _external=False, creditorId=obj.creditorId)
 
 
 class WalletSchema(Schema):
@@ -206,7 +206,7 @@ class WalletSchema(Schema):
     )
 
     def get_uri(self, obj):
-        return url_for(self.context['Wallet'], creditorId=obj.creditor_id)
+        return url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)
 
 
 class LogEntrySchema(Schema):
