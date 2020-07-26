@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: fe77c7fb5e75
+Revision ID: 10b92a0345ec
 Revises: 8d8c816257ce
-Create Date: 2020-07-26 17:38:34.146116
+Create Date: 2020-07-26 17:52:13.745203
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'fe77c7fb5e75'
+revision = '10b92a0345ec'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -221,7 +221,7 @@ def upgrade():
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('aquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), server_default=sa.text("TIMEZONE('utc', CURRENT_TIMESTAMP)"), nullable=False),
+    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('entry_id', sa.BigInteger(), nullable=False),
     sa.Column('previous_entry_id', sa.BigInteger(), nullable=True),
     sa.CheckConstraint('aquired_amount != 0'),

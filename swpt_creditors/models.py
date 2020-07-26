@@ -607,18 +607,13 @@ class PendingAccountCommit(db.Model):
 
 
 class LedgerEntry(db.Model):
-    # TODO: This is totally wrong. Add a global entry seqnum here and
-    #       in `Creditor`, which is incremented for each added
-    #       `LedgerEntry`. Fix `process_account_transfer_signal()`
-    #       accordingly. (Do we need `added_at_ts`?)
-
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, nullable=False)
     transfer_number = db.Column(db.BigInteger, primary_key=True)
     aquired_amount = db.Column(db.BigInteger, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
-    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, server_default=utcnow())
+    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     entry_id = db.Column(db.BigInteger, nullable=False)
     previous_entry_id = db.Column(db.BigInteger)
 
