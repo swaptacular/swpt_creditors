@@ -195,7 +195,7 @@ class AccountData(db.Model):
         # This index is supposed to allow efficient merge joins with
         # `PendingAccountCommit`. Not sure if it is actually
         # beneficial in practice.
-        db.Index('idx_ledger_last_transfer_number', creditor_id, debtor_id, creation_date, ledger_last_transfer_number),
+        db.Index('idx_ledger_last_transfer', creditor_id, debtor_id, creation_date, ledger_last_transfer_number),
     )
 
     @property
@@ -641,6 +641,7 @@ class LedgerEntry(db.Model):
         ),
         db.CheckConstraint(entry_id > 0),
         db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
+        db.Index('idx_ledger_entry_transfer', creditor_id, debtor_id, creation_date, transfer_number),
         db.Index(
             # Allows index-only scans in chronological order.
             'idx_ledger_entry_entry_id',
