@@ -26,29 +26,14 @@ CID = {
     },
 }
 
-EPOCH = {
+TID = {
     'in': 'path',
-    'name': 'epoch',
+    'name': 'transferId',
     'required': True,
-    'description': "The number of days between 1970-01-01 and the account's creation date",
+    'description': "The transfer's ID",
     'schema': {
-        'type': 'integer',
-        'format': 'uint32',
-        'minimum': 0,
-        'maximum': (1 << 32) - 1,
-    },
-}
-
-SEQNUM = {
-    'in': 'path',
-    'name': 'seqnum',
-    'required': True,
-    'description': "The sequential number of the transfer",
-    'schema': {
-        'type': 'integer',
-        'format': 'int64',
-        'minimum': 1,
-        'maximum': (1 << 63) - 1,
+        'type': 'string',
+        'pattern': '^[0-9A-Za-z_=-]{1,64}$',
     },
 }
 
@@ -170,7 +155,7 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
         {
             'type': 'LedgerEntry',
             'ledger': {'uri': '/creditors/2/accounts/1/ledger'},
-            'transfer': {'uri': '/creditors/2/accounts/1/transfers/18444/999'},
+            'transfer': {'uri': '/creditors/2/accounts/1/transfers/18444-999'},
             'entryId': 123,
             'addedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,

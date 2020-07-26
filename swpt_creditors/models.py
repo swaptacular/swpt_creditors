@@ -639,6 +639,7 @@ class LedgerEntry(db.Model):
             ],
             ondelete='CASCADE',
         ),
+        db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(entry_id > 0),
         db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
         db.Index('idx_ledger_entry_transfer', creditor_id, debtor_id, creation_date, transfer_number),

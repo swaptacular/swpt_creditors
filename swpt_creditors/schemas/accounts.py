@@ -3,7 +3,7 @@ from base64 import urlsafe_b64encode, b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, validates_schema
 from flask import url_for
-from swpt_lib.utils import i64_to_u64
+from swpt_lib.utils import i64_to_u64, date_to_int24
 from swpt_creditors import models
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
@@ -147,7 +147,7 @@ class LedgerEntrySchema(Schema):
         required=True,
         dump_only=True,
         description='The URI of the corresponding `CommittedTransfer`.',
-        example={'uri': '/creditors/2/accounts/1/transfers/18444/999'},
+        example={'uri': '/creditors/2/accounts/1/transfers/18444-999'},
     )
 
     @pre_dump
@@ -166,8 +166,7 @@ class LedgerEntrySchema(Schema):
             _external=False,
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
-            epoch=obj.creation_date,
-            seqnum=obj.transfer_number,
+            transferId=f'{date_to_int24(obj.creation_date)}-{obj.transfer_number}'
         )}
         if obj.previous_entry_id is not None:
             obj.optional_previous_entry_id = obj.previous_entry_id
