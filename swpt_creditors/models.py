@@ -20,7 +20,7 @@ MAX_INT64 = (1 << 63) - 1
 MAX_UINT64 = (1 << 64) - 1
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
-BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
+TS0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
@@ -143,14 +143,14 @@ class AccountData(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    creation_date = db.Column(db.DATE, nullable=False, default=TS0.date())
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     last_change_seqnum = db.Column(db.Integer, nullable=False, default=0)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
-    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
+    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     last_heartbeat_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -163,7 +163,7 @@ class AccountData(db.Model):
 
     # AccountInfo data
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
     account_identity = db.Column(db.String, nullable=False, default='')
     debtor_info_url = db.Column(db.String)
@@ -177,6 +177,7 @@ class AccountData(db.Model):
     # AccountLedger data
     ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
+    ledger_last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     ledger_latest_update_id = db.Column(db.BigInteger, nullable=False)
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -243,7 +244,7 @@ class AccountData(db.Model):
             self.principal = account.principal
             self.next_transfer_number = account.last_transfer_number + 1
         else:
-            account_creation_date = account_creation_date or BEGINNING_OF_TIME.date()
+            account_creation_date = account_creation_date or TS0.date()
             self.account_creation_date = account_creation_date
             self.principal = 0
             self.next_transfer_number = (date_to_int24(account_creation_date) << 40) + 1
@@ -254,7 +255,7 @@ class AccountKnowledge(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    interest_rate_changed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    interest_rate_changed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     account_identity = db.Column(db.String)
     debtor_info_sha256 = db.Column(db.LargeBinary)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
@@ -336,12 +337,18 @@ class AccountDisplay(db.Model):
 class LedgerEntry(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, nullable=False)
-    transfer_number = db.Column(db.BigInteger, primary_key=True)
+    entry_id = db.Column(db.BigInteger, primary_key=True)
+
+    # TODO: The rest of the columns are not be part of the primary
+    #       key, but should be included in the primary key index to
+    #       allow index-only scans. Because SQLAlchemy does not
+    #       support this yet (2020-01-11), temporarily, there are no
+    #       index-only scans.
+    creation_date = db.Column(db.DATE)
+    transfer_number = db.Column(db.BigInteger)
     aquired_amount = db.Column(db.BigInteger, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    entry_id = db.Column(db.BigInteger, nullable=False)
     previous_entry_id = db.Column(db.BigInteger)
 
     __table_args__ = (
@@ -350,39 +357,9 @@ class LedgerEntry(db.Model):
             ['account_data.creditor_id', 'account_data.debtor_id'],
             ondelete='CASCADE',
         ),
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'],
-            [
-                'account_commit.creditor_id',
-                'account_commit.debtor_id',
-                'account_commit.creation_date',
-                'account_commit.transfer_number',
-            ],
-            ondelete='CASCADE',
-        ),
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(entry_id > 0),
         db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
-        db.Index('idx_ledger_entry_transfer', creditor_id, debtor_id, creation_date, transfer_number),
-        db.Index(
-            # Allows index-only scans in chronological order.
-            'idx_ledger_entry_entry_id',
-            creditor_id,
-            debtor_id,
-            entry_id,
-
-            # TODO: Normally, these columns should not be part of the
-            #       index, and should only be included in the index to
-            #       allow index-only scans. Because SQLAlchemy does
-            #       not support this yet (2020-01-11), as a temporary
-            #       workaround, we make them part of the index.
-            creation_date,
-            transfer_number,
-            aquired_amount,
-            principal,
-            added_at_ts,
-            previous_entry_id,
-        ),
     )
 
 

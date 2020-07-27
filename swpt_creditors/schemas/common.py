@@ -5,7 +5,7 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
-BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
+TS0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 URI_DESCRIPTION = '\
 The URI of this object. Can be a relative URI.'

@@ -307,7 +307,7 @@ def test_deserialize_account_knowledge(app):
     assert data == {
         'type': 'AccountKnowledge',
         'interest_rate': 0.0,
-        'interest_rate_changed_at_ts': models.BEGINNING_OF_TIME,
+        'interest_rate_changed_at_ts': models.TS0,
     }
 
     data = aks.load({

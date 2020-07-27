@@ -1,18 +1,20 @@
 import re
+from datetime import date
 from base64 import urlsafe_b64encode, b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, validates_schema
 from flask import url_for
-from swpt_lib.utils import i64_to_u64, date_to_int24
+from swpt_lib.utils import i64_to_u64
 from swpt_creditors import models
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
     MutableResourceSchema, ValidateTypeMixin,
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0,
     URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
 
 URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
+DATE_1970_01_01 = date(1970, 1, 1)
 
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
@@ -106,16 +108,6 @@ class LedgerEntrySchema(Schema):
                     'the log to inform about the change in the corresponding `AccountLedger`.',
         example=12345,
     )
-    optional_previous_entry_id = fields.Integer(
-        dump_only=True,
-        data_key='previousEntryId',
-        validate=validate.Range(min=1, max=MAX_INT64),
-        format='int64',
-        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
-                    "entries have smaller IDs. When this field is not present, this means "
-                    "that there are no previous entries in the account's ledger.",
-        example=122,
-    )
     added_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
@@ -142,12 +134,24 @@ class LedgerEntrySchema(Schema):
                     '`aquiredAmount` plus the old principal amount.',
         example=1500,
     )
-    transfer = fields.Nested(
+    optional_transfer = fields.Nested(
         ObjectReferenceSchema,
-        required=True,
         dump_only=True,
-        description='The URI of the corresponding `CommittedTransfer`.',
+        data_key='transfer',
+        description='Optional URI of the corresponding `CommittedTransfer`. When this field is '
+                    'not present, this means that the ledger entry compensates for one or more '
+                    'negligible transfers.',
         example={'uri': '/creditors/2/accounts/1/transfers/18444-999'},
+    )
+    optional_previous_entry_id = fields.Integer(
+        dump_only=True,
+        data_key='previousEntryId',
+        validate=validate.Range(min=1, max=MAX_INT64),
+        format='int64',
+        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
+                    "entries have smaller IDs. When this field is not present, this means "
+                    "that there are no previous entries in the account's ledger.",
+        example=122,
     )
 
     @pre_dump
@@ -161,13 +165,15 @@ class LedgerEntrySchema(Schema):
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
         )}
-        obj.transfer = {'uri': url_for(
-            self.context['CommittedTransfer'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-            transferId=f'{date_to_int24(obj.creation_date)}-{obj.transfer_number}'
-        )}
+        if obj.creation_date is not None and obj.transfer_number is not None:
+            epoch = (obj.creation_date - DATE_1970_01_01).days
+            obj.optional_transfer = {'uri': url_for(
+                self.context['CommittedTransfer'],
+                _external=False,
+                creditorId=obj.creditor_id,
+                debtorId=obj.debtor_id,
+                transferId=f'{epoch}-{obj.transfer_number}'
+            )}
         if obj.previous_entry_id is not None:
             obj.optional_previous_entry_id = obj.previous_entry_id
 
@@ -354,7 +360,7 @@ class AccountInfoSchema(MutableResourceSchema):
         example=0.0,
     )
     last_interest_rate_change_ts = fields.DateTime(
-        missing=BEGINNING_OF_TIME,
+        missing=TS0,
         dump_only=True,
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
@@ -448,7 +454,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         example=0.0,
     )
     interest_rate_changed_at_ts = fields.DateTime(
-        missing=BEGINNING_OF_TIME,
+        missing=TS0,
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate, which is known '
                     'to the creditor, has happened.',
