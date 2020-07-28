@@ -1,7 +1,7 @@
 import pytest
 import math
 from marshmallow import ValidationError
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from swpt_creditors import schemas
 from swpt_creditors import models
 from swpt_creditors import procedures
@@ -666,3 +666,51 @@ def test_serialize_account_ledger(app):
     ad.interest = 0.0
     ad.interest_rate = -100.0
     assert als.dump(ad)['interest'] == -1000
+
+
+def test_serialize_ledger_enty(db_session, app):
+    le = models.LedgerEntry(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        entry_id=2,
+        creation_date=date(1970, 1, 5),
+        transfer_number=666,
+        aquired_amount=1000,
+        principal=3000,
+        added_at_ts=datetime(2020, 1, 2),
+        previous_entry_id=1,
+    )
+    les = schemas.LedgerEntrySchema(context=CONTEXT)
+    assert les.dump(le) == {
+        'type': 'LedgerEntry',
+        'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'entryId': 2,
+        'previousEntryId': 1,
+        'principal': 3000,
+        'transfer': {'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666'},
+        'aquiredAmount': 1000,
+        'addedAt': '2020-01-02T00:00:00',
+    }
+
+    le.previous_entry_id = None
+    le.creation_date = None
+    assert les.dump(le) == {
+        'type': 'LedgerEntry',
+        'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'entryId': 2,
+        'principal': 3000,
+        'aquiredAmount': 1000,
+        'addedAt': '2020-01-02T00:00:00',
+    }
+
+    le.previous_entry_id = None
+    le.creation_date = date(2000, 1, 1)
+    le.transfer_number = None
+    assert les.dump(le) == {
+        'type': 'LedgerEntry',
+        'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'entryId': 2,
+        'principal': 3000,
+        'aquiredAmount': 1000,
+        'addedAt': '2020-01-02T00:00:00',
+    }
