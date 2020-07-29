@@ -575,7 +575,6 @@ class AccountCommit(db.Model):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
-    transfer_flags = db.Column(db.Integer, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     sender = db.Column(db.String, nullable=False)
     recipient = db.Column(db.String, nullable=False)

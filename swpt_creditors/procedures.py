@@ -306,7 +306,6 @@ def process_account_transfer_signal(
         committed_at_ts: datetime,
         acquired_amount: int,
         transfer_note: str,
-        transfer_flags: int,
         creation_date: date,
         principal: int,
         previous_transfer_number: int,
@@ -322,7 +321,6 @@ def process_account_transfer_signal(
     assert -MAX_INT64 <= principal <= MAX_INT64
     assert 0 <= previous_transfer_number <= MAX_INT64
     assert previous_transfer_number < transfer_number
-    assert MIN_INT32 <= transfer_flags <= MAX_INT32
 
     try:
         account_data = AccountData.get_instance((creditor_id, debtor_id))
@@ -336,7 +334,6 @@ def process_account_transfer_signal(
         committed_at_ts=committed_at_ts,
         committed_amount=acquired_amount,
         transfer_note=transfer_note,
-        transfer_flags=transfer_flags,
         creation_date=creation_date,
         account_new_principal=principal,
         sender=sender,
