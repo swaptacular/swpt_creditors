@@ -1,7 +1,7 @@
 import iso8601
 from datetime import date
-from .extensions import broker, APP_QUEUE_NAME
-from . import procedures
+from swpt_creditors.extensions import broker, APP_QUEUE_NAME
+from swpt_creditors import procedures
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)

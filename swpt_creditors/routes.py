@@ -7,7 +7,8 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from marshmallow import missing
 from swpt_lib import endpoints
-from .schemas import (
+from swpt_creditors.models import MAX_INT64, DATE0
+from swpt_creditors.schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, TransferListSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
@@ -15,9 +16,9 @@ from .schemas import (
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
     AccountLedgerSchema, AccountInfoSchema, AccountListSchema,
 )
-from .specs import DID, CID, TID, TRANSFER_UUID
-from . import specs
-from . import procedures
+from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
+from swpt_creditors import specs
+from swpt_creditors import procedures
 
 
 class PaginatedList(NamedTuple):
@@ -60,8 +61,6 @@ class path_builder:
 
 
 CONTEXT = {'paths': path_builder}
-MAX_INT64 = (1 << 63) - 1
-DATE_1970_01_01 = date(1970, 1, 1)
 
 
 creditors_api = Blueprint(
@@ -602,7 +601,7 @@ class CommittedTransferEndpoint(MethodView):
 
         try:
             epoch, n = transferId.split('-', maxsplit=1)
-            creation_date = DATE_1970_01_01 + timedelta(days=int(epoch))
+            creation_date = DATE0 + timedelta(days=int(epoch))
             transfer_number = int(n)
             if not 1 <= transfer_number <= MAX_INT64:
                 raise ValueError

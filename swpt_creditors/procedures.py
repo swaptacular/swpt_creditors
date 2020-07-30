@@ -6,8 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.orm import joinedload, exc
 from swpt_lib.utils import Seqnum, increment_seqnum
-from .extensions import db
-from .models import Creditor, LedgerEntry, AccountCommit, Account, \
+from swpt_creditors.extensions import db
+from swpt_creditors.models import Creditor, LedgerEntry, AccountCommit, Account, \
     AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     AccountDisplay, AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, \
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \

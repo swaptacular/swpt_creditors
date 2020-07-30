@@ -9,7 +9,7 @@ from sqlalchemy.sql.expression import null, true, false, func, or_, and_, Functi
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
 from swpt_lib.utils import date_to_int24
-from .extensions import db, broker, MAIN_EXCHANGE_NAME
+from swpt_creditors.extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT16 = -1 << 15
 MAX_INT16 = (1 << 15) - 1
@@ -21,6 +21,7 @@ MAX_UINT64 = (1 << 64) - 1
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 TS0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
+DATE0 = TS0.date()
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
@@ -205,7 +206,7 @@ class AccountData(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, nullable=False, default=TS0.date())
+    creation_date = db.Column(db.DATE, nullable=False, default=DATE0)
     last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     last_change_seqnum = db.Column(db.Integer, nullable=False, default=0)
     principal = db.Column(db.BigInteger, nullable=False, default=0)

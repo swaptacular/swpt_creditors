@@ -1,18 +1,16 @@
 import re
-from datetime import date
 from base64 import urlsafe_b64encode, b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, post_dump, validates_schema
 from swpt_lib.utils import i64_to_u64
 from swpt_creditors import models
-from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0
+from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0, DATE0
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
     MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
 
 URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
-DATE_1970_01_01 = date(1970, 1, 1)
 
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
@@ -170,7 +168,7 @@ class LedgerEntrySchema(Schema):
         obj = copy(obj)
         obj.ledger = {'uri': paths.account_ledger(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
         if obj.creation_date is not None and obj.transfer_number is not None:
-            epoch = (obj.creation_date - DATE_1970_01_01).days
+            epoch = (obj.creation_date - DATE0).days
             obj.optional_transfer = {'uri': paths.committed_transfer(
                 creditorId=obj.creditor_id,
                 debtorId=obj.debtor_id,
