@@ -11,6 +11,55 @@ D_ID = -1
 C_ID = 1
 
 
+def test_serialize_creditor(app):
+    c = models.Creditor(
+        creditor_id=C_ID,
+        created_at_date=date(2019, 11, 30),
+        status=0,
+        deactivated_at_date=None,
+        latest_log_entry_id=1,
+        latest_update_id=1,
+        latest_update_ts=datetime(2020, 1, 1),
+    )
+    cs = schemas.CreditorSchema(context=CONTEXT)
+    assert cs.dump(c) == {
+        'type': 'Creditor',
+        'uri': '/creditors/1/',
+        'createdOn': '2019-11-30',
+        'active': False,
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+    c.status = models.Creditor.STATUS_IS_ACTIVE_FLAG
+    assert cs.dump(c) == {
+        'type': 'Creditor',
+        'uri': '/creditors/1/',
+        'createdOn': '2019-11-30',
+        'active': True,
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+
+def test_deserialize_creditor(app):
+    cs = schemas.CreditorSchema(context=CONTEXT)
+
+    data = cs.load({})
+    assert data == {
+        'type': 'Creditor',
+        'is_active': True,
+    }
+    data = cs.load({'type': 'Creditor', 'active': False})
+    assert data == {
+        'type': 'Creditor',
+        'is_active': False,
+    }
+
+    with pytest.raises(ValidationError):
+        cs.load({'type': 'WrongType'})
+
+
 def test_serialize_account_display(app):
     ad = models.AccountDisplay(
         creditor_id=C_ID,
@@ -861,3 +910,12 @@ def test_deserialize_pagination_parameters(app):
 
     data = pps.load({'prev': 'p', 'stop': 's'})
     assert data == {'prev': 'p', 'stop': 's'}
+
+
+def test_deserialize_creditor_creation_request(app):
+    ccr = schemas.CreditorCreationRequestSchema(context=CONTEXT)
+    assert ccr.load({}) == {'type': 'CreditorCreationRequest'}
+    assert ccr.load({'type': 'CreditorCreationRequest'}) == {'type': 'CreditorCreationRequest'}
+
+    with pytest.raises(ValidationError):
+        ccr.load({'type': 'WrongType'})

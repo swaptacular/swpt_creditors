@@ -82,6 +82,62 @@ class Signal(db.Model):
 #       messing up with accounts belonging to other instances.
 
 
+class Creditor(db.Model):
+    STATUS_IS_ACTIVE_FLAG = 1
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    created_at_date = db.Column(db.DATE, nullable=False, default=get_now_utc)
+    direct_transfers_count = db.Column(db.Integer, nullable=False, default=0)
+    accounts_count = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment=f"Creditor's status bits: {STATUS_IS_ACTIVE_FLAG} - is active.",
+    )
+    deactivated_at_date = db.Column(
+        db.DATE,
+        comment='The date on which the creditor was deactivated. A `null` means that the '
+                'creditor has not been deactivated yet. Management operations (like making '
+                'direct transfers) are not allowed on deactivated creditors. Once '
+                'deactivated, a creditor stays deactivated until it is deleted. Important '
+                'note: All creditors are created with their "is active" status bit set to `0`, '
+                'and it gets set to `1` only after the first management operation has been '
+                'performed.',
+    )
+    latest_log_entry_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        default=1,
+        comment='Gets incremented each time a new entry is added to the log.',
+    )
+    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    __table_args__ = (
+        db.CheckConstraint(latest_log_entry_id > 0),
+        db.CheckConstraint(direct_transfers_count >= 0),
+        db.CheckConstraint(accounts_count >= 0),
+        db.CheckConstraint(latest_update_id > 0),
+    )
+
+    @property
+    def is_active(self):
+        return bool(self.status & Creditor.STATUS_IS_ACTIVE_FLAG)
+
+    @is_active.setter
+    def is_active(self, value):
+        if value:
+            self.status |= Creditor.STATUS_IS_ACTIVE_FLAG
+        else:
+            self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
+
+    def generate_log_entry_id(self):
+        log_entry_id = self.latest_log_entry_id + 1
+        assert log_entry_id <= MAX_INT64
+        self.latest_log_entry_id = log_entry_id
+        return log_entry_id
+
+
 class Account(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -365,62 +421,6 @@ class LedgerEntry(db.Model):
         #       no index-only scans.
         db.Index('idx_ledger_entry_pk', creditor_id, debtor_id, entry_id, unique=True),
     )
-
-
-class Creditor(db.Model):
-    STATUS_IS_ACTIVE_FLAG = 1
-
-    creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
-    status = db.Column(
-        db.SmallInteger,
-        nullable=False,
-        default=0,
-        comment=f"Creditor's status bits: {STATUS_IS_ACTIVE_FLAG} - is active.",
-    )
-    created_at_date = db.Column(
-        db.DATE,
-        nullable=False,
-        default=get_now_utc,
-        comment='The date on which the creditor was created.',
-    )
-    deactivated_at_date = db.Column(
-        db.DATE,
-        comment='The date on which the creditor was deactivated. A `null` means that the '
-                'creditor has not been deactivated yet. Management operations (like making '
-                'direct transfers) are not allowed on deactivated creditors. Once '
-                'deactivated, a creditor stays deactivated until it is deleted. Important '
-                'note: All creditors are created with their "is active" status bit set to `0`, '
-                'and it gets set to `1` only after the first management operation has been '
-                'performed.',
-    )
-    latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
-    direct_transfers_count = db.Column(db.Integer, nullable=False, default=0)
-    accounts_count = db.Column(db.Integer, nullable=False, default=0)
-    __table_args__ = (
-        db.CheckConstraint(latest_log_entry_id >= 0),
-        db.CheckConstraint(direct_transfers_count >= 0),
-        db.CheckConstraint(accounts_count >= 0),
-        {
-            'comment': "Represents creditor's principal information.",
-        }
-    )
-
-    @property
-    def is_active(self):
-        return bool(self.status & Creditor.STATUS_IS_ACTIVE_FLAG)
-
-    @is_active.setter
-    def is_active(self, value):
-        if value:
-            self.status |= Creditor.STATUS_IS_ACTIVE_FLAG
-        else:
-            self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
-
-    def generate_log_entry_id(self):
-        log_entry_id = self.latest_log_entry_id + 1
-        assert log_entry_id <= MAX_INT64
-        self.latest_log_entry_id = log_entry_id
-        return log_entry_id
 
 
 class DirectTransfer(db.Model):

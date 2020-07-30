@@ -1,40 +1,40 @@
-from marshmallow import Schema, fields, validate
+from copy import copy
+from marshmallow import Schema, fields, validate, pre_dump
 from flask import url_for
+from swpt_creditors import models
 from .common import (
-    ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema,
+    ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema, ValidateTypeMixin,
     URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION, MAX_INT64
 )
 
 
-class CreditorCreationRequestSchema(Schema):
+class CreditorCreationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
+        load_only=True,
         missing='CreditorCreationRequest',
-        default='CreditorCreationRequest',
         description='The type of this object.',
     )
 
 
-class CreditorSchema(MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/',
     )
-    type = fields.Function(
-        lambda obj: 'Creditor',
-        required=True,
-        type='string',
+    type = fields.String(
+        missing='Creditor',
+        default='Creditor',
         description='The type of this object.',
-        example='Creditor',
     )
     is_active = fields.Boolean(
-        required=True,
-        dump_only=True,
+        missing=True,
         data_key='active',
-        description="Whether the creditor is currently active."
+        description="Whether the creditor is active. Note that the user can activate the "
+                    "creditor, but can not deactivate it. The creditor's deactivation can be "
+                    "triggered only internally by the system."
     )
     created_at_date = fields.Date(
         required=True,
@@ -44,8 +44,13 @@ class CreditorSchema(MutableResourceSchema):
         example='2019-11-30',
     )
 
-    def get_uri(self, obj):
-        return url_for(self.context['Creditor'], _external=False, creditorId=obj.creditor_id)
+    @pre_dump
+    def process_creditor_instance(self, obj, many):
+        assert isinstance(obj, models.Creditor)
+        obj = copy(obj)
+        obj.uri = url_for(self.context['Creditor'], _external=False, creditorId=obj.creditor_id)
+
+        return obj
 
 
 class AccountListSchema(PaginatedListSchema, MutableResourceSchema):

@@ -93,6 +93,15 @@ class CreditorEndpoint(MethodView):
             abort(409)
         return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
 
+    @creditors_api.arguments(CreditorSchema)
+    @creditors_api.response(CreditorSchema(context=CONTEXT))
+    @creditors_api.doc(operationId='updateCreditor',
+                       responses={404: specs.CREDITOR_DOES_NOT_EXIST})
+    def patch(self, creditor, creditorId):
+        """Update a creditor."""
+
+        abort(500)
+
 
 @creditors_api.route('/<i64:creditorId>/wallet', parameters=[CID])
 class WalletEndpoint(MethodView):
@@ -316,7 +325,7 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.response(AccountConfigSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountConfig',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def patch(self, config_update_request, creditorId, debtorId):
+    def patch(self, account_config, creditorId, debtorId):
         """Update account's configuration."""
 
         abort(500)
@@ -338,7 +347,7 @@ class AccountDisplayEndpoint(MethodView):
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  409: specs.ACCOUNT_DISPLAY_UPDATE_CONFLICT,
                                  422: specs.UNRECOGNIZED_PEG_CURRENCY})
-    def patch(self, config_update_request, creditorId, debtorId):
+    def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings."""
 
         abort(500)
@@ -359,7 +368,7 @@ class AccountExchangeEndpoint(MethodView):
     @accounts_api.doc(operationId='updateAccountExchange',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST,
                                  422: specs.INVALID_EXCHANGE_POLICY})
-    def patch(self, config_update_request, creditorId, debtorId):
+    def patch(self, account_exchange, creditorId, debtorId):
         """Update account's exchange settings."""
 
         abort(500)
@@ -387,7 +396,7 @@ class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountKnowledge',
                       responses={404: specs.ACCOUNT_DOES_NOT_EXIST})
-    def patch(self, knowledge_update_request, creditorId, debtorId):
+    def patch(self, account_knowledge, creditorId, debtorId):
         """Update the acknowledged account information.
 
         This operation should be performed when an important change in
