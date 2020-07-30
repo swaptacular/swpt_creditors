@@ -532,6 +532,7 @@ def test_serialize_currency_peg(app):
         'display': {'uri': '/creditors/2/accounts/11/display'}
     }
 
+    del cp['type']
     del cp['optional_debtor_home_url']
     del cp['display']
     assert cps.dump(cp) == {
@@ -716,6 +717,28 @@ def test_serialize_ledger_entry(app):
     }
 
 
+def test_serialize_paginated_list(app):
+    pl = {
+        'items_type': 'String',
+        'first': '/first',
+        'forthcoming': '/more',
+    }
+    pls = schemas.PaginatedListSchema(context=CONTEXT)
+    assert pls.dump(pl) == {
+        'type': 'PaginatedList',
+        'itemsType': 'String',
+        'first': '/first',
+        'forthcoming': '/more',
+    }
+
+    del pl['forthcoming']
+    assert pls.dump(pl) == {
+        'type': 'PaginatedList',
+        'itemsType': 'String',
+        'first': '/first',
+    }
+
+
 def test_serialize_ledger_entries_page(app):
     le = models.LedgerEntry(
         creditor_id=C_ID,
@@ -772,3 +795,59 @@ def test_serialize_object_references_page(app):
         'uri': '/test',
         'items': [],
     }
+
+
+def test_serialize_debtor_identity(app):
+    di = {'uri': 'swpt:1'}
+    dis = schemas.DebtorIdentitySchema(context=CONTEXT)
+    assert dis.dump(di) == {
+        'type': 'DebtorIdentity',
+        'uri': 'swpt:1',
+    }
+
+
+def test_deserialize_debtor_identity(app):
+    dis = schemas.DebtorIdentitySchema(context=CONTEXT)
+
+    data = dis.load({'uri': 'swpt:1'})
+    assert data == {
+        'type': 'DebtorIdentity',
+        'uri': 'swpt:1',
+    }
+
+    with pytest.raises(ValidationError):
+        dis.load({'type': 'WrongType'})
+
+    with pytest.raises(ValidationError):
+        dis.load({})
+
+    with pytest.raises(ValidationError):
+        dis.load({'uri': 1000 * 'x'})
+
+
+def test_serialize_account_identity(app):
+    ai = {'uri': 'swpt:1/2'}
+    ais = schemas.AccountIdentitySchema(context=CONTEXT)
+    assert ais.dump(ai) == {
+        'type': 'AccountIdentity',
+        'uri': 'swpt:1/2',
+    }
+
+
+def test_deserialize_account_identity(app):
+    ais = schemas.AccountIdentitySchema(context=CONTEXT)
+
+    data = ais.load({'uri': 'swpt:1/2'})
+    assert data == {
+        'type': 'AccountIdentity',
+        'uri': 'swpt:1/2',
+    }
+
+    with pytest.raises(ValidationError):
+        ais.load({'type': 'WrongType'})
+
+    with pytest.raises(ValidationError):
+        ais.load({})
+
+    with pytest.raises(ValidationError):
+        ais.load({'uri': 1000 * 'x'})

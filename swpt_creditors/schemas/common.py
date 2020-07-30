@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from marshmallow import Schema, fields, validate, validates, ValidationError
+from marshmallow import Schema, fields, validate, validates, post_dump, ValidationError
 
 MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
@@ -81,6 +81,12 @@ class PaginatedListSchema(Schema):
         example='/list?page=1000',
     )
 
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'itemsType' in obj
+        assert 'first' in obj
+        return obj
+
 
 class ObjectReferenceSchema(Schema):
     uri = fields.String(
@@ -90,6 +96,11 @@ class ObjectReferenceSchema(Schema):
         description="The URI of the object. Can be a relative URI.",
         example='https://example.com/objects/1',
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'uri' in obj
+        return obj
 
 
 class ObjectReferencesPageSchema(Schema):
@@ -121,6 +132,12 @@ class ObjectReferencesPageSchema(Schema):
         example='?prev=111',
     )
 
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'uri' in obj
+        assert 'items' in obj
+        return obj
+
 
 class AccountIdentitySchema(ValidateTypeMixin, Schema):
     type = fields.String(
@@ -141,6 +158,11 @@ class AccountIdentitySchema(ValidateTypeMixin, Schema):
                     "the type of the debtor (a bank), the ID of the bank, and the bank "
                     "account number.",
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'uri' in obj
+        return obj
 
 
 class MutableResourceSchema(Schema):

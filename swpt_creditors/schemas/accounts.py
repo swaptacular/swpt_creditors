@@ -2,7 +2,7 @@ import re
 from datetime import date
 from base64 import urlsafe_b64encode, b16encode
 from copy import copy
-from marshmallow import Schema, ValidationError, fields, validate, pre_dump, validates_schema
+from marshmallow import Schema, ValidationError, fields, validate, pre_dump, post_dump, validates_schema
 from flask import url_for
 from swpt_lib.utils import i64_to_u64
 from swpt_creditors import models
@@ -39,6 +39,11 @@ class DebtorIdentitySchema(ValidateTypeMixin, Schema):
                     "solely as identifiers of value measurement units.",
         example='swpt:1',
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'uri' in obj
+        return obj
 
 
 class CurrencyPegSchema(ValidateTypeMixin, Schema):
@@ -80,6 +85,12 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
                     "the peg currency.",
         example={'uri': '/creditors/2/accounts/11/display'},
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'debtorIdentity' in obj
+        assert 'exchangeRate' in obj
+        return obj
 
 
 class LedgerEntrySchema(Schema):
@@ -205,6 +216,12 @@ class LedgerEntriesPageSchema(Schema):
         format='uri-reference',
         description=PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'uri' in obj
+        assert 'items' in obj
+        return obj
 
 
 class AccountLedgerSchema(MutableResourceSchema):
