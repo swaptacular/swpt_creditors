@@ -32,27 +32,7 @@ class PaginatedList(NamedTuple):
         return {'uri': url_for('creditors.WalletEndpoint', _external=False, creditorId=self.creditorId)}
 
 
-CONTEXT = {
-    'Creditor': 'creditors.CreditorEndpoint',
-    'Wallet': 'creditors.WalletEndpoint',
-    'LogEntries': 'creditors.LogEntriesEndpoint',
-    'AccountList': 'creditors.AccountListEndpoint',
-    'TransferList': 'creditors.TransferListEndpoint',
-    'Account': 'accounts.AccountEndpoint',
-    'AccountInfo': 'accounts.AccountInfoEndpoint',
-    'AccountLedger': 'accounts.AccountLedgerEndpoint',
-    'AccountDisplay': 'accounts.AccountDisplayEndpoint',
-    'AccountExchange': 'accounts.AccountExchangeEndpoint',
-    'AccountKnowledge': 'accounts.AccountKnowledgeEndpoint',
-    'AccountConfig': 'accounts.AccountConfigEndpoint',
-    'AccountLedgerEntries': 'accounts.AccountLedgerEntriesEndpoint',
-    'Accounts': 'accounts.AccountsEndpoint',
-    'AccountLookup': 'accounts.AccountLookupEndpoint',
-    'DebtorLookup': 'accounts.DebtorLookupEndpoint',
-    'Transfer': 'transfers.TransferEndpoint',
-    'Transfers': 'transfers.TransfersEndpoint',
-    'CommittedTransfer': 'transfers.CommittedTransferEndpoint',
-}
+CONTEXT = {}
 MAX_INT64 = (1 << 63) - 1
 DATE_1970_01_01 = date(1970, 1, 1)
 
@@ -605,3 +585,12 @@ class CommittedTransferEndpoint(MethodView):
         assert isinstance(creation_date, date)
         assert isinstance(transfer_number, int)
         abort(500)
+
+
+# Add all endpoints to the schema context:
+for bp in [bp for bp in globals().values() if isinstance(bp, Blueprint)]:
+    bp_name = bp.name
+    for ep_name in bp._endpoints:
+        key = ep_name[:-8] if ep_name.endswith('Endpoint') else ep_name
+        assert key not in CONTEXT
+        CONTEXT[key] = f'{bp_name}.{ep_name}'
