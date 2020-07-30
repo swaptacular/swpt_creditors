@@ -1,11 +1,5 @@
-from datetime import datetime, timezone
 from marshmallow import Schema, fields, validate, validates, post_dump, ValidationError
-
-MIN_INT32 = -1 << 31
-MAX_INT32 = (1 << 31) - 1
-MIN_INT64 = -1 << 63
-MAX_INT64 = (1 << 63) - 1
-TS0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
+from swpt_creditors.models import MAX_INT64
 
 URI_DESCRIPTION = '\
 The URI of this object. Can be a relative URI.'
