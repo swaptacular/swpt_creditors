@@ -156,7 +156,6 @@ class LedgerEntrySchema(Schema):
 
     @pre_dump
     def process_ledger_entry_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.LedgerEntry)
         obj = copy(obj)
         obj.ledger = {'uri': url_for(
@@ -181,10 +180,9 @@ class LedgerEntrySchema(Schema):
 
 
 class LedgerEntriesPageSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/entries?prev=124',
@@ -202,9 +200,8 @@ class LedgerEntriesPageSchema(Schema):
         dump_only=True,
         description='An array of `LedgerEntry`s. Can be empty.',
     )
-    next = fields.Method(
-        'get_next_uri',
-        type='string',
+    next = fields.String(
+        dump_only=True,
         format='uri-reference',
         description=PAGE_NEXT_DESCRIPTION.format(type='LedgerEntriesPage'),
     )
@@ -275,7 +272,6 @@ class AccountLedgerSchema(MutableResourceSchema):
 
     @pre_dump
     def process_account_data_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.AccountData)
         obj = copy(obj)
         obj.uri = url_for(
@@ -391,7 +387,6 @@ class AccountInfoSchema(MutableResourceSchema):
 
     @pre_dump
     def process_account_data_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.AccountData)
         obj = copy(obj)
         obj.uri = url_for(
@@ -479,7 +474,6 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @pre_dump
     def process_account_knowledge_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.AccountKnowledge)
         obj = copy(obj)
         obj.uri = url_for(
@@ -564,7 +558,6 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @pre_dump
     def process_account_config_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.AccountConfig)
         obj = copy(obj)
         obj.uri = url_for(
@@ -643,7 +636,6 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @pre_dump
     def process_account_exchange_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.AccountExchange)
         obj = copy(obj)
         obj.uri = url_for(
@@ -777,7 +769,6 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
 
     @pre_dump
     def process_account_display_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.AccountDisplay)
         obj = copy(obj)
         obj.uri = url_for(
@@ -890,7 +881,6 @@ class AccountSchema(MutableResourceSchema):
 
     @pre_dump
     def process_account_instance(self, obj, many):
-        assert not many
         assert isinstance(obj, models.Account)
         obj = copy(obj)
         obj.uri = url_for(

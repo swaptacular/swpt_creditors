@@ -668,7 +668,7 @@ def test_serialize_account_ledger(app):
     assert als.dump(ad)['interest'] == -1000
 
 
-def test_serialize_ledger_enty(db_session, app):
+def test_serialize_ledger_entry(app):
     le = models.LedgerEntry(
         creditor_id=C_ID,
         debtor_id=D_ID,
@@ -713,4 +713,62 @@ def test_serialize_ledger_enty(db_session, app):
         'principal': 3000,
         'aquiredAmount': 1000,
         'addedAt': '2020-01-02T00:00:00',
+    }
+
+
+def test_serialize_ledger_entries_page(app):
+    le = models.LedgerEntry(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        entry_id=2,
+        creation_date=date(1970, 1, 5),
+        transfer_number=666,
+        aquired_amount=1000,
+        principal=3000,
+        added_at_ts=datetime(2020, 1, 2),
+        previous_entry_id=1,
+    )
+    lep = {
+        'uri': '/test',
+        'items': [le],
+        'next': '?prev=1',
+    }
+    les = schemas.LedgerEntrySchema(context=CONTEXT)
+    leps = schemas.LedgerEntriesPageSchema(context=CONTEXT)
+    assert leps.dump(lep) == {
+        'type': 'LedgerEntriesPage',
+        'uri': '/test',
+        'next': '?prev=1',
+        'items': [les.dump(le)],
+    }
+
+    del lep['next']
+    lep['items'] = []
+    assert leps.dump(lep) == {
+        'type': 'LedgerEntriesPage',
+        'uri': '/test',
+        'items': [],
+    }
+
+
+def test_serialize_object_references_page(app):
+    orp = {
+        'uri': '/test',
+        'items': [{'uri': '/object1'}, {'uri': '/object2'}],
+        'next': '?prev=1',
+    }
+    orps = schemas.ObjectReferencesPageSchema(context=CONTEXT)
+    assert orps.dump(orp) == {
+        'type': 'ObjectReferencesPage',
+        'uri': '/test',
+        'next': '?prev=1',
+        'items': [{'uri': '/object1'}, {'uri': '/object2'}],
+    }
+
+    del orp['next']
+    orp['items'] = []
+    assert orps.dump(orp) == {
+        'type': 'ObjectReferencesPage',
+        'uri': '/test',
+        'items': [],
     }
