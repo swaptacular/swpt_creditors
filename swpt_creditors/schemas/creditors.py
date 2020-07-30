@@ -32,9 +32,9 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
     is_active = fields.Boolean(
         missing=True,
         data_key='active',
-        description="Whether the creditor is active. Note that the user can activate the "
-                    "creditor, but can not deactivate it. The creditor's deactivation can be "
-                    "triggered only internally by the system."
+        description='Whether the creditor is active.'
+                    '\n\n'
+                    '**Note:** The user can activate the creditor, but can not deactivate it.',
     )
     created_at_date = fields.Date(
         required=True,
