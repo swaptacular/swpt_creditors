@@ -108,16 +108,22 @@ class Creditor(db.Model):
     latest_log_entry_id = db.Column(
         db.BigInteger,
         nullable=False,
-        default=1,
+        default=3,
         comment='Gets incremented each time a new entry is added to the log.',
     )
-    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
-    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    account_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=2)
+    account_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    transfer_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=3)
+    transfer_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.CheckConstraint(latest_log_entry_id > 0),
         db.CheckConstraint(direct_transfers_count >= 0),
         db.CheckConstraint(accounts_count >= 0),
-        db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(creditor_latest_update_id > 0),
+        db.CheckConstraint(account_list_latest_update_id > 0),
+        db.CheckConstraint(transfer_list_latest_update_id > 0),
     )
 
     @property

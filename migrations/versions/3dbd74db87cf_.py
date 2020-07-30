@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: fc4ead2056ae
+Revision ID: 3dbd74db87cf
 Revises: 8d8c816257ce
-Create Date: 2020-07-30 15:32:17.158045
+Create Date: 2020-07-30 16:54:10.663770
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'fc4ead2056ae'
+revision = '3dbd74db87cf'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -37,12 +37,18 @@ def upgrade():
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is active."),
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. A `null` means that the creditor has not been deactivated yet. Management operations (like making direct transfers) are not allowed on deactivated creditors. Once deactivated, a creditor stays deactivated until it is deleted. Important note: All creditors are created with their "is active" status bit set to `0`, and it gets set to `1` only after the first management operation has been performed.'),
     sa.Column('latest_log_entry_id', sa.BigInteger(), nullable=False, comment='Gets incremented each time a new entry is added to the log.'),
-    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
-    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('creditor_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('creditor_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('account_list_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('account_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('transfer_list_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('account_list_latest_update_id > 0'),
     sa.CheckConstraint('accounts_count >= 0'),
+    sa.CheckConstraint('creditor_latest_update_id > 0'),
     sa.CheckConstraint('direct_transfers_count >= 0'),
     sa.CheckConstraint('latest_log_entry_id > 0'),
-    sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('transfer_list_latest_update_id > 0'),
     sa.PrimaryKeyConstraint('creditor_id')
     )
     op.create_table('running_transfer',

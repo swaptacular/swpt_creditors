@@ -49,6 +49,8 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         assert isinstance(obj, models.Creditor)
         obj = copy(obj)
         obj.uri = url_for(self.context['Creditor'], _external=False, creditorId=obj.creditor_id)
+        obj.latest_update_id = obj.creditor_latest_update_id
+        obj.latest_update_ts = obj.creditor_latest_update_ts
 
         return obj
 
@@ -57,10 +59,9 @@ class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
     class Meta:
         exclude = ['forthcoming']
 
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/account-list',
@@ -80,18 +81,27 @@ class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
         example={'uri': '/creditors/2/wallet'},
     )
 
-    def get_uri(self, obj):
-        return url_for(self.context['AccountList'], _external=False, creditorId=obj.creditorId)
+    @pre_dump
+    def process_creditor_instance(self, obj, many):
+        assert isinstance(obj, models.Creditor)
+        obj = copy(obj)
+        obj.uri = url_for(self.context['AccountList'], _external=False, creditorId=obj.creditor_id)
+        obj.wallet = {'uri': url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)}
+        obj.first = url_for(self.context['Accounts'], _external=False, creditorId=obj.creditor_id)
+        obj.items_type = 'ObjectReference'
+        obj.latest_update_id = obj.account_list_latest_update_id
+        obj.latest_update_ts = obj.account_list_latest_update_ts
+
+        return obj
 
 
 class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
     class Meta:
         exclude = ['forthcoming']
 
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/transfer-list',
@@ -111,8 +121,18 @@ class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
         example={'uri': '/creditors/2/wallet'},
     )
 
-    def get_uri(self, obj):
-        return url_for(self.context['TransferList'], _external=False, creditorId=obj.creditorId)
+    @pre_dump
+    def process_creditor_instance(self, obj, many):
+        assert isinstance(obj, models.Creditor)
+        obj = copy(obj)
+        obj.uri = url_for(self.context['TransferList'], _external=False, creditorId=obj.creditor_id)
+        obj.wallet = {'uri': url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)}
+        obj.first = url_for(self.context['Transfers'], _external=False, creditorId=obj.creditor_id)
+        obj.items_type = 'ObjectReference'
+        obj.latest_update_id = obj.transfer_list_latest_update_id
+        obj.latest_update_ts = obj.transfer_list_latest_update_ts
+
+        return obj
 
 
 class WalletSchema(Schema):

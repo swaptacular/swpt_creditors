@@ -18,8 +18,8 @@ def test_serialize_creditor(app):
         status=0,
         deactivated_at_date=None,
         latest_log_entry_id=1,
-        latest_update_id=1,
-        latest_update_ts=datetime(2020, 1, 1),
+        creditor_latest_update_id=1,
+        creditor_latest_update_ts=datetime(2020, 1, 1),
     )
     cs = schemas.CreditorSchema(context=CONTEXT)
     assert cs.dump(c) == {
@@ -58,6 +58,50 @@ def test_deserialize_creditor(app):
 
     with pytest.raises(ValidationError):
         cs.load({'type': 'WrongType'})
+
+
+def test_serialize_account_list(app):
+    c = models.Creditor(
+        creditor_id=C_ID,
+        created_at_date=date(2019, 11, 30),
+        status=0,
+        deactivated_at_date=None,
+        latest_log_entry_id=1,
+        account_list_latest_update_id=1,
+        account_list_latest_update_ts=datetime(2020, 1, 1),
+    )
+    als = schemas.AccountListSchema(context=CONTEXT)
+    assert als.dump(c) == {
+        'type': 'AccountList',
+        'uri': '/creditors/1/account-list',
+        'wallet': {'uri': '/creditors/1/wallet'},
+        'itemsType': 'ObjectReference',
+        'first': '/creditors/1/accounts/',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
+
+
+def test_serialize_transfer_list(app):
+    c = models.Creditor(
+        creditor_id=C_ID,
+        created_at_date=date(2019, 11, 30),
+        status=0,
+        deactivated_at_date=None,
+        latest_log_entry_id=1,
+        transfer_list_latest_update_id=1,
+        transfer_list_latest_update_ts=datetime(2020, 1, 1),
+    )
+    tls = schemas.TransferListSchema(context=CONTEXT)
+    assert tls.dump(c) == {
+        'type': 'TransferList',
+        'uri': '/creditors/1/transfer-list',
+        'wallet': {'uri': '/creditors/1/wallet'},
+        'itemsType': 'ObjectReference',
+        'first': '/creditors/1/transfers/',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+    }
 
 
 def test_serialize_account_display(app):
