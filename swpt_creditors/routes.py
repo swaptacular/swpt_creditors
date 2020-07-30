@@ -1,4 +1,5 @@
 from typing import NamedTuple
+from functools import partial
 from datetime import date, timedelta
 from urllib.parse import urlencode
 from flask import redirect, url_for
@@ -32,27 +33,33 @@ class PaginatedList(NamedTuple):
         return {'uri': url_for('creditors.WalletEndpoint', _external=False, creditorId=self.creditorId)}
 
 
-CONTEXT = {
-    'Creditor': 'creditors.CreditorEndpoint',
-    'Wallet': 'creditors.WalletEndpoint',
-    'LogEntries': 'creditors.LogEntriesEndpoint',
-    'AccountList': 'creditors.AccountListEndpoint',
-    'TransferList': 'creditors.TransferListEndpoint',
-    'Account': 'accounts.AccountEndpoint',
-    'AccountInfo': 'accounts.AccountInfoEndpoint',
-    'AccountLedger': 'accounts.AccountLedgerEndpoint',
-    'AccountDisplay': 'accounts.AccountDisplayEndpoint',
-    'AccountExchange': 'accounts.AccountExchangeEndpoint',
-    'AccountKnowledge': 'accounts.AccountKnowledgeEndpoint',
-    'AccountConfig': 'accounts.AccountConfigEndpoint',
-    'AccountLedgerEntries': 'accounts.AccountLedgerEntriesEndpoint',
-    'Accounts': 'accounts.AccountsEndpoint',
-    'AccountLookup': 'accounts.AccountLookupEndpoint',
-    'DebtorLookup': 'accounts.DebtorLookupEndpoint',
-    'Transfer': 'transfers.TransferEndpoint',
-    'Transfers': 'transfers.TransfersEndpoint',
-    'CommittedTransfer': 'transfers.CommittedTransferEndpoint',
-}
+def _url_for(name):
+    return staticmethod(partial(url_for, name, _external=False))
+
+
+class path_builder:
+    creditor = _url_for('creditors.CreditorEndpoint')
+    wallet = _url_for('creditors.WalletEndpoint')
+    log_entries = _url_for('creditors.LogEntriesEndpoint')
+    account_list = _url_for('creditors.AccountListEndpoint')
+    transfer_list = _url_for('creditors.TransferListEndpoint')
+    account = _url_for('accounts.AccountEndpoint')
+    account_info = _url_for('accounts.AccountInfoEndpoint')
+    account_ledger = _url_for('accounts.AccountLedgerEndpoint')
+    account_display = _url_for('accounts.AccountDisplayEndpoint')
+    account_exchange = _url_for('accounts.AccountExchangeEndpoint')
+    account_knowledge = _url_for('accounts.AccountKnowledgeEndpoint')
+    account_config = _url_for('accounts.AccountConfigEndpoint')
+    account_ledger_entries = _url_for('accounts.AccountLedgerEntriesEndpoint')
+    accounts = _url_for('accounts.AccountsEndpoint')
+    account_lookup = _url_for('accounts.AccountLookupEndpoint')
+    debtor_lookup = _url_for('accounts.DebtorLookupEndpoint')
+    transfer = _url_for('transfers.TransferEndpoint')
+    transfers = _url_for('transfers.TransfersEndpoint')
+    committed_transfer = _url_for('transfers.CommittedTransferEndpoint')
+
+
+CONTEXT = {'paths': path_builder}
 MAX_INT64 = (1 << 63) - 1
 DATE_1970_01_01 = date(1970, 1, 1)
 

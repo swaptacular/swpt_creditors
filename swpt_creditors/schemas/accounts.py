@@ -3,7 +3,6 @@ from datetime import date
 from base64 import urlsafe_b64encode, b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, post_dump, validates_schema
-from flask import url_for
 from swpt_lib.utils import i64_to_u64
 from swpt_creditors import models
 from .common import (
@@ -168,18 +167,12 @@ class LedgerEntrySchema(Schema):
     @pre_dump
     def process_ledger_entry_instance(self, obj, many):
         assert isinstance(obj, models.LedgerEntry)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.ledger = {'uri': url_for(
-            self.context['AccountLedger'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )}
+        obj.ledger = {'uri': paths.account_ledger(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
         if obj.creation_date is not None and obj.transfer_number is not None:
             epoch = (obj.creation_date - DATE_1970_01_01).days
-            obj.optional_transfer = {'uri': url_for(
-                self.context['CommittedTransfer'],
-                _external=False,
+            obj.optional_transfer = {'uri': paths.committed_transfer(
                 creditorId=obj.creditor_id,
                 debtorId=obj.debtor_id,
                 transferId=f'{epoch}-{obj.transfer_number}'
@@ -290,27 +283,13 @@ class AccountLedgerSchema(MutableResourceSchema):
     @pre_dump
     def process_account_data_instance(self, obj, many):
         assert isinstance(obj, models.AccountData)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(
-            self.context['AccountLedger'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
-        obj.account = {'uri': url_for(
-            self.context['Account'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )}
+        obj.uri = paths.account_ledger(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
         obj.latest_update_id = obj.ledger_latest_update_id
         obj.latest_update_ts = obj.ledger_latest_update_ts
-        entries_path = url_for(
-            self.context['AccountLedgerEntries'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
+        entries_path = paths.account_ledger_entries(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.entries = {
             'items_type': 'LedgerEntry',
             'first': f'{entries_path}?prev={obj.ledger_latest_update_id + 1}'
@@ -405,19 +384,10 @@ class AccountInfoSchema(MutableResourceSchema):
     @pre_dump
     def process_account_data_instance(self, obj, many):
         assert isinstance(obj, models.AccountData)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(
-            self.context['AccountInfo'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
-        obj.account = {'uri': url_for(
-            self.context['Account'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )}
+        obj.uri = paths.account_info(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
         obj.latest_update_id = obj.info_latest_update_id
         obj.latest_update_ts = obj.info_latest_update_ts
 
@@ -492,19 +462,10 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_knowledge_instance(self, obj, many):
         assert isinstance(obj, models.AccountKnowledge)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(
-            self.context['AccountKnowledge'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
-        obj.account = {'uri': url_for(
-            self.context['Account'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )}
+        obj.uri = paths.account_knowledge(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
         if obj.debtor_info_sha256 is not None:
             obj.optional_debtor_info_sha256 = b16encode(obj.debtor_info_sha256).decode()
@@ -576,19 +537,10 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_config_instance(self, obj, many):
         assert isinstance(obj, models.AccountConfig)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(
-            self.context['AccountConfig'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
-        obj.account = {'uri': url_for(
-            self.context['Account'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )}
+        obj.uri = paths.account_config(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
         return obj
 
@@ -654,19 +606,10 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_exchange_instance(self, obj, many):
         assert isinstance(obj, models.AccountExchange)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(
-            self.context['AccountExchange'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
-        obj.account = {'uri': url_for(
-            self.context['Account'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )}
+        obj.uri = paths.account_exchange(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
         if obj.policy is not None:
             obj.optional_policy = obj.policy
 
@@ -787,19 +730,10 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
     @pre_dump
     def process_account_display_instance(self, obj, many):
         assert isinstance(obj, models.AccountDisplay)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(
-            self.context['AccountDisplay'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
-        obj.account = {'uri': url_for(
-            self.context['Account'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )}
+        obj.uri = paths.account_display(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
         if obj.own_unit is not None:
             obj.optional_own_unit = obj.own_unit
@@ -813,12 +747,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                 'debtor_identity': {'uri': obj.peg_debtor_identity},
             }
             if obj.peg_debtor_id is not None:
-                peg['display'] = {'uri': url_for(
-                    self.context['AccountDisplay'],
-                    _external=False,
-                    creditorId=obj.creditor_id,
-                    debtorId=obj.peg_debtor_id,
-                )}
+                peg['display'] = {'uri': paths.account_display(creditorId=obj.creditor_id, debtorId=obj.peg_debtor_id)}
             if obj.peg_debtor_home_url is not None:
                 peg['optional_debtor_home_url'] = obj.peg_debtor_home_url
             obj.optional_peg = peg
@@ -899,19 +828,11 @@ class AccountSchema(MutableResourceSchema):
     @pre_dump
     def process_account_instance(self, obj, many):
         assert isinstance(obj, models.Account)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(
-            self.context['Account'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            debtorId=obj.debtor_id,
-        )
+        obj.uri = paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.debtor_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
-        obj.account_list = {'uri': url_for(
-            self.context['AccountList'],
-            _external=False,
-            creditorId=obj.creditor_id,
-        )}
+        obj.account_list = {'uri': paths.account_list(creditorId=obj.creditor_id)}
         obj.info = obj.data
         obj.ledger = obj.data
 

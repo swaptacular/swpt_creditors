@@ -1,5 +1,4 @@
 from marshmallow import Schema, fields, validate, missing
-from flask import url_for
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema,
     URI_DESCRIPTION, MIN_INT64, MAX_INT64,
@@ -185,12 +184,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     )
 
     def get_uri(self, obj):
-        return url_for(
-            self.context['Transfer'],
-            _external=False,
-            creditorId=obj.creditor_id,
-            transferUuid=obj.transfer_uuid,
-        )
+        return self.context['path'].get_transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
 
     def get_checkup_at_ts(self, obj):
         return missing

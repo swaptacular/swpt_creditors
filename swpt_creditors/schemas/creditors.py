@@ -1,6 +1,5 @@
 from copy import copy
 from marshmallow import Schema, fields, validate, pre_dump
-from flask import url_for
 from swpt_creditors import models
 from .common import (
     ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema, ValidateTypeMixin,
@@ -48,7 +47,7 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
     def process_creditor_instance(self, obj, many):
         assert isinstance(obj, models.Creditor)
         obj = copy(obj)
-        obj.uri = url_for(self.context['Creditor'], _external=False, creditorId=obj.creditor_id)
+        obj.uri = self.context['paths'].creditor(creditorId=obj.creditor_id)
         obj.latest_update_id = obj.creditor_latest_update_id
         obj.latest_update_ts = obj.creditor_latest_update_ts
 
@@ -84,10 +83,11 @@ class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
     @pre_dump
     def process_creditor_instance(self, obj, many):
         assert isinstance(obj, models.Creditor)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(self.context['AccountList'], _external=False, creditorId=obj.creditor_id)
-        obj.wallet = {'uri': url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)}
-        obj.first = url_for(self.context['Accounts'], _external=False, creditorId=obj.creditor_id)
+        obj.uri = paths.account_list(creditorId=obj.creditor_id)
+        obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
+        obj.first = paths.accounts(creditorId=obj.creditor_id)
         obj.items_type = 'ObjectReference'
         obj.latest_update_id = obj.account_list_latest_update_id
         obj.latest_update_ts = obj.account_list_latest_update_ts
@@ -124,10 +124,11 @@ class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
     @pre_dump
     def process_creditor_instance(self, obj, many):
         assert isinstance(obj, models.Creditor)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(self.context['TransferList'], _external=False, creditorId=obj.creditor_id)
-        obj.wallet = {'uri': url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)}
-        obj.first = url_for(self.context['Transfers'], _external=False, creditorId=obj.creditor_id)
+        obj.uri = paths.transfer_list(creditorId=obj.creditor_id)
+        obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
+        obj.first = paths.transfers(creditorId=obj.creditor_id)
         obj.items_type = 'ObjectReference'
         obj.latest_update_id = obj.transfer_list_latest_update_id
         obj.latest_update_ts = obj.transfer_list_latest_update_ts
@@ -238,20 +239,17 @@ class WalletSchema(Schema):
     @pre_dump
     def process_creditor_instance(self, obj, many):
         assert isinstance(obj, models.Creditor)
-
-        def ref(name):
-            return {'uri': url_for(self.context[name], _external=False, creditorId=obj.creditor_id)}
-
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)
-        obj.creditor = ref('Creditor')
-        obj.account_list = ref('AccountList')
-        obj.transfer_list = ref('TransferList')
-        obj.account_lookup = ref('AccountLookup')
-        obj.debtor_lookup = ref('DebtorLookup')
-        obj.create_account = ref('Accounts')
-        obj.create_transfer = ref('Transfers')
-        log_path = url_for(self.context['LogEntries'], _external=False, creditorId=obj.creditor_id)
+        obj.uri = paths.wallet(creditorId=obj.creditor_id)
+        obj.creditor = {'uri': paths.creditor(creditorId=obj.creditor_id)}
+        obj.account_list = {'uri': paths.account_list(creditorId=obj.creditor_id)}
+        obj.transfer_list = {'uri': paths.transfer_list(creditorId=obj.creditor_id)}
+        obj.account_lookup = {'uri': paths.account_lookup(creditorId=obj.creditor_id)}
+        obj.debtor_lookup = {'uri': paths.debtor_lookup(creditorId=obj.creditor_id)}
+        obj.create_account = {'uri': paths.accounts(creditorId=obj.creditor_id)}
+        obj.create_transfer = {'uri': paths.transfers(creditorId=obj.creditor_id)}
+        log_path = paths.log_entries(creditorId=obj.creditor_id)
         obj.log = {
             'items_type': 'LogEntry',
             'first': log_path,
