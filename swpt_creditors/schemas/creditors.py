@@ -136,10 +136,9 @@ class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
 
 
 class WalletSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/wallet',
@@ -158,10 +157,11 @@ class WalletSchema(Schema):
         description="The URI of the `Creditor`.",
         example={'uri': '/creditors/2/'},
     )
-    accountList = fields.Nested(
+    account_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='accountList',
         description="The URI of creditor's `AccountList`. That is: an URI of a `PaginatedList` of "
                     "`ObjectReference`s to all `Account`s belonging to the creditor. The paginated "
                     "list will not be sorted in any particular order.",
@@ -185,44 +185,49 @@ class WalletSchema(Schema):
             'type': 'PaginatedList',
         },
     )
-    transferList = fields.Nested(
+    transfer_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='transferList',
         description="The URI of creditor's `TransferList`. That is: an URI of a `PaginatedList` of "
                     "`ObjectReference`s to all `Transfer`s initiated by the creditor, which have not "
                     "been deleted yet. The paginated list will not be sorted in any particular order.",
         example={'uri': '/creditors/2/transfer-list'},
     )
-    createAccount = fields.Nested(
+    create_account = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='createAccount',
         description='A URI to which a `DebtorIdentity` object can be POST-ed to create a new `Account`.',
         example={'uri': '/creditors/2/accounts/'},
     )
-    createTransfer = fields.Nested(
+    create_transfer = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='createTransfer',
         description='A URI to which a `TransferCreationRequest` can be POST-ed to '
                     'create a new `Transfer`.',
         example={'uri': '/creditors/2/transfers/'},
     )
-    accountLookup = fields.Nested(
+    account_lookup = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='accountLookup',
         description="A URI to which the recipient account's `AccountIdentity` can be POST-ed, "
                     "trying to find a matching sender account. If a matching sender account "
                     "is found, the response will contain an `ObjectReference` to the "
                     "`Account`. Otherwise, the response will be empty (response code 204).",
         example={'uri': '/creditors/2/account-lookup'},
     )
-    debtorLookup = fields.Nested(
+    debtor_lookup = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='debtorLookup',
         description="A URI to which a `DebtorIdentity` object can be POST-ed, trying to find an "
                     "existing account with this debtor. If an existing account is found, the "
                     "response will contain an `ObjectReference` to the `Account`. Otherwise, "
@@ -230,8 +235,30 @@ class WalletSchema(Schema):
         example={'uri': '/creditors/2/debtor-lookup'},
     )
 
-    def get_uri(self, obj):
-        return url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)
+    @pre_dump
+    def process_creditor_instance(self, obj, many):
+        assert isinstance(obj, models.Creditor)
+
+        def ref(name):
+            return {'uri': url_for(self.context[name], _external=False, creditorId=obj.creditor_id)}
+
+        obj = copy(obj)
+        obj.uri = url_for(self.context['Wallet'], _external=False, creditorId=obj.creditor_id)
+        obj.creditor = ref('Creditor')
+        obj.account_list = ref('AccountList')
+        obj.transfer_list = ref('TransferList')
+        obj.account_lookup = ref('AccountLookup')
+        obj.debtor_lookup = ref('DebtorLookup')
+        obj.create_account = ref('Accounts')
+        obj.create_transfer = ref('Transfers')
+        log_path = url_for(self.context['LogEntries'], _external=False, creditorId=obj.creditor_id)
+        obj.log = {
+            'items_type': 'LogEntry',
+            'first': log_path,
+            'forthcoming': f'{log_path}?prev={obj.latest_log_entry_id}',
+        }
+
+        return obj
 
 
 class LogEntrySchema(Schema):

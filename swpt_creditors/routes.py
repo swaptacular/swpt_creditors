@@ -35,6 +35,7 @@ class PaginatedList(NamedTuple):
 CONTEXT = {
     'Creditor': 'creditors.CreditorEndpoint',
     'Wallet': 'creditors.WalletEndpoint',
+    'LogEntries': 'creditors.LogEntriesEndpoint',
     'AccountList': 'creditors.AccountListEndpoint',
     'TransferList': 'creditors.TransferListEndpoint',
     'Account': 'accounts.AccountEndpoint',
@@ -46,6 +47,8 @@ CONTEXT = {
     'AccountConfig': 'accounts.AccountConfigEndpoint',
     'AccountLedgerEntries': 'accounts.AccountLedgerEntriesEndpoint',
     'Accounts': 'accounts.AccountsEndpoint',
+    'AccountLookup': 'accounts.AccountLookupEndpoint',
+    'DebtorLookup': 'accounts.DebtorLookupEndpoint',
     'Transfer': 'transfers.TransferEndpoint',
     'Transfers': 'transfers.TransfersEndpoint',
     'CommittedTransfer': 'transfers.CommittedTransferEndpoint',

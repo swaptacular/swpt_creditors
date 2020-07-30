@@ -60,6 +60,34 @@ def test_deserialize_creditor(app):
         cs.load({'type': 'WrongType'})
 
 
+def test_serialize_wallet(app):
+    c = models.Creditor(
+        creditor_id=C_ID,
+        created_at_date=date(2019, 11, 30),
+        status=0,
+        deactivated_at_date=None,
+        latest_log_entry_id=12345,
+    )
+    ws = schemas.WalletSchema(context=CONTEXT)
+    assert ws.dump(c) == {
+        'type': 'Wallet',
+        'uri': '/creditors/1/wallet',
+        'creditor': {'uri': '/creditors/1/'},
+        'accountList': {'uri': '/creditors/1/account-list'},
+        'transferList': {'uri': '/creditors/1/transfer-list'},
+        'accountLookup': {'uri': '/creditors/1/account-lookup'},
+        'debtorLookup': {'uri': '/creditors/1/debtor-lookup'},
+        'createAccount': {'uri': '/creditors/1/accounts/'},
+        'createTransfer': {'uri': '/creditors/1/transfers/'},
+        'log': {
+            'type': 'PaginatedList',
+            'itemsType': 'LogEntry',
+            'first': '/creditors/1/log',
+            'forthcoming': '/creditors/1/log?prev=12345',
+        },
+    }
+
+
 def test_serialize_account_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
