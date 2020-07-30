@@ -33,10 +33,12 @@ class ValidateTypeMixin:
 
 class PaginationParametersSchema(Schema):
     prev = fields.String(
+        load_only=True,
         description='Start with the item that follows the item with this index.',
         example='1',
     )
     stop = fields.String(
+        load_only=True,
         description='Return only items which precedes the item with this index.',
         example='100',
     )

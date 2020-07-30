@@ -851,3 +851,13 @@ def test_deserialize_account_identity(app):
 
     with pytest.raises(ValidationError):
         ais.load({'uri': 1000 * 'x'})
+
+
+def test_deserialize_pagination_parameters(app):
+    pps = schemas.PaginationParametersSchema(context=CONTEXT)
+
+    data = pps.load({})
+    assert data == {}
+
+    data = pps.load({'prev': 'p', 'stop': 's'})
+    assert data == {'prev': 'p', 'stop': 's'}
