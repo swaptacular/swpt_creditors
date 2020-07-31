@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload, exc
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import Creditor, LedgerEntry, CommittedTransfer, Account, \
-    AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
+    AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, LogEntry, \
     AccountDisplay, AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, \
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
@@ -36,6 +36,10 @@ class CreditorDoesNotExistError(Exception):
 
 class CreditorExistsError(Exception):
     """The same creditor record already exists."""
+
+
+class CreditorUpdateError(Exception):
+    """The creditor can not be updated."""
 
 
 class AccountDoesNotExistError(Exception):
@@ -66,8 +70,15 @@ class AccountsConflictError(Exception):
 
 
 @atomic
-def get_creditor(creditor_id: int) -> Optional[Creditor]:
-    return Creditor.get_instance(creditor_id)
+def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
+    if lock:
+        creditor = Creditor.lock_instance(creditor_id)
+    else:
+        creditor = Creditor.get_instance(creditor_id)
+
+    if creditor and creditor.deactivated_at_date is None:
+        return creditor
+    return None
 
 
 @atomic
@@ -80,6 +91,33 @@ def create_new_creditor(creditor_id: int) -> Creditor:
         db.session.flush()
     except IntegrityError:
         raise CreditorExistsError()
+    return creditor
+
+
+@atomic
+def update_creditor(creditor_id: int, is_active: bool) -> Optional[Creditor]:
+    current_ts = datetime.now(tz=timezone.utc)
+    creditor = get_creditor(creditor_id, lock=True)
+
+    if creditor is None:
+        raise CreditorDoesNotExistError()
+
+    if not is_active and creditor.is_active:
+        raise CreditorUpdateError()
+
+    previous_entry_id = creditor.latest_log_entry_id
+    entry_id = creditor.generate_log_entry_id()
+    creditor.is_active = bool(is_active)
+    creditor.creditor_latest_update_id = entry_id
+    creditor.creditor_latest_update_ts = current_ts
+    db.session.add(LogEntry(
+        creditor_id=creditor_id,
+        entry_id=entry_id,
+        previous_entry_id=previous_entry_id,
+        object_type='Creditor',
+        object_uri='xxx',
+        added_at_ts=current_ts,
+    ))
     return creditor
 
 

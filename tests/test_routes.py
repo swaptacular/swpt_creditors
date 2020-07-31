@@ -31,13 +31,31 @@ def test_create_creditor(client):
 
     r = client.get('/creditors/2/')
     assert r.status_code == 200
-    assert 'max-age' in r.headers['Cache-Control']
     data = r.get_json()
     assert data['active'] is False
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
     assert data['latestUpdateId']
     assert data['latestUpdateAt']
+
+
+def test_update_creditor(client, creditor):
+    r = client.patch('/creditors/666/', json={})
+    assert r.status_code == 404
+
+    r = client.patch('/creditors/2/', json={})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'Creditor'
+    assert data['uri'] == '/creditors/2/'
+    assert data['active'] is True
+    assert data['latestUpdateId'] == 4
+    assert data['latestUpdateAt']
+
+    r = client.patch('/creditors/2/', json={'active': False})
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['active'] == ["Can not deactivate an active creditor."]
 
 
 def test_get_wallet(client, creditor):

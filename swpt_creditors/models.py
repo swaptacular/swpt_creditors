@@ -147,7 +147,6 @@ class Creditor(db.Model):
 
 class LogEntry(db.Model):
     creditor_id = db.Column(db.BigInteger, nullable=False)
-    debtor_id = db.Column(db.BigInteger, nullable=False)
     entry_id = db.Column(db.BigInteger, nullable=False)
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     previous_entry_id = db.Column(db.BigInteger)
@@ -156,14 +155,10 @@ class LogEntry(db.Model):
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
     data = db.Column(pg.JSON)
     __mapper_args__ = {
-        'primary_key': [creditor_id, debtor_id, entry_id],
+        'primary_key': [creditor_id, entry_id],
     }
     __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_data.creditor_id', 'account_data.debtor_id'],
-            ondelete='CASCADE',
-        ),
+        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(entry_id > 0),
         db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
 
@@ -172,7 +167,7 @@ class LogEntry(db.Model):
         #       to allow index-only scans. Because SQLAlchemy does not
         #       support this yet (2020-01-11), temporarily, there are
         #       no index-only scans.
-        db.Index('idx_log_entry_pk', creditor_id, debtor_id, entry_id, unique=True),
+        db.Index('idx_log_entry_pk', creditor_id, entry_id, unique=True),
     )
 
 

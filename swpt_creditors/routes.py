@@ -82,7 +82,7 @@ class CreditorEndpoint(MethodView):
         creditor = procedures.get_creditor(creditorId)
         if not creditor:
             abort(404)
-        return creditor, {'Cache-Control': 'max-age=86400'}
+        return creditor
 
     @creditors_api.arguments(CreditorCreationRequestSchema)
     @creditors_api.response(CreditorSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
@@ -109,7 +109,14 @@ class CreditorEndpoint(MethodView):
     def patch(self, creditor, creditorId):
         """Update a creditor."""
 
-        abort(500)
+        try:
+            creditor = procedures.update_creditor(creditorId, creditor['is_active'])
+        except procedures.CreditorDoesNotExistError:
+            abort(404)
+        except procedures.CreditorUpdateError:
+            abort(422, errors={"active": ["Can not deactivate an active creditor."]})
+
+        return creditor
 
 
 @creditors_api.route('/<i64:creditorId>/wallet', parameters=[CID])
