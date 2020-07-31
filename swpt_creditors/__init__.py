@@ -42,9 +42,10 @@ class Configuration(metaclass=MetaFlaskEnv):
     SQLALCHEMY_ECHO = False
     DRAMATIQ_BROKER_CLASS = 'RabbitmqBroker'
     DRAMATIQ_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+    API_TITLE = 'Creditors API'
+    API_VERSION = 'v1'
     API_SPEC_OPTIONS = {
         'info': {
-            'title': 'Creditors API',
             'description': API_DESCRIPTION,
         },
         'consumes': ['application/json'],
@@ -53,9 +54,9 @@ class Configuration(metaclass=MetaFlaskEnv):
     OPENAPI_VERSION = '3.0.2'
     OPENAPI_URL_PREFIX = '/docs'
     OPENAPI_REDOC_PATH = 'redoc'
-    OPENAPI_REDOC_VERSION = 'next'
+    OPENAPI_REDOC_URL = 'https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js'
     OPENAPI_SWAGGER_UI_PATH = 'swagger-ui'
-    OPENAPI_SWAGGER_UI_VERSION = '3.23.11'
+    OPENAPI_SWAGGER_UI_URL = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
     APP_TRANSFERS_FINALIZATION_AVG_SECONDS = 5.0
     APP_DEAD_ACCOUNTS_ABANDON_DAYS = 365
 
