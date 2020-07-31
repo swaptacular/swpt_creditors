@@ -1,5 +1,9 @@
-from marshmallow import Schema, fields, validate, missing
-from swpt_creditors.models import MIN_INT64, MAX_INT64
+import json
+from copy import copy
+from marshmallow import Schema, fields, validate, missing, pre_dump
+from swpt_lib.utils import i64_to_u64
+from swpt_creditors import models
+from swpt_creditors.models import MIN_INT64, MAX_INT64, DATE0
 from .common import ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -11,6 +15,23 @@ The moment at which the transfer was initiated.'
 _TRANSFER_DEBTOR_URI_DESCRIPTION = '\
 The URI of the debtor through which the transfer should go. This is analogous to \
 the currency code in "normal" bank transfers.'
+
+
+def _parse_transfer_note(transfer_note):
+    # TODO: Move this function to `swpt_lib.utils`.
+
+    if transfer_note == '':
+        return None
+
+    try:
+        note = json.loads(transfer_note)
+    except json.JSONDecodeError:
+        note = None
+
+    if not isinstance(note, dict):
+        note = {'type': 'TextMessage', 'content': transfer_note}
+
+    return note
 
 
 class TransferErrorSchema(Schema):
@@ -124,9 +145,8 @@ class TransferCreationRequestSchema(Schema):
         description="Transfer's `TransferOptions`.",
     )
     note = fields.Dict(
-        missing={},
-        description='A note from the sender. Can be any JSON object containing information '
-                    'that the sender wants the recipient to see.',
+        description='An optional note from the sender. Can be any JSON object containing '
+                    'information that the sender wants the recipient to see.',
     )
 
 
@@ -197,10 +217,9 @@ class CancelTransferRequestSchema(Schema):
 
 
 class CommittedTransferSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/accounts/1/transfers/18444-999',
@@ -219,9 +238,10 @@ class CommittedTransferSchema(Schema):
         description="The URI of the affected `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    coordinator = fields.String(
+    coordinator_type = fields.String(
         missing='direct',
         dump_only=True,
+        data_key='coordinator',
         description='Indicates the subsystem which requested the transfer.',
         example='direct',
     )
@@ -239,20 +259,20 @@ class CommittedTransferSchema(Schema):
         description="The recipient's `AccountIdentity` information.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
     )
-    acquiredAmount = fields.Integer(
+    acquired_amount = fields.Integer(
         required=True,
         dump_only=True,
         validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
+        data_key='acquiredAmount',
         description="The amount that this transfer has added to the account's principal. This "
                     "can be a positive number (an incoming transfer), a negative number (an "
                     "outgoing transfer), or zero (a dummy transfer).",
         example=1000,
     )
     note = fields.Dict(
-        missing={},
         dump_only=True,
-        description='A note from the committer of the transfer. Can be any JSON object '
+        description='An optional note from the committer of the transfer. Can be any JSON object '
                     'containing information that whoever committed the transfer wants the '
                     'recipient (and the sender) to see.',
     )
@@ -262,3 +282,26 @@ class CommittedTransferSchema(Schema):
         data_key='committedAt',
         description='The moment at which the transfer was committed.',
     )
+
+    @pre_dump
+    def process_committed_transfer_instance(self, obj, many):
+        assert isinstance(obj, models.CommittedTransfer)
+        paths = self.context['paths']
+        epoch = (obj.creation_date - DATE0).days
+        obj = copy(obj)
+        obj.uri = paths.committed_transfer(
+            creditorId=obj.creditor_id,
+            debtorId=obj.debtor_id,
+            transferId=f'{epoch}-{obj.transfer_number}',
+        )
+        obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
+
+        # TODO: Use a `swpt_lib.utils` function for this.
+        obj.sender = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{obj.sender_identity}'}
+        obj.recipient = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{obj.recipient_identity}'}
+
+        note = _parse_transfer_note(obj.transfer_note)
+        if note is not None:
+            obj.note = note
+
+        return obj

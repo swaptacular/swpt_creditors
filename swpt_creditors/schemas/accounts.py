@@ -172,7 +172,7 @@ class LedgerEntrySchema(Schema):
             obj.optional_transfer = {'uri': paths.committed_transfer(
                 creditorId=obj.creditor_id,
                 debtorId=obj.debtor_id,
-                transferId=f'{epoch}-{obj.transfer_number}'
+                transferId=f'{epoch}-{obj.transfer_number}',
             )}
         if obj.previous_entry_id is not None:
             obj.optional_previous_entry_id = obj.previous_entry_id

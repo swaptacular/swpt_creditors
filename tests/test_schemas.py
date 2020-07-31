@@ -1064,3 +1064,40 @@ def test_deserialize_creditor_creation_request(app):
 
     with pytest.raises(ValidationError):
         ccr.load({'type': 'WrongType'})
+
+
+def test_serialize_committed_transfer(app):
+    ct = models.CommittedTransfer(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        creation_date=date(1970, 1, 5),
+        transfer_number=666,
+        coordinator_type='direct',
+        committed_at_ts=datetime(2020, 1, 1),
+        acquired_amount=1000,
+        transfer_note='{"test": "test", "list": [1, 2, 3]}',
+        principal=1500,
+        sender_identity='1',
+        recipient_identity='1111',
+    )
+    cts = schemas.CommittedTransferSchema(context=CONTEXT)
+    assert cts.dump(ct) == {
+        'type': 'CommittedTransfer',
+        'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'coordinator': 'direct',
+        'committedAt': '2020-01-01T00:00:00',
+        'sender': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1'},
+        'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1111'},
+        'acquiredAmount': 1000,
+        'note': {"test": "test", "list": [1, 2, 3]},
+    }
+
+    ct.transfer_note = ''
+    assert 'note' not in cts.dump(ct)
+
+    ct.transfer_note = 'test'
+    assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': 'test'}
+
+    ct.transfer_note = '[]'
+    assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': '[]'}

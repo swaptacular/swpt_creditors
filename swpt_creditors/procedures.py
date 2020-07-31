@@ -7,7 +7,7 @@ from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.orm import joinedload, exc
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
-from swpt_creditors.models import Creditor, LedgerEntry, AccountCommit, Account, \
+from swpt_creditors.models import Creditor, LedgerEntry, CommittedTransfer, Account, \
     AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, \
     AccountDisplay, AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, \
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
@@ -327,20 +327,20 @@ def process_account_transfer_signal(
     except CreditorDoesNotExistError:
         return
 
-    account_commit = AccountCommit(
+    committed_transfer = CommittedTransfer(
         account_data=account_data,
         transfer_number=transfer_number,
         coordinator_type=coordinator_type,
         committed_at_ts=committed_at_ts,
-        committed_amount=acquired_amount,
+        acquired_amount=acquired_amount,
         transfer_note=transfer_note,
         creation_date=creation_date,
-        account_new_principal=principal,
+        principal=principal,
         sender=sender,
         recipient=recipient,
     )
     try:
-        db.session.add(account_commit)
+        db.session.add(committed_transfer)
         db.session.flush()
     except IntegrityError:
         # Normally, this can happen only when the account commit
@@ -365,7 +365,7 @@ def process_account_transfer_signal(
         # A dedicated asynchronous task will do the addition to the account
         # ledger later. (See `process_pending_account_commits()`.)
         db.session.add(PendingAccountCommit(
-            account_commit=account_commit,
+            committed_transfer=committed_transfer,
             account_new_principal=principal,
             committed_at_ts=committed_at_ts,
             committed_amount=acquired_amount,

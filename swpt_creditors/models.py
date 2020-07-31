@@ -229,7 +229,7 @@ class AccountConfig(db.Model):
 
 # TODO: Implement a daemon that periodically scan the `AccountData`
 #       table and makes sure that the `config_error` filed is set for
-#       each record that has an old `last_change_ts`, and is not
+#       each record that has an old `last_config_ts`, and is not
 #       effectual (`is_config_effectual is False`).
 class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
@@ -461,6 +461,35 @@ class LedgerEntry(db.Model):
     )
 
 
+# TODO: Implement a daemon that periodically scan the
+#       `CommittedTransfer` table and deletes old records (ones having
+#       an old `committed_at_ts`). We need to do this to free up disk
+#       space.
+class CommittedTransfer(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, primary_key=True)
+    transfer_number = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String, nullable=False)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    acquired_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_note = db.Column(pg.TEXT, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
+    sender_identity = db.Column(db.String, nullable=False)
+    recipient_identity = db.Column(db.String, nullable=False)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_data.creditor_id', 'account_data.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        db.CheckConstraint(transfer_number > 0),
+        db.CheckConstraint(acquired_amount != 0),
+    )
+
+    account_data = db.relationship('AccountData')
+
+
 class DirectTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
@@ -599,42 +628,6 @@ class RunningTransfer(db.Model):
         return self.direct_transfer_id is not None
 
 
-# TODO: Implement a daemon that periodically scan the `AccountCommit`
-#       table and deletes old records (ones having an old
-#       `committed_at_ts`). We need to do this to free up disk space.
-class AccountCommit(db.Model):
-    SYSTEM_FLAG_IS_NEGLIGIBLE = 1
-
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, primary_key=True)
-    transfer_number = db.Column(db.BigInteger, primary_key=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    committed_amount = db.Column(db.BigInteger, nullable=False)
-    transfer_note = db.Column(pg.TEXT, nullable=False)
-    account_new_principal = db.Column(db.BigInteger, nullable=False)
-    sender = db.Column(db.String, nullable=False)
-    recipient = db.Column(db.String, nullable=False)
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_data.creditor_id', 'account_data.debtor_id'],
-            ondelete='CASCADE',
-        ),
-        db.CheckConstraint(transfer_number > 0),
-        db.CheckConstraint(committed_amount != 0),
-        db.CheckConstraint(account_new_principal > MIN_INT64),
-        {
-            'comment': 'Represents an account commit. A new row is inserted when a '
-                       '`AccountCommitSignal` is received. The row is deleted when '
-                       'some time (few months for example) has passed.',
-        }
-    )
-
-    account_data = db.relationship('AccountData')
-
-
 # TODO: Implement a daemon that periodically scan the
 #       `PendingAccountCommit` table, finds staled records (ones
 #       having an old `committed_at_ts`), deletes them, and mends the
@@ -663,10 +656,10 @@ class PendingAccountCommit(db.Model):
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'],
             [
-                'account_commit.creditor_id',
-                'account_commit.debtor_id',
-                'account_commit.creation_date',
-                'account_commit.transfer_number',
+                'committed_transfer.creditor_id',
+                'committed_transfer.debtor_id',
+                'committed_transfer.creation_date',
+                'committed_transfer.transfer_number',
             ],
             ondelete='CASCADE',
         ),
@@ -680,7 +673,7 @@ class PendingAccountCommit(db.Model):
         }
     )
 
-    account_commit = db.relationship('AccountCommit')
+    committed_transfer = db.relationship('CommittedTransfer')
 
 
 class ConfigureAccountSignal(Signal):

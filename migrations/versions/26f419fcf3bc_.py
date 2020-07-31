@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cd5d5da09495
+Revision ID: 26f419fcf3bc
 Revises: 8d8c816257ce
-Create Date: 2020-07-31 13:51:00.331057
+Create Date: 2020-07-31 15:12:55.775003
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'cd5d5da09495'
+revision = '26f419fcf3bc'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -203,24 +203,22 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
-    op.create_table('account_commit',
+    op.create_table('committed_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
+    sa.Column('coordinator_type', sa.String(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
-    sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
-    sa.Column('sender', sa.String(), nullable=False),
-    sa.Column('recipient', sa.String(), nullable=False),
-    sa.CheckConstraint('account_new_principal > -9223372036854775808'),
-    sa.CheckConstraint('committed_amount != 0'),
+    sa.Column('principal', sa.BigInteger(), nullable=False),
+    sa.Column('sender_identity', sa.String(), nullable=False),
+    sa.Column('recipient_identity', sa.String(), nullable=False),
+    sa.CheckConstraint('acquired_amount != 0'),
     sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'creation_date', 'transfer_number'),
-    comment='Represents an account commit. A new row is inserted when a `AccountCommitSignal` is received. The row is deleted when some time (few months for example) has passed.'
+    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'creation_date', 'transfer_number')
     )
     op.create_table('ledger_entry',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -262,7 +260,7 @@ def upgrade():
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], ['account_commit.creditor_id', 'account_commit.debtor_id', 'account_commit.creation_date', 'account_commit.transfer_number'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.creation_date', 'committed_transfer.transfer_number'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'creation_date', 'transfer_number', 'committed_amount', 'account_new_principal'),
     comment='Represents an account commit that has not been included in the account ledger yet. A new row is inserted when a `AccountCommitSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because account commits can be received out-of-order, but must be added to the ledgers in-order.'
     )
@@ -276,7 +274,7 @@ def downgrade():
     op.drop_table('log_entry')
     op.drop_index('idx_ledger_entry_pk', table_name='ledger_entry')
     op.drop_table('ledger_entry')
-    op.drop_table('account_commit')
+    op.drop_table('committed_transfer')
     op.drop_table('account_knowledge')
     op.drop_table('account_exchange')
     op.drop_index('idx_peg_debtor_identity', table_name='account_display')
