@@ -278,7 +278,7 @@ class LogEntrySchema(Schema):
                     'will always be a positive number.',
         example=12345,
     )
-    previous_entry_id = fields.Integer(
+    optional_previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
         validate=validate.Range(min=1, max=MAX_INT64),
@@ -294,9 +294,10 @@ class LogEntrySchema(Schema):
         data_key='addedAt',
         description='The moment at which the entry was added to the log.',
     )
-    objectType = fields.String(
+    object_type = fields.String(
         required=True,
         dump_only=True,
+        data_key='objectType',
         description='The type of the object that has been created, updated, or deleted.',
         example='Account',
     )
@@ -312,14 +313,32 @@ class LogEntrySchema(Schema):
         dump_only=True,
         description='Whether the object has been deleted.',
     )
-    data = fields.Dict(
+    optional_data = fields.Dict(
         missing={},
         dump_only=True,
+        data_key='data',
         description='Information about the new state of the created/updated object. Generally, '
                     'what data is being provided depends on the specified `objectType`. The '
                     'data can be used so as to avoid making a network request to obtain the '
                     'new state. This field will not be present when the object has been deleted.',
     )
+
+    @pre_dump
+    def process_log_entry_instance(self, obj, many):
+        assert isinstance(obj, models.LogEntry)
+        obj = copy(obj)
+        obj.object = {'uri': obj.object_uri}
+
+        if obj.is_deleted:
+            obj.deleted = True
+
+        if obj.previous_entry_id is not None:
+            obj.optional_previous_entry_id = obj.previous_entry_id
+
+        if isinstance(obj.data, dict) and not obj.is_deleted:
+            obj.optional_data = obj.data
+
+        return obj
 
 
 class LogEntriesPageSchema(Schema):
