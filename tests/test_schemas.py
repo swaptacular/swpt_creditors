@@ -124,6 +124,43 @@ def test_serialize_log_entry(app):
     }
 
 
+def test_serialize_log_entries_page(app):
+    le = models.LogEntry(
+        creditor_id=C_ID,
+        debtor_id=D_ID,
+        entry_id=12345,
+        added_at_ts=datetime(2020, 1, 2),
+        previous_entry_id=12344,
+        object_type='Account',
+        object_uri='/creditors/1/accounts/123/',
+        is_deleted=True,
+        data=None,
+    )
+    lep = {
+        'uri': '/test',
+        'items': [le],
+        'next': '?prev=1',
+    }
+    les = schemas.LogEntrySchema(context=CONTEXT)
+    leps = schemas.LogEntriesPageSchema(context=CONTEXT)
+    assert leps.dump(lep) == {
+        'type': 'LogEntriesPage',
+        'uri': '/test',
+        'items': [les.dump(le)],
+        'next': '?prev=1',
+    }
+
+    del lep['next']
+    lep['items'] = []
+    lep['forthcoming'] = '?prev=2'
+    assert leps.dump(lep) == {
+        'type': 'LogEntriesPage',
+        'uri': '/test',
+        'items': [],
+        'forthcoming': '?prev=2'
+    }
+
+
 def test_serialize_account_list(app):
     c = models.Creditor(
         creditor_id=C_ID,

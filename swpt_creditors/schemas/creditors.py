@@ -1,5 +1,5 @@
 from copy import copy
-from marshmallow import Schema, fields, validate, pre_dump
+from marshmallow import Schema, fields, validate, pre_dump, post_dump
 from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64
 from .common import (
@@ -342,10 +342,9 @@ class LogEntrySchema(Schema):
 
 
 class LogEntriesPageSchema(Schema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/log',
@@ -363,17 +362,24 @@ class LogEntriesPageSchema(Schema):
         dump_only=True,
         description='An array of `LogEntry`s. Can be empty.',
     )
-    next = fields.Method(
-        'get_next_uri',
-        type='string',
+    next = fields.String(
+        dump_only=True,
         format='uri-reference',
         description=PAGE_NEXT_DESCRIPTION.format(type='LogEntriesPage'),
         example='?prev=12345',
     )
-    forthcoming = fields.Method(
-        'get_forthcoming_uri',
-        type='string',
+    forthcoming = fields.String(
+        dump_only=True,
         format='uri-reference',
         description=PAGE_FORTHCOMING_DESCRIPTION.format(type='LogEntriesPage'),
         example='?prev=12345',
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'uri' in obj
+        assert 'items' in obj
+        assert 'next' in obj or 'forthcoming' in obj
+        assert not ('next' in obj and 'forthcoming' in obj)
+
+        return obj
