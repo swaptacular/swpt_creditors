@@ -515,13 +515,6 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'a huge number** (`1e30` for example).',
         example=0.0,
     )
-    config = fields.String(
-        missing='',
-        validate=validate.Length(max=400),
-        description='Additional account configuration settings. Different debtors may '
-                    'use different formats for this field.',
-        example='',
-    )
     allow_unsafe_deletion = fields.Boolean(
         missing=False,
         data_key='allowUnsafeDeletion',

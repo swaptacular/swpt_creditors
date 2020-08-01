@@ -91,7 +91,6 @@ def test_serialize_wallet(app):
 def test_serialize_log_entry(app):
     le = models.LogEntry(
         creditor_id=C_ID,
-        debtor_id=D_ID,
         entry_id=12345,
         added_at_ts=datetime(2020, 1, 2),
         previous_entry_id=12344,
@@ -127,7 +126,6 @@ def test_serialize_log_entry(app):
 def test_serialize_log_entries_page(app):
     le = models.LogEntry(
         creditor_id=C_ID,
-        debtor_id=D_ID,
         entry_id=12345,
         added_at_ts=datetime(2020, 1, 2),
         previous_entry_id=12344,
@@ -540,7 +538,6 @@ def test_serialize_account_config(app):
         creditor_id=C_ID,
         debtor_id=D_ID,
         negligible_amount=101.0,
-        config='test config',
         config_flags=models.AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
         allow_unsafe_deletion=True,
         latest_update_id=1,
@@ -554,13 +551,11 @@ def test_serialize_account_config(app):
         'negligibleAmount': 101.0,
         'scheduledForDeletion': True,
         'allowUnsafeDeletion': True,
-        'config': 'test config',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
 
     ac.negligible_amount = 1e30
-    ac.config = ''
     ac.config_flags = 0
     ac.allow_unsafe_deletion = False
     assert acs.dump(ac) == {
@@ -570,7 +565,6 @@ def test_serialize_account_config(app):
         'negligibleAmount': 1e30,
         'scheduledForDeletion': False,
         'allowUnsafeDeletion': False,
-        'config': '',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
@@ -588,7 +582,6 @@ def test_deserialize_account_config(app):
         'negligible_amount': 1.0,
         'is_scheduled_for_deletion': True,
         'allow_unsafe_deletion': False,
-        'config': '',
     }
 
     data = acs.load({
@@ -596,21 +589,16 @@ def test_deserialize_account_config(app):
         'negligibleAmount': 1.0,
         'allowUnsafeDeletion': True,
         'scheduledForDeletion': False,
-        'config': 'test config',
     })
     assert data == {
         'type': 'AccountConfig',
         'negligible_amount': 1.0,
         'is_scheduled_for_deletion': False,
         'allow_unsafe_deletion': True,
-        'config': 'test config',
     }
 
     with pytest.raises(ValidationError):
         acs.load({'type': 'WrongType'})
-
-    with pytest.raises(ValidationError):
-        acs.load({'config': {'uri': 1000 * 'x'}})
 
 
 def test_serialize_account_info(app):
