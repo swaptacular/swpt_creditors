@@ -52,11 +52,6 @@ def test_update_creditor(client, creditor):
     assert data['latestUpdateId'] == 4
     assert data['latestUpdateAt']
 
-    r = client.patch('/creditors/2/', json={'active': False})
-    assert r.status_code == 422
-    data = r.get_json()
-    assert data['errors']['active'] == ["Can not deactivate an active creditor."]
-
 
 def test_get_wallet(client, creditor):
     r = client.get('/creditors/2222/wallet')

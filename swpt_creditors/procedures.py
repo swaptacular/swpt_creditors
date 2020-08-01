@@ -38,10 +38,6 @@ class CreditorExistsError(Exception):
     """The same creditor record already exists."""
 
 
-class CreditorUpdateError(Exception):
-    """The creditor can not be updated."""
-
-
 class AccountDoesNotExistError(Exception):
     """The account does not exist."""
 
@@ -95,19 +91,16 @@ def create_new_creditor(creditor_id: int) -> Creditor:
 
 
 @atomic
-def update_creditor(creditor_id: int, is_active: bool) -> Optional[Creditor]:
+def update_creditor(creditor_id: int) -> Optional[Creditor]:
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
 
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    if not is_active and creditor.is_active:
-        raise CreditorUpdateError()
-
     previous_entry_id = creditor.latest_log_entry_id
     entry_id = creditor.generate_log_entry_id()
-    creditor.is_active = bool(is_active)
+    creditor.is_active = True
     creditor.creditor_latest_update_id = entry_id
     creditor.creditor_latest_update_ts = current_ts
     db.session.add(LogEntry(

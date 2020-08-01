@@ -107,14 +107,17 @@ class CreditorEndpoint(MethodView):
     @creditors_api.doc(operationId='updateCreditor',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
     def patch(self, creditor, creditorId):
-        """Update a creditor."""
+        """Update a creditor.
+
+        If the creditor was inactive before the update, the update
+        will make it active.
+
+        """
 
         try:
-            creditor = procedures.update_creditor(creditorId, creditor['is_active'])
+            creditor = procedures.update_creditor(creditorId)
         except procedures.CreditorDoesNotExistError:
             abort(404)
-        except procedures.CreditorUpdateError:
-            abort(422, errors={"active": ["Can not deactivate an active creditor."]})
 
         return creditor
 

@@ -30,11 +30,10 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         description='The type of this object.',
     )
     is_active = fields.Boolean(
-        missing=True,
+        required=True,
+        dump_only=True,
         data_key='active',
-        description='Whether the creditor is active.'
-                    '\n\n'
-                    '**Note:** The user can activate the creditor, but can not deactivate it.',
+        description='Whether the creditor is active.',
     )
     created_at_date = fields.Date(
         required=True,

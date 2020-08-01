@@ -48,12 +48,10 @@ def test_deserialize_creditor(app):
     data = cs.load({})
     assert data == {
         'type': 'Creditor',
-        'is_active': True,
     }
-    data = cs.load({'type': 'Creditor', 'active': False})
+    data = cs.load({'type': 'Creditor'})
     assert data == {
         'type': 'Creditor',
-        'is_active': False,
     }
 
     with pytest.raises(ValidationError):
