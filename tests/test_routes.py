@@ -14,6 +14,15 @@ def creditor(db_session):
     return p.lock_or_create_creditor(2)
 
 
+def get_log_entries(client, creditor):
+    r = client.get(f'/creditors/{creditor.creditor_id}/log')
+    assert r.status_code == 200
+
+    data = r.get_json()
+    assert data['type'] == 'LogEntriesPage'
+    return data['items']
+
+
 def test_create_creditor(client):
     r = client.get('/creditors/2222/')
     assert r.status_code == 404
@@ -52,6 +61,9 @@ def test_update_creditor(client, creditor):
     assert data['latestUpdateId'] == 4
     assert data['latestUpdateAt']
 
+    entries = get_log_entries(client, creditor)
+    assert entries == []
+
 
 def test_get_wallet(client, creditor):
     r = client.get('/creditors/2222/wallet')
@@ -66,7 +78,7 @@ def test_get_wallet(client, creditor):
     log = data['log']
     assert log['type'] == 'PaginatedList'
     assert log['first'] == '/creditors/2/log'
-    assert log['forthcoming'] == '/creditors/2/log?prev=0'
+    assert log['forthcoming'] == '/creditors/2/log?prev=3'
     assert log['itemsType'] == 'LogEntry'
     dt = data['transferList']
     assert dt['uri'] == '/creditors/2/transfer-list'

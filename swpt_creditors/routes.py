@@ -2,7 +2,7 @@ from typing import NamedTuple
 from functools import partial
 from datetime import date, timedelta
 from urllib.parse import urlencode
-from flask import redirect, url_for
+from flask import redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from marshmallow import missing
@@ -81,7 +81,7 @@ class CreditorEndpoint(MethodView):
         """Return a creditor."""
 
         creditor = procedures.get_creditor(creditorId)
-        if not creditor:
+        if creditor is None:
             abort(404)
         return creditor
 
@@ -101,7 +101,7 @@ class CreditorEndpoint(MethodView):
             creditor = procedures.create_new_creditor(creditorId)
         except procedures.CreditorExistsError:
             abort(409)
-        return creditor, {'Location': endpoints.build_url('creditor', creditorId=creditorId)}
+        return creditor, {'Location': path_builder.creditor(creditorId=creditorId)}
 
     @creditors_api.arguments(CreditorSchema)
     @creditors_api.response(CreditorSchema(context=CONTEXT))
@@ -119,7 +119,6 @@ class CreditorEndpoint(MethodView):
             creditor = procedures.update_creditor(creditorId)
         except procedures.CreditorDoesNotExistError:
             abort(404)
-
         return creditor
 
 
@@ -137,17 +136,10 @@ class WalletEndpoint(MethodView):
 
         """
 
-        wallet = procedures.get_creditor(creditorId)
-        if not wallet:
+        creditor = procedures.get_creditor(creditorId)
+        if creditor is None:
             abort(404)
-
-        log_url = url_for('.LogEntriesEndpoint', creditorId=creditorId)
-        log_q = urlencode({'prev': wallet.latest_log_entry_id})
-        wallet.log = PaginatedList('LogEntry', log_url, forthcoming=f'{log_url}?{log_q}')
-        wallet.transferList = {'uri': url_for('creditors.TransferListEndpoint', creditorId=creditorId)}
-        wallet.accountList = {'uri': url_for('creditors.AccountListEndpoint', creditorId=creditorId)}
-        wallet.creditor = {'uri': url_for('creditors.CreditorEndpoint', creditorId=creditorId)}
-        return wallet
+        return creditor
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
@@ -166,7 +158,27 @@ class LogEntriesEndpoint(MethodView):
 
         """
 
-        abort(500)
+        try:
+            prev = int(pagination_parameters.get('prev'))
+        except (ValueError, TypeError):
+            prev = 0
+
+        try:
+            stop = int(pagination_parameters.get('stop'))
+        except (ValueError, TypeError):
+            stop = MAX_INT64
+
+        try:
+            creditor, entries = procedures.get_log_entries(creditorId, prev, stop)
+        except procedures.CreditorDoesNotExistError:
+            abort(404)
+
+        page = {'uri': request.full_path, 'items': entries}
+        if entries:
+            page['next'] = f'{request.path}?prev={entries[-1].entry_id}'
+        else:
+            page['forthcoming'] = f'{request.path}?prev={creditor.latest_log_entry_id}'
+        return page
 
 
 @creditors_api.route('/<i64:creditorId>/account-list', parameters=[CID])

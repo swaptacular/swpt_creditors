@@ -98,7 +98,7 @@ def create_new_creditor(creditor_id: int) -> Creditor:
 
 
 @atomic
-def update_creditor(creditor_id: int) -> Optional[Creditor]:
+def update_creditor(creditor_id: int) -> Creditor:
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
 
@@ -115,7 +115,7 @@ def update_creditor(creditor_id: int) -> Optional[Creditor]:
         entry_id=entry_id,
         previous_entry_id=previous_entry_id,
         object_type='Creditor',
-        object_uri='xxx',
+        object_uri=paths.creditor(creditorId=creditor_id),
         added_at_ts=current_ts,
     ))
     return creditor
@@ -131,6 +131,16 @@ def lock_or_create_creditor(creditor_id: int) -> Creditor:
         with db.retry_on_integrity_error():
             db.session.add(creditor)
     return creditor
+
+
+@atomic
+def get_log_entries(creditor_id: int, prev: int = None, stop: int = None) -> Tuple[Creditor, List[LogEntry]]:
+    creditor = get_creditor(creditor_id, lock=True)
+    if creditor is None:
+        raise CreditorDoesNotExistError()
+
+    entries = []
+    return creditor, entries
 
 
 @atomic
