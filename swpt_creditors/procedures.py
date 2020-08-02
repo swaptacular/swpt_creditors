@@ -30,6 +30,13 @@ ACCOUNT_CONFIG_JOIN_CLAUSE = and_(
 )
 
 
+def init(path_builder):
+    """"Must be called before using any of the functions in the module."""
+
+    global paths
+    paths = path_builder
+
+
 class CreditorDoesNotExistError(Exception):
     """The creditor does not exist."""
 

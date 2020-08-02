@@ -61,6 +61,7 @@ class path_builder:
 
 
 CONTEXT = {'paths': path_builder}
+procedures.init(path_builder)
 
 
 creditors_api = Blueprint(
