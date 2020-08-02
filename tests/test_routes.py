@@ -62,7 +62,11 @@ def test_update_creditor(client, creditor):
     assert data['latestUpdateAt']
 
     entries = get_log_entries(client, creditor)
-    assert entries == []
+    assert len(entries) == 1
+    e = entries[0]
+    assert e['type'] == 'LogEntry'
+    assert e['objectType'] == 'Creditor'
+    assert e['entryId'] == 4
 
 
 def test_get_wallet(client, creditor):

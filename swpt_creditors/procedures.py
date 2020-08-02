@@ -134,12 +134,21 @@ def lock_or_create_creditor(creditor_id: int) -> Creditor:
 
 
 @atomic
-def get_log_entries(creditor_id: int, prev: int = None, stop: int = None) -> Tuple[Creditor, List[LogEntry]]:
-    creditor = get_creditor(creditor_id, lock=True)
+def get_log_entries(creditor_id: int, count: int = 1, prev: int = 0) -> Tuple[Creditor, List[LogEntry]]:
+
+    assert count >= 1
+    assert 0 <= prev <= MAX_INT64
+
+    creditor = get_creditor(creditor_id)
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    entries = []
+    entries = LogEntry.query.\
+        filter(LogEntry.creditor_id == creditor_id).\
+        filter(LogEntry.entry_id > prev).\
+        limit(count).\
+        all()
+
     return creditor, entries
 
 

@@ -14,7 +14,7 @@ from swpt_creditors.schemas import (
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
-    AccountLedgerSchema, AccountInfoSchema, AccountListSchema,
+    AccountLedgerSchema, AccountInfoSchema, AccountListSchema, StreamingParametersSchema,
 )
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
@@ -144,11 +144,11 @@ class WalletEndpoint(MethodView):
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
 class LogEntriesEndpoint(MethodView):
-    @creditors_api.arguments(PaginationParametersSchema, location='query')
+    @creditors_api.arguments(StreamingParametersSchema, location='query')
     @creditors_api.response(LogEntriesPageSchema(context=CONTEXT), example=specs.LOG_ENTRIES_EXAMPLE)
     @creditors_api.doc(operationId='getLogPage',
                        responses={404: specs.CREDITOR_DOES_NOT_EXIST})
-    def get(self, pagination_parameters, creditorId):
+    def get(self, streaming_parameters, creditorId):
         """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
@@ -158,23 +158,20 @@ class LogEntriesEndpoint(MethodView):
 
         """
 
+        # TODO: Make sure prev is int64.
         try:
-            prev = int(pagination_parameters.get('prev'))
+            prev = int(streaming_parameters.get('prev'))
         except (ValueError, TypeError):
             prev = 0
 
+        count = 100
         try:
-            stop = int(pagination_parameters.get('stop'))
-        except (ValueError, TypeError):
-            stop = MAX_INT64
-
-        try:
-            creditor, entries = procedures.get_log_entries(creditorId, prev, stop)
+            creditor, entries = procedures.get_log_entries(creditorId, count, prev)
         except procedures.CreditorDoesNotExistError:
             abort(404)
 
         page = {'uri': request.full_path, 'items': entries}
-        if entries:
+        if len(entries) >= count:
             page['next'] = f'{request.path}?prev={entries[-1].entry_id}'
         else:
             page['forthcoming'] = f'{request.path}?prev={creditor.latest_log_entry_id}'
