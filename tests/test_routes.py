@@ -115,3 +115,35 @@ def test_get_log_page(client, creditor):
     assert 'uri' in data
     assert 'next' in data or 'forthcoming' in data
     return data['items']
+
+
+def test_account_list_page(client, creditor):
+    r = client.get('/creditors/2222/account-list')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/account-list')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountList'
+    assert data['uri'] == '/creditors/2/account-list'
+    assert data['wallet'] == {'uri': '/creditors/2/wallet'}
+    assert data['first'] == '/creditors/2/accounts/'
+    assert data['itemsType'] == 'ObjectReference'
+    assert data['latestUpdateId'] < m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+
+
+def test_transfer_list_page(client, creditor):
+    r = client.get('/creditors/2222/transfer-list')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/transfer-list')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'TransferList'
+    assert data['uri'] == '/creditors/2/transfer-list'
+    assert data['wallet'] == {'uri': '/creditors/2/wallet'}
+    assert data['first'] == '/creditors/2/transfers/'
+    assert data['itemsType'] == 'ObjectReference'
+    assert data['latestUpdateId'] < m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])

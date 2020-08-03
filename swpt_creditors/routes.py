@@ -168,7 +168,7 @@ class LogEntriesEndpoint(MethodView):
 class AccountListEndpoint(MethodView):
     @creditors_api.response(AccountListSchema(context=CONTEXT), example=specs.ACCOUNT_LIST_EXAMPLE)
     @creditors_api.doc(operationId='getAccountList')
-    def get(self, pagination_parameters, creditorId):
+    def get(self, creditorId):
         """Return a paginated list of links to all accounts belonging to a
         creditor.
 
@@ -176,14 +176,17 @@ class AccountListEndpoint(MethodView):
 
         """
 
-        abort(404)
+        creditor = procedures.get_creditor(creditorId)
+        if creditor is None:
+            abort(404)
+        return creditor
 
 
 @creditors_api.route('/<i64:creditorId>/transfer-list', parameters=[CID])
 class TransferListEndpoint(MethodView):
     @creditors_api.response(TransferListSchema(context=CONTEXT), example=specs.TRANSFER_LIST_EXAMPLE)
     @creditors_api.doc(operationId='getTransferList')
-    def get(self, pagination_parameters, creditorId):
+    def get(self, creditorId):
         """Return a paginated list of links to all transfers belonging to a
         creditor.
 
@@ -191,7 +194,10 @@ class TransferListEndpoint(MethodView):
 
         """
 
-        abort(404)
+        creditor = procedures.get_creditor(creditorId)
+        if creditor is None:
+            abort(404)
+        return creditor
 
 
 accounts_api = Blueprint(
