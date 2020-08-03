@@ -58,20 +58,8 @@ LOCATION_HEADER = {
     },
 }
 
-INVALID_EXCHANGE_POLICY = {
-    'description': 'The exchange policy may be wrong.',
-}
-
-CREDITOR_DOES_NOT_EXIST = {
-    'description': 'The creditor does not exist.',
-}
-
 CONFLICTING_CREDITOR = {
     'description': 'A creditor with the same ID already exists.',
-}
-
-TRANSFER_DOES_NOT_EXIST = {
-    'description': 'The transfer does not exist.',
 }
 
 TRANSFER_CONFLICT = {
@@ -91,18 +79,6 @@ TRANSFER_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-INVALID_TRANSFER_CREATION_REQUEST = {
-    'description': "The recipient's account identity may be wrong.",
-}
-
-ACCOUNT_DOES_NOT_EXIST = {
-    'description': 'The account does not exist.',
-}
-
-ACCOUNT_CONFLICT = {
-    'description': 'A different account entry with the same debtor ID already exists.',
-}
-
 ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
     'description': 'Another account with the same `debtorName` or `ownUnit` already exists.',
 }
@@ -116,18 +92,6 @@ ACCOUNT_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-UNRECOGNIZED_DEBTOR_IDENTITY = {
-    'description': "The debtor's identity may be wrong.",
-}
-
-UNRECOGNIZED_ACCOUNT_IDENTITY = {
-    'description': "The account identity can not be recognized.",
-}
-
-UNRECOGNIZED_PEG_CURRENCY = {
-    'description': "The peg currency's debtor identity may be wrong.",
-}
-
 UNSAFE_ACCOUNT_DELETION = {
     'description': 'Unsafe deletion of this account is forbidden.',
 }
@@ -136,16 +100,8 @@ PEG_ACCOUNT_DELETION = {
     'description': 'This account acts as a currency peg, unpeg the pegged accounts first.',
 }
 
-ACCOUNT_DOES_NOT_EXIST = {
-    'description': 'The account does not exist.',
-}
-
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
     "description": "The debtor's identity is recognized, but account does not exist.",
-}
-
-NO_MATCHING_ACCOUNT = {
-    'description': 'No matching account.',
 }
 
 ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
