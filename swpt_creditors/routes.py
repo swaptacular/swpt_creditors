@@ -2,7 +2,7 @@ from typing import NamedTuple
 from functools import partial
 from datetime import date, timedelta
 from urllib.parse import urlencode
-from flask import redirect, url_for, request
+from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from marshmallow import missing
@@ -19,19 +19,6 @@ from swpt_creditors.schemas import (
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
 from swpt_creditors import procedures
-
-
-class PaginatedList(NamedTuple):
-    items_type: str
-    first: str
-    forthcoming: str = missing
-    creditor_id: int = None
-
-    @property
-    def wallet(self):
-        if self.creditorId is None:
-            return missing
-        return {'uri': url_for('creditors.WalletEndpoint', _external=False, creditorId=self.creditorId)}
 
 
 def _url_for(name):
@@ -154,28 +141,31 @@ class LogEntriesEndpoint(MethodView):
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains all recent log entries. The
         returned fragment will be sorted in chronological order
-        (smaller `entryId`s go first).
+        (smaller `entryId`s go first). The log entries will constitute
+        a singly linked list, each entry (except the most ancient one)
+        referring to its ancestor.
 
         """
 
-        # TODO: Make sure prev is int64.
+        n = current_app.config['APP_LOG_ENTRIES_PER_PAGE']
         try:
-            prev = int(streaming_parameters.get('prev'))
-        except (ValueError, TypeError):
-            prev = 0
-
-        count = 100
-        try:
-            creditor, entries = procedures.get_log_entries(creditorId, count, prev)
+            creditor, entries = procedures.get_log_entries(creditorId, n, streaming_parameters['prev'])
         except procedures.CreditorDoesNotExistError:
             abort(404)
 
-        page = {'uri': request.full_path, 'items': entries}
-        if len(entries) >= count:
-            page['next'] = f'{request.path}?prev={entries[-1].entry_id}'
+        if len(entries) < n:
+            proceed = 'forthcoming'
+            entry_id = creditor.latest_log_entry_id
         else:
-            page['forthcoming'] = f'{request.path}?prev={creditor.latest_log_entry_id}'
-        return page
+            proceed = 'next'
+            entry_id = entries[-1].entry_id
+
+        return {
+            'uri': request.full_path,
+            'items': entries,
+            proceed: f'{request.path}?prev={entry_id}',
+        }
+
 
 
 @creditors_api.route('/<i64:creditorId>/account-list', parameters=[CID])

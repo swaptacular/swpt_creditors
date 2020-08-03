@@ -25,6 +25,7 @@ DATE0 = TS0.date()
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
+FIRST_LOG_ENTRY_ID = 4
 
 
 def get_now_utc():
@@ -109,7 +110,7 @@ class Creditor(db.Model):
     latest_log_entry_id = db.Column(
         db.BigInteger,
         nullable=False,
-        default=3,
+        default=FIRST_LOG_ENTRY_ID - 1,
         comment='Gets incremented each time a new entry is added to the log.',
     )
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)

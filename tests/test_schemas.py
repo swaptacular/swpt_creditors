@@ -1087,3 +1087,17 @@ def test_serialize_committed_transfer(app):
 
     ct.transfer_note = '[]'
     assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': '[]'}
+
+
+def test_deserialize_streaming_parameters(app):
+    ais = schemas.StreamingParametersSchema()
+    assert ais.load({}) == {'prev': 0}
+    assert ais.load({'prev': 0}) == {'prev': 0}
+    assert ais.load({'prev': 22}) == {'prev': 22}
+    assert ais.load({'prev': models.MAX_INT64}) == {'prev': models.MAX_INT64}
+
+    with pytest.raises(ValidationError):
+        ais.load({'prev': -1})
+
+    with pytest.raises(ValidationError):
+        ais.load({'prev': models.MAX_INT64 + 1})

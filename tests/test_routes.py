@@ -1,6 +1,7 @@
+import re
 import pytest
-from datetime import date
 import iso8601
+from swpt_creditors import models as m
 from swpt_creditors import procedures as p
 
 
@@ -14,26 +15,31 @@ def creditor(db_session):
     return p.lock_or_create_creditor(2)
 
 
-def get_log_entries(client, creditor):
-    r = client.get(f'/creditors/{creditor.creditor_id}/log')
+def _get_log_entries(client, creditor_id):
+    r = client.get(f'/creditors/{creditor_id}/log')
     assert r.status_code == 200
 
     data = r.get_json()
     assert data['type'] == 'LogEntriesPage'
+    assert 'uri' in data
+    assert 'next' in data or 'forthcoming' in data
     return data['items']
 
 
 def test_create_creditor(client):
-    r = client.get('/creditors/2222/')
+    r = client.get('/creditors/2/')
     assert r.status_code == 404
 
     r = client.post('/creditors/2/', json={})
     assert r.status_code == 201
     assert r.headers['Location'] == 'http://example.com/creditors/2/'
     data = r.get_json()
-    assert data['active'] is False
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
+    assert data['active'] is False
+    assert data['latestUpdateId'] == 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert iso8601.parse_date(data['createdOn'])
 
     r = client.post('/creditors/2/', json={})
     assert r.status_code == 409
@@ -41,15 +47,19 @@ def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 200
     data = r.get_json()
-    assert data['active'] is False
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
-    assert data['latestUpdateId']
-    assert data['latestUpdateAt']
+    assert data['active'] is False
+    assert data['latestUpdateId'] == 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert iso8601.parse_date(data['createdOn'])
+
+    entries = _get_log_entries(client, 2)
+    assert len(entries) == 0
 
 
 def test_update_creditor(client, creditor):
-    r = client.patch('/creditors/666/', json={})
+    r = client.patch('/creditors/2222/', json={})
     assert r.status_code == 404
 
     r = client.patch('/creditors/2/', json={})
@@ -58,15 +68,19 @@ def test_update_creditor(client, creditor):
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
     assert data['active'] is True
-    assert data['latestUpdateId'] == 4
-    assert data['latestUpdateAt']
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['createdOn']
 
-    entries = get_log_entries(client, creditor)
+    entries = _get_log_entries(client, 2)
     assert len(entries) == 1
     e = entries[0]
     assert e['type'] == 'LogEntry'
+    assert e['entryId'] == m.FIRST_LOG_ENTRY_ID
     assert e['objectType'] == 'Creditor'
-    assert e['entryId'] == 4
+    assert e['object'] == {'uri': '/creditors/2/'}
+    assert not e.get('deleted')
+    assert iso8601.parse_date(e['addedAt'])
 
 
 def test_get_wallet(client, creditor):
@@ -82,9 +96,22 @@ def test_get_wallet(client, creditor):
     log = data['log']
     assert log['type'] == 'PaginatedList'
     assert log['first'] == '/creditors/2/log'
-    assert log['forthcoming'] == '/creditors/2/log?prev=3'
+    assert re.match(r'^/creditors/2/log\?prev=\d+$', log['forthcoming'])
     assert log['itemsType'] == 'LogEntry'
     dt = data['transferList']
     assert dt['uri'] == '/creditors/2/transfer-list'
     ar = data['accountList']
     assert ar['uri'] == '/creditors/2/account-list'
+
+
+def test_get_log_page(client, creditor):
+    r = client.get('/creditors/2222/log')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/log')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'LogEntriesPage'
+    assert 'uri' in data
+    assert 'next' in data or 'forthcoming' in data
+    return data['items']

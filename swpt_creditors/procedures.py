@@ -101,23 +101,24 @@ def create_new_creditor(creditor_id: int) -> Creditor:
 def update_creditor(creditor_id: int) -> Creditor:
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
-
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    previous_entry_id = creditor.latest_log_entry_id
-    entry_id = creditor.generate_log_entry_id()
-    creditor.is_active = True
-    creditor.creditor_latest_update_id = entry_id
-    creditor.creditor_latest_update_ts = current_ts
-    db.session.add(LogEntry(
-        creditor_id=creditor_id,
-        entry_id=entry_id,
-        previous_entry_id=previous_entry_id,
-        object_type='Creditor',
-        object_uri=paths.creditor(creditorId=creditor_id),
-        added_at_ts=current_ts,
-    ))
+    if not creditor.is_active:
+        previous_entry_id = creditor.latest_log_entry_id
+        entry_id = creditor.generate_log_entry_id()
+        creditor.is_active = True
+        creditor.creditor_latest_update_id = entry_id
+        creditor.creditor_latest_update_ts = current_ts
+        db.session.add(LogEntry(
+            creditor_id=creditor_id,
+            entry_id=entry_id,
+            previous_entry_id=previous_entry_id,
+            object_type='Creditor',
+            object_uri=paths.creditor(creditorId=creditor_id),
+            added_at_ts=current_ts,
+        ))
+
     return creditor
 
 

@@ -59,6 +59,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     OPENAPI_SWAGGER_UI_URL = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
     APP_TRANSFERS_FINALIZATION_AVG_SECONDS = 5.0
     APP_DEAD_ACCOUNTS_ABANDON_DAYS = 365
+    APP_LOG_ENTRIES_PER_PAGE = 100
 
 
 def create_app(config_dict={}):
