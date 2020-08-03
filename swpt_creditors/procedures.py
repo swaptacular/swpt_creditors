@@ -30,11 +30,12 @@ ACCOUNT_CONFIG_JOIN_CLAUSE = and_(
 )
 
 
-def init(path_builder):
+def init(path_builder, schema_types):
     """"Must be called before using any of the functions in the module."""
 
-    global paths
+    global paths, types
     paths = path_builder
+    types = schema_types
 
 
 class CreditorDoesNotExistError(Exception):
@@ -99,26 +100,16 @@ def create_new_creditor(creditor_id: int) -> Creditor:
 
 @atomic
 def update_creditor(creditor_id: int) -> Creditor:
-    current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    if not creditor.is_active:
-        previous_entry_id = creditor.latest_log_entry_id
-        entry_id = creditor.generate_log_entry_id()
-        creditor.is_active = True
-        creditor.creditor_latest_update_id = entry_id
-        creditor.creditor_latest_update_ts = current_ts
-        db.session.add(LogEntry(
-            creditor_id=creditor_id,
-            entry_id=entry_id,
-            previous_entry_id=previous_entry_id,
-            object_type='Creditor',
-            object_uri=paths.creditor(creditorId=creditor_id),
-            added_at_ts=current_ts,
-        ))
-
+    creditor.is_active = True
+    creditor.creditor_latest_update_id, creditor.creditor_latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.creditor,
+        object_uri=paths.creditor(creditorId=creditor_id),
+    )
     return creditor
 
 
@@ -500,6 +491,7 @@ def process_finalized_direct_transfer_signal(
         and rt.direct_transfer_id == transfer_id
     )
     if rt_matches_the_signal:
+        assert rt is not None
         if committed_amount == rt.amount and recipient == rt.recipient:
             error = None
         elif committed_amount == 0 and recipient == rt.recipient:
@@ -530,6 +522,35 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
             delete(synchronize_session=False)
 
     return number_of_deleted_rows == 1
+
+
+def _add_log_entry(
+        creditor: Creditor,
+        *,
+        object_type: str,
+        object_uri: str,
+        is_deleted: bool = False,
+        data: dict = None,
+        current_ts: datetime = None) -> Tuple[int, datetime]:
+
+    assert creditor.is_active
+
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    creditor_id = creditor.creditor_id
+    previous_entry_id = creditor.latest_log_entry_id
+    entry_id = creditor.generate_log_entry_id()
+    db.session.add(LogEntry(
+        creditor_id=creditor_id,
+        entry_id=entry_id,
+        previous_entry_id=previous_entry_id,
+        object_type='Creditor',
+        object_uri=paths.creditor(creditorId=creditor_id),
+        added_at_ts=current_ts,
+        is_deleted=is_deleted,
+        data=data,
+    ))
+
+    return entry_id, current_ts
 
 
 def _insert_configure_account_signal(config: AccountConfig, data: AccountData, current_ts: datetime = None) -> None:

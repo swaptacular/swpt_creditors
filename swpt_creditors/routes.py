@@ -44,8 +44,12 @@ class path_builder:
     committed_transfer = _url_for('transfers.CommittedTransferEndpoint')
 
 
+class schema_types:
+    creditor = 'Creditor'
+
+
 CONTEXT = {'paths': path_builder}
-procedures.init(path_builder)
+procedures.init(path_builder, schema_types)
 
 
 creditors_api = Blueprint(
