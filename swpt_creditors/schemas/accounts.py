@@ -394,14 +394,14 @@ class AccountInfoSchema(MutableResourceSchema):
         if obj.debtor_info_url is not None:
             obj.optional_debtor_info_url = obj.debtor_info_url
 
-        account_identity = obj.account_identity
-        if account_identity:
+        account_id = obj.account_id
+        if account_id:
             # TODO: Use a `swpt_lib.utils` function for this.
-            if not URLSAFE_B64.match(account_identity):
-                base64encoded = urlsafe_b64encode(account_identity.encode('utf8'))
-                account_identity = f'!{base64encoded.decode()}'
+            if not URLSAFE_B64.match(account_id):
+                base64encoded = urlsafe_b64encode(account_id.encode('utf8'))
+                account_id = f'!{base64encoded.decode()}'
 
-            obj.optional_account_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_identity}'}
+            obj.optional_account_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_id}'}
 
         return obj
 

@@ -616,7 +616,7 @@ def test_serialize_account_info(app):
         interest_rate=7.0,
         last_interest_rate_change_ts=datetime(2000, 1, 1),
         status_flags=models.AccountData.STATUS_OVERFLOWN_FLAG,
-        account_identity='',
+        account_id='',
         debtor_info_url=None,
         config_error=None,
         is_config_effectual=True,
@@ -645,7 +645,7 @@ def test_serialize_account_info(app):
 
     ad.interest_rate = 0.0
     ad.status_flags = 0
-    ad.account_identity = 'not URL safe'
+    ad.account_id = 'not URL safe'
     ad.debtor_info_url = 'https://example.com/debtor'
     ad.config_error = 'TEST_ERROR'
     ad.is_scheduled_for_deletion = True
@@ -803,7 +803,7 @@ def test_serialize_account_ledger(app):
         interest_rate=0.0,
         last_interest_rate_change_ts=datetime(2000, 1, 1),
         status_flags=models.AccountData.STATUS_OVERFLOWN_FLAG,
-        account_identity='',
+        account_id='',
         debtor_info_url=None,
         config_error=None,
         is_config_effectual=True,
