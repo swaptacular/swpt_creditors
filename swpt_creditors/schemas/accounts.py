@@ -3,6 +3,7 @@ from base64 import urlsafe_b64encode, b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, post_dump, validates_schema
 from swpt_lib.utils import i64_to_u64
+from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0, DATE0
 from .common import (
@@ -394,14 +395,10 @@ class AccountInfoSchema(MutableResourceSchema):
         if obj.debtor_info_url is not None:
             obj.optional_debtor_info_url = obj.debtor_info_url
 
-        account_id = obj.account_id
-        if account_id:
-            # TODO: Use a `swpt_lib.utils` function for this.
-            if not URLSAFE_B64.match(account_id):
-                base64encoded = urlsafe_b64encode(account_id.encode('utf8'))
-                account_id = f'!{base64encoded.decode()}'
-
-            obj.optional_account_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{account_id}'}
+        try:
+            obj.optional_account_identity = {'uri': make_account_uri(obj.debtor_id, obj.account_id)}
+        except ValueError:
+            pass
 
         return obj
 
