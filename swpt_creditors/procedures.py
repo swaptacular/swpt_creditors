@@ -147,6 +147,21 @@ def get_log_entries(creditor_id: int, count: int = 1, prev: int = 0) -> Tuple[Cr
 
 
 @atomic
+def get_account_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -> List[int]:
+    assert count >= 1
+    assert prev is None or MIN_INT64 <= prev <= MAX_INT64
+
+    query = db.session.query(Account.debtor_id).\
+        filter(Account.creditor_id == creditor_id).\
+        order_by(Account.debtor_id)
+
+    if prev is not None:
+        query = query.filter(Account.debtor_id > prev)
+
+    return [t[0] for t in query.limit(count).all()]
+
+
+@atomic
 def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool = False) -> Optional[Account]:
     options = [
         joinedload(Account.knowledge, innerjoin=True),

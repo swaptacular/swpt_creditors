@@ -335,6 +335,17 @@ class LogEntrySchema(Schema):
         return obj
 
 
+class LogPaginationParamsSchema(Schema):
+    prev = fields.Integer(
+        missing=0,
+        load_only=True,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        description='Start with the item that follows the item with this index.',
+        example=1,
+    )
+
+
 class LogEntriesPageSchema(Schema):
     uri = fields.String(
         required=True,

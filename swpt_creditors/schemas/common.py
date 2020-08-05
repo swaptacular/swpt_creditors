@@ -38,16 +38,6 @@ class PaginationParametersSchema(Schema):
     )
 
 
-class StreamingParametersSchema(Schema):
-    prev = fields.Integer(
-        missing=0,
-        load_only=True,
-        validate=validate.Range(min=0, max=MAX_INT64),
-        description='Start with the item that follows the item with this index.',
-        example=1,
-    )
-
-
 class PaginatedListSchema(Schema):
     type = fields.Function(
         lambda obj: 'PaginatedList',

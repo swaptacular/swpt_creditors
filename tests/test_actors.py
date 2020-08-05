@@ -1,9 +1,11 @@
+import pytest
 from swpt_creditors import actors as a
 
 D_ID = -1
 C_ID = 1
 
 
+@pytest.mark.skip
 def test_on_account_transfer_signal(db_session):
     a.on_account_transfer_signal(
         debtor_id=D_ID,

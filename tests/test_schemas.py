@@ -1078,8 +1078,8 @@ def test_serialize_committed_transfer(app):
     assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': '[]'}
 
 
-def test_deserialize_streaming_parameters(app):
-    ais = schemas.StreamingParametersSchema()
+def test_deserialize_log_pagination_params(app):
+    ais = schemas.LogPaginationParamsSchema()
     assert ais.load({}) == {'prev': 0}
     assert ais.load({'prev': 0}) == {'prev': 0}
     assert ais.load({'prev': 22}) == {'prev': 22}
@@ -1087,6 +1087,22 @@ def test_deserialize_streaming_parameters(app):
 
     with pytest.raises(ValidationError):
         ais.load({'prev': -1})
+
+    with pytest.raises(ValidationError):
+        ais.load({'prev': models.MAX_INT64 + 1})
+
+
+def test_deserialize_accounts_pagination_params(app):
+    ais = schemas.AccountsPaginationParamsSchema()
+    assert ais.load({}) == {}
+    assert ais.load({'prev': 0}) == {'prev': 0}
+    assert ais.load({'prev': -1}) == {'prev': -1}
+    assert ais.load({'prev': 1}) == {'prev': 1}
+    assert ais.load({'prev': models.MIN_INT64}) == {'prev': models.MIN_INT64}
+    assert ais.load({'prev': models.MAX_INT64}) == {'prev': models.MAX_INT64}
+
+    with pytest.raises(ValidationError):
+        ais.load({'prev': models.MIN_INT64 - 1})
 
     with pytest.raises(ValidationError):
         ais.load({'prev': models.MAX_INT64 + 1})

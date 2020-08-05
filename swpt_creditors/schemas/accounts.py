@@ -824,3 +824,13 @@ class AccountSchema(MutableResourceSchema):
         obj.ledger = obj.data
 
         return obj
+
+
+class AccountsPaginationParamsSchema(Schema):
+    prev = fields.Integer(
+        load_only=True,
+        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
+        format='int64',
+        description='Start with the item that follows the item with this index.',
+        example=1,
+    )

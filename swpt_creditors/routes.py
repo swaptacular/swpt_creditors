@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.models import MAX_INT64, DATE0
 from swpt_creditors.schemas import (
@@ -11,7 +12,8 @@ from swpt_creditors.schemas import (
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
-    AccountLedgerSchema, AccountInfoSchema, AccountListSchema, StreamingParametersSchema,
+    AccountLedgerSchema, AccountInfoSchema, AccountListSchema, LogPaginationParamsSchema,
+    AccountsPaginationParamsSchema,
 )
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
@@ -130,10 +132,10 @@ class WalletEndpoint(MethodView):
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
 class LogEntriesEndpoint(MethodView):
-    @creditors_api.arguments(StreamingParametersSchema, location='query')
+    @creditors_api.arguments(LogPaginationParamsSchema, location='query')
     @creditors_api.response(LogEntriesPageSchema(context=CONTEXT), example=specs.LOG_ENTRIES_EXAMPLE)
     @creditors_api.doc(operationId='getLogPage')
-    def get(self, streaming_parameters, creditorId):
+    def get(self, pagination_params, creditorId):
         """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
@@ -147,7 +149,7 @@ class LogEntriesEndpoint(MethodView):
 
         n = current_app.config['APP_LOG_ENTRIES_PER_PAGE']
         try:
-            creditor, entries = procedures.get_log_entries(creditorId, n, streaming_parameters['prev'])
+            creditor, entries = procedures.get_log_entries(creditorId, n, pagination_params['prev'])
         except procedures.CreditorDoesNotExistError:
             abort(404)
 
@@ -255,10 +257,10 @@ class DebtorLookupEndpoint(MethodView):
 
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])
 class AccountsEndpoint(MethodView):
-    @accounts_api.arguments(PaginationParametersSchema, location='query')
+    @accounts_api.arguments(AccountsPaginationParamsSchema, location='query')
     @accounts_api.response(ObjectReferencesPageSchema(context=CONTEXT))
     @accounts_api.doc(operationId='getAccountsPage')
-    def get(self, pagination_parameters, creditorId):
+    def get(self, pagination_params, creditorId):
         """Return a collection of accounts belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
@@ -268,11 +270,16 @@ class AccountsEndpoint(MethodView):
 
         """
 
-        try:
-            debtor_ids = procedures.get_account_dedtor_ids(creditorId)
-        except procedures.CreditorDoesNotExistError:
-            abort(404)
-        return debtor_ids
+        n = current_app.config['APP_ACCOUNTS_PER_PAGE']
+        ids = procedures.get_account_debtor_ids(creditorId, n, pagination_params.get('prev'))
+        page = {
+            'uri': request.full_path,
+            'items': [{'uri': f'{i64_to_u64(debtorId)}/'} for debtorId in ids],
+        }
+        if len(ids) >= n:
+            page['next'] = f'?prev={ids[-1]}'
+
+        return page
 
     @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
