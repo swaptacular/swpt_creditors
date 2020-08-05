@@ -135,7 +135,7 @@ class LogEntriesEndpoint(MethodView):
     @creditors_api.arguments(LogPaginationParamsSchema, location='query')
     @creditors_api.response(LogEntriesPageSchema(context=CONTEXT), example=specs.LOG_ENTRIES_EXAMPLE)
     @creditors_api.doc(operationId='getLogPage')
-    def get(self, pagination_params, creditorId):
+    def get(self, params, creditorId):
         """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
@@ -149,21 +149,22 @@ class LogEntriesEndpoint(MethodView):
 
         n = current_app.config['APP_LOG_ENTRIES_PER_PAGE']
         try:
-            creditor, entries = procedures.get_log_entries(creditorId, n, pagination_params['prev'])
+            creditor, log_entries = procedures.get_creditor_log_entries(creditorId, count=n, prev=params['prev'])
         except procedures.CreditorDoesNotExistError:
             abort(404)
 
-        if len(entries) < n:
-            proceed = 'forthcoming'
-            entry_id = creditor.latest_log_entry_id
-        else:
-            proceed = 'next'
-            entry_id = entries[-1].entry_id
+        if len(log_entries) < n:
+            # The last page does not have a 'next' link.
+            return {
+                'uri': request.full_path,
+                'items': log_entries,
+                'forthcoming': f'?prev={creditor.latest_log_entry_id}',
+            }
 
         return {
             'uri': request.full_path,
-            'items': entries,
-            proceed: f'?prev={entry_id}',
+            'items': log_entries,
+            'next': f'?prev={log_entries[-1].entry_id}',
         }
 
 
@@ -265,7 +266,7 @@ class AccountsEndpoint(MethodView):
     @accounts_api.arguments(AccountsPaginationParamsSchema, location='query')
     @accounts_api.response(ObjectReferencesPageSchema(context=CONTEXT))
     @accounts_api.doc(operationId='getAccountsPage')
-    def get(self, pagination_params, creditorId):
+    def get(self, params, creditorId):
         """Return a collection of accounts belonging to a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
@@ -276,15 +277,21 @@ class AccountsEndpoint(MethodView):
         """
 
         n = current_app.config['APP_ACCOUNTS_PER_PAGE']
-        ids = procedures.get_account_debtor_ids(creditorId, n, pagination_params.get('prev'))
-        page = {
-            'uri': request.full_path,
-            'items': [{'uri': f'{i64_to_u64(debtorId)}/'} for debtorId in ids],
-        }
-        if len(ids) >= n:
-            page['next'] = f'?prev={ids[-1]}'
+        debtor_ids = procedures.get_creditor_debtor_ids(creditorId, count=n, prev=params.get('prev'))
+        items = [{'uri': f'{i64_to_u64(debtor_id)}/'} for debtor_id in debtor_ids]
 
-        return page
+        if len(debtor_ids) < n:
+            # The last page does not have a 'next' link.
+            return {
+                'uri': request.full_path,
+                'items': items,
+            }
+
+        return {
+            'uri': request.full_path,
+            'items': items,
+            'next': f'?prev={debtor_ids[-1]}',
+        }
 
     @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
