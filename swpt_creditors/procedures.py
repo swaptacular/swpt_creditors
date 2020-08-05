@@ -186,15 +186,6 @@ def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool
 
 
 @atomic
-def has_account(creditor_id: int, debtor_id: int) -> bool:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
-    account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
-    return db.session.query(account_query.exists()).scalar()
-
-
-@atomic
 def create_account(creditor_id: int, debtor_id: int) -> Account:
     """"Try to create and return a new account.
 

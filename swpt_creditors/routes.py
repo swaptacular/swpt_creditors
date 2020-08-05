@@ -255,7 +255,7 @@ class DebtorLookupEndpoint(MethodView):
         except ValueError:
             abort(422, errors={'json': {'uri': ['The URI can not be recognized.']}})
 
-        if procedures.has_account(creditorId, debtorId):
+        if procedures.get_account(creditorId, debtorId):
             location = url_for('accounts.AccountEndpoint', _external=True, creditorId=creditorId, debtorId=debtorId)
             return redirect(location, code=303)
 
