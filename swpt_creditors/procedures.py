@@ -139,6 +139,7 @@ def get_log_entries(creditor_id: int, count: int = 1, prev: int = 0) -> Tuple[Cr
     entries = LogEntry.query.\
         filter(LogEntry.creditor_id == creditor_id).\
         filter(LogEntry.entry_id > prev).\
+        order_by(LogEntry.entry_id).\
         limit(count).\
         all()
 

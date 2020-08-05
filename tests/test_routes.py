@@ -15,6 +15,11 @@ def creditor(db_session):
     return p.lock_or_create_creditor(2)
 
 
+@pytest.fixture(scope='function')
+def account(creditor):
+    return p.create_account(2, 1)
+
+
 def _get_log_entries(client, creditor_id):
     r = client.get(f'/creditors/{creditor_id}/log')
     assert r.status_code == 200
@@ -270,3 +275,14 @@ def test_create_account(client, creditor):
     assert r.status_code == 200
     data2 = r.get_json()
     assert data1 == data2
+
+
+def test_get_account(client, account):
+    r = client.get('/creditors/2/accounts/1111/')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'Account'
+    assert data['uri'] == '/creditors/2/accounts/1/'
