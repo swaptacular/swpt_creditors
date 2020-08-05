@@ -237,7 +237,7 @@ class AccountLookupEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
 class DebtorLookupEndpoint(MethodView):
     @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
-    @accounts_api.response(code=303)
+    @accounts_api.response(code=204)
     @accounts_api.doc(operationId='debtorLookup',
                       responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
                                  303: specs.ACCOUNT_EXISTS})
@@ -250,9 +250,14 @@ class DebtorLookupEndpoint(MethodView):
 
         """
 
-        # TODO: Should return 422 if the debtor's URI can not be recognized.
+        try:
+            debtorId = parse_debtor_uri(debtor_identity['uri'])
+        except ValueError:
+            abort(422, errors={'json': {'uri': ['The URI can not be recognized.']}})
 
-        abort(404)
+        if procedures.has_account(creditorId, debtorId):
+            location = url_for('accounts.AccountEndpoint', _external=True, creditorId=creditorId, debtorId=debtorId)
+            return redirect(location, code=303)
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/', parameters=[CID])

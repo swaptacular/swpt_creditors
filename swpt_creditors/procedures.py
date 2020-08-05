@@ -163,13 +163,19 @@ def get_account_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -
 
 @atomic
 def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool = False) -> Optional[Account]:
-    options = [
-        joinedload(Account.knowledge, innerjoin=True),
-        joinedload(Account.exchange, innerjoin=True),
-        joinedload(Account.display, innerjoin=True),
-        joinedload(Account.config, innerjoin=True),
-        joinedload(Account.data, innerjoin=True),
-    ] if join else []
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    if join:
+        options = [
+            joinedload(Account.knowledge, innerjoin=True),
+            joinedload(Account.exchange, innerjoin=True),
+            joinedload(Account.display, innerjoin=True),
+            joinedload(Account.config, innerjoin=True),
+            joinedload(Account.data, innerjoin=True),
+        ]
+    else:
+        options = []
 
     if lock:
         account = Account.lock_instance((creditor_id, debtor_id), *options, of=Account)
@@ -177,6 +183,15 @@ def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool
         account = Account.get_instance((creditor_id, debtor_id), *options)
 
     return account
+
+
+@atomic
+def has_account(creditor_id: int, debtor_id: int) -> bool:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+    return db.session.query(account_query.exists()).scalar()
 
 
 @atomic

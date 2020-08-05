@@ -202,6 +202,21 @@ def test_account_lookup(client, creditor):
     assert data['uri'] == 'swpt:1'
 
 
+def test_debtor_lookup(client, account):
+    r = client.post('/creditors/2/debtor-lookup', json={'type': 'DebtorIdentity', 'uri': 'xxx:1'})
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json']['uri'] == ['The URI can not be recognized.']
+
+    r = client.post('/creditors/2/debtor-lookup', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
+    assert r.status_code == 303
+    assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
+
+    r = client.post('/creditors/2/debtor-lookup', json={'type': 'DebtorIdentity', 'uri': 'swpt:1111'})
+    assert r.status_code == 204
+    assert r.data == b''
+
+
 def test_create_account(client, creditor):
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 0

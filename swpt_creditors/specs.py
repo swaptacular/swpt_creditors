@@ -101,7 +101,7 @@ PEG_ACCOUNT_DELETION = {
 }
 
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
-    "description": "The debtor's identity is recognized, but account does not exist.",
+    "description": "Account does not exist, but the debtor's identity has been recognized.",
 }
 
 ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
