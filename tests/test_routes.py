@@ -43,14 +43,6 @@ def _get_all_pages(client, url, page_type, streaming=False):
     return items
 
 
-def _get_log_entries(client, url):
-    return _get_all_pages(client, url, page_type='LogEntriesPage', streaming=True)
-
-
-def _get_creditor_accounts(client, url):
-    return _get_all_pages(client, url, page_type='ObjectReferencesPage')
-
-
 def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 404
@@ -77,7 +69,7 @@ def test_create_creditor(client):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert iso8601.parse_date(data['createdOn'])
 
-    entries = _get_log_entries(client, '/creditors/2/log')
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 0
 
 
@@ -94,7 +86,7 @@ def test_update_creditor(client, creditor):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['createdOn']
 
-    entries = _get_log_entries(client, '/creditors/2/log')
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 1
     e = entries[0]
     assert e['type'] == 'LogEntry'
@@ -130,7 +122,8 @@ def test_get_log_page(client, creditor):
     r = client.get('/creditors/2222/log')
     assert r.status_code == 404
 
-    assert len(_get_log_entries(client, '/creditors/2/log')) == 0
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 0
 
 
 def test_account_list_page(client, account):
@@ -148,8 +141,8 @@ def test_account_list_page(client, account):
     assert data['latestUpdateId'] < m.FIRST_LOG_ENTRY_ID
     assert iso8601.parse_date(data['latestUpdateAt'])
 
-    # one page
-    items = _get_creditor_accounts(client, '/creditors/2/accounts/')
+    # one account (one page)
+    items = _get_all_pages(client, '/creditors/2/accounts/', page_type='ObjectReferencesPage')
     assert [item['uri'] for item in items] == ['1/']
 
     # add two more accounts
@@ -158,13 +151,13 @@ def test_account_list_page(client, account):
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:9223372036854775808'})
     assert r.status_code == 201
 
-    # two pages
-    items = _get_creditor_accounts(client, '/creditors/2/accounts/')
+    # three accounts (two pages)
+    items = _get_all_pages(client, '/creditors/2/accounts/', page_type='ObjectReferencesPage')
     assert [item['uri'] for item in items] == ['9223372036854775808/', '9223372036854775809/', '1/']
     assert u64_to_i64(9223372036854775808) < u64_to_i64(9223372036854775809) < u64_to_i64(1)
 
     # check log entires
-    entries = _get_log_entries(client, '/creditors/2/log')
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 3
     assert [e['entryId'] for e in entries] == [m.FIRST_LOG_ENTRY_ID, m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID + 2]
     assert [e['previousEntryId'] for e in entries] == [1, m.FIRST_LOG_ENTRY_ID, m.FIRST_LOG_ENTRY_ID + 1]
@@ -210,7 +203,7 @@ def test_account_lookup(client, creditor):
 
 
 def test_create_account(client, creditor):
-    entries = _get_log_entries(client, '/creditors/2/log')
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 0
 
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'xxx:1'})
@@ -312,7 +305,7 @@ def test_create_account(client, creditor):
     r = client.post('/creditors/2222/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 404
 
-    entries = _get_log_entries(client, '/creditors/2/log')
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 1
     e = entries[0]
     assert e['type'] == 'LogEntry'

@@ -150,7 +150,7 @@ class LogEntry(db.Model):
     creditor_id = db.Column(db.BigInteger, nullable=False)
     entry_id = db.Column(db.BigInteger, nullable=False)
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    previous_entry_id = db.Column(db.BigInteger)
+    previous_entry_id = db.Column(db.BigInteger, nullable=False)
     object_type = db.Column(db.String, nullable=False)
     object_uri = db.Column(db.String, nullable=False)
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
