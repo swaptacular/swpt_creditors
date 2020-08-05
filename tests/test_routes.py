@@ -93,7 +93,7 @@ def test_get_wallet(client, creditor):
     log = data['log']
     assert log['type'] == 'PaginatedList'
     assert log['first'] == '/creditors/2/log'
-    assert re.match(r'^/creditors/2/log\?prev=\d+$', log['forthcoming'])
+    assert log['forthcoming'] == '/creditors/2/log?prev=1'
     assert log['itemsType'] == 'LogEntry'
     dt = data['transferList']
     assert dt['uri'] == '/creditors/2/transfer-list'
@@ -105,13 +105,7 @@ def test_get_log_page(client, creditor):
     r = client.get('/creditors/2222/log')
     assert r.status_code == 404
 
-    r = client.get('/creditors/2/log')
-    assert r.status_code == 200
-    data = r.get_json()
-    assert data['type'] == 'LogEntriesPage'
-    assert 'uri' in data
-    assert 'next' in data or 'forthcoming' in data
-    return data['items']
+    assert len(_get_log_entries(client, 2)) == 0
 
 
 def test_account_list_page(client, creditor):
@@ -175,7 +169,7 @@ def test_create_account(client, creditor):
     latestUpdateId = data1['latestUpdateId']
     latestUpdateAt = data1['latestUpdateAt']
     createdAt = data1['createdAt']
-    assert latestUpdateId >= 1
+    assert latestUpdateId == m.FIRST_LOG_ENTRY_ID
     assert iso8601.parse_date(latestUpdateAt)
     assert iso8601.parse_date(createdAt)
     assert data1 == {
@@ -183,8 +177,6 @@ def test_create_account(client, creditor):
         'uri': '/creditors/2/accounts/1/',
         'accountList': {'uri': '/creditors/2/account-list'},
         'createdAt': createdAt,
-        'latestUpdateAt': latestUpdateAt,
-        'latestUpdateId': latestUpdateId,
         'debtorIdentity': {
             'type': 'DebtorIdentity',
             'uri': 'swpt:1',
@@ -245,14 +237,16 @@ def test_create_account(client, creditor):
             'account': {'uri': '/creditors/2/accounts/1/'},
             'principal': 0,
             'interest': 0,
-            'latestUpdateAt': latestUpdateAt,
-            'latestUpdateId': latestUpdateId,
             'entries': {
                 'first': f'/creditors/2/accounts/1/entries?prev={latestUpdateId + 1}',
                 'itemsType': 'LedgerEntry',
                 'type': 'PaginatedList',
             },
+            'latestUpdateAt': latestUpdateAt,
+            'latestUpdateId': latestUpdateId,
         },
+        'latestUpdateAt': latestUpdateAt,
+        'latestUpdateId': latestUpdateId,
     }
 
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})

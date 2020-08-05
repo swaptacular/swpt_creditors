@@ -25,7 +25,7 @@ DATE0 = TS0.date()
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
-FIRST_LOG_ENTRY_ID = 4
+FIRST_LOG_ENTRY_ID = 2
 
 
 def get_now_utc():
@@ -110,14 +110,14 @@ class Creditor(db.Model):
     latest_log_entry_id = db.Column(
         db.BigInteger,
         nullable=False,
-        default=FIRST_LOG_ENTRY_ID - 1,
+        default=1,
         comment='Gets incremented each time a new entry is added to the log.',
     )
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    account_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=2)
+    account_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     account_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    transfer_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=3)
+    transfer_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     transfer_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.CheckConstraint(latest_log_entry_id > 0),

@@ -3,7 +3,6 @@ from datetime import date, timedelta
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from swpt_lib import endpoints
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.models import MAX_INT64, DATE0
 from swpt_creditors.schemas import (
