@@ -4,7 +4,7 @@ from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
-from swpt_lib.swpt_uris import parse_account_uri, make_debtor_uri
+from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.models import MAX_INT64, DATE0
 from swpt_creditors.schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, TransferListSchema,
@@ -47,6 +47,7 @@ class path_builder:
 
 class schema_types:
     creditor = 'Creditor'
+    account = 'Account'
 
 
 CONTEXT = {'paths': path_builder}
@@ -225,11 +226,11 @@ class AccountLookupEndpoint(MethodView):
         """
 
         try:
-            debtor_id, account_id = parse_account_uri(account_identity['uri'])
+            debtorId, _ = parse_account_uri(account_identity['uri'])
         except ValueError:
             abort(422, errors={'json': {'uri': ['The URI can not be recognized.']}})
 
-        return {'uri': make_debtor_uri(debtor_id)}
+        return {'uri': make_debtor_uri(debtorId)}
 
 
 @accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
@@ -279,30 +280,25 @@ class AccountsEndpoint(MethodView):
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
                                  403: specs.DENIED_ACCOUNT_CREATION})
-    def post(self, debtor, creditorId):
+    def post(self, debtor_identity, creditorId):
         """Create a new account belonging to a given creditor."""
 
-        debtor_uri = debtor['uri']
         try:
-            debtor_id = endpoints.match_url('debtor', debtor_uri)['debtorId']
-            location = url_for(
-                'accounts.AccountEndpoint',
-                _external=True,
-                creditorId=creditorId,
-                debtorId=debtor_id,
-            )
-            transfer = procedures.create_account(creditorId, debtor_id)
-        except endpoints.MatchError:
-            abort(422, errors={'json': {'uri': ["The debtor's URI can not be recognized."]}})
-        except procedures.TooManyManagementActionsError:
+            debtorId = parse_debtor_uri(debtor_identity['uri'])
+        except ValueError:
+            abort(422, errors={'json': {'uri': ['The URI can not be recognized.']}})
+
+        location = url_for('accounts.AccountEndpoint', _external=True, creditorId=creditorId, debtorId=debtorId)
+        try:
+            account = procedures.create_account(creditorId, debtorId)
+        except procedures.ForbiddenAccountCreationError:
             abort(403)
         except procedures.CreditorDoesNotExistError:
             abort(404)
-        except procedures.AccountsConflictError:
-            abort(409)
         except procedures.AccountExistsError:
             return redirect(location, code=303)
-        return transfer, {'Location': location}
+
+        return account, {'Location': location}
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[CID, DID])

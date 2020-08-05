@@ -157,3 +157,37 @@ def test_account_lookup(client, creditor):
     data = r.get_json()
     assert data['type'] == 'DebtorIdentity'
     assert data['uri'] == 'swpt:1'
+
+
+def test_create_account(client, creditor):
+    entries = _get_log_entries(client, 2)
+    assert len(entries) == 0
+
+    r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'xxx:1'})
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json']['uri'] == ['The URI can not be recognized.']
+
+    r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
+    assert r.status_code == 201
+    data = r.get_json()
+    assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
+    assert data['type'] == 'Account'
+    assert data['uri'] == '/creditors/2/accounts/1/'
+
+    r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
+    assert r.status_code == 303
+    assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
+
+    r = client.post('/creditors/2222/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
+    assert r.status_code == 404
+
+    entries = _get_log_entries(client, 2)
+    assert len(entries) == 1
+    e = entries[0]
+    assert e['type'] == 'LogEntry'
+    assert e['entryId'] == m.FIRST_LOG_ENTRY_ID
+    assert e['objectType'] == 'Account'
+    assert e['object'] == {'uri': '/creditors/2/accounts/1/'}
+    assert not e.get('deleted')
+    assert iso8601.parse_date(e['addedAt'])

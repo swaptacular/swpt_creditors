@@ -65,8 +65,9 @@ class TransferCanNotBeCanceledError(Exception):
 class AccountExistsError(Exception):
     """The same account record already exists."""
 
-    def __init__(self, account_config: AccountConfig):
-        self.account_config = account_config
+
+class ForbiddenAccountCreationError(Exception):
+    """The creation of the account is forbidden."""
 
 
 class AccountsConflictError(Exception):
@@ -82,6 +83,7 @@ def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
 
     if creditor and creditor.deactivated_at_date is None:
         return creditor
+
     return None
 
 
@@ -144,22 +146,67 @@ def get_log_entries(creditor_id: int, count: int = 1, prev: int = 0) -> Tuple[Cr
 
 
 @atomic
-def create_account(creditor_id: int, debtor_id: int) -> bool:
-    """"Make sure the account exists, return if a new account was created.
+def get_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[Account]:
+    if lock:
+        account = Account.lock_instance((creditor_id, debtor_id))
+    else:
+        account = Account.get_instance((creditor_id, debtor_id))
 
-    Raises `CreditorDoesNotExistError` if the creditor does not exist.
+    return account
+
+
+@atomic
+def create_account(creditor_id: int, debtor_id: int) -> Account:
+    """"Try to create and return a new account.
+
+    May raise `CreditorDoesNotExistError`, `AccountExistsError`, or
+    `ForbiddenAccountCreationError`.
 
     """
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    account_needs_to_be_created = _get_account(creditor_id, debtor_id) is None
-    if account_needs_to_be_created:
-        account = _create_account(creditor_id, debtor_id)
-        _insert_configure_account_signal(account.config, account.data, account.created_at_ts)
+    current_ts = datetime.now(tz=timezone.utc)
+    creditor = get_creditor(creditor_id, lock=True)
+    if creditor is None:
+        raise CreditorDoesNotExistError()
 
-    return account_needs_to_be_created
+    update_id, update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account,
+        object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
+        current_ts=current_ts,
+    )
+    latest_update = {'latest_update_id': update_id, 'latest_update_ts': update_ts}
+    account = Account(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        created_at_ts=current_ts,
+        knowledge=AccountKnowledge(**latest_update),
+        exchange=AccountExchange(**latest_update),
+        display=AccountDisplay(**latest_update),
+        config=AccountConfig(**latest_update),
+        data=AccountData(
+            last_config_ts=update_ts,
+            info_latest_update_id=update_id,
+            info_latest_update_ts=update_ts,
+            ledger_latest_update_id=update_id,
+            ledger_latest_update_ts=update_ts,
+        ),
+        **latest_update,
+    )
+    db.session.add(account)
+
+    try:
+        db.session.flush()
+    except IntegrityError:
+        db.session.rollback()
+        raise AccountExistsError()
+
+    _insert_configure_account_signal(account.config, account.data, account.created_at_ts)
+
+    return account
 
 
 @atomic
@@ -179,7 +226,7 @@ def change_account_config(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    account = _get_account(creditor_id, debtor_id)  # TODO: use lock and joinedload
+    account = get_account(creditor_id, debtor_id)  # TODO: use lock and joinedload
     if account is None:
         raise AccountDoesNotExistError()
 
@@ -213,7 +260,7 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    account = _get_account(creditor_id, debtor_id)  # TODO: use joinedload.
+    account = get_account(creditor_id, debtor_id)  # TODO: use joinedload.
     if account:
         config = account.config
         data = account.data
@@ -540,8 +587,8 @@ def _add_log_entry(
         creditor_id=creditor_id,
         entry_id=entry_id,
         previous_entry_id=previous_entry_id,
-        object_type='Creditor',
-        object_uri=paths.creditor(creditorId=creditor_id),
+        object_type=object_type,
+        object_uri=object_uri,
         added_at_ts=current_ts,
         is_deleted=is_deleted,
         data=data,
@@ -602,14 +649,6 @@ def _insert_ledger_entry(
     ))
 
 
-def _get_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[Account]:
-    if lock:
-        account = Account.lock_instance((creditor_id, debtor_id))
-    else:
-        account = Account.get_instance((creditor_id, debtor_id))
-    return account
-
-
 def _create_account(creditor_id: int, debtor_id: int, current_ts: datetime = None) -> Account:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     creditor = Creditor.lock_instance(creditor_id)
@@ -638,10 +677,6 @@ def _create_account(creditor_id: int, debtor_id: int, current_ts: datetime = Non
         db.session.add(account)
 
     return account
-
-
-def _get_or_create_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Account:
-    return _get_account(creditor_id, debtor_id, lock=lock) or _create_account(creditor_id, debtor_id)
 
 
 def _get_ordered_pending_transfers(account_data: AccountData, max_count: int = None) -> List[Tuple[int, int]]:
