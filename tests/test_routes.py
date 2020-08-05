@@ -122,8 +122,13 @@ def test_get_log_page(client, creditor):
     r = client.get('/creditors/2222/log')
     assert r.status_code == 404
 
-    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 0
+    r = client.get('/creditors/2/log')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'LogEntriesPage'
+    assert data['items'] == []
+    assert data['forthcoming'] == '?prev=1'
+    assert 'next' not in data
 
 
 def test_account_list_page(client, account):
