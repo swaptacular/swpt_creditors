@@ -1,3 +1,4 @@
+from urllib.parse import urljoin, urlparse
 import pytest
 import iso8601
 from swpt_lib.utils import u64_to_i64
@@ -20,22 +21,34 @@ def account(creditor):
     return p.create_account(2, 1)
 
 
-def _get_log_entries(client, url):
+def _get_all_pages(client, url, page_type, streaming=False):
     r = client.get(url)
     assert r.status_code == 200
 
     data = r.get_json()
-    assert data['type'] == 'LogEntriesPage'
-    assert 'uri' in data
-    assert 'next' in data or 'forthcoming' in data
-    assert 'next' not in data or 'forthcoming' not in data
+    assert data['type'] == page_type
+    assert urlparse(data['uri']) == urlparse(url)
+    if streaming:
+        assert 'next' in data or 'forthcoming' in data
+        assert 'next' not in data or 'forthcoming' not in data
+    else:
+        assert 'forthcoming' not in data
+
     items = data['items']
     assert isinstance(items, list)
 
     if 'next' in data:
-        items.extend(_get_log_entries(client, data['next']))
+        items.extend(_get_all_pages(client, urljoin(url, data['next']), page_type, streaming))
 
     return items
+
+
+def _get_log_entries(client, url):
+    return _get_all_pages(client, url, page_type='LogEntriesPage', streaming=True)
+
+
+def _get_creditor_accounts(client, url):
+    return _get_all_pages(client, url, page_type='ObjectReferencesPage')
 
 
 def test_create_creditor(client):
@@ -135,17 +148,9 @@ def test_account_list_page(client, account):
     assert data['latestUpdateId'] < m.FIRST_LOG_ENTRY_ID
     assert iso8601.parse_date(data['latestUpdateAt'])
 
-    # one page only
-    r = client.get('/creditors/2/accounts/')
-    assert r.status_code == 200
-    data = r.get_json()
-    assert data == {
-        'type': 'ObjectReferencesPage',
-        'uri': '/creditors/2/accounts/?',
-        'items': [
-            {'uri': '1/'},
-        ],
-    }
+    # one page
+    items = _get_creditor_accounts(client, '/creditors/2/accounts/')
+    assert [item['uri'] for item in items] == ['1/']
 
     # add two more accounts
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:9223372036854775809'})
@@ -153,34 +158,10 @@ def test_account_list_page(client, account):
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:9223372036854775808'})
     assert r.status_code == 201
 
-    # the first page
-    r = client.get('/creditors/2/accounts/')
-    assert r.status_code == 200
-    data = r.get_json()
-    assert data == {
-        'type': 'ObjectReferencesPage',
-        'uri': '/creditors/2/accounts/?',
-        'items': [
-            {'uri': '9223372036854775808/'},
-            {'uri': '9223372036854775809/'},
-        ],
-        'next': '?prev=-9223372036854775807'
-    }
-    assert u64_to_i64(9223372036854775808) < u64_to_i64(9223372036854775809)
-    assert u64_to_i64(9223372036854775809) == -9223372036854775807
-
-    # the second page
-    r = client.get('/creditors/2/accounts/?prev=-9223372036854775807')
-    assert r.status_code == 200
-    data = r.get_json()
-    assert data == {
-        'type': 'ObjectReferencesPage',
-        'uri': '/creditors/2/accounts/?prev=-9223372036854775807',
-        'items': [
-            {'uri': '1/'},
-        ],
-    }
-    assert u64_to_i64(9223372036854775809) < u64_to_i64(1)
+    # two pages
+    items = _get_creditor_accounts(client, '/creditors/2/accounts/')
+    assert [item['uri'] for item in items] == ['9223372036854775808/', '9223372036854775809/', '1/']
+    assert u64_to_i64(9223372036854775808) < u64_to_i64(9223372036854775809) < u64_to_i64(1)
 
     # check log entires
     entries = _get_log_entries(client, '/creditors/2/log')

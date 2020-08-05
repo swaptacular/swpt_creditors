@@ -163,7 +163,7 @@ class LogEntriesEndpoint(MethodView):
         return {
             'uri': request.full_path,
             'items': entries,
-            proceed: f'{request.path}?prev={entry_id}',
+            proceed: f'?prev={entry_id}',
         }
 
 
