@@ -658,7 +658,7 @@ def test_serialize_account_info(app):
 
 def test_serialize_account(db_session):
     assert procedures.create_new_creditor(C_ID)
-    assert procedures.create_account(C_ID, D_ID)
+    assert procedures.create_new_account(C_ID, D_ID)
     account = models.Account.get_instance((C_ID, D_ID))
     account_schema = schemas.AccountSchema(context=CONTEXT)
     ads = schemas.AccountDisplaySchema(context=CONTEXT)

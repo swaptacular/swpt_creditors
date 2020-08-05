@@ -18,7 +18,7 @@ def creditor(db_session):
 
 @pytest.fixture
 def setup_account(creditor):
-    p.create_account(C_ID, D_ID)
+    p.create_new_account(C_ID, D_ID)
 
 
 def test_get_creditor(db_session, creditor):

@@ -18,7 +18,7 @@ def creditor(db_session):
 
 @pytest.fixture(scope='function')
 def account(creditor):
-    return p.create_account(2, 1)
+    return p.create_new_account(2, 1)
 
 
 def _get_all_pages(client, url, page_type, streaming=False):

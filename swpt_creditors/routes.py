@@ -301,7 +301,7 @@ class AccountsEndpoint(MethodView):
 
         location = url_for('accounts.AccountEndpoint', _external=True, creditorId=creditorId, debtorId=debtorId)
         try:
-            account = procedures.create_account(creditorId, debtorId)
+            account = procedures.create_new_account(creditorId, debtorId)
         except procedures.ForbiddenAccountCreationError:
             abort(403)
         except procedures.CreditorDoesNotExistError:

@@ -186,7 +186,7 @@ def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool
 
 
 @atomic
-def create_account(creditor_id: int, debtor_id: int) -> Account:
+def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     """"Try to create and return a new account.
 
     May raise `CreditorDoesNotExistError`, `AccountExistsError`, or
@@ -212,7 +212,7 @@ def create_account(creditor_id: int, debtor_id: int) -> Account:
     account = Account(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
-        created_at_ts=current_ts,
+        created_at_ts=update_ts,
         knowledge=AccountKnowledge(**latest_update),
         exchange=AccountExchange(**latest_update),
         display=AccountDisplay(**latest_update),
@@ -677,36 +677,6 @@ def _insert_ledger_entry(
         committed_amount=committed_amount,
         account_new_principal=account_new_principal,
     ))
-
-
-def _create_account(creditor_id: int, debtor_id: int, current_ts: datetime = None) -> Account:
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    creditor = Creditor.lock_instance(creditor_id)
-    if creditor is None:
-        raise CreditorDoesNotExistError()
-
-    log_entry_id = creditor.generate_log_entry_id()
-    latest_update = {'latest_update_id': log_entry_id, 'latest_update_ts': current_ts}
-    account = Account(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        created_at_ts=current_ts,
-        knowledge=AccountKnowledge(**latest_update),
-        exchange=AccountExchange(**latest_update),
-        display=AccountDisplay(**latest_update),
-        config=AccountConfig(**latest_update),
-        data=AccountData(
-            info_latest_update_id=log_entry_id,
-            info_latest_update_ts=current_ts,
-            ledger_latest_update_id=log_entry_id,
-            ledger_latest_update_ts=current_ts,
-        ),
-        **latest_update,
-    )
-    with db.retry_on_integrity_error():
-        db.session.add(account)
-
-    return account
 
 
 def _get_ordered_pending_transfers(account_data: AccountData, max_count: int = None) -> List[Tuple[int, int]]:
