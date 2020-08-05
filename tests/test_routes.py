@@ -36,7 +36,6 @@ def test_create_creditor(client):
     data = r.get_json()
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
-    assert data['active'] is False
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert iso8601.parse_date(data['createdOn'])
@@ -49,7 +48,6 @@ def test_create_creditor(client):
     data = r.get_json()
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
-    assert data['active'] is False
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert iso8601.parse_date(data['createdOn'])
@@ -67,7 +65,6 @@ def test_update_creditor(client, creditor):
     data = r.get_json()
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
-    assert data['active'] is True
     assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['createdOn']

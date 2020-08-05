@@ -26,17 +26,6 @@ def test_serialize_creditor(app):
         'type': 'Creditor',
         'uri': '/creditors/1/',
         'createdOn': '2019-11-30',
-        'active': False,
-        'latestUpdateId': 1,
-        'latestUpdateAt': '2020-01-01T00:00:00',
-    }
-
-    c.status = models.Creditor.STATUS_IS_ACTIVE_FLAG
-    assert cs.dump(c) == {
-        'type': 'Creditor',
-        'uri': '/creditors/1/',
-        'createdOn': '2019-11-30',
-        'active': True,
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }

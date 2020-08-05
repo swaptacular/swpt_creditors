@@ -29,13 +29,6 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         default='Creditor',
         description='The type of this object.',
     )
-    is_active = fields.Boolean(
-        required=True,
-        dump_only=True,
-        data_key='active',
-        description='Whether the creditor is active. The creditor becomes active after the first '
-                    'write operation (for example, account or transfer creation).',
-    )
     created_at_date = fields.Date(
         required=True,
         dump_only=True,

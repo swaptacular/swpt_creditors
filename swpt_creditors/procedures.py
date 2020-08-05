@@ -104,7 +104,6 @@ def update_creditor(creditor_id: int) -> Creditor:
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    creditor.is_active = True
     creditor.creditor_latest_update_id, creditor.creditor_latest_update_ts = _add_log_entry(
         creditor,
         object_type=types.creditor,
@@ -532,8 +531,6 @@ def _add_log_entry(
         is_deleted: bool = False,
         data: dict = None,
         current_ts: datetime = None) -> Tuple[int, datetime]:
-
-    assert creditor.is_active
 
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     creditor_id = creditor.creditor_id

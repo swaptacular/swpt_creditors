@@ -96,8 +96,8 @@ class CreditorEndpoint(MethodView):
     def patch(self, creditor, creditorId):
         """Update a creditor.
 
-        If the creditor was inactive before the update, the update
-        will make it active.
+        **Note:** Currently there are no fields that can be updated,
+        but they may be added in the future.
 
         """
 
