@@ -146,11 +146,19 @@ def get_log_entries(creditor_id: int, count: int = 1, prev: int = 0) -> Tuple[Cr
 
 
 @atomic
-def get_account(creditor_id: int, debtor_id: int, lock: bool = False) -> Optional[Account]:
+def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool = False) -> Optional[Account]:
+    options = [
+        joinedload(Account.knowledge, innerjoin=True),
+        joinedload(Account.exchange, innerjoin=True),
+        joinedload(Account.display, innerjoin=True),
+        joinedload(Account.config, innerjoin=True),
+        joinedload(Account.data, innerjoin=True),
+    ] if join else []
+
     if lock:
-        account = Account.lock_instance((creditor_id, debtor_id))
+        account = Account.lock_instance((creditor_id, debtor_id), *options, of=Account)
     else:
-        account = Account.get_instance((creditor_id, debtor_id))
+        account = Account.get_instance((creditor_id, debtor_id), *options)
 
     return account
 

@@ -308,7 +308,10 @@ class AccountEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return an account."""
 
-        abort(404)
+        account = procedures.get_account(creditorId, debtorId, join=True)
+        if account is None:
+            abort(404)
+        return account
 
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='deleteAccount',

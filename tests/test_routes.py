@@ -170,10 +170,10 @@ def test_create_account(client, creditor):
 
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 201
-    data = r.get_json()
+    data1 = r.get_json()
     assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
-    assert data['type'] == 'Account'
-    assert data['uri'] == '/creditors/2/accounts/1/'
+    assert data1['type'] == 'Account'
+    assert data1['uri'] == '/creditors/2/accounts/1/'
 
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 303
@@ -191,3 +191,8 @@ def test_create_account(client, creditor):
     assert e['object'] == {'uri': '/creditors/2/accounts/1/'}
     assert not e.get('deleted')
     assert iso8601.parse_date(e['addedAt'])
+
+    r = client.get('/creditors/2/accounts/1/')
+    assert r.status_code == 200
+    data2 = r.get_json()
+    assert data1 == data2
