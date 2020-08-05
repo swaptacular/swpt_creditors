@@ -1,5 +1,5 @@
 import re
-from base64 import urlsafe_b64encode, b16encode
+from base64 import b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, post_dump, validates_schema
 from swpt_lib.utils import i64_to_u64

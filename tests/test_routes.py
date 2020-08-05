@@ -144,3 +144,16 @@ def test_transfer_list_page(client, creditor):
     assert data['itemsType'] == 'ObjectReference'
     assert data['latestUpdateId'] < m.FIRST_LOG_ENTRY_ID
     assert iso8601.parse_date(data['latestUpdateAt'])
+
+
+def test_account_lookup(client, creditor):
+    r = client.post('/creditors/2/account-lookup', json={'type': 'AccountIdentity', 'uri': 'xxx:1/2'})
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json']['uri'] == ['The URI can not be recognized.']
+
+    r = client.post('/creditors/2/account-lookup', json={'type': 'AccountIdentity', 'uri': 'swpt:1/2'})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'DebtorIdentity'
+    assert data['uri'] == 'swpt:1'

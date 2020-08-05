@@ -4,6 +4,7 @@ from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib import endpoints
+from swpt_lib.swpt_uris import parse_account_uri, make_debtor_uri
 from swpt_creditors.models import MAX_INT64, DATE0
 from swpt_creditors.schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, TransferListSchema,
@@ -213,7 +214,7 @@ class AccountLookupEndpoint(MethodView):
     @accounts_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_IDENTITY_EXAMPLE)
     @accounts_api.response(DebtorIdentitySchema)
     @accounts_api.doc(operationId='accountLookup')
-    def post(self, account_info, creditorId):
+    def post(self, account_identity, creditorId):
         """Given an account identity, find the debtor's identity.
 
         This can be useful, for example, when the creditor wants to
@@ -223,9 +224,12 @@ class AccountLookupEndpoint(MethodView):
 
         """
 
-        # TODO: Should return 422 if the accounts's URI can not be recognized.
+        try:
+            debtor_id, account_id = parse_account_uri(account_identity['uri'])
+        except ValueError:
+            abort(422, errors={'json': {'uri': ['The URI can not be recognized.']}})
 
-        abort(404)
+        return {'uri': make_debtor_uri(debtor_id)}
 
 
 @accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
@@ -235,7 +239,7 @@ class DebtorLookupEndpoint(MethodView):
     @accounts_api.doc(operationId='debtorLookup',
                       responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
                                  303: specs.ACCOUNT_EXISTS})
-    def post(self, account_info, creditorId):
+    def post(self, debtor_identity, creditorId):
         """Try to find an existing account with a given debtor.
 
         This is useful when the creditor wants not know if he already
@@ -289,7 +293,7 @@ class AccountsEndpoint(MethodView):
             )
             transfer = procedures.create_account(creditorId, debtor_id)
         except endpoints.MatchError:
-            abort(422, errors={"uri": ["The debtor's URI can not be recognized."]})
+            abort(422, errors={'json': {'uri': ["The debtor's URI can not be recognized."]}})
         except procedures.TooManyManagementActionsError:
             abort(403)
         except procedures.CreditorDoesNotExistError:
@@ -520,7 +524,7 @@ class TransfersEndpoint(MethodView):
             # TODO: parse `transfer_creation_request['recipient']`.
             debtor_id, recipient = 1, 'xxx'
         except ValueError:
-            abort(422, errors={"recipient": {"uri": ["The recipient's URI can not be recognized."]}})
+            abort(422, errors={'json': {'recipient': {'uri': ["The recipient's URI can not be recognized."]}}})
         try:
             transfer = procedures.initiate_transfer(
                 creditor_id=creditorId,
