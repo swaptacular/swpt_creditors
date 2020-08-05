@@ -172,8 +172,88 @@ def test_create_account(client, creditor):
     assert r.status_code == 201
     data1 = r.get_json()
     assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
-    assert data1['type'] == 'Account'
-    assert data1['uri'] == '/creditors/2/accounts/1/'
+    latestUpdateId = data1['latestUpdateId']
+    latestUpdateAt = data1['latestUpdateAt']
+    createdAt = data1['createdAt']
+    assert latestUpdateId >= 1
+    assert iso8601.parse_date(latestUpdateAt)
+    assert iso8601.parse_date(createdAt)
+    assert data1 == {
+        'type': 'Account',
+        'uri': '/creditors/2/accounts/1/',
+        'accountList': {'uri': '/creditors/2/account-list'},
+        'createdAt': createdAt,
+        'latestUpdateAt': latestUpdateAt,
+        'latestUpdateId': latestUpdateId,
+        'debtorIdentity': {
+            'type': 'DebtorIdentity',
+            'uri': 'swpt:1',
+        },
+        'config': {
+            'type': 'AccountConfig',
+            'uri': '/creditors/2/accounts/1/config',
+            'account': {'uri': '/creditors/2/accounts/1/'},
+            'allowUnsafeDeletion': False,
+            'negligibleAmount': 1e+30,
+            'scheduledForDeletion': False,
+            'latestUpdateAt': latestUpdateAt,
+            'latestUpdateId': latestUpdateId,
+        },
+        'display': {
+            'type': 'AccountDisplay',
+            'uri': '/creditors/2/accounts/1/display',
+            'account': {'uri': '/creditors/2/accounts/1/'},
+            'amountDivisor': 1.0,
+            'decimalPlaces': 0,
+            'hide': False,
+            'ownUnitPreference': 0,
+            'latestUpdateAt': latestUpdateAt,
+            'latestUpdateId': latestUpdateId,
+        },
+        'exchange': {
+            'type': 'AccountExchange',
+            'uri': '/creditors/2/accounts/1/exchange',
+            'account': {'uri': '/creditors/2/accounts/1/'},
+            'minPrincipal': -9223372036854775808,
+            'maxPrincipal': 9223372036854775807,
+            'latestUpdateAt': latestUpdateAt,
+            'latestUpdateId': latestUpdateId,
+        },
+        'info': {
+            'type': 'AccountInfo',
+            'uri': '/creditors/2/accounts/1/info',
+            'account': {'uri': '/creditors/2/accounts/1/'},
+            'interestRate': 0.0,
+            'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
+            'overflown': False,
+            'safeToDelete': False,
+            'latestUpdateAt': latestUpdateAt,
+            'latestUpdateId': latestUpdateId,
+        },
+        'knowledge': {
+            'type': 'AccountKnowledge',
+            'uri': '/creditors/2/accounts/1/knowledge',
+            'account': {'uri': '/creditors/2/accounts/1/'},
+            'interestRate': 0.0,
+            'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
+            'latestUpdateAt': latestUpdateAt,
+            'latestUpdateId': latestUpdateId,
+        },
+        'ledger': {
+            'type': 'AccountLedger',
+            'uri': '/creditors/2/accounts/1/ledger',
+            'account': {'uri': '/creditors/2/accounts/1/'},
+            'principal': 0,
+            'interest': 0,
+            'latestUpdateAt': latestUpdateAt,
+            'latestUpdateId': latestUpdateId,
+            'entries': {
+                'first': f'/creditors/2/accounts/1/entries?prev={latestUpdateId + 1}',
+                'itemsType': 'LedgerEntry',
+                'type': 'PaginatedList',
+            },
+        },
+    }
 
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 303

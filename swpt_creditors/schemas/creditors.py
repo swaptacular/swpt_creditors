@@ -13,6 +13,7 @@ class CreditorCreationRequestSchema(ValidateTypeMixin, Schema):
         load_only=True,
         missing='CreditorCreationRequest',
         description='The type of this object.',
+        example='CreditorCreationRequest',
     )
 
 
