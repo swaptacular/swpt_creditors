@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import tuple_, and_
+from sqlalchemy.sql.expression import tuple_, and_, null
 from sqlalchemy.orm import joinedload, exc
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
@@ -80,6 +80,10 @@ class UnsafeAccountDeletionError(Exception):
 
 class PegAccountDeletionError(Exception):
     """Can not delete an account that acts as a currency peg."""
+
+
+class InvalidExchangePolicyError(Exception):
+    """Invalid exchange policy."""
 
 
 @atomic
@@ -286,6 +290,57 @@ def update_account_config(
     # TODO: write to the log.
 
     return config
+
+
+@atomic
+def update_account_knowledge(
+        creditor_id: int,
+        debtor_id: int,
+        interest_rate: float,
+        interest_rate_changed_at_ts: datetime,
+        account_identity: Optional[str],
+        debtor_info_sha256: Optional[bytes]) -> AccountKnowledge:
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    knowledge, creditor = _join_creditor(AccountKnowledge, creditor_id, debtor_id)
+    knowledge.interest_rate = interest_rate
+    knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
+    knowledge.account_identity = account_identity
+    knowledge.debtor_info_sha256 = debtor_info_sha256
+    knowledge.latest_update_id, knowledge.latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_knowledge,
+        object_uri=paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id),
+    )
+    return knowledge
+
+
+@atomic
+def update_account_exchange(
+        creditor_id: int,
+        debtor_id: int,
+        policy: Optional[str],
+        min_principal: int,
+        max_principal: int) -> AccountKnowledge:
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    if policy is not None:
+        raise InvalidExchangePolicyError()
+
+    exchange, creditor = _join_creditor(AccountExchange, creditor_id, debtor_id)
+    exchange.policy = policy
+    exchange.min_principal = min_principal
+    exchange.max_principal = max_principal
+    exchange.latest_update_id, exchange.latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_exchange,
+        object_uri=paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id),
+    )
+    return exchange
 
 
 @atomic
@@ -786,3 +841,18 @@ def _finalize_direct_transfer(
         direct_transfer.is_successful = error is None
         if error is not None:
             direct_transfer.error = error
+
+
+def _join_creditor(m: T, creditor_id: int, debtor_id: int) -> Tuple[T, Creditor]:
+    query = db.session.query(m, Creditor).join(Creditor, Creditor.creditor_id == m.creditor_id).filter(
+        m.creditor_id == creditor_id,
+        m.debtor_id == debtor_id,
+        Creditor.deactivated_at_date == null(),
+    )
+
+    try:
+        m, creditor = query.with_for_update().one()
+    except exc.NoResultFound:
+        raise AccountDoesNotExistError()
+
+    return m, creditor

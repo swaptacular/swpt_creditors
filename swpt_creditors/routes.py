@@ -1,3 +1,4 @@
+from base64 import b16decode
 from functools import partial
 from datetime import date, timedelta
 from flask import current_app, redirect, url_for, request
@@ -49,6 +50,8 @@ class path_builder:
 class schema_types:
     creditor = 'Creditor'
     account = 'Account'
+    account_knowledge = 'AccountKnowledge'
+    account_exchange = 'AccountExchange'
 
 
 CONTEXT = {'paths': path_builder}
@@ -372,8 +375,8 @@ class AccountConfigEndpoint(MethodView):
 
         try:
             config = procedures.update_account_config(
-                creditorId,
-                debtorId,
+                creditor_id=creditorId,
+                debtor_id=debtorId,
                 is_scheduled_for_deletion=account_config['is_scheduled_for_deletion'],
                 negligible_amount=account_config['negligible_amount'],
                 allow_unsafe_deletion=account_config['allow_unsafe_deletion'],
@@ -426,9 +429,20 @@ class AccountExchangeEndpoint(MethodView):
     def patch(self, account_exchange, creditorId, debtorId):
         """Update account's exchange settings."""
 
-        # TODO: Should return 422 if the exchange policy is not recognized.
+        try:
+            exchange = procedures.update_account_exchange(
+                creditor_id=creditorId,
+                debtor_id=debtorId,
+                min_principal=account_exchange['min_principal'],
+                max_principal=account_exchange['max_principal'],
+                policy=account_exchange.get('optional_policy'),
+            )
+        except procedures.AccountDoesNotExistError:
+            abort(404)
+        except procedures.InvalidExchangePolicyError:
+            abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
 
-        abort(404)
+        return exchange
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/knowledge', parameters=[CID, DID])
@@ -463,7 +477,21 @@ class AccountKnowledgeEndpoint(MethodView):
 
         """
 
-        abort(404)
+        try:
+            optional_account_identity = account_knowledge.get('optional_account_identity')
+            optional_debtor_info_sha256 = account_knowledge.get('optional_debtor_info_sha256')
+            knowledge = procedures.update_account_knowledge(
+                creditor_id=creditorId,
+                debtor_id=debtorId,
+                interest_rate=account_knowledge['interest_rate'],
+                interest_rate_changed_at_ts=account_knowledge['interest_rate_changed_at_ts'],
+                account_identity=optional_account_identity and optional_account_identity['uri'],
+                debtor_info_sha256=optional_debtor_info_sha256 and b16decode(optional_debtor_info_sha256),
+            )
+        except procedures.AccountDoesNotExistError:
+            abort(404)
+
+        return knowledge
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/info', parameters=[CID, DID])

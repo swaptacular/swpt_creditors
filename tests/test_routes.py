@@ -1,4 +1,5 @@
 from urllib.parse import urljoin, urlparse
+from datetime import datetime, timezone
 import pytest
 import iso8601
 from swpt_lib.utils import u64_to_i64
@@ -435,6 +436,39 @@ def test_get_account_exchange(client, account):
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'policy' not in data
 
+    request_data = {
+        'minPrincipal': 1000,
+        'maxPrincipal': 2000,
+    }
+
+    r = client.patch('/creditors/2/accounts/1111/exchange', json=request_data)
+    assert r.status_code == 404
+
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountExchange'
+    assert data['uri'] == '/creditors/2/accounts/1/exchange'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['minPrincipal'] == 1000
+    assert data['maxPrincipal'] == 2000
+    assert 'policy' not in data
+
+    r = client.patch('/creditors/2/accounts/1/exchange', json={})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountExchange'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 2
+    assert data['minPrincipal'] == p.MIN_INT64
+    assert data['maxPrincipal'] == p.MAX_INT64
+    assert 'policy' not in data
+
+    r = client.patch('/creditors/2/accounts/1/exchange', json={'policy': 'INVALID'})
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json']['policy'] == ['Invalid policy name.']
+
 
 def test_get_account_knowledge(client, account):
     r = client.get('/creditors/2/accounts/1111/knowledge')
@@ -452,6 +486,53 @@ def test_get_account_knowledge(client, account):
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'debtorInfoSha256' not in data
     assert 'accountIdentity' not in data
+
+    request_data = {
+        'debtorInfoSha256': 64 * '0',
+        'interestRate': 11.5,
+        'interestRateChangedAt': '2020-01-01T00:00:00Z',
+        'accountIdentity': {
+            'type': 'AccountIdentity',
+            'uri': 'swpt:1/2',
+        },
+    }
+
+    r = client.patch('/creditors/2/accounts/1111/knowledge', json=request_data)
+    assert r.status_code == 404
+
+    r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountKnowledge'
+    assert data['uri'] == '/creditors/2/accounts/1/knowledge'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['debtorInfoSha256'] == 64 * '0'
+    assert data['interestRate'] == 11.5
+    assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
+    assert data['accountIdentity'] == {'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
+
+    del request_data['debtorInfoSha256']
+    del request_data['accountIdentity']
+    r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountKnowledge'
+    assert data['uri'] == '/creditors/2/accounts/1/knowledge'
+    assert data['interestRate'] == 11.5
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 2
+    assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert 'debtorInfoSha256' not in data
+    assert 'accountIdentity' not in data
+
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 3
+    assert [(e['objectType'], e['entryId'], e['previousEntryId']) for e in entries] == [
+        ('Account', m.FIRST_LOG_ENTRY_ID, 1),
+        ('AccountKnowledge', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
+        ('AccountKnowledge', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
+    ]
 
 
 def test_get_account_info(client, account):
