@@ -349,10 +349,10 @@ class AccountEndpoint(MethodView):
 
         try:
             procedures.delete_account(creditorId, debtorId)
-        except procedures.UnsafeAccountDeletionError:
-            abort(403)
         except procedures.PegAccountDeletionError:
             abort(409)
+        except procedures.UnsafeAccountDeletionError:
+            abort(403)
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])
