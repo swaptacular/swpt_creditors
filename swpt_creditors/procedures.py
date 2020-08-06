@@ -851,8 +851,6 @@ def _join_creditor(m: db.Model, creditor_id: int, debtor_id: int) -> Tuple[db.Mo
     )
 
     try:
-        m, creditor = query.with_for_update().one()
+        return query.with_for_update().one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
-
-    return m, creditor
