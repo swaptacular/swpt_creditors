@@ -469,6 +469,14 @@ def test_get_account_exchange(client, account):
     data = r.get_json()
     assert data['errors']['json']['policy'] == ['Invalid policy name.']
 
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 3
+    assert [(e['objectType'], e['entryId'], e['previousEntryId']) for e in entries] == [
+        ('Account', m.FIRST_LOG_ENTRY_ID, 1),
+        ('AccountExchange', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
+        ('AccountExchange', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
+    ]
+
 
 def test_get_account_knowledge(client, account):
     r = client.get('/creditors/2/accounts/1111/knowledge')
