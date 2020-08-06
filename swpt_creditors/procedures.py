@@ -247,6 +247,46 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
 
 @atomic
+def get_account_data(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountData.get_instance((creditor_id, debtor_id))
+
+
+@atomic
+def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountConfig.get_instance((creditor_id, debtor_id))
+
+
+@atomic
+def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDisplay]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountDisplay.get_instance((creditor_id, debtor_id))
+
+
+@atomic
+def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountKnowledge]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountKnowledge.get_instance((creditor_id, debtor_id))
+
+
+@atomic
+def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountExchange]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountExchange.get_instance((creditor_id, debtor_id))
+
+
+@atomic
 def change_account_config(
         creditor_id: int,
         debtor_id: int,

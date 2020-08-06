@@ -348,7 +348,7 @@ class AccountEndpoint(MethodView):
             procedures.delete_account(creditorId, debtorId)
         except procedures.UnsafeAccountDeletionError:
             abort(403)
-        except PegAccountDeletionError:
+        except procedures.PegAccountDeletionError:
             abort(409)
 
 
@@ -359,7 +359,10 @@ class AccountConfigEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's configuration."""
 
-        abort(404)
+        config = procedures.get_account_config(creditorId, debtorId)
+        if config is None:
+            abort(404)
+        return config
 
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=CONTEXT))
@@ -377,7 +380,10 @@ class AccountDisplayEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's display settings."""
 
-        abort(404)
+        display = procedures.get_account_display(creditorId, debtorId)
+        if display is None:
+            abort(404)
+        return display
 
     @accounts_api.arguments(AccountDisplaySchema)
     @accounts_api.response(AccountDisplaySchema(context=CONTEXT))
@@ -398,7 +404,10 @@ class AccountExchangeEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's exchange settings."""
 
-        abort(404)
+        exchange = procedures.get_account_exchange(creditorId, debtorId)
+        if exchange is None:
+            abort(404)
+        return exchange
 
     @accounts_api.arguments(AccountExchangeSchema)
     @accounts_api.response(AccountExchangeSchema(context=CONTEXT))
@@ -426,7 +435,10 @@ class AccountKnowledgeEndpoint(MethodView):
 
         """
 
-        abort(404)
+        knowledge = procedures.get_account_knowledge(creditorId, debtorId)
+        if knowledge is None:
+            abort(404)
+        return knowledge
 
     @accounts_api.arguments(AccountKnowledgeSchema)
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
@@ -450,7 +462,10 @@ class AccountInfoEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's status information."""
 
-        abort(404)
+        data = procedures.get_account_data(creditorId, debtorId)
+        if data is None:
+            abort(404)
+        return data
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/ledger', parameters=[CID, DID])
@@ -460,7 +475,10 @@ class AccountLedgerEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's ledger."""
 
-        abort(404)
+        data = procedures.get_account_data(creditorId, debtorId)
+        if data is None:
+            abort(404)
+        return data
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])

@@ -358,3 +358,118 @@ def test_delete_account(client, account):
 
     r = client.delete('/creditors/2/accounts/1/')
     assert r.status_code == 403
+
+
+def test_get_account_config(client, account):
+    r = client.get('/creditors/2/accounts/1111/config')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/config')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountConfig'
+    assert data['uri'] == '/creditors/2/accounts/1/config'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['scheduledForDeletion'] is False
+    assert data['allowUnsafeDeletion'] is False
+    assert data['negligibleAmount'] >= 1e30
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+
+
+def test_get_account_display(client, account):
+    r = client.get('/creditors/2/accounts/1111/display')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/display')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountDisplay'
+    assert data['uri'] == '/creditors/2/accounts/1/display'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['ownUnitPreference'] == 0
+    assert data['amountDivisor'] == 1.0
+    assert data['hide'] is False
+    assert data['decimalPlaces'] == 0
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+    assert 'peg' not in data
+    assert 'ownUnit' not in data
+    assert 'debtorName' not in data
+
+
+def test_get_account_exchange(client, account):
+    r = client.get('/creditors/2/accounts/1111/exchange')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/exchange')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountExchange'
+    assert data['uri'] == '/creditors/2/accounts/1/exchange'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['minPrincipal'] == p.MIN_INT64
+    assert data['maxPrincipal'] == p.MAX_INT64
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+    assert 'policy' not in data
+
+
+def test_get_account_knowledge(client, account):
+    r = client.get('/creditors/2/accounts/1111/knowledge')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/knowledge')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountKnowledge'
+    assert data['uri'] == '/creditors/2/accounts/1/knowledge'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert iso8601.parse_date(data['interestRateChangedAt']) == m.TS0
+    assert data['interestRate'] == 0.0
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+    assert 'debtorInfoSha256' not in data
+    assert 'accountIdentity' not in data
+
+
+def test_get_account_info(client, account):
+    r = client.get('/creditors/2/accounts/1111/info')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/info')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountInfo'
+    assert data['uri'] == '/creditors/2/accounts/1/info'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert iso8601.parse_date(data['interestRateChangedAt']) == m.TS0
+    assert data['interestRate'] == 0.0
+    assert data['safeToDelete'] is False
+    assert data['overflown'] is False
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+    assert 'debtorInfoUrl' not in data
+    assert 'accountIdentity' not in data
+    assert 'configError' not in data
+
+
+def test_get_account_ledger(client, account):
+    r = client.get('/creditors/2/accounts/1111/ledger')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/ledger')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountLedger'
+    assert data['uri'] == '/creditors/2/accounts/1/ledger'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['principal'] == 0
+    assert data['interest'] == 0
+    assert data['entries'] == {
+        'itemsType': 'LedgerEntry',
+        'type': 'PaginatedList',
+        'first': f'/creditors/2/accounts/1/entries?prev={m.FIRST_LOG_ENTRY_ID + 1}'
+    }
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
