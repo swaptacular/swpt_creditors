@@ -471,10 +471,10 @@ def test_get_account_exchange(client, account):
 
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 3
-    assert [(e['objectType'], e['entryId'], e['previousEntryId']) for e in entries] == [
-        ('Account', m.FIRST_LOG_ENTRY_ID, 1),
-        ('AccountExchange', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
-        ('AccountExchange', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
+    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', m.FIRST_LOG_ENTRY_ID, 1),
+        ('AccountExchange', '/creditors/2/accounts/1/exchange', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
+        ('AccountExchange', '/creditors/2/accounts/1/exchange', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
     ]
 
 
@@ -536,10 +536,10 @@ def test_get_account_knowledge(client, account):
 
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 3
-    assert [(e['objectType'], e['entryId'], e['previousEntryId']) for e in entries] == [
-        ('Account', m.FIRST_LOG_ENTRY_ID, 1),
-        ('AccountKnowledge', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
-        ('AccountKnowledge', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
+    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', m.FIRST_LOG_ENTRY_ID, 1),
+        ('AccountKnowledge', '/creditors/2/accounts/1/knowledge', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
+        ('AccountKnowledge', '/creditors/2/accounts/1/knowledge', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
     ]
 
 
