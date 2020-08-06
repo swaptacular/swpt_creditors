@@ -74,6 +74,14 @@ class AccountsConflictError(Exception):
     """A different account with the same debtor ID already exists."""
 
 
+class UnsafeAccountDeletionError(Exception):
+    """Unauthorized unsafe deletion of an account."""
+
+
+class PegAccountDeletionError(Exception):
+    """Can not delete an account that acts as a currency peg."""
+
+
 @atomic
 def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
     if lock:
@@ -278,9 +286,7 @@ def change_account_config(
 
 
 @atomic
-def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
-    """Try to remove an account, return if the account has been removed."""
-
+def delete_account(creditor_id: int, debtor_id: int):
     # TODO: Make sure users do not remove accounts unsafely too
     #       often. For example, users may create and remove hundreds
     #       of accounts per minute, significantly raising the cost for
@@ -299,13 +305,11 @@ def try_to_remove_account(creditor_id: int, debtor_id: int) -> bool:
             is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and data.is_config_effectual
             is_removal_safe = not data.has_server_account and (is_effectually_scheduled_for_deletion or is_timed_out)
             if not is_removal_safe:
-                return False
-
-        Account.query.\
-            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-            delete(synchronize_session=False)
-
-    return True
+                raise UnsafeAccountDeletionError()
+        try:
+            Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
+        except IntegrityError:
+            raise PegAccountDeletionError()
 
 
 @atomic

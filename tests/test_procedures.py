@@ -90,8 +90,8 @@ def test_change_account_config(db_session, setup_account):
     assert config.is_scheduled_for_deletion
 
 
-def test_try_to_remove_account(db_session, setup_account, current_ts):
-    assert p.try_to_remove_account(C_ID, 1234)
+def test_delete_account(db_session, setup_account, current_ts):
+    p.delete_account(C_ID, 1234)
     p.process_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -117,10 +117,12 @@ def test_try_to_remove_account(db_session, setup_account, current_ts):
     )
     account = Account.query.one()
     assert not account.config.is_scheduled_for_deletion
-    assert not p.try_to_remove_account(C_ID, D_ID)
+    with pytest.raises(p.UnsafeAccountDeletionError):
+        p.delete_account(C_ID, D_ID)
+
     assert AccountConfig.query.one()
     p.change_account_config(C_ID, D_ID, True, 0.0, False)
-    assert p.try_to_remove_account(C_ID, D_ID)
+    p.delete_account(C_ID, D_ID)
     assert AccountConfig.query.one_or_none() is None
 
 

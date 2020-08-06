@@ -350,3 +350,11 @@ def test_get_account(client, account):
     data = r.get_json()
     assert data['type'] == 'Account'
     assert data['uri'] == '/creditors/2/accounts/1/'
+
+
+def test_delete_account(client, account):
+    r = client.delete('/creditors/2/accounts/1111/')
+    assert r.status_code == 204
+
+    r = client.delete('/creditors/2/accounts/1/')
+    assert r.status_code == 403
