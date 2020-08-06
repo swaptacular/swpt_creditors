@@ -263,6 +263,32 @@ def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountConf
 
 
 @atomic
+def update_account_config(
+        creditor_id: int,
+        debtor_id: int,
+        is_scheduled_for_deletion: bool,
+        negligible_amount: float,
+        allow_unsafe_deletion: bool) -> AccountConfig:
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    # TODO: write to AccountData as well.
+
+    config = AccountConfig.lock_instance((creditor_id, debtor_id))
+    if config is None:
+        raise AccountDoesNotExistError()
+
+    config.is_scheduled_for_deletion = is_scheduled_for_deletion
+    config.negligible_amount = negligible_amount
+    config.allow_unsafe_deletion = allow_unsafe_deletion
+
+    # TODO: write to the log.
+
+    return config
+
+
+@atomic
 def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDisplay]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64

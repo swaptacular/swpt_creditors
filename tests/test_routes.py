@@ -376,6 +376,27 @@ def test_get_account_config(client, account):
     assert data['negligibleAmount'] >= 1e30
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
 
+    request_data = {
+        'negligibleAmount': 100.0,
+        'allowUnsafeDeletion': True,
+        'scheduledForDeletion': True,
+    }
+
+    r = client.patch('/creditors/2/accounts/1111/config', json=request_data)
+    assert r.status_code == 404
+
+    r = client.patch('/creditors/2/accounts/1/config', json=request_data)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountConfig'
+    assert data['uri'] == '/creditors/2/accounts/1/config'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['scheduledForDeletion'] is True
+    assert data['allowUnsafeDeletion'] is True
+    assert data['negligibleAmount'] == 100.0
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+
 
 def test_get_account_display(client, account):
     r = client.get('/creditors/2/accounts/1111/display')

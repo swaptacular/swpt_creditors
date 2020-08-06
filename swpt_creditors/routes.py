@@ -370,7 +370,18 @@ class AccountConfigEndpoint(MethodView):
     def patch(self, account_config, creditorId, debtorId):
         """Update account's configuration."""
 
-        abort(404)
+        try:
+            config = procedures.update_account_config(
+                creditorId,
+                debtorId,
+                is_scheduled_for_deletion=account_config['is_scheduled_for_deletion'],
+                negligible_amount=account_config['negligible_amount'],
+                allow_unsafe_deletion=account_config['allow_unsafe_deletion'],
+            )
+        except procedures.AccountDoesNotExistError:
+            abort(404)
+
+        return config
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/display', parameters=[CID, DID])
