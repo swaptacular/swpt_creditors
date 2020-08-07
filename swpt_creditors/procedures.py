@@ -86,8 +86,12 @@ class InvalidExchangePolicyError(Exception):
     """Invalid exchange policy."""
 
 
-class AccountDisplayConflictError(Exception):
-    """Another account with the same debtorName or ownUnit already exist."""
+class AccountDebtorNameConflictError(Exception):
+    """Another account with the same debtorName already exist."""
+
+
+class AccountOwnUnitConflictError(Exception):
+    """Another account with the same ownUnit already exist."""
 
 
 @atomic
@@ -251,6 +255,9 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
     _insert_configure_account_signal(account.config, account.data, account.created_at_ts)
 
+    # TODO: Set `AccountDisplay.peg_account_debtor_id` on all accounts
+    #       pegged to the newly created account.
+
     return account
 
 
@@ -314,6 +321,24 @@ def update_account_display(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     display, creditor = _join_creditor(AccountDisplay, creditor_id, debtor_id)
+
+    if debtor_name is not None:
+        debtor_name_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_name=debtor_name)
+        debtor_name_confilict = db.session.query(debtor_name_query.exists()).scalar()
+        if debtor_name_confilict:
+            raise AccountDebtorNameConflictError()
+
+    if own_unit is not None:
+        own_unit_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, own_unit=own_unit)
+        own_unit_conflict = db.session.query(own_unit_query.exists()).scalar()
+        if own_unit_conflict:
+            raise AccountOwnUnitConflictError()
+
+    if peg_currency_debtor_id is not None:
+        assert peg_exchange_rate is not None
+        peg_account_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_id=peg_currency_debtor_id)
+        peg_account_exists = db.session.query(peg_account_query.exists()).scalar()
+
     display.debtor_name = debtor_name
     display.amount_divisor = amount_divisor
     display.decimal_places = decimal_places
@@ -322,6 +347,7 @@ def update_account_display(
     display.hide = hide
     display.peg_exchange_rate = peg_exchange_rate
     display.peg_currency_debtor_id = peg_currency_debtor_id
+    display.peg_account_debtor_id = peg_currency_debtor_id if peg_account_exists else None
     display.peg_debtor_home_url = peg_debtor_home_url
     display.latest_update_id, display.latest_update_ts = _add_log_entry(
         creditor,
@@ -329,13 +355,8 @@ def update_account_display(
         object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
     )
 
-    try:
-        db.session.flush()
-    except IntegrityError:
-        db.session.rollback()
-        raise AccountDisplayConflictError()
-
-    # TODO: Set display.peg_currency_debtor_id and check all pegged accounts.
+    with db.retry_on_integrity_error():
+        pass
 
     return display
 

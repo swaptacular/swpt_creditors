@@ -430,8 +430,10 @@ class AccountDisplayEndpoint(MethodView):
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
                 peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
             )
-        except procedures.AccountDisplayConflictError:
-            abort(409)
+        except procedures.AccountDebtorNameConflictError:
+            abort(409, errors={'json': {'debtorName': ['Account with the same debtorName already exist.']}})
+        except procedures.AccountOwnUnitConflictError:
+            abort(409, errors={'json': {'ownUnit': ['Account with the same ownUnit already exist.']}})
         except procedures.AccountDoesNotExistError:
             abort(404)
 
