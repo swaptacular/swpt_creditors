@@ -409,7 +409,7 @@ class AccountDisplayEndpoint(MethodView):
 
         optional_peg = account_display.get('optional_peg')
         optional_debtor_name = account_display.get('optional_debtor_name')
-        optional_own_unit = account_display.get('optional_own_unit'),
+        optional_own_unit = account_display.get('optional_own_unit')
 
         try:
             optional_peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])

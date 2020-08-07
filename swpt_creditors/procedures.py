@@ -322,13 +322,13 @@ def update_account_display(
 
     display, creditor = _join_creditor(AccountDisplay, creditor_id, debtor_id)
 
-    if debtor_name is not None:
+    if debtor_name not in [display.debtor_name, None]:
         debtor_name_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_name=debtor_name)
         debtor_name_confilict = db.session.query(debtor_name_query.exists()).scalar()
         if debtor_name_confilict:
             raise AccountDebtorNameConflictError()
 
-    if own_unit is not None:
+    if own_unit not in [display.own_unit, None]:
         own_unit_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, own_unit=own_unit)
         own_unit_conflict = db.session.query(own_unit_query.exists()).scalar()
         if own_unit_conflict:

@@ -419,20 +419,30 @@ def test_get_account_display(client, account):
     assert 'ownUnit' not in data
     assert 'debtorName' not in data
 
+    r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:11'})
+    assert r.status_code == 201
+
+    r = client.patch('/creditors/2/accounts/11/config', json={
+        'scheduledForDeletion': True,
+        'negligibleAmount': 1e30,
+        'allowUnsafeDeletion': True,
+    })
+    assert r.status_code == 200
+
     request_data = {
         'type': 'AccountDisplay',
         'debtorName': 'United States of America',
-        'amountDivisor': 100,
+        'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'ownUnit': 'USD',
         'ownUnitPreference': 1000000,
-        'hide': False,
+        'hide': True,
         'peg': {
             'type': 'CurrencyPeg',
             'exchangeRate': 10.0,
             'debtorIdentity': {
                 'type': 'DebtorIdentity',
-                'uri': 'swpt:111',
+                'uri': 'swpt:11',
             },
             'debtorHomeUrl': 'https://example.com/debtor-home-url',
         },
@@ -446,14 +456,68 @@ def test_get_account_display(client, account):
     data = r.get_json()
     assert data['type'] == 'AccountDisplay'
     assert data['uri'] == '/creditors/2/accounts/1/display'
-    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 1
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 2
     assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['debtorName'] == 'United States of America'
+    assert data['amountDivisor'] == 100.0
+    assert data['decimalPlaces'] == 2
+    assert data['ownUnit'] == 'USD'
+    assert data['ownUnitPreference'] == 1000000
+    assert data['hide'] is True
+    assert data['peg'] == {
+        'type': 'CurrencyPeg',
+        'exchangeRate': 10.0,
+        'debtorIdentity': {
+            'type': 'DebtorIdentity',
+            'uri': 'swpt:11',
+        },
+        'display': {'uri': '/creditors/2/accounts/11/display'},
+        'debtorHomeUrl': 'https://example.com/debtor-home-url',
+    }
+
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 4
+    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', m.FIRST_LOG_ENTRY_ID, 1),
+        ('Account', '/creditors/2/accounts/11/', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
+        ('AccountConfig', '/creditors/2/accounts/11/config', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
+        ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 3, m.FIRST_LOG_ENTRY_ID + 2),
+    ]
 
     request_data['peg']['debtorIdentity']['uri'] = 'INVALID'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 422
     data = r.get_json()
     assert data['errors']['json']['peg']['debtorIdentity']['uri'] == ['The URI can not be recognized.']
+
+    r = client.delete('/creditors/2/accounts/11/')
+    assert r.status_code == 409
+
+    request_data['peg']['debtorIdentity']['uri'] = 'swpt:1111'
+    request_data['peg']['debtorHomeUrl'] = 'https://example.com/another-debtor-home-url'
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountDisplay'
+    assert data['uri'] == '/creditors/2/accounts/1/display'
+    assert data['debtorName'] == 'United States of America'
+    assert data['amountDivisor'] == 100.0
+    assert data['decimalPlaces'] == 2
+    assert data['ownUnit'] == 'USD'
+    assert data['ownUnitPreference'] == 1000000
+    assert data['hide'] is True
+    assert data['peg'] == {
+        'type': 'CurrencyPeg',
+        'exchangeRate': 10.0,
+        'debtorIdentity': {
+            'type': 'DebtorIdentity',
+            'uri': 'swpt:1111',
+        },
+        'debtorHomeUrl': 'https://example.com/another-debtor-home-url',
+    }
+
+    r = client.delete('/creditors/2/accounts/11/')
+    assert r.status_code == 204
 
 
 def test_get_account_exchange(client, account):
