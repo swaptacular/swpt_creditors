@@ -290,15 +290,15 @@ def update_account_config(
 
     # TODO: write to AccountData as well.
 
-    config = AccountConfig.lock_instance((creditor_id, debtor_id))
-    if config is None:
-        raise AccountDoesNotExistError()
-
+    config, creditor = _join_creditor(AccountConfig, creditor_id, debtor_id)
     config.is_scheduled_for_deletion = is_scheduled_for_deletion
     config.negligible_amount = negligible_amount
     config.allow_unsafe_deletion = allow_unsafe_deletion
-
-    # TODO: write to the log.
+    config.latest_update_id, config.latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_config,
+        object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
+    )
 
     return config
 

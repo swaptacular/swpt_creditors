@@ -391,12 +391,19 @@ def test_get_account_config(client, account):
     data = r.get_json()
     assert data['type'] == 'AccountConfig'
     assert data['uri'] == '/creditors/2/accounts/1/config'
-    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 1
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['scheduledForDeletion'] is True
     assert data['allowUnsafeDeletion'] is True
     assert data['negligibleAmount'] == 100.0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 2
+    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', m.FIRST_LOG_ENTRY_ID, 1),
+        ('AccountConfig', '/creditors/2/accounts/1/config', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
+    ]
 
 
 def test_get_account_display(client, account):
@@ -456,7 +463,7 @@ def test_get_account_display(client, account):
     data = r.get_json()
     assert data['type'] == 'AccountDisplay'
     assert data['uri'] == '/creditors/2/accounts/1/display'
-    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 2
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 3
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['debtorName'] == 'United States of America'
     assert data['amountDivisor'] == 100.0

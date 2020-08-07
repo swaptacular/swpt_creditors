@@ -53,6 +53,7 @@ class schema_types:
     account_knowledge = 'AccountKnowledge'
     account_exchange = 'AccountExchange'
     account_display = 'AccountDisplay'
+    account_config = 'AccountConfig'
 
 
 CONTEXT = {'paths': path_builder}
