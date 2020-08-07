@@ -253,10 +253,16 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
         db.session.rollback()
         raise AccountExistsError()
 
-    _insert_configure_account_signal(account.config, account.data, account.created_at_ts)
+    for display in AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id).all():
+        display.peg_account_debtor_id = debtor_id
+        display.latest_update_id, display.latest_update_ts = _add_log_entry(
+            creditor,
+            object_type=types.account_display,
+            object_uri=paths.account_display(creditorId=creditor_id, debtorId=display.debtor_id),
+            current_ts=current_ts,
+        )
 
-    # TODO: Set `AccountDisplay.peg_account_debtor_id` on all accounts
-    #       pegged to the newly created account.
+    _insert_configure_account_signal(account.config, account.data, account.created_at_ts)
 
     return account
 

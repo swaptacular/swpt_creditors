@@ -544,6 +544,17 @@ def test_get_account_display(client, account):
     data = r.get_json()
     assert data['errors']['json']['ownUnit'] == ['Another account with this ownUnit already exist.']
 
+    r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:1111'})
+    assert r.status_code == 201
+
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 8
+    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries[5:]] == [
+        ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 5, m.FIRST_LOG_ENTRY_ID + 4),
+        ('Account', '/creditors/2/accounts/1111/', m.FIRST_LOG_ENTRY_ID + 6, m.FIRST_LOG_ENTRY_ID + 5),
+        ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 7, m.FIRST_LOG_ENTRY_ID + 6),
+    ]
+
     r = client.delete('/creditors/2/accounts/11/')
     assert r.status_code == 204
 
