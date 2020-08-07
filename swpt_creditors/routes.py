@@ -429,13 +429,15 @@ class AccountExchangeEndpoint(MethodView):
     def patch(self, account_exchange, creditorId, debtorId):
         """Update account's exchange settings."""
 
+        optional_policy = account_exchange.get('optional_policy')
+
         try:
             exchange = procedures.update_account_exchange(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
-                policy=account_exchange.get('optional_policy'),
+                policy=optional_policy,
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
@@ -477,9 +479,10 @@ class AccountKnowledgeEndpoint(MethodView):
 
         """
 
+        optional_account_identity = account_knowledge.get('optional_account_identity')
+        optional_debtor_info_sha256 = account_knowledge.get('optional_debtor_info_sha256')
+
         try:
-            optional_account_identity = account_knowledge.get('optional_account_identity')
-            optional_debtor_info_sha256 = account_knowledge.get('optional_debtor_info_sha256')
             knowledge = procedures.update_account_knowledge(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
