@@ -86,6 +86,10 @@ class InvalidExchangePolicyError(Exception):
     """Invalid exchange policy."""
 
 
+class AccountDisplayConflictError(Exception):
+    """Another account with the same debtorName or ownUnit already exist."""
+
+
 @atomic
 def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
     if lock:
@@ -290,6 +294,50 @@ def update_account_config(
     # TODO: write to the log.
 
     return config
+
+
+@atomic
+def update_account_display(
+        creditor_id: int,
+        debtor_id: int,
+        debtor_name: Optional[str],
+        amount_divisor: float,
+        decimal_places: int,
+        own_unit: Optional[str],
+        own_unit_preference: int,
+        hide: bool,
+        peg_exchange_rate: Optional[float],
+        peg_currency_debtor_id: Optional[int],
+        peg_debtor_home_url: Optional[str]) -> AccountDisplay:
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    display, creditor = _join_creditor(AccountDisplay, creditor_id, debtor_id)
+    display.debtor_name = debtor_name
+    display.amount_divisor = amount_divisor
+    display.decimal_places = decimal_places
+    display.own_unit = own_unit
+    display.own_unit_preference = own_unit_preference
+    display.hide = hide
+    display.peg_exchange_rate = peg_exchange_rate
+    display.peg_currency_debtor_id = peg_currency_debtor_id
+    display.peg_debtor_home_url = peg_debtor_home_url
+    display.latest_update_id, display.latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_display,
+        object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
+    )
+
+    try:
+        db.session.flush()
+    except IntegrityError:
+        db.session.rollback()
+        raise AccountDisplayConflictError()
+
+    # TODO: Set display.peg_currency_debtor_id and check all pegged accounts.
+
+    return display
 
 
 @atomic

@@ -52,6 +52,7 @@ class schema_types:
     account = 'Account'
     account_knowledge = 'AccountKnowledge'
     account_exchange = 'AccountExchange'
+    account_display = 'AccountDisplay'
 
 
 CONTEXT = {'paths': path_builder}
@@ -406,9 +407,35 @@ class AccountDisplayEndpoint(MethodView):
     def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings."""
 
-        # TODO: Should return 422 if the peg currency is not recognized.
+        optional_peg = account_display.get('optional_peg')
+        optional_debtor_name = account_display.get('optional_debtor_name')
+        optional_own_unit = account_display.get('optional_own_unit'),
 
-        abort(404)
+        try:
+            peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])
+        except ValueError:
+            abort(422, errors={'json': {'peg': {'debtorIdentity': {'uri': ['The URI can not be recognized.']}}}})
+
+        try:
+            display = procedures.update_account_display(
+                creditor_id=creditorId,
+                debtor_id=debtorId,
+                hide=account_display['hide'],
+                amount_divisor=account_display['amount_divisor'],
+                decimal_places=account_display['decimal_places'],
+                own_unit=optional_own_unit,
+                own_unit_preference=account_display['own_unit_preference'],
+                debtor_name=optional_debtor_name,
+                peg_currency_debtor_id=peg_currency_debtor_id,
+                peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
+                peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
+            )
+        except procedures.AccountDisplayConflictError:
+            abort(409)
+        except procedures.AccountDoesNotExistError:
+            abort(404)
+
+        return display
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/exchange', parameters=[CID, DID])
@@ -606,7 +633,7 @@ class TransfersEndpoint(MethodView):
             # TODO: parse `transfer_creation_request['recipient']`.
             debtor_id, recipient = 1, 'xxx'
         except ValueError:
-            abort(422, errors={'json': {'recipient': {'uri': ["The recipient's URI can not be recognized."]}}})
+            abort(422, errors={'json': {'recipient': {'uri': ['The URI can not be recognized.']}}})
         try:
             transfer = procedures.initiate_transfer(
                 creditor_id=creditorId,

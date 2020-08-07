@@ -201,9 +201,9 @@ def test_serialize_account_display(app):
         own_unit_preference=0,
         hide=False,
         peg_exchange_rate=1.0,
-        peg_debtor_identity='https://example.com/gold',
+        peg_currency_debtor_id=-2,
+        peg_account_debtor_id=-2,
         peg_debtor_home_url='https://example.com/debtor-home-url',
-        peg_debtor_id=-2,
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
@@ -218,7 +218,7 @@ def test_serialize_account_display(app):
         'peg': {
             'type': 'CurrencyPeg',
             'display': {'uri': '/creditors/1/accounts/18446744073709551614/display'},
-            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
+            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:18446744073709551614'},
             'debtorHomeUrl': 'https://example.com/debtor-home-url',
             'exchangeRate': 1.0,
         },
@@ -232,7 +232,7 @@ def test_serialize_account_display(app):
     ad.debtor_name = None
     ad.own_unit = None
     ad.peg_debtor_home_url = None
-    ad.peg_debtor_id = None
+    ad.peg_account_debtor_id = None
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
         'uri': '/creditors/1/accounts/18446744073709551615/display',
@@ -240,7 +240,7 @@ def test_serialize_account_display(app):
         'ownUnitPreference': 0,
         'peg': {
             'type': 'CurrencyPeg',
-            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
+            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:18446744073709551614'},
             'exchangeRate': 1.0,
         },
         'amountDivisor': 100.0,

@@ -3,7 +3,7 @@ from base64 import b16encode
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, pre_dump, post_dump, validates_schema
 from swpt_lib.utils import i64_to_u64
-from swpt_lib.swpt_uris import make_account_uri
+from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0, DATE0
 from .common import (
@@ -731,10 +731,11 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         if obj.peg_exchange_rate is not None:
             peg = {
                 'exchange_rate': obj.peg_exchange_rate,
-                'debtor_identity': {'uri': obj.peg_debtor_identity},
+                'debtor_identity': {'uri': make_debtor_uri(obj.peg_currency_debtor_id)},
             }
-            if obj.peg_debtor_id is not None:
-                peg['display'] = {'uri': paths.account_display(creditorId=obj.creditor_id, debtorId=obj.peg_debtor_id)}
+            if obj.peg_account_debtor_id is not None:
+                display_path = paths.account_display(creditorId=obj.creditor_id, debtorId=obj.peg_account_debtor_id)
+                peg['display'] = {'uri': display_path}
             if obj.peg_debtor_home_url is not None:
                 peg['optional_debtor_home_url'] = obj.peg_debtor_home_url
             obj.optional_peg = peg

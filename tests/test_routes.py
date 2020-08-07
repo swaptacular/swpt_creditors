@@ -419,6 +419,42 @@ def test_get_account_display(client, account):
     assert 'ownUnit' not in data
     assert 'debtorName' not in data
 
+    request_data = {
+        'type': 'AccountDisplay',
+        'debtorName': 'United States of America',
+        'amountDivisor': 100,
+        'decimalPlaces': 2,
+        'ownUnit': 'USD',
+        'ownUnitPreference': 1000000,
+        'hide': False,
+        'peg': {
+            'type': 'CurrencyPeg',
+            'exchangeRate': 10.0,
+            'debtorIdentity': {
+                'type': 'DebtorIdentity',
+                'uri': 'swpt:111',
+            },
+            'debtorHomeUrl': 'https://example.com/debtor-home-url',
+        },
+    }
+
+    r = client.patch('/creditors/2/accounts/1111/display', json=request_data)
+    assert r.status_code == 404
+
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'AccountDisplay'
+    assert data['uri'] == '/creditors/2/accounts/1/display'
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+
+    request_data['peg']['debtorIdentity']['uri'] = 'INVALID'
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json']['peg']['debtorIdentity']['uri'] == ['The URI can not be recognized.']
+
 
 def test_get_account_exchange(client, account):
     r = client.get('/creditors/2/accounts/1111/exchange')

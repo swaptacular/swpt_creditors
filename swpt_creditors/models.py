@@ -390,9 +390,9 @@ class AccountDisplay(db.Model):
     own_unit_preference = db.Column(db.Integer, nullable=False, default=0)
     hide = db.Column(db.BOOLEAN, nullable=False, default=False)
     peg_exchange_rate = db.Column(db.FLOAT)
-    peg_debtor_identity = db.Column(db.String)
+    peg_currency_debtor_id = db.Column(db.BigInteger)
+    peg_account_debtor_id = db.Column(db.BigInteger)
     peg_debtor_home_url = db.Column(db.String)
-    peg_debtor_id = db.Column(db.BigInteger)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
@@ -402,7 +402,7 @@ class AccountDisplay(db.Model):
             ondelete='CASCADE',
         ),
         db.ForeignKeyConstraint(
-            ['creditor_id', 'peg_debtor_id'],
+            ['creditor_id', 'peg_account_debtor_id'],
             ['account_display.creditor_id', 'account_display.debtor_id'],
         ),
         db.CheckConstraint(amount_divisor > 0.0),
@@ -410,16 +410,22 @@ class AccountDisplay(db.Model):
         db.CheckConstraint(peg_exchange_rate >= 0.0),
         db.CheckConstraint(or_(debtor_name != null(), own_unit == null())),
         db.CheckConstraint(or_(debtor_name != null(), peg_exchange_rate == null())),
-        db.CheckConstraint(or_(peg_exchange_rate != null(), peg_debtor_id == null())),
-        db.CheckConstraint(or_(peg_exchange_rate == null(), peg_debtor_identity != null())),
+        db.CheckConstraint(or_(peg_exchange_rate != null(), peg_account_debtor_id == null())),
+        db.CheckConstraint(or_(peg_currency_debtor_id != null(), peg_exchange_rate == null())),
+        db.CheckConstraint(or_(peg_account_debtor_id == peg_currency_debtor_id, peg_account_debtor_id == null())),
         db.Index('idx_debtor_name', creditor_id, debtor_name, unique=True, postgresql_where=debtor_name != null()),
         db.Index('idx_own_unit', creditor_id, own_unit, unique=True, postgresql_where=own_unit != null()),
-        db.Index('idx_peg_debtor_id', creditor_id, peg_debtor_id, postgresql_where=peg_debtor_id != null()),
         db.Index(
-            'idx_peg_debtor_identity',
+            'idx_account_peg_debtor_id',
             creditor_id,
-            peg_debtor_identity,
-            postgresql_where=peg_debtor_identity != null(),
+            peg_account_debtor_id,
+            postgresql_where=peg_account_debtor_id != null(),
+        ),
+        db.Index(
+            'idx_peg_currency_debtor_id',
+            creditor_id,
+            peg_currency_debtor_id,
+            postgresql_where=peg_currency_debtor_id != null(),
         ),
     )
 
