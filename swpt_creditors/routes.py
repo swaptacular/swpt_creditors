@@ -251,8 +251,10 @@ class DebtorLookupEndpoint(MethodView):
         """Try to find an existing account with a given debtor.
 
         This is useful when the creditor wants not know if he already
-        has an account with a given debtor, and if not, whether the
-        debtor's identity is recognized by the system.
+        has an account with a given debtor.
+
+        **Note:** Error 422 will be returned when the debtor's
+        identity can not be recognized.
 
         """
 
@@ -302,7 +304,7 @@ class AccountsEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
-                                 403: specs.DENIED_ACCOUNT_CREATION})
+                                 403: specs.FORBIDDEN_ACCOUNT_CREATION})
     def post(self, debtor_identity, creditorId):
         """Create a new account belonging to a given creditor."""
 
@@ -413,7 +415,7 @@ class AccountDisplayEndpoint(MethodView):
         optional_own_unit = account_display.get('optional_own_unit')
 
         try:
-            optional_peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])
+            peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])
         except ValueError:
             abort(422, errors={'json': {'peg': {'debtorIdentity': {'uri': ['The URI can not be recognized.']}}}})
 
@@ -427,14 +429,14 @@ class AccountDisplayEndpoint(MethodView):
                 own_unit=optional_own_unit,
                 own_unit_preference=account_display['own_unit_preference'],
                 hide=account_display['hide'],
-                peg_currency_debtor_id=optional_peg_currency_debtor_id,
+                peg_currency_debtor_id=peg_currency_debtor_id,
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
                 peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
             )
         except procedures.AccountDebtorNameConflictError:
-            abort(409, errors={'json': {'debtorName': ['Account with the same debtorName already exist.']}})
+            abort(409, errors={'json': {'debtorName': ['Another account with this debtorName already exist.']}})
         except procedures.AccountOwnUnitConflictError:
-            abort(409, errors={'json': {'ownUnit': ['Account with the same ownUnit already exist.']}})
+            abort(409, errors={'json': {'ownUnit': ['Another account with this ownUnit already exist.']}})
         except procedures.AccountDoesNotExistError:
             abort(404)
 

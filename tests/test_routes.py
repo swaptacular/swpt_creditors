@@ -535,14 +535,14 @@ def test_get_account_display(client, account):
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
     data = r.get_json()
-    assert data['errors']['json']['debtorName'] == ['Account with the same debtorName already exist.']
+    assert data['errors']['json']['debtorName'] == ['Another account with this debtorName already exist.']
 
     request_data['debtorName'] = 'United States of America'
     request_data['ownUnit'] = 'EUR'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
     data = r.get_json()
-    assert data['errors']['json']['ownUnit'] == ['Account with the same ownUnit already exist.']
+    assert data['errors']['json']['ownUnit'] == ['Another account with this ownUnit already exist.']
 
     r = client.delete('/creditors/2/accounts/11/')
     assert r.status_code == 204

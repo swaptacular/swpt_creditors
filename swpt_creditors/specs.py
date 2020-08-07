@@ -58,20 +58,51 @@ LOCATION_HEADER = {
     },
 }
 
+ERROR_CONTENT = {
+    'application/json': {
+        'schema': {
+            'type': 'object',
+            'properties': {
+                'code': {
+                    'type': 'integer',
+                    'format': 'int32',
+                    'description': 'Error code',
+                },
+                'errors': {
+                    'type': 'object',
+                    'description': 'Errors',
+                },
+                'status': {
+                    'type': 'string',
+                    'description': 'Error name',
+                },
+                'message': {
+                    'type': 'string',
+                    'description': 'Error message',
+                }
+            }
+        }
+    }
+}
+
 CONFLICTING_CREDITOR = {
     'description': 'A creditor with the same ID already exists.',
+    'content': ERROR_CONTENT,
 }
 
 TRANSFER_CONFLICT = {
     'description': 'A different transfer entry with the same UUID already exists.',
+    'content': ERROR_CONTENT,
 }
 
 TRANSFER_CANCELLATION_FAILURE = {
     'description': 'The transfer can not be canceled.',
+    'content': ERROR_CONTENT,
 }
 
 DENIED_TRANSFER = {
     'description': 'The transfer is forbidden.',
+    'content': ERROR_CONTENT,
 }
 
 TRANSFER_EXISTS = {
@@ -81,27 +112,31 @@ TRANSFER_EXISTS = {
 
 ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
     'description': 'Another account with the same `debtorName` or `ownUnit` already exists.',
+    'content': ERROR_CONTENT,
 }
 
-DENIED_ACCOUNT_CREATION = {
-    'description': 'The account creation is forbidden.',
+FORBIDDEN_ACCOUNT_CREATION = {
+    'description': 'Forbidden account creation.',
+    'content': ERROR_CONTENT,
 }
 
 ACCOUNT_EXISTS = {
-    'description': 'Account does exist.',
+    'description': 'Account exists.',
     'headers': LOCATION_HEADER,
 }
 
 UNSAFE_ACCOUNT_DELETION = {
-    'description': 'Unsafe deletion of this account is forbidden.',
+    'description': 'Forbidden unsafe deletion.',
+    'content': ERROR_CONTENT,
 }
 
 PEG_ACCOUNT_DELETION = {
-    'description': 'This account acts as a currency peg, unpeg the pegged accounts first.',
+    'description': 'The account acts as a currency peg.',
+    'content': ERROR_CONTENT,
 }
 
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
-    "description": "Account does not exist, but the debtor's identity has been recognized.",
+    "description": "Account does not exist.",
 }
 
 ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {

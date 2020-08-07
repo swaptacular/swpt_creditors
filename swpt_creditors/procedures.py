@@ -87,11 +87,11 @@ class InvalidExchangePolicyError(Exception):
 
 
 class AccountDebtorNameConflictError(Exception):
-    """Another account with the same debtorName already exist."""
+    """Another account with this debtorName already exist."""
 
 
 class AccountOwnUnitConflictError(Exception):
-    """Another account with the same ownUnit already exist."""
+    """Another another account with this ownUnit already exist."""
 
 
 @atomic
