@@ -843,7 +843,7 @@ def _finalize_direct_transfer(
             direct_transfer.error = error
 
 
-def _join_creditor(m: db.Model, creditor_id: int, debtor_id: int) -> Tuple[db.Model, Creditor]:
+def _join_creditor(m, creditor_id: int, debtor_id: int) -> Tuple[db.Model, Creditor]:
     query = db.session.query(m, Creditor).join(Creditor, Creditor.creditor_id == m.creditor_id).filter(
         m.creditor_id == creditor_id,
         m.debtor_id == debtor_id,
