@@ -338,6 +338,10 @@ def update_account_display(
         assert peg_exchange_rate is not None
         peg_account_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_id=peg_currency_debtor_id)
         peg_account_exists = db.session.query(peg_account_query.exists()).scalar()
+        peg_account_debtor_id = peg_currency_debtor_id if peg_account_exists else None
+    else:
+        assert peg_exchange_rate is None
+        peg_account_debtor_id = None
 
     display.debtor_name = debtor_name
     display.amount_divisor = amount_divisor
@@ -347,7 +351,7 @@ def update_account_display(
     display.hide = hide
     display.peg_exchange_rate = peg_exchange_rate
     display.peg_currency_debtor_id = peg_currency_debtor_id
-    display.peg_account_debtor_id = peg_currency_debtor_id if peg_account_exists else None
+    display.peg_account_debtor_id = peg_account_debtor_id
     display.peg_debtor_home_url = peg_debtor_home_url
     display.latest_update_id, display.latest_update_ts = _add_log_entry(
         creditor,

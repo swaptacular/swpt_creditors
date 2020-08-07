@@ -436,6 +436,12 @@ def test_get_account_display(client, account):
     })
     assert r.status_code == 200
 
+    r = client.patch('/creditors/2/accounts/11/display', json={
+        'debtorName': 'existing debtor',
+        'ownUnit': 'EUR',
+    })
+    assert r.status_code == 200
+
     request_data = {
         'type': 'AccountDisplay',
         'debtorName': 'United States of America',
@@ -463,7 +469,7 @@ def test_get_account_display(client, account):
     data = r.get_json()
     assert data['type'] == 'AccountDisplay'
     assert data['uri'] == '/creditors/2/accounts/1/display'
-    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 3
+    assert data['latestUpdateId'] == m.FIRST_LOG_ENTRY_ID + 4
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['debtorName'] == 'United States of America'
     assert data['amountDivisor'] == 100.0
@@ -483,12 +489,13 @@ def test_get_account_display(client, account):
     }
 
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 4
+    assert len(entries) == 5
     assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', m.FIRST_LOG_ENTRY_ID, 1),
         ('Account', '/creditors/2/accounts/11/', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
         ('AccountConfig', '/creditors/2/accounts/11/config', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
-        ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 3, m.FIRST_LOG_ENTRY_ID + 2),
+        ('AccountDisplay', '/creditors/2/accounts/11/display', m.FIRST_LOG_ENTRY_ID + 3, m.FIRST_LOG_ENTRY_ID + 2),
+        ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 4, m.FIRST_LOG_ENTRY_ID + 3),
     ]
 
     request_data['peg']['debtorIdentity']['uri'] = 'INVALID'
@@ -523,8 +530,27 @@ def test_get_account_display(client, account):
         'debtorHomeUrl': 'https://example.com/another-debtor-home-url',
     }
 
+    request_data['debtorName'] = 'existing debtor'
+    request_data['ownUnit'] = 'USD'
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 409
+    data = r.get_json()
+    assert data['errors']['json']['debtorName'] == ['Account with the same debtorName already exist.']
+
+    request_data['debtorName'] = 'United States of America'
+    request_data['ownUnit'] = 'EUR'
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 409
+    data = r.get_json()
+    assert data['errors']['json']['ownUnit'] == ['Account with the same ownUnit already exist.']
+
     r = client.delete('/creditors/2/accounts/11/')
     assert r.status_code == 204
+
+    request_data['debtorName'] = 'existing debtor'
+    request_data['ownUnit'] = 'EUR'
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 200
 
 
 def test_get_account_exchange(client, account):
