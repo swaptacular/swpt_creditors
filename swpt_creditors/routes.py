@@ -412,7 +412,7 @@ class AccountDisplayEndpoint(MethodView):
         optional_own_unit = account_display.get('optional_own_unit'),
 
         try:
-            peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])
+            optional_peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])
         except ValueError:
             abort(422, errors={'json': {'peg': {'debtorIdentity': {'uri': ['The URI can not be recognized.']}}}})
 
@@ -426,7 +426,7 @@ class AccountDisplayEndpoint(MethodView):
                 own_unit=optional_own_unit,
                 own_unit_preference=account_display['own_unit_preference'],
                 hide=account_display['hide'],
-                peg_currency_debtor_id=peg_currency_debtor_id,
+                peg_currency_debtor_id=optional_peg_currency_debtor_id,
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
                 peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
             )
