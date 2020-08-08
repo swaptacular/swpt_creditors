@@ -341,6 +341,12 @@ def test_create_account(client, creditor):
     data2 = r.get_json()
     assert data1 == data2
 
+    for i in range(2, 11):
+        r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': f'swpt:{i}'})
+        assert r.status_code == 201
+    r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:11'})
+    assert r.status_code == 403
+
 
 def test_get_account(client, account):
     r = client.get('/creditors/2/accounts/1111/')
@@ -355,6 +361,9 @@ def test_get_account(client, account):
 
 def test_delete_account(client, account):
     r = client.delete('/creditors/2/accounts/1111/')
+    assert r.status_code == 204
+
+    r = client.delete('/creditors/2222/accounts/1/')
     assert r.status_code == 204
 
     r = client.delete('/creditors/2/accounts/1/')

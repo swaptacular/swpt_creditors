@@ -361,6 +361,8 @@ class AccountEndpoint(MethodView):
             abort(409)
         except procedures.UnsafeAccountDeletionError:
             abort(403)
+        except procedures.AccountDoesNotExistError:
+            pass
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])

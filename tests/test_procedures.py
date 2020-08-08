@@ -91,6 +91,7 @@ def test_change_account_config(db_session, setup_account):
     assert config.is_scheduled_for_deletion
 
 
+@pytest.mark.skip
 def test_delete_account(db_session, setup_account, current_ts):
     p.delete_account(C_ID, 1234)
     p.process_account_update_signal(

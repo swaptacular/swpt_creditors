@@ -61,6 +61,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_DEAD_ACCOUNTS_ABANDON_DAYS = 365
     APP_LOG_ENTRIES_PER_PAGE = 100
     APP_ACCOUNTS_PER_PAGE = 100
+    APP_ACCOUNTS_COUNT_LIMIT = 1000
 
 
 def create_app(config_dict={}):

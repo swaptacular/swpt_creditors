@@ -118,7 +118,6 @@ def create_new_creditor(creditor_id: int) -> Creditor:
     try:
         db.session.flush()
     except IntegrityError:
-        db.session.rollback()
         raise CreditorExistsError()
 
     return creditor
@@ -213,9 +212,6 @@ def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool
 
 @atomic
 def create_new_account(creditor_id: int, debtor_id: int) -> Account:
-    # TODO: Raise `ForbiddenAccountCreationError` if there are too
-    #       many accounts already.
-
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     current_ts = datetime.now(tz=timezone.utc)
@@ -227,6 +223,11 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     creditor = get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise CreditorDoesNotExistError()
+
+    if creditor.accounts_count >= current_app.config['APP_ACCOUNTS_COUNT_LIMIT']:
+        raise ForbiddenAccountCreationError()
+
+    creditor.accounts_count += 1
 
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
@@ -512,21 +513,26 @@ def delete_account(creditor_id: int, debtor_id: int):
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    account = get_account(creditor_id, debtor_id)  # TODO: use joinedload.
-    if account:
-        config = account.config
-        data = account.data
-        if not config.allow_unsafe_deletion:
-            days_since_last_config_signal = (datetime.now(tz=timezone.utc) - data.last_config_ts).days
-            is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
-            is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and data.is_config_effectual
-            is_removal_safe = not data.has_server_account and (is_effectually_scheduled_for_deletion or is_timed_out)
-            if not is_removal_safe:
-                raise UnsafeAccountDeletionError()
-        try:
-            Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
-        except IntegrityError:
-            raise PegAccountDeletionError()
+    account, creditor = _join_creditor(Account, creditor_id, debtor_id)
+
+    # TODO: decrement `creditor.accounts_count`.
+
+    # TODO: use joinedload for AccountConfig and AccountData.
+    config = account.config
+    data = account.data
+
+    if not config.allow_unsafe_deletion:
+        days_since_last_config_signal = (datetime.now(tz=timezone.utc) - data.last_config_ts).days
+        is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
+        is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and data.is_config_effectual
+        is_removal_safe = not data.has_server_account and (is_effectually_scheduled_for_deletion or is_timed_out)
+        if not is_removal_safe:
+            raise UnsafeAccountDeletionError()
+
+    try:
+        Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
+    except IntegrityError:
+        raise PegAccountDeletionError()
 
 
 @atomic
