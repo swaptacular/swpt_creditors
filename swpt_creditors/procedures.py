@@ -216,42 +216,35 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     current_ts = datetime.now(tz=timezone.utc)
 
-    account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
-    if db.session.query(account_query.exists()).scalar():
-        raise AccountExistsError()
-
+    # Ensure that the creditor exists.
     creditor = get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise CreditorDoesNotExistError()
 
+    # Ensure that the maximal number of accounts has not been reached.
     if creditor.accounts_count >= current_app.config['APP_ACCOUNTS_COUNT_LIMIT']:
         raise ForbiddenAccountCreationError()
 
-    db.session.add(ConfigureAccountSignal(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        ts=current_ts,
-        seqnum=0,
-        negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
-        config_flags=DEFAULT_CONFIG_FLAGS,
-        config='',
-    ))
+    # Ensure that the account does not exist already.
+    account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+    if db.session.query(account_query.exists()).scalar():
+        raise AccountExistsError()
 
+    # Create a new account record and write events to the log. Note
+    # that the new account will appear in the account list, and we
+    # need to inform the client about this.
     latest_update_id, latest_update_ts = _add_log_entry(
         creditor,
         object_type=types.account,
         object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
         current_ts=current_ts,
     )
-
-    creditor.accounts_count += 1
     creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
         creditor,
         object_type=types.account_list,
         object_uri=paths.account_list(creditorId=creditor_id),
         current_ts=current_ts,
     )
-
     account = Account(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
@@ -283,11 +276,34 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
         latest_update_id=latest_update_id,
         latest_update_ts=latest_update_ts,
     )
+    db.session.add(account)
 
-    with db.retry_on_integrity_error():
-        db.session.add(account)
+    # Make sure a `ConfigureAccount` message will be sent.
+    db.session.add(ConfigureAccountSignal(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=current_ts,
+        seqnum=0,
+        negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
+        config_flags=DEFAULT_CONFIG_FLAGS,
+        config='',
+    ))
 
-    _update_pegged_accounts(creditor, debtor_id, current_ts)
+    # We must not forget to increment the accounts count.
+    creditor.accounts_count += 1
+
+    # Update the way accounts pegged to the newly created account will
+    # be displayed. Note that we need to write events to the log, to
+    # inform the client about these changes.
+    account_display_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id)
+    for account_display in account_display_query.all():
+        account_display.peg_account_debtor_id = debtor_id
+        account_display.latest_update_id, account_display.latest_update_ts = _add_log_entry(
+            creditor,
+            object_type=types.account_display,
+            object_uri=paths.account_display(creditorId=creditor_id, debtorId=account_display.debtor_id),
+            current_ts=current_ts or datetime.now(tz=timezone.utc),
+        )
 
     return account
 
@@ -1023,20 +1039,3 @@ def _join_creditor(m, creditor_id: int, debtor_id: int) -> Tuple[db.Model, Credi
         return query.with_for_update().one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
-
-
-def _update_pegged_accounts(creditor: Creditor, debtor_id: int, current_ts: datetime = None) -> None:
-    creditor_id = creditor.creditor_id
-
-    pegged_account_displays = AccountDisplay.query.\
-        filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id).\
-        all()
-
-    for display in pegged_account_displays:
-        display.peg_account_debtor_id = debtor_id
-        display.latest_update_id, display.latest_update_ts = _add_log_entry(
-            creditor,
-            object_type=types.account_display,
-            object_uri=paths.account_display(creditorId=creditor_id, debtorId=display.debtor_id),
-            current_ts=current_ts or datetime.now(tz=timezone.utc),
-        )
