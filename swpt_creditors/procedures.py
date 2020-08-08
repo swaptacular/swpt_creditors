@@ -147,12 +147,15 @@ def lock_or_create_creditor(creditor_id: int) -> Creditor:
 
 
 @atomic
-def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple[Creditor, List[LogEntry]]:
+def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple[List[LogEntry], int]:
     assert count >= 1
     assert 0 <= prev <= MAX_INT64
 
-    creditor = get_creditor(creditor_id)
-    if creditor is None:
+    latest_log_entry_id = db.session.query(Creditor.latest_log_entry_id).\
+        filter(Creditor.creditor_id == creditor_id, Creditor.deactivated_at_date == null()).\
+        scalar()
+
+    if latest_log_entry_id is None:
         raise CreditorDoesNotExistError()
 
     log_entries = LogEntry.query.\
@@ -162,7 +165,7 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
         limit(count).\
         all()
 
-    return creditor, log_entries
+    return log_entries, latest_log_entry_id
 
 
 @atomic
@@ -349,24 +352,22 @@ def update_account_display(
         assert peg_exchange_rate is None
         peg_account_debtor_id = None
 
-    display.debtor_name = debtor_name
-    display.amount_divisor = amount_divisor
-    display.decimal_places = decimal_places
-    display.own_unit = own_unit
-    display.own_unit_preference = own_unit_preference
-    display.hide = hide
-    display.peg_exchange_rate = peg_exchange_rate
-    display.peg_currency_debtor_id = peg_currency_debtor_id
-    display.peg_account_debtor_id = peg_account_debtor_id
-    display.peg_debtor_home_url = peg_debtor_home_url
-    display.latest_update_id, display.latest_update_ts = _add_log_entry(
-        creditor,
-        object_type=types.account_display,
-        object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
-    )
-
     with db.retry_on_integrity_error():
-        pass
+        display.debtor_name = debtor_name
+        display.amount_divisor = amount_divisor
+        display.decimal_places = decimal_places
+        display.own_unit = own_unit
+        display.own_unit_preference = own_unit_preference
+        display.hide = hide
+        display.peg_exchange_rate = peg_exchange_rate
+        display.peg_currency_debtor_id = peg_currency_debtor_id
+        display.peg_account_debtor_id = peg_account_debtor_id
+        display.peg_debtor_home_url = peg_debtor_home_url
+        display.latest_update_id, display.latest_update_ts = _add_log_entry(
+            creditor,
+            object_type=types.account_display,
+            object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
+        )
 
     return display
 
@@ -407,6 +408,7 @@ def update_account_exchange(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
+    # There are no valid policy names yet.
     if policy is not None:
         raise InvalidExchangePolicyError()
 

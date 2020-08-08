@@ -154,7 +154,11 @@ class LogEntriesEndpoint(MethodView):
 
         n = current_app.config['APP_LOG_ENTRIES_PER_PAGE']
         try:
-            creditor, log_entries = procedures.get_creditor_log_entries(creditorId, count=n, prev=params['prev'])
+            log_entries, latest_log_entry_id = procedures.get_creditor_log_entries(
+                creditorId,
+                count=n,
+                prev=params['prev'],
+            )
         except procedures.CreditorDoesNotExistError:
             abort(404)
 
@@ -163,7 +167,7 @@ class LogEntriesEndpoint(MethodView):
             return {
                 'uri': request.full_path,
                 'items': log_entries,
-                'forthcoming': f'?prev={creditor.latest_log_entry_id}',
+                'forthcoming': f'?prev={latest_log_entry_id}',
             }
 
         return {
