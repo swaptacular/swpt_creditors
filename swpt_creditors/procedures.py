@@ -514,13 +514,12 @@ def delete_account(creditor_id: int, debtor_id: int):
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     current_ts = datetime.now(tz=timezone.utc)
 
-    query = db.session.\
+    account_query = db.session.\
         query(
             Account,
             Creditor,
             AccountConfig.allow_unsafe_deletion,
             AccountConfig.config_flags,
-            AccountData.last_config_ts,
             AccountData.is_config_effectual,
             AccountData.has_server_account,
         ).\
@@ -534,36 +533,39 @@ def delete_account(creditor_id: int, debtor_id: int):
         ).\
         with_for_update(of=[Account, Creditor])
 
+    # Ensure that the account exists.
     try:
         (
             account,
             creditor,
             allow_unsafe_deletion,
             config_flags,
-            last_config_ts,
             is_config_effectual,
             has_server_account,
-        ) = query.one()
+        ) = account_query.one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
 
-    pegged_accounts_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_account_debtor_id=debtor_id)
+    # Ensure that the deletion is allowed.
+    if not allow_unsafe_deletion:
+        is_scheduled_for_deletion = config_flags & AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        is_deletion_safe = is_scheduled_for_deletion and is_config_effectual and not has_server_account
+        if not is_deletion_safe:
+            raise UnsafeAccountDeletionError()
+
+    # Ensure that no accounts are pegged to this account.
+    pegged_accounts_query = AccountDisplay.query.filter_by(
+        creditor_id=creditor_id,
+        peg_account_debtor_id=debtor_id,
+    )
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise PegAccountDeletionError()
 
-    if not allow_unsafe_deletion:
-        days_since_last_config_signal = (datetime.now(tz=timezone.utc) - last_config_ts).days
-        is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
-        is_scheduled_for_deletion = config_flags & AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        is_effectually_scheduled_for_deletion = is_scheduled_for_deletion and is_config_effectual
-        is_removal_safe = not has_server_account and (is_effectually_scheduled_for_deletion or is_timed_out)
-        if not is_removal_safe:
-            raise UnsafeAccountDeletionError()
-
-    to_be_deleted = [
+    # Write deletion events to the log. Note that when the account
+    # gets deleted, all its related objects will be deleted too (we
+    # need to inform the client about this).
+    deletion_events = [
         (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
-
-        # When the account is deleted, those will be deleted as well:
         (types.account_config, paths.account_config(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_info, paths.account_info(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_ledger, paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id)),
@@ -571,10 +573,18 @@ def delete_account(creditor_id: int, debtor_id: int):
         (types.account_exchange, paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_knowledge, paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id)),
     ]
-    for object_type, object_uri in to_be_deleted:
-        _add_log_entry(creditor, object_type=object_type, object_uri=object_uri, is_deleted=True, current_ts=current_ts)
+    for object_type, object_uri in deletion_events:
+        _add_log_entry(
+            creditor,
+            object_type=object_type,
+            object_uri=object_uri,
+            is_deleted=True,
+            current_ts=current_ts,
+        )
 
+    # We must not forget to decrement the accounts count.
     creditor.accounts_count = max(0, creditor.accounts_count - 1)
+
     db.session.delete(account)
 
 
