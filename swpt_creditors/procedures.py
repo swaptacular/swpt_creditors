@@ -278,6 +278,9 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     )
     db.session.add(account)
 
+    # We must not forget to increment the accounts count.
+    creditor.accounts_count += 1
+
     # Make sure a `ConfigureAccount` message will be sent.
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
@@ -288,9 +291,6 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
         config_flags=DEFAULT_CONFIG_FLAGS,
         config='',
     ))
-
-    # We must not forget to increment the accounts count.
-    creditor.accounts_count += 1
 
     # Update the way accounts pegged to the newly created account will
     # be displayed. Note that we need to write events to the log, to
