@@ -56,6 +56,7 @@ class schema_types:
     account_config = 'AccountConfig'
     account_info = 'AccountInfo'
     account_ledger = 'AccountLedger'
+    account_list = 'AccountList'
 
 
 CONTEXT = {'paths': path_builder}

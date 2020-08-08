@@ -227,8 +227,6 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     if creditor.accounts_count >= current_app.config['APP_ACCOUNTS_COUNT_LIMIT']:
         raise ForbiddenAccountCreationError()
 
-    creditor.accounts_count += 1
-
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
@@ -243,6 +241,14 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
         creditor,
         object_type=types.account,
         object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
+        current_ts=current_ts,
+    )
+
+    creditor.accounts_count += 1
+    creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_list,
+        object_uri=paths.account_list(creditorId=creditor_id),
         current_ts=current_ts,
     )
 
@@ -561,9 +567,16 @@ def delete_account(creditor_id: int, debtor_id: int):
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise PegAccountDeletionError()
 
-    # Write deletion events to the log. Note that when the account
-    # gets deleted, all its related objects will be deleted too (we
-    # need to inform the client about this).
+    # Write events to the log. Note that the deleted account will
+    # disappear from the account list, and we need to inform the
+    # client about this. Also, when the account gets deleted, all its
+    # related objects will be deleted too.
+    creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_list,
+        object_uri=paths.account_list(creditorId=creditor_id),
+        current_ts=current_ts,
+    )
     deletion_events = [
         (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_config, paths.account_config(creditorId=creditor_id, debtorId=debtor_id)),
