@@ -257,7 +257,7 @@ class DebtorLookupEndpoint(MethodView):
         This is useful when the creditor wants not know if he already
         has an account with a given debtor.
 
-        **Note:** Error 422 will be returned when the debtor's
+        **Note:** A 422 error will be returned when the debtor's
         identity can not be recognized.
 
         """

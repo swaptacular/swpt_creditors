@@ -542,14 +542,14 @@ def test_serialize_account_config(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
 
-    ac.negligible_amount = 1e30
+    ac.negligible_amount = models.DEFAULT_NEGLIGIBLE_AMOUNT
     ac.config_flags = 0
     ac.allow_unsafe_deletion = False
     assert acs.dump(ac) == {
         'type': 'AccountConfig',
         'uri': '/creditors/1/accounts/18446744073709551615/config',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'negligibleAmount': 1e30,
+        'negligibleAmount': models.DEFAULT_NEGLIGIBLE_AMOUNT,
         'scheduledForDeletion': False,
         'allowUnsafeDeletion': False,
         'latestUpdateId': 1,
@@ -827,10 +827,10 @@ def test_serialize_account_ledger(app):
     ad.interest = math.nan
     assert als.dump(ad)['interest'] == 0
 
-    ad.interest = 1e30
+    ad.interest = 1e20
     assert als.dump(ad)['interest'] == models.MAX_INT64
 
-    ad.interest = -1e30
+    ad.interest = -1e20
     assert als.dump(ad)['interest'] == models.MIN_INT64
 
     ad.interest = 0.0

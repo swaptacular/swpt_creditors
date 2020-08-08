@@ -2,6 +2,7 @@ import pytest
 from datetime import date, timedelta
 from uuid import UUID
 from swpt_creditors import procedures as p
+from swpt_creditors import models
 from swpt_creditors.models import Creditor, Account, AccountData, AccountConfig, ConfigureAccountSignal
 
 D_ID = -1
@@ -151,7 +152,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         last_config_ts=last_ts,
         last_config_seqnum=last_seqnum,
         creation_date=date(2020, 1, 15),
-        negligible_amount=1e30,
+        negligible_amount=models.DEFAULT_NEGLIGIBLE_AMOUNT,
         status_flags=0,
         ts=current_ts,
         ttl=1000000,
@@ -207,7 +208,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         last_config_ts=last_ts,
         last_config_seqnum=last_seqnum,
         creation_date=date(2020, 1, 15),
-        negligible_amount=1e30,
+        negligible_amount=models.DEFAULT_NEGLIGIBLE_AMOUNT,
         status_flags=0,
         ts=current_ts,
         ttl=1000000,
@@ -262,7 +263,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
         last_config_ts=current_ts - timedelta(days=5),
         last_config_seqnum=1,
         creation_date=date(2020, 1, 15),
-        negligible_amount=1e30,
+        negligible_amount=models.DEFAULT_NEGLIGIBLE_AMOUNT,
         status_flags=0,
         ts=current_ts,
         ttl=1000000,

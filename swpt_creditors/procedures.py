@@ -7,18 +7,19 @@ from sqlalchemy.sql.expression import tuple_, and_, null
 from sqlalchemy.orm import joinedload, exc
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
-from swpt_creditors.models import Creditor, LedgerEntry, CommittedTransfer, Account, \
-    AccountData, AccountConfig, ConfigureAccountSignal, PendingAccountCommit, LogEntry, \
-    AccountDisplay, AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, \
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
-    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+from swpt_creditors.models import (
+    Creditor, LedgerEntry, CommittedTransfer, Account, AccountData, AccountConfig,
+    ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
+    AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
+    DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
+)
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 TD_SECOND = timedelta(seconds=1)
 TD_5_SECONDS = timedelta(seconds=5)
-HUGE_NEGLIGIBLE_AMOUNT = 1e30
 PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.debtor_id,
     PendingAccountCommit.creditor_id,
@@ -113,10 +114,13 @@ def create_new_creditor(creditor_id: int) -> Creditor:
 
     creditor = Creditor(creditor_id=creditor_id)
     db.session.add(creditor)
+
     try:
         db.session.flush()
     except IntegrityError:
+        db.session.rollback()
         raise CreditorExistsError()
+
     return creditor
 
 
@@ -209,63 +213,74 @@ def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool
 
 @atomic
 def create_new_account(creditor_id: int, debtor_id: int) -> Account:
-    """"Try to create and return a new account.
-
-    May raise `CreditorDoesNotExistError`, `AccountExistsError`, or
-    `ForbiddenAccountCreationError`.
-
-    """
+    # TODO: Raise `ForbiddenAccountCreationError` if there are too
+    #       many accounts already.
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-
     current_ts = datetime.now(tz=timezone.utc)
+
+    account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+    if db.session.query(account_query.exists()).scalar():
+        raise AccountExistsError()
+
     creditor = get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    update_id, update_ts = _add_log_entry(
+    db.session.add(ConfigureAccountSignal(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=current_ts,
+        seqnum=0,
+        negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
+        config_flags=DEFAULT_CONFIG_FLAGS,
+        config='',
+    ))
+
+    latest_update_id, latest_update_ts = _add_log_entry(
         creditor,
         object_type=types.account,
         object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
         current_ts=current_ts,
     )
-    latest_update = {'latest_update_id': update_id, 'latest_update_ts': update_ts}
+
     account = Account(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
-        created_at_ts=update_ts,
-        knowledge=AccountKnowledge(**latest_update),
-        exchange=AccountExchange(**latest_update),
-        display=AccountDisplay(**latest_update),
-        config=AccountConfig(**latest_update),
-        data=AccountData(
-            last_config_ts=update_ts,
-            info_latest_update_id=update_id,
-            info_latest_update_ts=update_ts,
-            ledger_latest_update_id=update_id,
-            ledger_latest_update_ts=update_ts,
+        created_at_ts=current_ts,
+        knowledge=AccountKnowledge(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
         ),
-        **latest_update,
+        exchange=AccountExchange(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        display=AccountDisplay(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        config=AccountConfig(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        data=AccountData(
+            last_config_ts=current_ts,
+            last_config_seqnum=0,
+            info_latest_update_id=latest_update_id,
+            info_latest_update_ts=latest_update_ts,
+            ledger_latest_update_id=latest_update_id,
+            ledger_latest_update_ts=latest_update_ts,
+        ),
+        latest_update_id=latest_update_id,
+        latest_update_ts=latest_update_ts,
     )
-    db.session.add(account)
 
-    try:
-        db.session.flush()
-    except IntegrityError:
-        db.session.rollback()
-        raise AccountExistsError()
+    with db.retry_on_integrity_error():
+        db.session.add(account)
 
-    for display in AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id).all():
-        display.peg_account_debtor_id = debtor_id
-        display.latest_update_id, display.latest_update_ts = _add_log_entry(
-            creditor,
-            object_type=types.account_display,
-            object_uri=paths.account_display(creditorId=creditor_id, debtorId=display.debtor_id),
-            current_ts=current_ts,
-        )
-
-    _insert_configure_account_signal(account.config, account.data, account.created_at_ts)
+    _update_pegged_accounts(creditor, debtor_id, current_ts)
 
     return account
 
@@ -818,6 +833,7 @@ def _add_log_entry(
     creditor_id = creditor.creditor_id
     previous_entry_id = creditor.latest_log_entry_id
     entry_id = creditor.generate_log_entry_id()
+
     db.session.add(LogEntry(
         creditor_id=creditor_id,
         entry_id=entry_id,
@@ -856,14 +872,14 @@ def _discard_orphaned_account(
         negligible_amount: float) -> None:
 
     is_scheduled_for_deletion = config_flags & AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-    has_huge_negligible_amount = negligible_amount >= HUGE_NEGLIGIBLE_AMOUNT
+    has_huge_negligible_amount = negligible_amount >= DEFAULT_NEGLIGIBLE_AMOUNT
     if not (is_scheduled_for_deletion and has_huge_negligible_amount):
         db.session.add(ConfigureAccountSignal(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             ts=datetime.now(tz=timezone.utc),
             seqnum=0,
-            negligible_amount=HUGE_NEGLIGIBLE_AMOUNT,
+            negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
             is_scheduled_for_deletion=True,
         ))
 
@@ -935,3 +951,20 @@ def _join_creditor(m, creditor_id: int, debtor_id: int) -> Tuple[db.Model, Credi
         return query.with_for_update().one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
+
+
+def _update_pegged_accounts(creditor: Creditor, debtor_id: int, current_ts: datetime = None) -> None:
+    creditor_id = creditor.creditor_id
+
+    pegged_account_displays = AccountDisplay.query.\
+        filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id).\
+        all()
+
+    for display in pegged_account_displays:
+        display.peg_account_debtor_id = debtor_id
+        display.latest_update_id, display.latest_update_ts = _add_log_entry(
+            creditor,
+            object_type=types.account_display,
+            object_uri=paths.account_display(creditorId=creditor_id, debtorId=display.debtor_id),
+            current_ts=current_ts or datetime.now(tz=timezone.utc),
+        )

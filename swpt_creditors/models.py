@@ -26,6 +26,8 @@ INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
 FIRST_LOG_ENTRY_ID = 2
+DEFAULT_CONFIG_FLAGS = 0
+DEFAULT_NEGLIGIBLE_AMOUNT = 1e30
 
 
 def get_now_utc():
@@ -195,9 +197,9 @@ class AccountConfig(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    negligible_amount = db.Column(db.REAL, nullable=False, default=1e30)
+    negligible_amount = db.Column(db.REAL, nullable=False, default=DEFAULT_NEGLIGIBLE_AMOUNT)
     config = db.Column(db.String, nullable=False, default='')
-    config_flags = db.Column(db.Integer, nullable=False, default=0)
+    config_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_CONFIG_FLAGS)
     allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
     latest_update_id = db.Column(db.BigInteger, nullable=False)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

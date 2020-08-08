@@ -374,7 +374,7 @@ def test_get_account_config(client, account):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['scheduledForDeletion'] is False
     assert data['allowUnsafeDeletion'] is False
-    assert data['negligibleAmount'] >= 1e30
+    assert data['negligibleAmount'] == m.DEFAULT_NEGLIGIBLE_AMOUNT
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
 
     request_data = {
@@ -431,7 +431,7 @@ def test_get_account_display(client, account):
 
     r = client.patch('/creditors/2/accounts/11/config', json={
         'scheduledForDeletion': True,
-        'negligibleAmount': 1e30,
+        'negligibleAmount': m.DEFAULT_NEGLIGIBLE_AMOUNT,
         'allowUnsafeDeletion': True,
     })
     assert r.status_code == 200
