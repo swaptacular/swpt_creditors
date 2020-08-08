@@ -514,28 +514,56 @@ def delete_account(creditor_id: int, debtor_id: int):
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     current_ts = datetime.now(tz=timezone.utc)
 
-    account, creditor = _join_creditor(Account, creditor_id, debtor_id)
+    query = db.session.\
+        query(
+            Account,
+            Creditor,
+            AccountConfig.allow_unsafe_deletion,
+            AccountConfig.config_flags,
+            AccountData.last_config_ts,
+            AccountData.is_config_effectual,
+            AccountData.has_server_account,
+        ).\
+        join(Creditor, Creditor.creditor_id == Account.creditor_id).\
+        join(Account.config).\
+        join(Account.data).\
+        filter(
+            Account.creditor_id == creditor_id,
+            Account.debtor_id == debtor_id,
+            Creditor.deactivated_at_date == null(),
+        ).\
+        with_for_update(of=[Account, Creditor])
+
+    try:
+        (
+            account,
+            creditor,
+            allow_unsafe_deletion,
+            config_flags,
+            last_config_ts,
+            is_config_effectual,
+            has_server_account,
+        ) = query.one()
+    except exc.NoResultFound:
+        raise AccountDoesNotExistError()
 
     pegged_accounts_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_account_debtor_id=debtor_id)
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise PegAccountDeletionError()
 
-    # TODO: use joinedload for AccountConfig and AccountData.
-    config = account.config
-    data = account.data
-
-    if not config.allow_unsafe_deletion:
-        days_since_last_config_signal = (datetime.now(tz=timezone.utc) - data.last_config_ts).days
+    if not allow_unsafe_deletion:
+        days_since_last_config_signal = (datetime.now(tz=timezone.utc) - last_config_ts).days
         is_timed_out = days_since_last_config_signal > current_app.config['APP_DEAD_ACCOUNTS_ABANDON_DAYS']
-        is_effectually_scheduled_for_deletion = config.is_scheduled_for_deletion and data.is_config_effectual
-        is_removal_safe = not data.has_server_account and (is_effectually_scheduled_for_deletion or is_timed_out)
+        is_scheduled_for_deletion = config_flags & AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        is_effectually_scheduled_for_deletion = is_scheduled_for_deletion and is_config_effectual
+        is_removal_safe = not has_server_account and (is_effectually_scheduled_for_deletion or is_timed_out)
         if not is_removal_safe:
             raise UnsafeAccountDeletionError()
 
     to_be_deleted = [
         (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
 
-        # When the account is deleted, those will be deleted automatically:
+        # When the account is deleted, those will be deleted as well:
         (types.account_config, paths.account_config(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_info, paths.account_info(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_ledger, paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id)),
