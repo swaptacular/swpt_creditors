@@ -369,8 +369,32 @@ def test_delete_account(client, account):
     r = client.delete('/creditors/2/accounts/1/')
     assert r.status_code == 403
 
+    r = client.patch('/creditors/2/accounts/1/config', json={
+        'scheduledForDeletion': True,
+        'negligibleAmount': m.DEFAULT_NEGLIGIBLE_AMOUNT,
+        'allowUnsafeDeletion': True,
+    })
+    assert r.status_code == 200
 
-def test_get_account_config(client, account):
+    r = client.delete('/creditors/2/accounts/1/')
+    assert r.status_code == 204
+
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 9
+    assert [(e['objectType'], e['object']['uri'], e.get('deleted', False)) for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', False),
+        ('AccountConfig', '/creditors/2/accounts/1/config', False),
+        ('Account', '/creditors/2/accounts/1/', True),
+        ('AccountConfig', '/creditors/2/accounts/1/config', True),
+        ('AccountInfo', '/creditors/2/accounts/1/info', True),
+        ('AccountLedger', '/creditors/2/accounts/1/ledger', True),
+        ('AccountDisplay', '/creditors/2/accounts/1/display', True),
+        ('AccountExchange', '/creditors/2/accounts/1/exchange', True),
+        ('AccountKnowledge', '/creditors/2/accounts/1/knowledge', True),
+    ]
+
+
+def test_account_config(client, account):
     r = client.get('/creditors/2/accounts/1111/config')
     assert r.status_code == 404
 
@@ -415,7 +439,7 @@ def test_get_account_config(client, account):
     ]
 
 
-def test_get_account_display(client, account):
+def test_account_display(client, account):
     r = client.get('/creditors/2/accounts/1111/display')
     assert r.status_code == 404
 
@@ -497,16 +521,6 @@ def test_get_account_display(client, account):
         'debtorHomeUrl': 'https://example.com/debtor-home-url',
     }
 
-    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 5
-    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries] == [
-        ('Account', '/creditors/2/accounts/1/', m.FIRST_LOG_ENTRY_ID, 1),
-        ('Account', '/creditors/2/accounts/11/', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
-        ('AccountConfig', '/creditors/2/accounts/11/config', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
-        ('AccountDisplay', '/creditors/2/accounts/11/display', m.FIRST_LOG_ENTRY_ID + 3, m.FIRST_LOG_ENTRY_ID + 2),
-        ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 4, m.FIRST_LOG_ENTRY_ID + 3),
-    ]
-
     request_data['peg']['debtorIdentity']['uri'] = 'INVALID'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 422
@@ -558,7 +572,12 @@ def test_get_account_display(client, account):
 
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 8
-    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries[5:]] == [
+    assert [(e['objectType'], e['object']['uri'], e['entryId'], e['previousEntryId']) for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', m.FIRST_LOG_ENTRY_ID, 1),
+        ('Account', '/creditors/2/accounts/11/', m.FIRST_LOG_ENTRY_ID + 1, m.FIRST_LOG_ENTRY_ID),
+        ('AccountConfig', '/creditors/2/accounts/11/config', m.FIRST_LOG_ENTRY_ID + 2, m.FIRST_LOG_ENTRY_ID + 1),
+        ('AccountDisplay', '/creditors/2/accounts/11/display', m.FIRST_LOG_ENTRY_ID + 3, m.FIRST_LOG_ENTRY_ID + 2),
+        ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 4, m.FIRST_LOG_ENTRY_ID + 3),
         ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 5, m.FIRST_LOG_ENTRY_ID + 4),
         ('Account', '/creditors/2/accounts/1111/', m.FIRST_LOG_ENTRY_ID + 6, m.FIRST_LOG_ENTRY_ID + 5),
         ('AccountDisplay', '/creditors/2/accounts/1/display', m.FIRST_LOG_ENTRY_ID + 7, m.FIRST_LOG_ENTRY_ID + 6),
@@ -573,7 +592,7 @@ def test_get_account_display(client, account):
     assert r.status_code == 200
 
 
-def test_get_account_exchange(client, account):
+def test_account_exchange(client, account):
     r = client.get('/creditors/2/accounts/1111/exchange')
     assert r.status_code == 404
 
@@ -631,7 +650,7 @@ def test_get_account_exchange(client, account):
     ]
 
 
-def test_get_account_knowledge(client, account):
+def test_account_knowledge(client, account):
     r = client.get('/creditors/2/accounts/1111/knowledge')
     assert r.status_code == 404
 

@@ -185,11 +185,11 @@ class Account(db.Model):
         db.CheckConstraint(latest_update_id > 0),
     )
 
-    data = db.relationship('AccountData', uselist=False)
-    knowledge = db.relationship('AccountKnowledge', uselist=False)
-    exchange = db.relationship('AccountExchange', uselist=False)
-    display = db.relationship('AccountDisplay', uselist=False)
-    config = db.relationship('AccountConfig', uselist=False)
+    data = db.relationship('AccountData', uselist=False, cascade='all', passive_deletes=True)
+    knowledge = db.relationship('AccountKnowledge', uselist=False, cascade='all', passive_deletes=True)
+    exchange = db.relationship('AccountExchange', uselist=False, cascade='all', passive_deletes=True)
+    display = db.relationship('AccountDisplay', uselist=False, cascade='all', passive_deletes=True)
+    config = db.relationship('AccountConfig', uselist=False, cascade='all', passive_deletes=True)
 
 
 class AccountConfig(db.Model):

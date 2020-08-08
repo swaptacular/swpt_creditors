@@ -512,10 +512,13 @@ def delete_account(creditor_id: int, debtor_id: int):
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
+    current_ts = datetime.now(tz=timezone.utc)
 
     account, creditor = _join_creditor(Account, creditor_id, debtor_id)
 
-    # TODO: decrement `creditor.accounts_count`.
+    pegged_accounts_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_account_debtor_id=debtor_id)
+    if db.session.query(pegged_accounts_query.exists()).scalar():
+        raise PegAccountDeletionError()
 
     # TODO: use joinedload for AccountConfig and AccountData.
     config = account.config
@@ -529,10 +532,22 @@ def delete_account(creditor_id: int, debtor_id: int):
         if not is_removal_safe:
             raise UnsafeAccountDeletionError()
 
-    try:
-        Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
-    except IntegrityError:
-        raise PegAccountDeletionError()
+    to_be_deleted = [
+        (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
+
+        # When the account is deleted, those will be deleted automatically:
+        (types.account_config, paths.account_config(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_info, paths.account_info(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_ledger, paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_display, paths.account_display(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_exchange, paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_knowledge, paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id)),
+    ]
+    for object_type, object_uri in to_be_deleted:
+        _add_log_entry(creditor, object_type=object_type, object_uri=object_uri, is_deleted=True, current_ts=current_ts)
+
+    creditor.accounts_count = max(0, creditor.accounts_count - 1)
+    db.session.delete(account)
 
 
 @atomic
