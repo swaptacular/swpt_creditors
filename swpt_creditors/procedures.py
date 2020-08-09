@@ -347,6 +347,8 @@ def update_account_config(
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
     )
 
+    # TODO: _insert_configure_account_signal(config, data)
+
     return config
 
 
@@ -484,45 +486,6 @@ def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountEx
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     return AccountExchange.get_instance((creditor_id, debtor_id))
-
-
-@atomic
-def change_account_config(
-        creditor_id: int,
-        debtor_id: int,
-        allow_unsafe_deletion: bool = None,
-        negligible_amount: float = None,
-        is_scheduled_for_deletion: bool = None) -> None:
-
-    """Change account's configuration.
-
-    Raises `AccountDoesNotExistError` if the account does not exist.
-
-    """
-
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
-    account = get_account(creditor_id, debtor_id)  # TODO: use lock and joinedload
-    if account is None:
-        raise AccountDoesNotExistError()
-
-    config = account.config
-    data = account.data
-    if allow_unsafe_deletion is not None and config.allow_unsafe_deletion != allow_unsafe_deletion:
-        config.allow_unsafe_deletion = allow_unsafe_deletion
-
-    if negligible_amount is not None and config.negligible_amount != negligible_amount:
-        assert negligible_amount >= 0.0
-        config.negligible_amount = negligible_amount
-        data.is_config_effectual = False
-
-    if is_scheduled_for_deletion is not None and config.is_scheduled_for_deletion != is_scheduled_for_deletion:
-        config.is_scheduled_for_deletion = is_scheduled_for_deletion
-        data.is_config_effectual = False
-
-    if not data.is_config_effectual:
-        _insert_configure_account_signal(config, data)
 
 
 @atomic

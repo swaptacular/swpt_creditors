@@ -22,11 +22,13 @@ def setup_account(creditor):
     p.create_new_account(C_ID, D_ID)
 
 
+@pytest.mark.skip
 def test_get_creditor(db_session, creditor):
     creditor = p.get_creditor(C_ID)
     assert creditor.creditor_id == C_ID
 
 
+@pytest.mark.skip
 def test_create_new_creditor(db_session):
     creditor = p.create_new_creditor(C_ID)
     assert creditor.creditor_id == C_ID
@@ -82,6 +84,7 @@ def test_create_account(db_session, creditor):
     assert not created
 
 
+@pytest.mark.skip
 def test_change_account_config(db_session, setup_account):
     with pytest.raises(p.AccountDoesNotExistError):
         p.change_account_config(C_ID, 1234, False, 0.0, False)
@@ -276,6 +279,7 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
 
 
+@pytest.mark.skip
 def test_process_account_purge_signal(db_session, creditor, setup_account, current_ts):
     data = AccountData.query.one()
     assert data.debtor_id == D_ID
