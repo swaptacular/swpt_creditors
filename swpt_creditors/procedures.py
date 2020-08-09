@@ -544,21 +544,13 @@ def delete_account(creditor_id: int, debtor_id: int):
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
+    a, ac, c = Account, AccountConfig, Creditor
     account_query = db.session.\
-        query(
-            Account,
-            Creditor,
-            AccountData,
-            AccountConfig.allow_unsafe_deletion,
-        ).\
-        join(Creditor, Creditor.creditor_id == Account.creditor_id).\
+        query(Account, Creditor, AccountData, ac.allow_unsafe_deletion).\
+        join(Creditor, c.creditor_id == a.creditor_id).\
         join(Account.data).\
         join(Account.config).\
-        filter(
-            Account.creditor_id == creditor_id,
-            Account.debtor_id == debtor_id,
-            Creditor.deactivated_at_date == null(),
-        ).\
+        filter(a.creditor_id == creditor_id, a.debtor_id == debtor_id, c.deactivated_at_date == null()).\
         with_for_update(of=[Account, Creditor]).\
         options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
 
