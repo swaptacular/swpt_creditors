@@ -247,7 +247,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         example=0,
     )
     ledger_interest = fields.Integer(
-        required=True,
+        missing=0,
         dump_only=True,
         validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
