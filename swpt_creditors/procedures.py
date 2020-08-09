@@ -36,6 +36,8 @@ ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
     'last_config_ts',
     'last_config_seqnum',
     'config_error',
+    'info_latest_update_id',
+    'info_latest_update_ts',
 ]
 
 
@@ -366,9 +368,9 @@ def update_account_config(
 
     data.last_config_ts = current_ts
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
+    data.config_error = None
     data.is_config_effectual = False
     data.is_scheduled_for_deletion = is_scheduled_for_deletion
-    data.config_error = None
     config.is_scheduled_for_deletion = is_scheduled_for_deletion
     config.negligible_amount = negligible_amount
     config.allow_unsafe_deletion = allow_unsafe_deletion
