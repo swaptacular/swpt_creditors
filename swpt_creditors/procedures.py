@@ -4,7 +4,7 @@ from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_, and_, null
-from sqlalchemy.orm import joinedload, exc
+from sqlalchemy.orm import joinedload, exc, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -29,6 +29,13 @@ ACCOUNT_CONFIG_JOIN_CLAUSE = and_(
     AccountConfig.creditor_id == AccountData.creditor_id,
     AccountConfig.debtor_id == AccountData.debtor_id,
 )
+ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
+    'is_config_effectual',
+    'is_scheduled_for_deletion',
+    'has_server_account',
+    'last_config_ts',
+    'last_config_seqnum',
+]
 
 
 def init(path_builder, schema_types):
@@ -214,6 +221,7 @@ def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool
 def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
+
     current_ts = datetime.now(tz=timezone.utc)
 
     # Ensure that the creditor exists.
@@ -277,11 +285,8 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
         latest_update_ts=latest_update_ts,
     )
     db.session.add(account)
-
-    # We must not forget to increment the accounts count.
     creditor.accounts_count += 1
 
-    # Make sure a `ConfigureAccount` message will be sent.
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
@@ -335,9 +340,37 @@ def update_account_config(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    # TODO: write to AccountData as well.
+    current_ts = datetime.now(tz=timezone.utc)
+    ac, ad, c = AccountConfig, AccountData, Creditor
+    config_data_query = db.session.\
+        query(AccountConfig, AccountData, Creditor).\
+        join(AccountData, and_(ad.creditor_id == ac.creditor_id, ad.debtor_id == ac.debtor_id)).\
+        join(Creditor, c.creditor_id == ac.creditor_id).\
+        filter(ac.creditor_id == creditor_id, ac.debtor_id == debtor_id, c.deactivated_at_date == null()).\
+        with_for_update().\
+        options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
 
-    config, creditor = _join_creditor(AccountConfig, creditor_id, debtor_id)
+    # Ensure that the account exists.
+    try:
+        config, data, creditor = config_data_query.one()
+    except exc.NoResultFound:
+        raise AccountDoesNotExistError()
+
+    # The account will not be safe to delete once the configuration
+    # update is done. Therefore, if the account is safe to delete now,
+    # we need to inform the client about the upcoming change.
+    if data.is_deletion_safe:
+        data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
+            creditor,
+            object_type=types.account_info,
+            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+            current_ts=current_ts,
+        )
+
+    data.last_config_ts = current_ts
+    data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
+    data.is_config_effectual = False
+    data.is_scheduled_for_deletion = is_scheduled_for_deletion
     config.is_scheduled_for_deletion = is_scheduled_for_deletion
     config.negligible_amount = negligible_amount
     config.allow_unsafe_deletion = allow_unsafe_deletion
@@ -345,9 +378,18 @@ def update_account_config(
         creditor,
         object_type=types.account_config,
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
+        current_ts=current_ts,
     )
 
-    # TODO: _insert_configure_account_signal(config, data)
+    db.session.add(ConfigureAccountSignal(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=data.last_config_ts,
+        seqnum=data.last_config_seqnum,
+        negligible_amount=config.negligible_amount,
+        config_flags=config.config_flags,
+        config=config.config,
+    ))
 
     return config
 
@@ -505,41 +547,30 @@ def delete_account(creditor_id: int, debtor_id: int):
     account_query = db.session.\
         query(
             Account,
+            AccountData,
             Creditor,
             AccountConfig.allow_unsafe_deletion,
-            AccountConfig.config_flags,
-            AccountData.is_config_effectual,
-            AccountData.has_server_account,
         ).\
         join(Creditor, Creditor.creditor_id == Account.creditor_id).\
-        join(Account.config).\
         join(Account.data).\
+        join(Account.config).\
         filter(
             Account.creditor_id == creditor_id,
             Account.debtor_id == debtor_id,
             Creditor.deactivated_at_date == null(),
         ).\
-        with_for_update(of=[Account, Creditor])
+        with_for_update(of=[Account, Creditor]).\
+        options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
 
     # Ensure that the account exists.
     try:
-        (
-            account,
-            creditor,
-            allow_unsafe_deletion,
-            config_flags,
-            is_config_effectual,
-            has_server_account,
-        ) = account_query.one()
+        account, account_data, creditor, allow_unsafe_deletion = account_query.one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
 
     # Ensure that the deletion is allowed.
-    if not allow_unsafe_deletion:
-        is_scheduled_for_deletion = config_flags & AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        is_deletion_safe = is_scheduled_for_deletion and is_config_effectual and not has_server_account
-        if not is_deletion_safe:
-            raise UnsafeAccountDeletionError()
+    if not allow_unsafe_deletion and not account_data.is_deletion_safe:
+        raise UnsafeAccountDeletionError()
 
     # Ensure that no accounts are pegged to this account.
     pegged_accounts_query = AccountDisplay.query.filter_by(
@@ -577,9 +608,7 @@ def delete_account(creditor_id: int, debtor_id: int):
             current_ts=current_ts,
         )
 
-    # We must not forget to decrement the accounts count.
     creditor.accounts_count = max(0, creditor.accounts_count - 1)
-
     db.session.delete(account)
 
 
@@ -900,22 +929,6 @@ def _add_log_entry(
     ))
 
     return entry_id, current_ts
-
-
-def _insert_configure_account_signal(config: AccountConfig, data: AccountData, current_ts: datetime = None) -> None:
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    data.is_config_effectual = False
-    data.last_config_ts = max(data.last_config_ts, current_ts)
-    data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
-    db.session.add(ConfigureAccountSignal(
-        debtor_id=data.debtor_id,
-        creditor_id=data.creditor_id,
-        ts=data.last_config_ts,
-        seqnum=data.last_config_seqnum,
-        negligible_amount=config.negligible_amount,
-        config_flags=config.config_flags,
-        config=config.config,
-    ))
 
 
 def _discard_orphaned_account(
