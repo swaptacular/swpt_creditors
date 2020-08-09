@@ -47,6 +47,8 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'ledger_principal',
     'ledger_latest_update_id',
     'ledger_latest_update_ts',
+    'ledger_last_transfer_number',
+    'ledger_last_transfer_committed_at_ts',
     'principal',
     'interest',
     'interest_rate',
@@ -379,11 +381,10 @@ def update_account_config(
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
 
-    # The account will not be safe to delete, and will not have a
-    # config error once the configuration update is done. Therefore,
-    # if the account is safe to delete now, or have a config error, we
-    # need to inform the client about the upcoming change.
-    if data.is_deletion_safe or data.config_error is not None:
+    # The account will not be safe to delete once the configuration
+    # update is done. Therefore, if the account is safe to delete now,
+    # we need to inform the client about the upcoming change.
+    if data.is_deletion_safe:
         data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
             creditor,
             object_type=types.account_info,
@@ -393,7 +394,6 @@ def update_account_config(
 
     data.last_config_ts = current_ts
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
-    data.config_error = None
     data.is_config_effectual = False
     data.is_scheduled_for_deletion = is_scheduled_for_deletion
     config.is_scheduled_for_deletion = is_scheduled_for_deletion
