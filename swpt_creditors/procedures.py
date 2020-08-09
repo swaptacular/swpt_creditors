@@ -371,26 +371,29 @@ def update_account_display(
 
     display, creditor = _join_creditor(AccountDisplay, creditor_id, debtor_id)
 
+    # Ensure that the debtor name is unique.
     if debtor_name not in [display.debtor_name, None]:
         debtor_name_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_name=debtor_name)
         debtor_name_confilict = db.session.query(debtor_name_query.exists()).scalar()
         if debtor_name_confilict:
             raise AccountDebtorNameConflictError()
 
+    # Ensure that the own unit is unique.
     if own_unit not in [display.own_unit, None]:
         own_unit_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, own_unit=own_unit)
         own_unit_conflict = db.session.query(own_unit_query.exists()).scalar()
         if own_unit_conflict:
             raise AccountOwnUnitConflictError()
 
-    if peg_currency_debtor_id is not None:
+    # If a peg currency is specified, check whether an account in it exists.
+    if peg_currency_debtor_id is None:
+        assert peg_exchange_rate is None
+        peg_account_debtor_id = None
+    else:
         assert peg_exchange_rate is not None
         peg_account_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_id=peg_currency_debtor_id)
         peg_account_exists = db.session.query(peg_account_query.exists()).scalar()
         peg_account_debtor_id = peg_currency_debtor_id if peg_account_exists else None
-    else:
-        assert peg_exchange_rate is None
-        peg_account_debtor_id = None
 
     with db.retry_on_integrity_error():
         display.debtor_name = debtor_name
