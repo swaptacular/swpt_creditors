@@ -168,12 +168,12 @@ class WalletSchema(Schema):
         required=True,
         dump_only=True,
         description="A `PaginatedList` of creditor's `LogEntry`s. The paginated list will be "
-                    "sorted in chronological order (smaller entry IDs go first). The entries "
-                    "will constitute a singly linked list, each entry (except the most ancient "
-                    "one) referring to its ancestor. Also, this is a \"streaming\" paginated "
-                    "list (the `forthcoming` field will be present), allowing the clients "
-                    "of the API to reliably and efficiently invalidate their caches, simply "
-                    "by following the \"log\" .",
+                    "sorted in chronological order (smaller entry IDs go first). Normally, the "
+                    "entries will constitute a singly linked list, each entry (except the most  "
+                    "ancient one) referring to its ancestor. Also, this is a \"streaming\" "
+                    "paginated list (the `forthcoming` field will be present), allowing the "
+                    "clients of the API to reliably and efficiently invalidate their caches, "
+                    "simply by following the \"log\" .",
         example={
             'first': '/creditors/2/log',
             'forthcoming': '/creditors/2/log?prev=12345',

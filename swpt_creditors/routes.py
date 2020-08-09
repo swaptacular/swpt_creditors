@@ -147,10 +147,11 @@ class LogEntriesEndpoint(MethodView):
         """Return a collection of creditor's recent log entries.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains all recent log entries. The
-        returned fragment will be sorted in chronological order
-        (smaller `entryId`s go first). The log entries will constitute
-        a singly linked list, each entry (except the most ancient one)
+        list. The paginated list contains recent log entries. The
+        returned fragment, and all the subsequent fragments, will be
+        sorted in chronological order (smaller `entryId`s go
+        first). Normally, the log entries will constitute a singly
+        linked list, each entry (except the most ancient one)
         referring to its ancestor.
 
         """
@@ -573,12 +574,12 @@ class AccountLedgerEntriesEndpoint(MethodView):
         """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains the ledger entries for a
-        given account. The returned fragment, and all the subsequent
+        list. The paginated list contains ledger entries for a given
+        account. The returned fragment, and all the subsequent
         fragments, will be sorted in reverse-chronological order
-        (bigger `entryId`s go first). The entries will constitute a
-        singly linked list, each entry (except the most ancient one)
-        referring to its ancestor. Note that:
+        (bigger `entryId`s go first). Normally, the entries will
+        constitute a singly linked list, each entry (except the most
+        ancient one) referring to its ancestor. Note that:
 
         * If the `prev` URL query parameter is not specified, then the
           returned fragment will start with the latest ledger entry

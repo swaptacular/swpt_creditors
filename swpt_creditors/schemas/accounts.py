@@ -268,9 +268,9 @@ class AccountLedgerSchema(MutableResourceSchema):
         description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers '
                     'for which the account is either the sender or the recipient. The '
                     'paginated list will be sorted in reverse-chronological order '
-                    '(bigger `entryId`s go first). The entries will constitute a singly '
-                    'linked list, each entry (except the most ancient one) referring to '
-                    'its ancestor.',
+                    '(bigger `entryId`s go first). Noramlly, the entries will constitute '
+                    'a singly linked list, each entry (except the most ancient one) '
+                    'referring to its ancestor.',
         example={
             'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',
