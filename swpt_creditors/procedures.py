@@ -602,7 +602,7 @@ def delete_account(creditor_id: int, debtor_id: int):
         )
 
     creditor.accounts_count = max(0, creditor.accounts_count - 1)
-    Account.query.filter_by(debtor_id=debtor_id, creditor_id=creditor_id).delete(synchronize_session=False)
+    Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
 
 
 @atomic
