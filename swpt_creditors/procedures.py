@@ -4,7 +4,7 @@ from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_, and_, null
-from sqlalchemy.orm import joinedload, exc, Load
+from sqlalchemy.orm import joinedload, exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -30,6 +30,8 @@ ACCOUNT_CONFIG_JOIN_CLAUSE = and_(
     AccountConfig.debtor_id == AccountData.debtor_id,
 )
 ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
+    'creditor_id',
+    'debtor_id',
     'is_config_effectual',
     'is_scheduled_for_deletion',
     'has_server_account',
@@ -38,6 +40,17 @@ ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
     'config_error',
     'info_latest_update_id',
     'info_latest_update_ts',
+]
+ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
+    'creditor_id',
+    'debtor_id',
+    'ledger_principal',
+    'ledger_latest_update_id',
+    'ledger_latest_update_ts',
+    'principal',
+    'interest',
+    'interest_rate',
+    'last_change_ts',
 ]
 
 
@@ -318,6 +331,18 @@ def get_account_data(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     return AccountData.get_instance((creditor_id, debtor_id))
+
+
+@atomic
+def get_account_ledger(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    account_data_query = AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+
+    return account_data_query.one_or_none()
 
 
 @atomic

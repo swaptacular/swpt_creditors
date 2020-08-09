@@ -559,10 +559,10 @@ class AccountLedgerEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's ledger."""
 
-        data = procedures.get_account_data(creditorId, debtorId)
-        if data is None:
+        ledger = procedures.get_account_ledger(creditorId, debtorId)
+        if ledger is None:
             abort(404)
-        return data
+        return ledger
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
