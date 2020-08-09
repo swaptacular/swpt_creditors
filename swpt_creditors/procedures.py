@@ -223,17 +223,13 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-
-    # Ensure that the creditor exists.
     creditor = get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    # Ensure that the maximal number of accounts has not been reached.
     if creditor.accounts_count >= current_app.config['APP_ACCOUNTS_COUNT_LIMIT']:
         raise ForbiddenAccountCreationError()
 
-    # Ensure that the account does not exist already.
     account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
     if db.session.query(account_query.exists()).scalar():
         raise AccountExistsError()
@@ -350,7 +346,6 @@ def update_account_config(
         with_for_update().\
         options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
 
-    # Ensure that the account exists.
     try:
         config, data, creditor = config_data_query.one()
     except exc.NoResultFound:
@@ -542,13 +537,13 @@ def delete_account(creditor_id: int, debtor_id: int):
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    current_ts = datetime.now(tz=timezone.utc)
 
+    current_ts = datetime.now(tz=timezone.utc)
     account_query = db.session.\
         query(
             Account,
-            AccountData,
             Creditor,
+            AccountData,
             AccountConfig.allow_unsafe_deletion,
         ).\
         join(Creditor, Creditor.creditor_id == Account.creditor_id).\
@@ -562,14 +557,12 @@ def delete_account(creditor_id: int, debtor_id: int):
         with_for_update(of=[Account, Creditor]).\
         options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
 
-    # Ensure that the account exists.
     try:
-        account, account_data, creditor, allow_unsafe_deletion = account_query.one()
+        account, creditor, data, allow_unsafe_deletion = account_query.one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
 
-    # Ensure that the deletion is allowed.
-    if not allow_unsafe_deletion and not account_data.is_deletion_safe:
+    if not (data.is_deletion_safe or allow_unsafe_deletion):
         raise UnsafeAccountDeletionError()
 
     # Ensure that no accounts are pegged to this account.
