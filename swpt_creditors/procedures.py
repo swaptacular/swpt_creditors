@@ -1023,13 +1023,13 @@ def _finalize_direct_transfer(
 
 
 def _join_creditor(m, creditor_id: int, debtor_id: int) -> Tuple[db.Model, Creditor]:
-    query = db.session.query(m, Creditor).join(Creditor, Creditor.creditor_id == m.creditor_id).filter(
-        m.creditor_id == creditor_id,
-        m.debtor_id == debtor_id,
-        Creditor.deactivated_at_date == null(),
-    )
+    query = db.session.\
+        query(m, Creditor).\
+        join(Creditor, Creditor.creditor_id == m.creditor_id).\
+        filter(m.creditor_id == creditor_id, m.debtor_id == debtor_id, Creditor.deactivated_at_date == null()).\
+        with_for_update()
 
     try:
-        return query.with_for_update().one()
+        return query.one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
