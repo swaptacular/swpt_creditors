@@ -3,12 +3,12 @@ from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import tuple_, and_, null
+from sqlalchemy.sql.expression import tuple_, null
 from sqlalchemy.orm import joinedload, exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
-    Creditor, LedgerEntry, CommittedTransfer, Account, AccountData, AccountConfig,
+    Creditor, LedgerEntry, CommittedTransfer, Account, AccountData,
     ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
     AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
@@ -25,19 +25,19 @@ PENDING_ACCOUNT_COMMIT_PK = tuple_(
     PendingAccountCommit.creditor_id,
     PendingAccountCommit.transfer_number,
 )
-ACCOUNT_CONFIG_JOIN_CLAUSE = and_(
-    AccountConfig.creditor_id == AccountData.creditor_id,
-    AccountConfig.debtor_id == AccountData.debtor_id,
-)
 ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
     'creditor_id',
     'debtor_id',
-    'is_config_effectual',
-    'is_scheduled_for_deletion',
-    'has_server_account',
     'last_config_ts',
     'last_config_seqnum',
+    'negligible_amount',
+    'config_flags',
+    'allow_unsafe_deletion',
+    'is_config_effectual',
     'config_error',
+    'config_latest_update_id',
+    'config_latest_update_ts',
+    'has_server_account',
     'info_latest_update_id',
     'info_latest_update_ts',
 ]
@@ -221,7 +221,6 @@ def get_account(creditor_id: int, debtor_id: int, lock: bool = False, join: bool
             joinedload(Account.knowledge, innerjoin=True),
             joinedload(Account.exchange, innerjoin=True),
             joinedload(Account.display, innerjoin=True),
-            joinedload(Account.config, innerjoin=True),
             joinedload(Account.data, innerjoin=True),
         ]
     else:
@@ -283,13 +282,11 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
             latest_update_id=latest_update_id,
             latest_update_ts=latest_update_ts,
         ),
-        config=AccountConfig(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
         data=AccountData(
             last_config_ts=current_ts,
             last_config_seqnum=0,
+            config_latest_update_id=latest_update_id,
+            config_latest_update_ts=latest_update_ts,
             info_latest_update_id=latest_update_id,
             info_latest_update_ts=latest_update_ts,
             ledger_latest_update_id=latest_update_id,
@@ -348,11 +345,15 @@ def get_account_ledger(creditor_id: int, debtor_id: int) -> Optional[AccountData
 
 
 @atomic
-def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountConfig]:
+def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    return AccountConfig.get_instance((creditor_id, debtor_id))
+    account_data_query = AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+
+    return account_data_query.one_or_none()
 
 
 @atomic
@@ -361,25 +362,14 @@ def update_account_config(
         debtor_id: int,
         is_scheduled_for_deletion: bool,
         negligible_amount: float,
-        allow_unsafe_deletion: bool) -> AccountConfig:
+        allow_unsafe_deletion: bool) -> AccountData:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    ac, ad, c = AccountConfig, AccountData, Creditor
-    config_data_query = db.session.\
-        query(AccountConfig, AccountData, Creditor).\
-        join(AccountData, and_(ad.creditor_id == ac.creditor_id, ad.debtor_id == ac.debtor_id)).\
-        join(Creditor, c.creditor_id == ac.creditor_id).\
-        filter(ac.creditor_id == creditor_id, ac.debtor_id == debtor_id, c.deactivated_at_date == null()).\
-        with_for_update().\
-        options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
-
-    try:
-        config, data, creditor = config_data_query.one()
-    except exc.NoResultFound:
-        raise AccountDoesNotExistError()
+    options = [Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
+    data, creditor = _join_creditor(AccountData, creditor_id, debtor_id, options=options)
 
     # The account will not be safe to delete once the configuration
     # update is done. Therefore, if the account is safe to delete now,
@@ -396,10 +386,10 @@ def update_account_config(
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     data.is_config_effectual = False
     data.is_scheduled_for_deletion = is_scheduled_for_deletion
-    config.is_scheduled_for_deletion = is_scheduled_for_deletion
-    config.negligible_amount = negligible_amount
-    config.allow_unsafe_deletion = allow_unsafe_deletion
-    config.latest_update_id, config.latest_update_ts = _add_log_entry(
+    data.is_scheduled_for_deletion = is_scheduled_for_deletion
+    data.negligible_amount = negligible_amount
+    data.allow_unsafe_deletion = allow_unsafe_deletion
+    data.config_latest_update_id, data.config_latest_update_ts = _add_log_entry(
         creditor,
         object_type=types.account_config,
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
@@ -411,12 +401,12 @@ def update_account_config(
         creditor_id=creditor_id,
         ts=data.last_config_ts,
         seqnum=data.last_config_seqnum,
-        negligible_amount=config.negligible_amount,
-        config_flags=config.config_flags,
-        config=config.config,
+        negligible_amount=data.negligible_amount,
+        config_flags=data.config_flags,
+        config='',
     ))
 
-    return config
+    return data
 
 
 @atomic
@@ -569,22 +559,10 @@ def delete_account(creditor_id: int, debtor_id: int):
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    a, ac, c = Account, AccountConfig, Creditor
-    account_query = db.session.\
-        query(Account, Creditor, AccountData, ac.allow_unsafe_deletion).\
-        join(Creditor, c.creditor_id == a.creditor_id).\
-        join(Account.data).\
-        join(Account.config).\
-        filter(a.creditor_id == creditor_id, a.debtor_id == debtor_id, c.deactivated_at_date == null()).\
-        with_for_update(of=[Account, Creditor]).\
-        options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+    options = [Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
+    data, creditor = _join_creditor(AccountData, creditor_id, debtor_id, options=options)
 
-    try:
-        account, creditor, data, allow_unsafe_deletion = account_query.one()
-    except exc.NoResultFound:
-        raise AccountDoesNotExistError()
-
-    if not (data.is_deletion_safe or allow_unsafe_deletion):
+    if not (data.is_deletion_safe or data.allow_unsafe_deletion):
         raise UnsafeAccountDeletionError()
 
     # Ensure that no accounts are pegged to this account.
@@ -624,7 +602,7 @@ def delete_account(creditor_id: int, debtor_id: int):
         )
 
     creditor.accounts_count = max(0, creditor.accounts_count - 1)
-    db.session.delete(account)
+    Account.query.filter_by(debtor_id=debtor_id, creditor_id=creditor_id).delete(synchronize_session=False)
 
 
 @atomic
@@ -680,8 +658,7 @@ def process_account_update_signal(
     if (current_ts - ts).total_seconds() > ttl:
         return
 
-    query = db.session.query(AccountData, AccountConfig).\
-        outerjoin(AccountConfig, ACCOUNT_CONFIG_JOIN_CLAUSE).\
+    query = db.session.query(AccountData).\
         filter(AccountData.creditor_id == creditor_id, AccountData.debtor_id == debtor_id).\
         with_for_update(of=AccountData)
 
@@ -953,7 +930,7 @@ def _discard_orphaned_account(
         config_flags: int,
         negligible_amount: float) -> None:
 
-    is_scheduled_for_deletion = config_flags & AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    is_scheduled_for_deletion = config_flags & AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     has_huge_negligible_amount = negligible_amount >= DEFAULT_NEGLIGIBLE_AMOUNT
     if not (is_scheduled_for_deletion and has_huge_negligible_amount):
         db.session.add(ConfigureAccountSignal(
@@ -1022,12 +999,13 @@ def _finalize_direct_transfer(
             direct_transfer.error = error
 
 
-def _join_creditor(m, creditor_id: int, debtor_id: int) -> Tuple[db.Model, Creditor]:
+def _join_creditor(m, creditor_id: int, debtor_id: int, *, options: list = []) -> Tuple[db.Model, Creditor]:
     query = db.session.\
         query(m, Creditor).\
         join(Creditor, Creditor.creditor_id == m.creditor_id).\
         filter(m.creditor_id == creditor_id, m.debtor_id == debtor_id, Creditor.deactivated_at_date == null()).\
-        with_for_update()
+        with_for_update(of=Creditor).\
+        options(*options)
 
     try:
         return query.one()

@@ -189,40 +189,6 @@ class Account(db.Model):
     knowledge = db.relationship('AccountKnowledge', uselist=False, cascade='all', passive_deletes=True)
     exchange = db.relationship('AccountExchange', uselist=False, cascade='all', passive_deletes=True)
     display = db.relationship('AccountDisplay', uselist=False, cascade='all', passive_deletes=True)
-    config = db.relationship('AccountConfig', uselist=False, cascade='all', passive_deletes=True)
-
-
-class AccountConfig(db.Model):
-    CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
-
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    negligible_amount = db.Column(db.REAL, nullable=False, default=DEFAULT_NEGLIGIBLE_AMOUNT)
-    config = db.Column(db.String, nullable=False, default='')
-    config_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_CONFIG_FLAGS)
-    allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
-    latest_update_id = db.Column(db.BigInteger, nullable=False)
-    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account.creditor_id', 'account.debtor_id'],
-            ondelete='CASCADE',
-        ),
-        db.CheckConstraint(negligible_amount >= 0.0),
-        db.CheckConstraint(latest_update_id > 0),
-    )
-
-    @property
-    def is_scheduled_for_deletion(self):
-        return bool(self.config_flags & self.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
-
-    @is_scheduled_for_deletion.setter
-    def is_scheduled_for_deletion(self, value):
-        if value:
-            self.config_flags |= self.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        else:
-            self.config_flags &= ~self.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
 # TODO: Implement a daemon that periodically scan the `AccountData`
@@ -233,6 +199,8 @@ class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
 
+    CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, nullable=False, default=DATE0)
@@ -242,8 +210,6 @@ class AccountData(db.Model):
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
     last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
-    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
-    last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     last_heartbeat_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
@@ -253,16 +219,24 @@ class AccountData(db.Model):
                 'removed from the `swpt_accounts` service, but still exist in this table.',
     )
 
+    # AccountConfig data
+    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
+    last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
+    negligible_amount = db.Column(db.REAL, nullable=False, default=DEFAULT_NEGLIGIBLE_AMOUNT)
+    config_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_CONFIG_FLAGS)
+    is_config_effectual = db.Column(db.BOOLEAN, nullable=False, default=False)
+    allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
+    has_server_account = db.Column(db.BOOLEAN, nullable=False, default=False)
+    config_error = db.Column(db.String)
+    config_latest_update_id = db.Column(db.BigInteger, nullable=False)
+    config_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
     # AccountInfo data
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
     account_id = db.Column(db.String, nullable=False, default='')
     debtor_info_url = db.Column(db.String)
-    config_error = db.Column(db.String)
-    is_config_effectual = db.Column(db.BOOLEAN, nullable=False, default=False)
-    is_scheduled_for_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
-    has_server_account = db.Column(db.BOOLEAN, nullable=False, default=False)
     info_latest_update_id = db.Column(db.BigInteger, nullable=False)
     info_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -281,6 +255,8 @@ class AccountData(db.Model):
         ),
         db.CheckConstraint(interest_rate >= -100.0),
         db.CheckConstraint(last_transfer_number >= 0),
+        db.CheckConstraint(negligible_amount >= 0.0),
+        db.CheckConstraint(config_latest_update_id > 0),
         db.CheckConstraint(info_latest_update_id > 0),
         db.CheckConstraint(ledger_last_transfer_number >= 0),
         db.CheckConstraint(ledger_latest_update_id > 0),
@@ -294,6 +270,17 @@ class AccountData(db.Model):
     @property
     def overflown(self):
         return bool(self.status_flags & self.STATUS_OVERFLOWN_FLAG)
+
+    @property
+    def is_scheduled_for_deletion(self):
+        return bool(self.config_flags & self.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
+
+    @is_scheduled_for_deletion.setter
+    def is_scheduled_for_deletion(self, value):
+        if value:
+            self.config_flags |= self.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        else:
+            self.config_flags &= ~self.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
     @property
     def is_deletion_safe(self):

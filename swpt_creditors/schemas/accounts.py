@@ -522,12 +522,14 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
     )
 
     @pre_dump
-    def process_account_config_instance(self, obj, many):
-        assert isinstance(obj, models.AccountConfig)
+    def process_account_data_instance(self, obj, many):
+        assert isinstance(obj, models.AccountData)
         paths = self.context['paths']
         obj = copy(obj)
         obj.uri = paths.account_config(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
+        obj.latest_update_id = obj.config_latest_update_id
+        obj.latest_update_ts = obj.config_latest_update_ts
 
         return obj
 
@@ -821,6 +823,7 @@ class AccountSchema(MutableResourceSchema):
         obj.uri = paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.debtor_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
         obj.account_list = {'uri': paths.account_list(creditorId=obj.creditor_id)}
+        obj.config = obj.data
         obj.info = obj.data
         obj.ledger = obj.data
 

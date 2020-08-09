@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from uuid import UUID
 from swpt_creditors import procedures as p
 from swpt_creditors import models
-from swpt_creditors.models import Creditor, Account, AccountData, AccountConfig, ConfigureAccountSignal
+from swpt_creditors.models import Creditor, Account, AccountData, ConfigureAccountSignal
 
 D_ID = -1
 C_ID = 1

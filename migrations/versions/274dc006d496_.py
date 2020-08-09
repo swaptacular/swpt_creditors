@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5f66735083f7
+Revision ID: 274dc006d496
 Revises: 8d8c816257ce
-Create Date: 2020-08-07 16:02:50.527416
+Create Date: 2020-08-10 00:10:29.699647
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5f66735083f7'
+revision = '274dc006d496'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -108,20 +108,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE')
     )
     op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
-    op.create_table('account_config',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('negligible_amount', sa.REAL(), nullable=False),
-    sa.Column('config', sa.String(), nullable=False),
-    sa.Column('config_flags', sa.Integer(), nullable=False),
-    sa.Column('allow_unsafe_deletion', sa.BOOLEAN(), nullable=False),
-    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
-    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('latest_update_id > 0'),
-    sa.CheckConstraint('negligible_amount >= 0.0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
-    )
     op.create_table('account_data',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -132,18 +118,22 @@ def upgrade():
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdate` message has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
-    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdate` message has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
+    sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('config_flags', sa.Integer(), nullable=False),
+    sa.Column('is_config_effectual', sa.BOOLEAN(), nullable=False),
+    sa.Column('allow_unsafe_deletion', sa.BOOLEAN(), nullable=False),
+    sa.Column('config_error', sa.String(), nullable=True),
+    sa.Column('config_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('config_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('has_server_account', sa.BOOLEAN(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.Column('account_id', sa.String(), nullable=False),
     sa.Column('debtor_info_url', sa.String(), nullable=True),
-    sa.Column('config_error', sa.String(), nullable=True),
-    sa.Column('is_config_effectual', sa.BOOLEAN(), nullable=False),
-    sa.Column('is_scheduled_for_deletion', sa.BOOLEAN(), nullable=False),
-    sa.Column('has_server_account', sa.BOOLEAN(), nullable=False),
     sa.Column('info_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('info_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('ledger_principal', sa.BigInteger(), nullable=False),
@@ -151,11 +141,13 @@ def upgrade():
     sa.Column('ledger_last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('config_latest_update_id > 0'),
     sa.CheckConstraint('info_latest_update_id > 0'),
     sa.CheckConstraint('interest_rate >= -100.0'),
     sa.CheckConstraint('last_transfer_number >= 0'),
     sa.CheckConstraint('ledger_last_transfer_number >= 0'),
     sa.CheckConstraint('ledger_latest_update_id > 0'),
+    sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
@@ -282,7 +274,6 @@ def downgrade():
     op.drop_table('account_display')
     op.drop_index('idx_ledger_last_transfer', table_name='account_data')
     op.drop_table('account_data')
-    op.drop_table('account_config')
     op.drop_index('idx_log_entry_pk', table_name='log_entry')
     op.drop_table('log_entry')
     op.drop_table('direct_transfer')

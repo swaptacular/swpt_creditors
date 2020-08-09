@@ -521,14 +521,14 @@ def test_deserialize_account_knowledge(app):
 
 
 def test_serialize_account_config(app):
-    ac = models.AccountConfig(
+    ac = models.AccountData(
         creditor_id=C_ID,
         debtor_id=D_ID,
         negligible_amount=101.0,
-        config_flags=models.AccountConfig.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
+        config_flags=models.DEFAULT_CONFIG_FLAGS | models.AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
         allow_unsafe_deletion=True,
-        latest_update_id=1,
-        latest_update_ts=datetime(2020, 1, 1),
+        config_latest_update_id=1,
+        config_latest_update_ts=datetime(2020, 1, 1),
     )
     acs = schemas.AccountConfigSchema(context=CONTEXT)
     assert acs.dump(ac) == {
@@ -609,7 +609,7 @@ def test_serialize_account_info(app):
         debtor_info_url=None,
         config_error=None,
         is_config_effectual=True,
-        is_scheduled_for_deletion=False,
+        config_flags=models.DEFAULT_CONFIG_FLAGS,
         has_server_account=True,
         info_latest_update_id=1,
         info_latest_update_ts=datetime(2020, 1, 1),
@@ -676,7 +676,7 @@ def test_serialize_account(db_session):
         'latestUpdateAt': account.latest_update_ts.isoformat(),
         'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:18446744073709551615'},
         'display': ads.dump(account.display),
-        'config': acs.dump(account.config),
+        'config': acs.dump(account.data),
         'info': ais.dump(account.data),
         'ledger': als.dump(account.data),
         'exchange': aes.dump(account.exchange),
@@ -796,7 +796,7 @@ def test_serialize_account_ledger(app):
         debtor_info_url=None,
         config_error=None,
         is_config_effectual=True,
-        is_scheduled_for_deletion=False,
+        config_flags=models.DEFAULT_CONFIG_FLAGS,
         has_server_account=True,
         info_latest_update_id=1,
         info_latest_update_ts=datetime(2020, 1, 1),
