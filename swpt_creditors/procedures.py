@@ -138,8 +138,8 @@ def create_new_creditor(creditor_id: int) -> Creditor:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     creditor = Creditor(creditor_id=creditor_id)
-    db.session.add(creditor)
 
+    db.session.add(creditor)
     try:
         db.session.flush()
     except IntegrityError:
@@ -150,6 +150,9 @@ def create_new_creditor(creditor_id: int) -> Creditor:
 
 @atomic
 def update_creditor(creditor_id: int) -> Creditor:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+
+    current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise CreditorDoesNotExistError()
@@ -158,7 +161,9 @@ def update_creditor(creditor_id: int) -> Creditor:
         creditor,
         object_type=types.creditor,
         object_uri=paths.creditor(creditorId=creditor_id),
+        current_ts=current_ts,
     )
+
     return creditor
 
 
@@ -176,6 +181,7 @@ def lock_or_create_creditor(creditor_id: int) -> Creditor:
 
 @atomic
 def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple[List[LogEntry], int]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert count >= 1
     assert 0 <= prev <= MAX_INT64
 
@@ -199,6 +205,7 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
 
 @atomic
 def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -> List[int]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert count >= 1
     assert prev is None or MIN_INT64 <= prev <= MAX_INT64
 
@@ -243,7 +250,6 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
-
     if creditor is None:
         raise CreditorDoesNotExistError()
 
