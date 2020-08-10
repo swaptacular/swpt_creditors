@@ -14,7 +14,7 @@ RECIPIENT_URI = 'https://example.com/creditors/1'
 
 @pytest.fixture
 def creditor(db_session):
-    return p.lock_or_create_creditor(C_ID)
+    return p.create_new_creditor(C_ID)
 
 
 @pytest.fixture

@@ -121,19 +121,6 @@ class AccountOwnUnitConflictError(Exception):
 
 
 @atomic
-def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
-    if lock:
-        creditor = Creditor.lock_instance(creditor_id)
-    else:
-        creditor = Creditor.get_instance(creditor_id)
-
-    if creditor and creditor.deactivated_at_date is None:
-        return creditor
-
-    return None
-
-
-@atomic
 def create_new_creditor(creditor_id: int) -> Creditor:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
@@ -144,6 +131,19 @@ def create_new_creditor(creditor_id: int) -> Creditor:
         db.session.flush()
     except IntegrityError:
         raise CreditorExistsError()
+
+    return creditor
+
+
+@atomic
+def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
+    if lock:
+        creditor = Creditor.lock_instance(creditor_id)
+    else:
+        creditor = Creditor.get_instance(creditor_id)
+
+    if creditor is None or creditor.deactivated_at_date is not None:
+        return None
 
     return creditor
 
@@ -164,18 +164,6 @@ def update_creditor(creditor_id: int) -> Creditor:
         current_ts=current_ts,
     )
 
-    return creditor
-
-
-@atomic
-def lock_or_create_creditor(creditor_id: int) -> Creditor:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-
-    creditor = Creditor.lock_instance(creditor_id)
-    if creditor is None:
-        creditor = Creditor(creditor_id=creditor_id)
-        with db.retry_on_integrity_error():
-            db.session.add(creditor)
     return creditor
 
 

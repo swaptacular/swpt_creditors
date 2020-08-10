@@ -14,7 +14,7 @@ def client(app, db_session):
 
 @pytest.fixture(scope='function')
 def creditor(db_session):
-    return p.lock_or_create_creditor(2)
+    return p.create_new_creditor(2)
 
 
 @pytest.fixture(scope='function')
