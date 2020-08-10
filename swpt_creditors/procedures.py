@@ -492,7 +492,7 @@ def update_account_exchange(
 
 
 @atomic
-def delete_account(creditor_id: int, debtor_id: int):
+def delete_account(creditor_id: int, debtor_id: int) -> None:
     # TODO: Make sure users do not remove accounts unsafely too
     #       often. For example, users may create and remove hundreds
     #       of accounts per minute, significantly raising the cost for
@@ -834,34 +834,6 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
     return number_of_deleted_rows == 1
 
 
-def _add_log_entry(
-        creditor: Creditor,
-        *,
-        object_type: str,
-        object_uri: str,
-        is_deleted: bool = False,
-        data: dict = None,
-        current_ts: datetime = None) -> Tuple[int, datetime]:
-
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    creditor_id = creditor.creditor_id
-    previous_entry_id = creditor.latest_log_entry_id
-    entry_id = creditor.generate_log_entry_id()
-
-    db.session.add(LogEntry(
-        creditor_id=creditor_id,
-        entry_id=entry_id,
-        previous_entry_id=previous_entry_id,
-        object_type=object_type,
-        object_uri=object_uri,
-        added_at_ts=current_ts,
-        is_deleted=is_deleted,
-        data=data,
-    ))
-
-    return entry_id, current_ts
-
-
 def _discard_orphaned_account(
         creditor_id: int,
         debtor_id: int,
@@ -950,6 +922,34 @@ def _join_and_lock_creditor(m, creditor_id: int, debtor_id: int, *, options: lis
         return query.one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
+
+
+def _add_log_entry(
+        creditor: Creditor,
+        *,
+        object_type: str,
+        object_uri: str,
+        is_deleted: bool = False,
+        data: dict = None,
+        current_ts: datetime = None) -> Tuple[int, datetime]:
+
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    creditor_id = creditor.creditor_id
+    previous_entry_id = creditor.latest_log_entry_id
+    entry_id = creditor.generate_log_entry_id()
+
+    db.session.add(LogEntry(
+        creditor_id=creditor_id,
+        entry_id=entry_id,
+        previous_entry_id=previous_entry_id,
+        object_type=object_type,
+        object_uri=object_uri,
+        added_at_ts=current_ts,
+        is_deleted=is_deleted,
+        data=data,
+    ))
+
+    return entry_id, current_ts
 
 
 def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
