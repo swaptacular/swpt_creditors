@@ -279,66 +279,31 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
 
 
-@pytest.mark.skip
 def test_process_account_purge_signal(db_session, creditor, setup_account, current_ts):
+    AccountData.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).update({
+        AccountData.creation_date: date(2020, 1, 2),
+        AccountData.has_server_account: True,
+        AccountData.principal: 1000,
+        AccountData.interest: 15.0,
+    }, synchronize_session=False)
+    db_session.commit()
     data = AccountData.query.one()
     assert data.debtor_id == D_ID
     assert data.creditor_id == C_ID
-    assert not data.has_server_account
-    assert len(Account.query.all()) == 1
-    p.process_account_update_signal(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        last_change_ts=current_ts,
-        last_change_seqnum=1,
-        principal=1000,
-        interest=0.0,
-        interest_rate=5.0,
-        last_interest_rate_change_ts=current_ts,
-        last_transfer_number=1,
-        last_transfer_committed_at_ts=current_ts,
-        last_config_ts=current_ts,
-        last_config_seqnum=1,
-        creation_date=date(2020, 1, 15),
-        negligible_amount=0.0,
-        status_flags=0,
-        ts=current_ts,
-        ttl=1000000,
-        account_id=str(C_ID),
-        config='',
-        config_flags=0,
-        debtor_info_url='',
-    )
+    assert data.has_server_account
+    assert data.principal == 1000
+    assert data.interest == 15.0
+
+    p.process_account_purge_signal(2222, 1111, date(2020, 1, 2))
+    p.process_account_purge_signal(C_ID, D_ID, date(2020, 1, 1))
+    p.process_account_purge_signal(C_ID, D_ID, date(2020, 1, 3))
     data = AccountData.query.one()
     assert data.has_server_account
-    assert len(Account.query.all()) == 1
+    assert data.principal == 1000
+    assert data.interest == 15.0
 
-    # Wrong creation date:
-    p.process_account_purge_signal(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        creation_date=date(2021, 1, 2),
-    )
-    data = AccountData.query.one()
-    assert data.has_server_account
-    assert len(Account.query.all()) == 1
-
-    # Wrong creditor_id:
-    p.process_account_purge_signal(
-        debtor_id=D_ID,
-        creditor_id=1234,
-        creation_date=date(2020, 1, 15),
-    )
-    data = AccountData.query.one()
-    assert data.has_server_account
-    assert len(Account.query.all()) == 1
-
-    # Everything is correct:
-    p.process_account_purge_signal(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        creation_date=date(2020, 1, 15),
-    )
+    p.process_account_purge_signal(C_ID, D_ID, date(2020, 1, 2))
     data = AccountData.query.one()
     assert not data.has_server_account
-    assert len(AccountData.query.all()) == 1
+    assert data.principal == 0
+    assert data.interest == 0.0

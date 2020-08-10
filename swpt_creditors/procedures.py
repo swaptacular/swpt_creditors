@@ -545,16 +545,17 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
 
 
 @atomic
-def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date: date) -> None:
+def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date: date) -> None:
     # TODO: Do not foget to do the same thing when the account is dead
     #       (no heartbeat for a long time).
 
-    account_data = AccountData.lock_instance((creditor_id, debtor_id))
-    if account_data and account_data.creation_date == creation_date:
-        # TODO: reset other fields as well?
-        account_data.has_server_account = False
-        account_data.principal = 0
-        account_data.interest = 0.0
+    AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id, creation_date=creation_date).\
+        update({
+            AccountData.has_server_account: False,
+            AccountData.principal: 0,
+            AccountData.interest: 0.0,
+        }, synchronize_session=False)
 
 
 @atomic
