@@ -179,7 +179,8 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
     assert count >= 1
     assert 0 <= prev <= MAX_INT64
 
-    latest_log_entry_id = db.session.query(Creditor.latest_log_entry_id).\
+    latest_log_entry_id = db.session.\
+        query(Creditor.latest_log_entry_id).\
         filter(Creditor.creditor_id == creditor_id, Creditor.deactivated_at_date == null()).\
         scalar()
 
@@ -201,7 +202,8 @@ def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) 
     assert count >= 1
     assert prev is None or MIN_INT64 <= prev <= MAX_INT64
 
-    query = db.session.query(Account.debtor_id).\
+    query = db.session.\
+        query(Account.debtor_id).\
         filter(Account.creditor_id == creditor_id).\
         order_by(Account.debtor_id)
 
@@ -241,6 +243,7 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
+
     if creditor is None:
         raise CreditorDoesNotExistError()
 
@@ -384,7 +387,6 @@ def update_account_config(
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     data.is_config_effectual = False
     data.is_scheduled_for_deletion = is_scheduled_for_deletion
-    data.is_scheduled_for_deletion = is_scheduled_for_deletion
     data.negligible_amount = negligible_amount
     data.allow_unsafe_deletion = allow_unsafe_deletion
     data.config_latest_update_id, data.config_latest_update_ts = _add_log_entry(
@@ -405,6 +407,14 @@ def update_account_config(
     ))
 
     return data
+
+
+@atomic
+def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDisplay]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountDisplay.get_instance((creditor_id, debtor_id))
 
 
 @atomic
@@ -470,6 +480,14 @@ def update_account_display(
 
 
 @atomic
+def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountKnowledge]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountKnowledge.get_instance((creditor_id, debtor_id))
+
+
+@atomic
 def update_account_knowledge(
         creditor_id: int,
         debtor_id: int,
@@ -494,6 +512,14 @@ def update_account_knowledge(
     )
 
     return knowledge
+
+
+@atomic
+def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountExchange]:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    return AccountExchange.get_instance((creditor_id, debtor_id))
 
 
 @atomic
@@ -523,30 +549,6 @@ def update_account_exchange(
     )
 
     return exchange
-
-
-@atomic
-def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDisplay]:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
-    return AccountDisplay.get_instance((creditor_id, debtor_id))
-
-
-@atomic
-def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountKnowledge]:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
-    return AccountKnowledge.get_instance((creditor_id, debtor_id))
-
-
-@atomic
-def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountExchange]:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
-    return AccountExchange.get_instance((creditor_id, debtor_id))
 
 
 @atomic
