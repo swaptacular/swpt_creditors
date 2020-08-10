@@ -119,7 +119,7 @@ class UnsafeAccountDeletionError(Exception):
     """Unauthorized unsafe deletion of an account."""
 
 
-class PegAccountDeletionAttemptError(Exception):
+class PegAccountDeletionError(Exception):
     """Can not delete an account that acts as a currency peg."""
 
 
@@ -510,7 +510,7 @@ def delete_account(creditor_id: int, debtor_id: int):
 
     pegged_accounts_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_account_debtor_id=debtor_id)
     if db.session.query(pegged_accounts_query.exists()).scalar():
-        raise PegAccountDeletionAttemptError()
+        raise PegAccountDeletionError()
 
     # NOTE: When the account gets deleted, all its related objects
     # will be deleted too. Also, the deleted account will disappear

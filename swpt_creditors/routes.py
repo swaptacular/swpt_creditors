@@ -361,7 +361,7 @@ class AccountEndpoint(MethodView):
 
         try:
             procedures.delete_account(creditorId, debtorId)
-        except procedures.PegAccountDeletionAttemptError:
+        except procedures.PegAccountDeletionError:
             abort(409)
         except procedures.UnsafeAccountDeletionError:
             abort(403)
