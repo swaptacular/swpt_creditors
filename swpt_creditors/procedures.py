@@ -337,11 +337,10 @@ def get_account_ledger(creditor_id: int, debtor_id: int) -> Optional[AccountData
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    account_data_query = AccountData.query.\
+    return AccountData.query.\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
-
-    return account_data_query.one_or_none()
+        options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)).\
+        one_or_none()
 
 
 @atomic
@@ -349,11 +348,10 @@ def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountData
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    account_data_query = AccountData.query.\
+    return AccountData.query.\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
-
-    return account_data_query.one_or_none()
+        options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
+        one_or_none()
 
 
 @atomic
@@ -442,7 +440,7 @@ def update_account_display(
         if own_unit_conflict:
             raise AccountOwnUnitConflictError()
 
-    # If a peg currency is specified, check whether an account in it exists.
+    # Check whether the peg currency account exists.
     if peg_currency_debtor_id is None:
         assert peg_exchange_rate is None
         peg_account_debtor_id = None
@@ -452,22 +450,21 @@ def update_account_display(
         peg_account_exists = db.session.query(peg_account_query.exists()).scalar()
         peg_account_debtor_id = peg_currency_debtor_id if peg_account_exists else None
 
-    with db.retry_on_integrity_error():
-        display.debtor_name = debtor_name
-        display.amount_divisor = amount_divisor
-        display.decimal_places = decimal_places
-        display.own_unit = own_unit
-        display.own_unit_preference = own_unit_preference
-        display.hide = hide
-        display.peg_exchange_rate = peg_exchange_rate
-        display.peg_currency_debtor_id = peg_currency_debtor_id
-        display.peg_account_debtor_id = peg_account_debtor_id
-        display.peg_debtor_home_url = peg_debtor_home_url
-        display.latest_update_id, display.latest_update_ts = _add_log_entry(
-            creditor,
-            object_type=types.account_display,
-            object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
-        )
+    display.debtor_name = debtor_name
+    display.amount_divisor = amount_divisor
+    display.decimal_places = decimal_places
+    display.own_unit = own_unit
+    display.own_unit_preference = own_unit_preference
+    display.hide = hide
+    display.peg_exchange_rate = peg_exchange_rate
+    display.peg_currency_debtor_id = peg_currency_debtor_id
+    display.peg_account_debtor_id = peg_account_debtor_id
+    display.peg_debtor_home_url = peg_debtor_home_url
+    display.latest_update_id, display.latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_display,
+        object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
+    )
 
     return display
 
@@ -485,6 +482,7 @@ def update_account_knowledge(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     knowledge, creditor = _join_creditor(AccountKnowledge, creditor_id, debtor_id)
+
     knowledge.interest_rate = interest_rate
     knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
     knowledge.account_identity = account_identity
@@ -494,6 +492,7 @@ def update_account_knowledge(
         object_type=types.account_knowledge,
         object_uri=paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id),
     )
+
     return knowledge
 
 
@@ -508,11 +507,12 @@ def update_account_exchange(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    # There are no valid policy names yet.
+    # There are no defined valid policy names yet.
     if policy is not None:
         raise InvalidExchangePolicyError()
 
     exchange, creditor = _join_creditor(AccountExchange, creditor_id, debtor_id)
+
     exchange.policy = policy
     exchange.min_principal = min_principal
     exchange.max_principal = max_principal
@@ -521,6 +521,7 @@ def update_account_exchange(
         object_type=types.account_exchange,
         object_uri=paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id),
     )
+
     return exchange
 
 
