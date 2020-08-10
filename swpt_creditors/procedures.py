@@ -224,7 +224,10 @@ def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) 
 
 
 @atomic
-def has_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
+def has_account(creditor_id: int, debtor_id: Optional[int]) -> bool:
+    if debtor_id is None:
+        return False
+
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
@@ -253,87 +256,17 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id, lock=True)
+
     if creditor is None:
         raise CreditorDoesNotExistError()
 
     if creditor.accounts_count >= current_app.config['APP_ACCOUNTS_COUNT_LIMIT']:
         raise ForbiddenAccountCreationError()
 
-    account_query = Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
-    if db.session.query(account_query.exists()).scalar():
+    if has_account(creditor_id, debtor_id):
         raise AccountExistsError()
 
-    # Create a new account record and write events to the log. Note
-    # that the new account will appear in the account list, and we
-    # need to inform the client about this.
-    latest_update_id, latest_update_ts = _add_log_entry(
-        creditor,
-        object_type=types.account,
-        object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
-        current_ts=current_ts,
-    )
-    creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
-        creditor,
-        object_type=types.account_list,
-        object_uri=paths.account_list(creditorId=creditor_id),
-        current_ts=current_ts,
-    )
-    account = Account(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        created_at_ts=current_ts,
-        knowledge=AccountKnowledge(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        exchange=AccountExchange(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        display=AccountDisplay(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        data=AccountData(
-            last_config_ts=current_ts,
-            last_config_seqnum=0,
-            config_latest_update_id=latest_update_id,
-            config_latest_update_ts=latest_update_ts,
-            info_latest_update_id=latest_update_id,
-            info_latest_update_ts=latest_update_ts,
-            ledger_latest_update_id=latest_update_id,
-            ledger_latest_update_ts=latest_update_ts,
-        ),
-        latest_update_id=latest_update_id,
-        latest_update_ts=latest_update_ts,
-    )
-    db.session.add(account)
-    creditor.accounts_count += 1
-
-    db.session.add(ConfigureAccountSignal(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        ts=current_ts,
-        seqnum=0,
-        negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
-        config_flags=DEFAULT_CONFIG_FLAGS,
-        config='',
-    ))
-
-    # Update the way accounts pegged to the newly created account will
-    # be displayed. Note that we need to write events to the log, to
-    # inform the client about these changes.
-    account_display_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id)
-    for account_display in account_display_query.all():
-        account_display.peg_account_debtor_id = debtor_id
-        account_display.latest_update_id, account_display.latest_update_ts = _add_log_entry(
-            creditor,
-            object_type=types.account_display,
-            object_uri=paths.account_display(creditorId=creditor_id, debtorId=account_display.debtor_id),
-            current_ts=current_ts or datetime.now(tz=timezone.utc),
-        )
-
-    return account
+    return _create_new_account(creditor, debtor_id, current_ts)
 
 
 @atomic
@@ -382,11 +315,11 @@ def update_account_config(
 
     current_ts = datetime.now(tz=timezone.utc)
     options = [Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
-    data, creditor = _join_creditor(AccountData, creditor_id, debtor_id, options=options)
+    data, creditor = _join_and_lock_creditor(AccountData, creditor_id, debtor_id, options=options)
 
-    # The account will not be safe to delete once the configuration
-    # update is done. Therefore, if the account is safe to delete now,
-    # we need to inform the client about the upcoming change.
+    # NOTE: The account will not be safe to delete once the config is
+    # updated. Therefore, if the account is safe to delete now, we
+    # need to inform the client about the upcoming change.
     if data.is_deletion_safe:
         data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
             creditor,
@@ -446,31 +379,26 @@ def update_account_display(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    display, creditor = _join_creditor(AccountDisplay, creditor_id, debtor_id)
+    display, creditor = _join_and_lock_creditor(AccountDisplay, creditor_id, debtor_id)
 
-    # Ensure that the debtor name is unique.
+    # NOTE: We must ensure that the debtor name is unique.
     if debtor_name not in [display.debtor_name, None]:
         debtor_name_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_name=debtor_name)
         debtor_name_confilict = db.session.query(debtor_name_query.exists()).scalar()
         if debtor_name_confilict:
             raise AccountDebtorNameConflictError()
 
-    # Ensure that the own unit is unique.
+    # NOTE: We must ensure that the own unit is unique.
     if own_unit not in [display.own_unit, None]:
         own_unit_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, own_unit=own_unit)
         own_unit_conflict = db.session.query(own_unit_query.exists()).scalar()
         if own_unit_conflict:
             raise AccountOwnUnitConflictError()
 
-    # Check whether the peg currency account exists.
-    if peg_currency_debtor_id is None:
-        assert peg_exchange_rate is None
-        peg_account_debtor_id = None
-    else:
-        assert peg_exchange_rate is not None
-        peg_account_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_id=peg_currency_debtor_id)
-        peg_account_exists = db.session.query(peg_account_query.exists()).scalar()
-        peg_account_debtor_id = peg_currency_debtor_id if peg_account_exists else None
+    # NOTE: When a currency peg is specified, and the creditor already
+    # has an account in the specified peg currency, then we must set a
+    # reference to it.
+    peg_account_debtor_id = peg_currency_debtor_id if has_account(creditor_id, peg_currency_debtor_id) else None
 
     display.debtor_name = debtor_name
     display.amount_divisor = amount_divisor
@@ -511,7 +439,7 @@ def update_account_knowledge(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    knowledge, creditor = _join_creditor(AccountKnowledge, creditor_id, debtor_id)
+    knowledge, creditor = _join_and_lock_creditor(AccountKnowledge, creditor_id, debtor_id)
 
     knowledge.interest_rate = interest_rate
     knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
@@ -545,11 +473,11 @@ def update_account_exchange(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    # There are no defined valid policy names yet.
+    # NOTE: There are no defined valid policy names yet.
     if policy is not None:
         raise InvalidExchangePolicyError()
 
-    exchange, creditor = _join_creditor(AccountExchange, creditor_id, debtor_id)
+    exchange, creditor = _join_and_lock_creditor(AccountExchange, creditor_id, debtor_id)
 
     exchange.policy = policy
     exchange.min_principal = min_principal
@@ -575,7 +503,7 @@ def delete_account(creditor_id: int, debtor_id: int):
 
     current_ts = datetime.now(tz=timezone.utc)
     options = [Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
-    data, creditor = _join_creditor(AccountData, creditor_id, debtor_id, options=options)
+    data, creditor = _join_and_lock_creditor(AccountData, creditor_id, debtor_id, options=options)
 
     if not (data.is_deletion_safe or data.allow_unsafe_deletion):
         raise UnsafeAccountDeletionError()
@@ -1014,7 +942,7 @@ def _finalize_direct_transfer(
             direct_transfer.error = error
 
 
-def _join_creditor(m, creditor_id: int, debtor_id: int, *, options: list = []) -> Tuple[db.Model, Creditor]:
+def _join_and_lock_creditor(m, creditor_id: int, debtor_id: int, *, options: list = []) -> Tuple[db.Model, Creditor]:
     query = db.session.\
         query(m, Creditor).\
         join(Creditor, Creditor.creditor_id == m.creditor_id).\
@@ -1026,3 +954,80 @@ def _join_creditor(m, creditor_id: int, debtor_id: int, *, options: list = []) -
         return query.one()
     except exc.NoResultFound:
         raise AccountDoesNotExistError()
+
+
+def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
+    creditor_id = creditor.creditor_id
+
+    # NOTE: When the new account is created, it will also appear in
+    # the list of accounts, so we need to write two events to the log
+    # to inform the client about this.
+    latest_update_id, latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account,
+        object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
+        current_ts=current_ts,
+    )
+    creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_list,
+        object_uri=paths.account_list(creditorId=creditor_id),
+        current_ts=current_ts,
+    )
+
+    account = Account(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        created_at_ts=current_ts,
+        knowledge=AccountKnowledge(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        exchange=AccountExchange(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        display=AccountDisplay(
+            latest_update_id=latest_update_id,
+            latest_update_ts=latest_update_ts,
+        ),
+        data=AccountData(
+            last_config_ts=current_ts,
+            last_config_seqnum=0,
+            config_latest_update_id=latest_update_id,
+            config_latest_update_ts=latest_update_ts,
+            info_latest_update_id=latest_update_id,
+            info_latest_update_ts=latest_update_ts,
+            ledger_latest_update_id=latest_update_id,
+            ledger_latest_update_ts=latest_update_ts,
+        ),
+        latest_update_id=latest_update_id,
+        latest_update_ts=latest_update_ts,
+    )
+    db.session.add(account)
+    creditor.accounts_count += 1
+
+    db.session.add(ConfigureAccountSignal(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=current_ts,
+        seqnum=0,
+        negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
+        config_flags=DEFAULT_CONFIG_FLAGS,
+        config='',
+    ))
+
+    # NOTE: We must update the way accounts that are pegged to the
+    # newly created account are displayed. (And do not forget to write
+    # events to the log to inform the client about the changes.)
+    account_displays_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id)
+    for account_display in account_displays_query.all():
+        account_display.peg_account_debtor_id = debtor_id
+        account_display.latest_update_id, account_display.latest_update_ts = _add_log_entry(
+            creditor,
+            object_type=types.account_display,
+            object_uri=paths.account_display(creditorId=creditor_id, debtorId=account_display.debtor_id),
+            current_ts=current_ts or datetime.now(tz=timezone.utc),
+        )
+
+    return account
