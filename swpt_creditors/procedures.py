@@ -28,6 +28,7 @@ PENDING_ACCOUNT_COMMIT_PK = tuple_(
 ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
     'creditor_id',
     'debtor_id',
+    'creation_date',
     'last_config_ts',
     'last_config_seqnum',
     'negligible_amount',
@@ -44,6 +45,7 @@ ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
 ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'creditor_id',
     'debtor_id',
+    'creation_date',
     'ledger_principal',
     'ledger_latest_update_id',
     'ledger_latest_update_ts',
@@ -57,6 +59,7 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
 ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
     'creditor_id',
     'debtor_id',
+    'creation_date',
     'account_id',
     'status_flags',
     'config_flags',
@@ -66,6 +69,8 @@ ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
     'interest_rate',
     'last_interest_rate_change_ts',
     'debtor_info_url',
+    'principal',
+    'interest',
     'info_latest_update_id',
     'info_latest_update_ts',
 ]
@@ -549,13 +554,23 @@ def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date
     # TODO: Do not foget to do the same thing when the account is dead
     #       (no heartbeat for a long time).
 
-    AccountData.query.\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id, creation_date=creation_date).\
-        update({
-            AccountData.has_server_account: False,
-            AccountData.principal: 0,
-            AccountData.interest: 0.0,
-        }, synchronize_session=False)
+    current_ts = datetime.now(tz=timezone.utc)
+    options = [Load(AccountData).load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)]
+    try:
+        data, creditor = _join_and_lock_creditor(AccountData, creditor_id, debtor_id, options=options)
+    except AccountDoesNotExistError:
+        return
+
+    if data.creation_date == creation_date and data.has_server_account:
+        data.has_server_account = False
+        data.principal = 0
+        data.interest = 0.0
+        data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
+            creditor,
+            object_type=types.account_info,
+            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+            current_ts=current_ts,
+        )
 
 
 @atomic
