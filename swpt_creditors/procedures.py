@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import tuple_, null
+from sqlalchemy.sql.expression import tuple_, null, true
 from sqlalchemy.orm import joinedload, exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
@@ -554,23 +554,31 @@ def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date
     # TODO: Do not foget to do the same thing when the account is dead
     #       (no heartbeat for a long time).
 
-    current_ts = datetime.now(tz=timezone.utc)
-    options = [Load(AccountData).load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)]
+    account_data_query = db.session.\
+        query(AccountData, Creditor).\
+        join(Creditor, Creditor.creditor_id == AccountData.creditor_id).\
+        filter(
+            AccountData.creditor_id == creditor_id,
+            AccountData.debtor_id == debtor_id,
+            AccountData.creation_date == creation_date,
+            AccountData.has_server_account == true(),
+            Creditor.deactivated_at_date == null(),
+        ).\
+        with_for_update(of=Creditor).\
+        options(Load(AccountData).load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS))
     try:
-        data, creditor = _join_and_lock_creditor(AccountData, creditor_id, debtor_id, options=options)
-    except AccountDoesNotExistError:
+        data, creditor = account_data_query.one()
+    except exc.NoResultFound:
         return
 
-    if data.creation_date == creation_date and data.has_server_account:
-        data.has_server_account = False
-        data.principal = 0
-        data.interest = 0.0
-        data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
-            creditor,
-            object_type=types.account_info,
-            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
-            current_ts=current_ts,
-        )
+    data.has_server_account = False
+    data.principal = 0
+    data.interest = 0.0
+    data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
+        creditor,
+        object_type=types.account_info,
+        object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+    )
 
 
 @atomic
