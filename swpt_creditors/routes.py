@@ -546,10 +546,10 @@ class AccountInfoEndpoint(MethodView):
     def get(self, creditorId, debtorId):
         """Return account's status information."""
 
-        data = procedures.get_account_data(creditorId, debtorId)
-        if data is None:
+        info = procedures.get_account_info(creditorId, debtorId)
+        if info is None:
             abort(404)
-        return data
+        return info
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/ledger', parameters=[CID, DID])

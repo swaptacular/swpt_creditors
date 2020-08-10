@@ -54,6 +54,21 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'interest_rate',
     'last_change_ts',
 ]
+ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
+    'creditor_id',
+    'debtor_id',
+    'account_id',
+    'status_flags',
+    'config_flags',
+    'config_error',
+    'is_config_effectual',
+    'has_server_account',
+    'interest_rate',
+    'last_interest_rate_change_ts',
+    'debtor_info_url',
+    'info_latest_update_id',
+    'info_latest_update_ts',
+]
 
 
 def init(path_builder, schema_types):
@@ -322,11 +337,14 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
 
 @atomic
-def get_account_data(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
+def get_account_info(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    return AccountData.get_instance((creditor_id, debtor_id))
+    return AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        options(load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)).\
+        one_or_none()
 
 
 @atomic
