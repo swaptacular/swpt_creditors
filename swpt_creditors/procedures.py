@@ -119,7 +119,7 @@ class UnsafeAccountDeletionError(Exception):
     """Unauthorized unsafe deletion of an account."""
 
 
-class PegAccountDeletionError(Exception):
+class PegAccountDeletionAttemptError(Exception):
     """Can not delete an account that acts as a currency peg."""
 
 
@@ -508,18 +508,14 @@ def delete_account(creditor_id: int, debtor_id: int):
     if not (data.is_deletion_safe or data.allow_unsafe_deletion):
         raise UnsafeAccountDeletionError()
 
-    # Ensure that no accounts are pegged to this account.
-    pegged_accounts_query = AccountDisplay.query.filter_by(
-        creditor_id=creditor_id,
-        peg_account_debtor_id=debtor_id,
-    )
+    pegged_accounts_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_account_debtor_id=debtor_id)
     if db.session.query(pegged_accounts_query.exists()).scalar():
-        raise PegAccountDeletionError()
+        raise PegAccountDeletionAttemptError()
 
-    # Write events to the log. Note that the deleted account will
-    # disappear from the account list, and we need to inform the
-    # client about this. Also, when the account gets deleted, all its
-    # related objects will be deleted too.
+    # NOTE: When the account gets deleted, all its related objects
+    # will be deleted too. Also, the deleted account will disappear
+    # from the list of accounts. Therefore, we need to write a bunch
+    # of events to the log, so as to inform the client.
     creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
         creditor,
         object_type=types.account_list,
