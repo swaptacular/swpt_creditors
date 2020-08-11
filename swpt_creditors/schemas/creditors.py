@@ -302,6 +302,14 @@ class LogEntrySchema(Schema):
         description='The URI of the object that has been created, updated, or deleted.',
         example={'uri': '/creditors/2/accounts/1/'},
     )
+    optional_object_update_id = fields.Integer(
+        dump_only=True,
+        data_key='objectUpdateId',
+        description='A positive number which gets bigger after each change in the object. When '
+                    'this field is not present, this means that the update ID for the changed '
+                    'object is unknown.',
+        example=10,
+    )
     deleted = fields.Boolean(
         missing=False,
         dump_only=True,
@@ -325,6 +333,9 @@ class LogEntrySchema(Schema):
 
         if obj.is_deleted:
             obj.deleted = True
+
+        if obj.object_update_id is not None:
+            obj.optional_object_update_id = obj.object_update_id
 
         if obj.previous_entry_id is not None:
             obj.optional_previous_entry_id = obj.previous_entry_id

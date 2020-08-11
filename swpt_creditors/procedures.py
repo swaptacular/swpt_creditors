@@ -178,10 +178,13 @@ def update_creditor(creditor_id: int) -> Creditor:
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    creditor.creditor_latest_update_id, creditor.creditor_latest_update_ts = _add_log_entry(
+    creditor.creditor_latest_update_id += 1
+    creditor.creditor_latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.creditor,
         object_uri=paths.creditor(creditorId=creditor_id),
+        object_update_id=creditor.creditor_latest_update_id,
         current_ts=current_ts,
     )
 
@@ -327,10 +330,13 @@ def update_account_config(
     # updated. Therefore, if the account is safe to delete now, we
     # need to inform the client about the upcoming change.
     if data.is_deletion_safe:
-        data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
+        data.info_latest_update_id += 1
+        data.info_latest_update_ts = current_ts
+        _add_log_entry(
             creditor,
             object_type=types.account_info,
             object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+            object_update_id=data.info_latest_update_id,
             current_ts=current_ts,
         )
 
@@ -340,10 +346,13 @@ def update_account_config(
     data.is_scheduled_for_deletion = is_scheduled_for_deletion
     data.negligible_amount = negligible_amount
     data.allow_unsafe_deletion = allow_unsafe_deletion
-    data.config_latest_update_id, data.config_latest_update_ts = _add_log_entry(
+    data.config_latest_update_id += 1
+    data.config_latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.account_config,
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=data.config_latest_update_id,
         current_ts=current_ts,
     )
 
@@ -385,6 +394,7 @@ def update_account_display(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
+    current_ts = datetime.now(tz=timezone.utc)
     display, creditor = _join_and_lock_creditor(AccountDisplay, creditor_id, debtor_id)
 
     # NOTE: We must ensure that the debtor name is unique.
@@ -416,10 +426,14 @@ def update_account_display(
     display.peg_currency_debtor_id = peg_currency_debtor_id
     display.peg_account_debtor_id = peg_account_debtor_id
     display.peg_debtor_home_url = peg_debtor_home_url
-    display.latest_update_id, display.latest_update_ts = _add_log_entry(
+    display.latest_update_id += 1
+    display.latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.account_display,
         object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=display.latest_update_id,
+        current_ts=current_ts,
     )
 
     return display
@@ -445,16 +459,21 @@ def update_account_knowledge(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
+    current_ts = datetime.now(tz=timezone.utc)
     knowledge, creditor = _join_and_lock_creditor(AccountKnowledge, creditor_id, debtor_id)
 
     knowledge.interest_rate = interest_rate
     knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
     knowledge.account_identity = account_identity
     knowledge.debtor_info_sha256 = debtor_info_sha256
-    knowledge.latest_update_id, knowledge.latest_update_ts = _add_log_entry(
+    knowledge.latest_update_id += 1
+    knowledge.latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.account_knowledge,
         object_uri=paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=knowledge.latest_update_id,
+        current_ts=current_ts,
     )
 
     return knowledge
@@ -479,6 +498,8 @@ def update_account_exchange(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
+    current_ts = datetime.now(tz=timezone.utc)
+
     # NOTE: There are no defined valid policy names yet.
     if policy is not None:
         raise InvalidExchangePolicyError()
@@ -488,10 +509,14 @@ def update_account_exchange(
     exchange.policy = policy
     exchange.min_principal = min_principal
     exchange.max_principal = max_principal
-    exchange.latest_update_id, exchange.latest_update_ts = _add_log_entry(
+    exchange.latest_update_id += 1
+    exchange.latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.account_exchange,
         object_uri=paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=exchange.latest_update_id,
+        current_ts=current_ts,
     )
 
     return exchange
@@ -522,10 +547,13 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     # will be deleted too. Also, the deleted account will disappear
     # from the list of accounts. Therefore, we need to write a bunch
     # of events to the log, so as to inform the client.
-    creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
+    creditor.account_list_latest_update_id += 1
+    creditor.account_list_latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.account_list,
         object_uri=paths.account_list(creditorId=creditor_id),
+        object_update_id=creditor.account_list_latest_update_id,
         current_ts=current_ts,
     )
     deletion_events = [
@@ -555,6 +583,8 @@ def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date
     # TODO: Do not foget to do the same thing when the account is dead
     #       (no heartbeat for a long time).
 
+    current_ts = datetime.now(tz=timezone.utc)
+
     account_data_query = db.session.\
         query(AccountData, Creditor).\
         join(Creditor, Creditor.creditor_id == AccountData.creditor_id).\
@@ -575,10 +605,14 @@ def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date
     data.has_server_account = False
     data.principal = 0
     data.interest = 0.0
-    data.info_latest_update_id, data.info_latest_update_ts = _add_log_entry(
+    data.info_latest_update_id += 1
+    data.info_latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.account_info,
         object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=data.info_latest_update_id,
+        current_ts=current_ts,
     )
 
 
@@ -954,6 +988,7 @@ def _add_log_entry(
         *,
         object_type: str,
         object_uri: str,
+        object_update_id: int = None,
         is_deleted: bool = False,
         data: dict = None,
         current_ts: datetime = None) -> Tuple[int, datetime]:
@@ -969,6 +1004,7 @@ def _add_log_entry(
         previous_entry_id=previous_entry_id,
         object_type=object_type,
         object_uri=object_uri,
+        object_update_id=object_update_id,
         added_at_ts=current_ts,
         is_deleted=is_deleted,
         data=data,
@@ -983,16 +1019,20 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
     # NOTE: When the new account is created, it will also appear in
     # the list of accounts, so we need to write two events to the log
     # to inform the client about this.
-    latest_update_id, latest_update_ts = _add_log_entry(
+    _add_log_entry(
         creditor,
         object_type=types.account,
         object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=1,
         current_ts=current_ts,
     )
-    creditor.account_list_latest_update_id, creditor.account_list_latest_update_ts = _add_log_entry(
+    creditor.account_list_latest_update_id += 1
+    creditor.account_list_latest_update_ts = current_ts
+    _add_log_entry(
         creditor,
         object_type=types.account_list,
         object_uri=paths.account_list(creditorId=creditor_id),
+        object_update_id=creditor.account_list_latest_update_id,
         current_ts=current_ts,
     )
 
@@ -1000,30 +1040,17 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         creditor_id=creditor_id,
         debtor_id=debtor_id,
         created_at_ts=current_ts,
-        knowledge=AccountKnowledge(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        exchange=AccountExchange(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
-        display=AccountDisplay(
-            latest_update_id=latest_update_id,
-            latest_update_ts=latest_update_ts,
-        ),
+        knowledge=AccountKnowledge(latest_update_ts=current_ts),
+        exchange=AccountExchange(latest_update_ts=current_ts),
+        display=AccountDisplay(latest_update_ts=current_ts),
         data=AccountData(
             last_config_ts=current_ts,
             last_config_seqnum=0,
-            config_latest_update_id=latest_update_id,
-            config_latest_update_ts=latest_update_ts,
-            info_latest_update_id=latest_update_id,
-            info_latest_update_ts=latest_update_ts,
-            ledger_latest_update_id=latest_update_id,
-            ledger_latest_update_ts=latest_update_ts,
+            config_latest_update_ts=current_ts,
+            info_latest_update_ts=current_ts,
+            ledger_latest_update_ts=current_ts,
         ),
-        latest_update_id=latest_update_id,
-        latest_update_ts=latest_update_ts,
+        latest_update_ts=current_ts,
     )
     db.session.add(account)
     creditor.accounts_count += 1
@@ -1044,11 +1071,14 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
     account_displays_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id)
     for account_display in account_displays_query.all():
         account_display.peg_account_debtor_id = debtor_id
-        account_display.latest_update_id, account_display.latest_update_ts = _add_log_entry(
+        account_display.latest_update_id += 1
+        account_display.latest_update_ts = current_ts
+        _add_log_entry(
             creditor,
             object_type=types.account_display,
             object_uri=paths.account_display(creditorId=creditor_id, debtorId=account_display.debtor_id),
-            current_ts=current_ts or datetime.now(tz=timezone.utc),
+            object_update_id=account_display.latest_update_id,
+            current_ts=current_ts,
         )
 
     return account

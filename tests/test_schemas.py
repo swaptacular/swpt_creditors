@@ -83,6 +83,7 @@ def test_serialize_log_entry(app):
         previous_entry_id=12344,
         object_type='Account',
         object_uri='/creditors/1/accounts/123/',
+        object_update_id=777,
         is_deleted=True,
         data=None,
     )
@@ -94,12 +95,14 @@ def test_serialize_log_entry(app):
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'Account',
         'object': {'uri': '/creditors/1/accounts/123/'},
+        'objectUpdateId': 777,
         'deleted': True,
     }
 
     le.previous_entry_id = None
     le.is_deleted = False
     le.data = {'test': 'test', 'list': [1, 2, 3]}
+    le.object_update_id = None
     assert les.dump(le) == {
         'type': 'LogEntry',
         'entryId': 12345,
@@ -816,7 +819,7 @@ def test_serialize_account_ledger(app):
         'entries': {
             'type': 'PaginatedList',
             'itemsType': 'LedgerEntry',
-            'first': '/creditors/1/accounts/18446744073709551615/entries?prev=3',
+            'first': '/creditors/1/accounts/18446744073709551615/entries?prev=1',
         },
         'latestUpdateId': 2,
         'latestUpdateAt': '2020-01-02T00:00:00',
@@ -824,6 +827,7 @@ def test_serialize_account_ledger(app):
 
     ad.ledger_latest_entry_id = 54321
     assert als.dump(ad)['latestEntryId'] == 54321
+    assert als.dump(ad)['entries']['first'] == '/creditors/1/accounts/18446744073709551615/entries?prev=54322'
 
     ad.interest_rate = 7.0
     assert als.dump(ad)['interest'] > 11
