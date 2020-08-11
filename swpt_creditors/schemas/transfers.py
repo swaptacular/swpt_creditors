@@ -99,11 +99,10 @@ class TransferResultSchema(Schema):
     committedAmount = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=0, max=MAX_INT64),
         format='int64',
         description='The transferred amount. If the transfer has been successful, the value will '
-                    'be equal to the requested transfer amount. If the transfer has been '
-                    'unsuccessful, the value will be zero.',
+                    'be equal to the requested transfer amount (always a positive number). If '
+                    'the transfer has been unsuccessful, the value will be zero.',
         example=0,
     )
     error = fields.Nested(
@@ -262,7 +261,6 @@ class CommittedTransferSchema(Schema):
     acquired_amount = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='acquiredAmount',
         description="The amount that this transfer has added to the account's principal. This "

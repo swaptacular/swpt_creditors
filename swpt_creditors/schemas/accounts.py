@@ -108,10 +108,10 @@ class LedgerEntrySchema(Schema):
     entry_id = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         data_key='entryId',
-        description='The ID of the ledger entry. Later ledger entries have bigger IDs.',
+        description='The ID of the ledger entry. This will always be a positive number. Later '
+                    'ledger entries have bigger IDs.',
         example=12345,
     )
     added_at_ts = fields.DateTime(
@@ -123,7 +123,6 @@ class LedgerEntrySchema(Schema):
     aquired_amount = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='aquiredAmount',
         description="The amount added to the account's principal. Can be a positive number (an "
@@ -133,7 +132,6 @@ class LedgerEntrySchema(Schema):
     principal = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         description='The new principal amount on the account, as it is after the transfer. Unless '
                     'a principal overflow has occurred, the new principal amount will be equal to '
@@ -152,7 +150,6 @@ class LedgerEntrySchema(Schema):
     optional_previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
                     "entries have smaller IDs. When this field is not present, this means "
@@ -238,7 +235,6 @@ class AccountLedgerSchema(MutableResourceSchema):
     ledger_principal = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='principal',
         description='The principal amount on the account.',
@@ -247,7 +243,6 @@ class AccountLedgerSchema(MutableResourceSchema):
     ledger_interest = fields.Integer(
         missing=0,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='interest',
         description='The approximate amount of interest accumulated on the account, which '
@@ -278,7 +273,6 @@ class AccountLedgerSchema(MutableResourceSchema):
     )
     latest_entry_id = fields.Integer(
         dump_only=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         data_key='latestEntryId',
         description="The ID of the latest ledger entry. This will always be a positive number. "
