@@ -166,10 +166,11 @@ class MutableResourceSchema(Schema):
         required=True,
         dump_only=True,
         data_key='latestUpdateId',
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
-        description='The ID of the latest `LogEntry` for this object in the log. This will be '
-                    'a positive number, which gets bigger after each update.',
+        description='The value of the `objectUpdateId` field in the latest `LogEntry` for this '
+                    'object in the log. This will always be a positive number, which gets bigger '
+                    'after each update. It can be used to decide whether a network request '
+                    'should made to obtain the newest state of the object.',
         example=123,
     )
     latest_update_ts = fields.DateTime(

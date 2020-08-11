@@ -339,7 +339,26 @@ class AccountEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT))
     @accounts_api.doc(operationId='getAccount')
     def get(self, creditorId, debtorId):
-        """Return an account."""
+        """Return an account.
+
+        The returned `Account` object encompasses all the avilable
+        information for a particular account. This includes the
+        follwing sub-objects:
+
+        * `AccountConfig`
+        * `AccountLedger`
+        * `AccountInfo`
+        * `AccountDisplay`
+        * `AccountExchange`
+        * `AccountKnowledge`
+
+        Note that when one of those sub-objects gets changed, a
+        `LogEntry` for the change in the particular sub-object will be
+        added to the log, but a `LogEntry` for the change in the
+        encompassing `Account` object **will not be added to the
+        log**.
+
+        """
 
         account = procedures.get_account(creditorId, debtorId)
         if account is None:

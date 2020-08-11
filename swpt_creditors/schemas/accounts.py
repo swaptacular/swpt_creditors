@@ -108,12 +108,10 @@ class LedgerEntrySchema(Schema):
     entry_id = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         data_key='entryId',
-        description='The ID of the ledger entry. Later ledger entries have bigger IDs. Note '
-                    'that those IDs are the same as the IDs of the `LogEntry`s added to '
-                    'the log to inform about the change in the corresponding `AccountLedger`.',
+        description='The ID of the ledger entry. This will always be a positive number. Later '
+                    'ledger entries have bigger IDs.',
         example=12345,
     )
     added_at_ts = fields.DateTime(
@@ -125,7 +123,6 @@ class LedgerEntrySchema(Schema):
     aquired_amount = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='aquiredAmount',
         description="The amount added to the account's principal. Can be a positive number (an "
@@ -135,7 +132,6 @@ class LedgerEntrySchema(Schema):
     principal = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         description='The new principal amount on the account, as it is after the transfer. Unless '
                     'a principal overflow has occurred, the new principal amount will be equal to '
@@ -154,7 +150,6 @@ class LedgerEntrySchema(Schema):
     optional_previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
                     "entries have smaller IDs. When this field is not present, this means "
@@ -240,7 +235,6 @@ class AccountLedgerSchema(MutableResourceSchema):
     ledger_principal = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='principal',
         description='The principal amount on the account.',
@@ -249,7 +243,6 @@ class AccountLedgerSchema(MutableResourceSchema):
     ledger_interest = fields.Integer(
         missing=0,
         dump_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='interest',
         description='The approximate amount of interest accumulated on the account, which '
@@ -265,6 +258,7 @@ class AccountLedgerSchema(MutableResourceSchema):
     entries = fields.Nested(
         PaginatedListSchema,
         required=True,
+        dump_only=True,
         description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers '
                     'for which the account is either the sender or the recipient. The '
                     'paginated list will be sorted in reverse-chronological order '
@@ -276,6 +270,15 @@ class AccountLedgerSchema(MutableResourceSchema):
             'type': 'PaginatedList',
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
+    )
+    latest_entry_id = fields.Integer(
+        dump_only=True,
+        format='int64',
+        data_key='latestEntryId',
+        description="The ID of the latest ledger entry. This will always be a positive number. "
+                    "Later ledger entries have bigger IDs. When this field is not present, this "
+                    "means that there are no entries in the account's ledger.",
+        example=123,
     )
 
     @pre_dump
@@ -290,8 +293,10 @@ class AccountLedgerSchema(MutableResourceSchema):
         entries_path = paths.account_ledger_entries(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.entries = {
             'items_type': 'LedgerEntry',
-            'first': f'{entries_path}?prev={obj.ledger_latest_update_id + 1}'
+            'first': f'{entries_path}?prev={obj.ledger_latest_entry_id + 1}'
         }
+        if obj.ledger_latest_entry_id > 0:
+            obj.latest_entry_id = obj.ledger_latest_entry_id
 
         return obj
 
@@ -771,6 +776,7 @@ class AccountSchema(MutableResourceSchema):
     debtor_identity = fields.Nested(
         DebtorIdentitySchema,
         required=True,
+        dump_only=True,
         data_key='debtorIdentity',
         description="Account's `DebtorIdentity`.",
         example={'type': 'DebtorIdentity', 'uri': 'swpt:1'},
@@ -802,16 +808,19 @@ class AccountSchema(MutableResourceSchema):
     config = fields.Nested(
         AccountConfigSchema,
         required=True,
+        dump_only=True,
         description="Account's `AccountConfig` settings.",
     )
     display = fields.Nested(
         AccountDisplaySchema,
         required=True,
+        dump_only=True,
         description="Account's `AccountDisplay` settings.",
     )
     exchange = fields.Nested(
         AccountExchangeSchema,
         required=True,
+        dump_only=True,
         description="Account's `AccountExchange` settings.",
     )
 

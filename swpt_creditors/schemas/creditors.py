@@ -265,17 +265,15 @@ class LogEntrySchema(Schema):
     entry_id = fields.Integer(
         required=True,
         dump_only=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         data_key='entryId',
-        description='The ID of this log entry. Later log entries have bigger IDs. This '
-                    'will always be a positive number.',
+        description='The ID of this log entry. This will always be a positive number. Later '
+                    'log entries have bigger IDs.',
         example=12345,
     )
     optional_previous_entry_id = fields.Integer(
         dump_only=True,
         data_key='previousEntryId',
-        validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         description="The `entryId` of the previous `LogEntry` for the creditor. Previous "
                     "log entries have smaller IDs. When this field is not present, this "
@@ -302,6 +300,15 @@ class LogEntrySchema(Schema):
         description='The URI of the object that has been created, updated, or deleted.',
         example={'uri': '/creditors/2/accounts/1/'},
     )
+    optional_object_update_id = fields.Integer(
+        dump_only=True,
+        data_key='objectUpdateId',
+        description='A positive number which gets bigger after each change in the object. When '
+                    'this field is not present, this means that the changed object does not '
+                    'have an update ID in it its new state (for example, the object may have '
+                    'been deleted, or could be immutable).',
+        example=10,
+    )
     deleted = fields.Boolean(
         missing=False,
         dump_only=True,
@@ -325,6 +332,9 @@ class LogEntrySchema(Schema):
 
         if obj.is_deleted:
             obj.deleted = True
+
+        if obj.object_update_id is not None:
+            obj.optional_object_update_id = obj.object_update_id
 
         if obj.previous_entry_id is not None:
             obj.optional_previous_entry_id = obj.previous_entry_id

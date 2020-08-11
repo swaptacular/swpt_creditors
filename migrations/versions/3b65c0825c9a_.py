@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 274dc006d496
+Revision ID: 3b65c0825c9a
 Revises: 8d8c816257ce
-Create Date: 2020-08-10 00:10:29.699647
+Create Date: 2020-08-11 17:05:57.181635
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '274dc006d496'
+revision = '3b65c0825c9a'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -101,9 +101,11 @@ def upgrade():
     sa.Column('previous_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('object_type', sa.String(), nullable=False),
     sa.Column('object_uri', sa.String(), nullable=False),
+    sa.Column('object_update_id', sa.BigInteger(), nullable=True),
     sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.CheckConstraint('entry_id > 0'),
+    sa.CheckConstraint('object_update_id > 0'),
     sa.CheckConstraint('previous_entry_id > 0 AND previous_entry_id < entry_id'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE')
     )
@@ -125,10 +127,10 @@ def upgrade():
     sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('is_config_effectual', sa.BOOLEAN(), nullable=False),
     sa.Column('allow_unsafe_deletion', sa.BOOLEAN(), nullable=False),
+    sa.Column('has_server_account', sa.BOOLEAN(), nullable=False),
     sa.Column('config_error', sa.String(), nullable=True),
     sa.Column('config_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('config_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('has_server_account', sa.BOOLEAN(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False),
@@ -141,11 +143,13 @@ def upgrade():
     sa.Column('ledger_last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('ledger_latest_entry_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('config_latest_update_id > 0'),
     sa.CheckConstraint('info_latest_update_id > 0'),
     sa.CheckConstraint('interest_rate >= -100.0'),
     sa.CheckConstraint('last_transfer_number >= 0'),
     sa.CheckConstraint('ledger_last_transfer_number >= 0'),
+    sa.CheckConstraint('ledger_latest_entry_id >= 0'),
     sa.CheckConstraint('ledger_latest_update_id > 0'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),

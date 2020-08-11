@@ -155,6 +155,7 @@ class LogEntry(db.Model):
     previous_entry_id = db.Column(db.BigInteger, nullable=False)
     object_type = db.Column(db.String, nullable=False)
     object_uri = db.Column(db.String, nullable=False)
+    object_update_id = db.Column(db.BigInteger)
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
     data = db.Column(pg.JSON)
     __mapper_args__ = {
@@ -163,6 +164,7 @@ class LogEntry(db.Model):
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(entry_id > 0),
+        db.CheckConstraint(object_update_id > 0),
         db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
 
         # TODO: The rest of the columns are not be part of the primary
@@ -178,7 +180,7 @@ class Account(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
@@ -228,7 +230,7 @@ class AccountData(db.Model):
     allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
     has_server_account = db.Column(db.BOOLEAN, nullable=False, default=False)
     config_error = db.Column(db.String)
-    config_latest_update_id = db.Column(db.BigInteger, nullable=False)
+    config_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     config_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     # AccountInfo data
@@ -237,15 +239,16 @@ class AccountData(db.Model):
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
     account_id = db.Column(db.String, nullable=False, default='')
     debtor_info_url = db.Column(db.String)
-    info_latest_update_id = db.Column(db.BigInteger, nullable=False)
+    info_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     info_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     # AccountLedger data
     ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
-    ledger_latest_update_id = db.Column(db.BigInteger, nullable=False)
+    ledger_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    ledger_latest_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
 
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -258,8 +261,9 @@ class AccountData(db.Model):
         db.CheckConstraint(negligible_amount >= 0.0),
         db.CheckConstraint(config_latest_update_id > 0),
         db.CheckConstraint(info_latest_update_id > 0),
-        db.CheckConstraint(ledger_last_transfer_number >= 0),
         db.CheckConstraint(ledger_latest_update_id > 0),
+        db.CheckConstraint(ledger_last_transfer_number >= 0),
+        db.CheckConstraint(ledger_latest_entry_id >= 0),
 
         # This index is supposed to allow efficient merge joins with
         # `PendingAccountCommit`. Not sure if it is actually
@@ -337,7 +341,7 @@ class AccountKnowledge(db.Model):
     interest_rate_changed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     account_identity = db.Column(db.String)
     debtor_info_sha256 = db.Column(db.LargeBinary)
-    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -356,7 +360,7 @@ class AccountExchange(db.Model):
     policy = db.Column(db.String)
     min_principal = db.Column(db.BigInteger, nullable=False, default=MIN_INT64)
     max_principal = db.Column(db.BigInteger, nullable=False, default=MAX_INT64)
-    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -382,7 +386,7 @@ class AccountDisplay(db.Model):
     peg_currency_debtor_id = db.Column(db.BigInteger)
     peg_account_debtor_id = db.Column(db.BigInteger)
     peg_debtor_home_url = db.Column(db.String)
-    latest_update_id = db.Column(db.BigInteger, nullable=False)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(

@@ -168,6 +168,7 @@ LOG_ENTRIES_EXAMPLE = {
             'addedAt': '2020-04-06T14:22:11Z',
             'objectType': 'Account',
             'object': {'uri': '/creditors/2/accounts/1/'},
+            'objectUpdateId': 10,
         },
     ],
     'forthcoming': '?prev=12345',
