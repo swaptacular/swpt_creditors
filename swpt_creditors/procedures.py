@@ -47,6 +47,7 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'debtor_id',
     'creation_date',
     'ledger_principal',
+    'ledger_latest_entry_id',
     'ledger_latest_update_id',
     'ledger_latest_update_ts',
     'ledger_last_transfer_number',

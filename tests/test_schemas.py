@@ -804,6 +804,7 @@ def test_serialize_account_ledger(app):
         ledger_last_transfer_number=122,
         ledger_latest_update_id=2,
         ledger_latest_update_ts=datetime(2020, 1, 2),
+        ledger_latest_entry_id=0,
     )
     als = schemas.AccountLedgerSchema(context=CONTEXT)
     assert als.dump(ad) == {
@@ -820,6 +821,9 @@ def test_serialize_account_ledger(app):
         'latestUpdateId': 2,
         'latestUpdateAt': '2020-01-02T00:00:00',
     }
+
+    ad.ledger_latest_entry_id = 54321
+    assert als.dump(ad)['latestEntryId'] == 54321
 
     ad.interest_rate = 7.0
     assert als.dump(ad)['interest'] > 11

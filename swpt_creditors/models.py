@@ -246,6 +246,7 @@ class AccountData(db.Model):
     ledger_last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     ledger_latest_update_id = db.Column(db.BigInteger, nullable=False)
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    ledger_latest_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
 
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -260,6 +261,7 @@ class AccountData(db.Model):
         db.CheckConstraint(info_latest_update_id > 0),
         db.CheckConstraint(ledger_last_transfer_number >= 0),
         db.CheckConstraint(ledger_latest_update_id > 0),
+        db.CheckConstraint(ledger_latest_entry_id >= 0),
 
         # This index is supposed to allow efficient merge joins with
         # `PendingAccountCommit`. Not sure if it is actually
