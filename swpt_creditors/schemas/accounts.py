@@ -299,7 +299,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         entries_path = paths.account_ledger_entries(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.entries = {
             'items_type': 'LedgerEntry',
-            'first': f'{entries_path}?prev={obj.ledger_latest_update_id + 1}'
+            'first': f'{entries_path}?prev={obj.ledger_latest_entry_id + 1}'
         }
         if obj.ledger_latest_entry_id > 0:
             obj.latest_entry_id = obj.ledger_latest_entry_id
