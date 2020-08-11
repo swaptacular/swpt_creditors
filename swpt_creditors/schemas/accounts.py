@@ -281,9 +281,9 @@ class AccountLedgerSchema(MutableResourceSchema):
         validate=validate.Range(min=1, max=MAX_INT64),
         format='int64',
         data_key='latestEntryId',
-        description="The ID of the latest ledger entry. Later ledger entries have bigger IDs. When "
-                    "this field is not present, this means that there are no entries in the "
-                    "account's ledger.",
+        description="The ID of the latest ledger entry. This will always be a positive number. "
+                    "Later ledger entries have bigger IDs. When this field is not present, this "
+                    "means that there are no entries in the account's ledger.",
         example=123,
     )
 

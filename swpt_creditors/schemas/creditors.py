@@ -306,8 +306,9 @@ class LogEntrySchema(Schema):
         dump_only=True,
         data_key='objectUpdateId',
         description='A positive number which gets bigger after each change in the object. When '
-                    'this field is not present, this means that the update ID for the changed '
-                    'object is unknown.',
+                    'this field is not present, this means that the changed object does not '
+                    'have an update ID in it its new state (for example, the object may have '
+                    'been deleted).',
         example=10,
     )
     deleted = fields.Boolean(
