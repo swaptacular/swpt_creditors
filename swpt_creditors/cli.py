@@ -1,6 +1,11 @@
+import logging
 import click
 from os import environ
+from multiprocessing.dummy import Pool as ThreadPool
+from flask import current_app
 from flask.cli import with_appcontext
+from . import procedures
+from .extensions import db
 
 
 @click.group('swpt_creditors')
@@ -43,3 +48,36 @@ def subscribe(queue_name):  # pragma: no cover
             else:
                 unbind(queue_name, MAIN_EXCHANGE_NAME, routing_key)
                 click.echo(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
+
+
+@swpt_creditors.command('process_log_entries')
+@with_appcontext
+@click.option('-t', '--threads', type=int, help='The number of worker threads.')
+def process_log_entries(threads):
+    """Process all pending log entries."""
+
+    # TODO: Python with SQLAlchemy can process about 1000 accounts per
+    # second. (It is CPU bound!) This might be insufficient if we have
+    # a highly perfomant database server. In this case we should
+    # either distribute the processing to several machines, or improve
+    # on python's code performance.
+
+    threads = threads or int(environ.get('APP_PROCESS_LOG_ENTRIES_THREADS', '1'))
+    app = current_app._get_current_object()
+
+    def push_app_context():
+        ctx = app.app_context()
+        ctx.push()
+
+    def log_error(e):  # pragma: no cover
+        try:
+            raise e
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception('Caught error while processing log entries.')
+
+    pool = ThreadPool(threads, initializer=push_app_context)
+    for creditor_id in procedures.get_creditors_with_pending_log_entries():
+        pool.apply_async(procedures.process_pending_log_entries, (creditor_id,), error_callback=log_error)
+    pool.close()
+    pool.join()

@@ -70,6 +70,7 @@ def test_create_creditor(client):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert iso8601.parse_date(data['createdOn'])
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 0
 
@@ -87,6 +88,7 @@ def test_update_creditor(client, creditor):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['createdOn']
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 1
     e = entries[0]
@@ -163,6 +165,7 @@ def test_account_list_page(client, account):
     assert u64_to_i64(9223372036854775808) < u64_to_i64(9223372036854775809) < u64_to_i64(1)
 
     # check log entires
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 6
     assert [(e['objectType'], e['object']['uri']) for e in entries] == [
@@ -224,6 +227,7 @@ def test_debtor_lookup(client, account):
 
 
 def test_create_account(client, creditor):
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 0
 
@@ -327,6 +331,7 @@ def test_create_account(client, creditor):
     r = client.post('/creditors/2222/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 404
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 2
     assert entries[1]['objectType'] == 'AccountList'
@@ -378,9 +383,11 @@ def test_delete_account(client, account):
     latest_update_id = data['latestUpdateId']
     latest_update_at = iso8601.parse_date(data['latestUpdateAt'])
 
+    p.process_pending_log_entries(2)
     r = client.delete('/creditors/2/accounts/1/')
     assert r.status_code == 204
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 11
     assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
@@ -442,6 +449,7 @@ def test_account_config(client, account):
     assert data['negligibleAmount'] == 100.0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 3
     assert [(e['objectType'], e['object']['uri']) for e in entries] == [
@@ -471,6 +479,7 @@ def test_account_display(client, account):
     assert 'ownUnit' not in data
     assert 'debtorName' not in data
 
+    p.process_pending_log_entries(2)
     r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:11'})
     assert r.status_code == 201
 
@@ -579,9 +588,11 @@ def test_account_display(client, account):
     data = r.get_json()
     assert data['errors']['json']['ownUnit'] == ['Another account with this ownUnit already exist.']
 
+    p.process_pending_log_entries(2)
     r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:1111'})
     assert r.status_code == 201
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 11
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [
@@ -658,6 +669,7 @@ def test_account_exchange(client, account):
     data = r.get_json()
     assert data['errors']['json']['policy'] == ['Invalid policy name.']
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 4
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [
@@ -724,6 +736,7 @@ def test_account_knowledge(client, account):
     assert 'debtorInfoSha256' not in data
     assert 'accountIdentity' not in data
 
+    p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 4
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [

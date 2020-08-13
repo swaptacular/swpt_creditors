@@ -179,7 +179,7 @@ class LogEntry(BaseLogEntry):
 
 class PendingLogEntry(BaseLogEntry):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    pending_entry_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    pending_entry_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
 
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),

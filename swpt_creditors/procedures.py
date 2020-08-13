@@ -1,13 +1,13 @@
 from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
-from typing import TypeVar, Callable, Tuple, List, Optional
+from typing import TypeVar, Callable, Tuple, List, Optional, Iterable
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_, null, true
 from sqlalchemy.orm import joinedload, exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
-    Creditor, LedgerEntry, CommittedTransfer, Account, AccountData,
+    Creditor, LedgerEntry, CommittedTransfer, Account, AccountData, PendingLogEntry,
     ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
     AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
@@ -134,6 +134,41 @@ class AccountDebtorNameConflictError(Exception):
 
 class AccountOwnUnitConflictError(Exception):
     """Another another account with this ownUnit already exist."""
+
+
+@atomic
+def get_creditors_with_pending_log_entries() -> Iterable[int]:
+    return set(t[0] for t in db.session.query(PendingLogEntry.creditor_id).all())
+
+
+@atomic
+def process_pending_log_entries(creditor_id: int) -> None:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+
+    pending_log_entries = PendingLogEntry.query.\
+        filter_by(creditor_id=creditor_id).\
+        order_by(PendingLogEntry.pending_entry_id).\
+        with_for_update().\
+        all()
+
+    if pending_log_entries:
+        creditor = Creditor.lock_instance(creditor_id)
+
+        for entry in pending_log_entries:
+            previous_entry_id = creditor.latest_log_entry_id
+            entry_id = creditor.generate_log_entry_id()
+            db.session.add(LogEntry(
+                creditor_id=creditor_id,
+                entry_id=entry_id,
+                previous_entry_id=previous_entry_id,
+                object_type=entry.object_type,
+                object_uri=entry.object_uri,
+                object_update_id=entry.object_update_id,
+                added_at_ts=entry.added_at_ts,
+                is_deleted=entry.is_deleted,
+                data=entry.data,
+            ))
+            db.session.delete(entry)
 
 
 @atomic
@@ -315,8 +350,10 @@ def update_account_config(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    options = [Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
-    data, creditor = _join_and_lock_creditor(AccountData, creditor_id, debtor_id, options=options)
+    options = [load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
+    data = AccountData.lock_instance((creditor_id, debtor_id), *options)
+    if data is None:
+        raise AccountDoesNotExistError()
 
     # NOTE: The account will not be safe to delete once the config is
     # updated. Therefore, if the account is safe to delete now, we
@@ -324,13 +361,13 @@ def update_account_config(
     if data.is_deletion_safe:
         data.info_latest_update_id += 1
         data.info_latest_update_ts = current_ts
-        _add_log_entry(
-            creditor,
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at_ts=current_ts,
             object_type=types.account_info,
             object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
             object_update_id=data.info_latest_update_id,
-            current_ts=current_ts,
-        )
+        ))
 
     data.last_config_ts = current_ts
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
@@ -340,14 +377,14 @@ def update_account_config(
     data.allow_unsafe_deletion = allow_unsafe_deletion
     data.config_latest_update_id += 1
     data.config_latest_update_ts = current_ts
-    _add_log_entry(
-        creditor,
+
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
         object_type=types.account_config,
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=data.config_latest_update_id,
-        current_ts=current_ts,
-    )
-
+    ))
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
@@ -387,7 +424,9 @@ def update_account_display(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    display, creditor = _join_and_lock_creditor(AccountDisplay, creditor_id, debtor_id)
+    display = AccountDisplay.lock_instance((creditor_id, debtor_id))
+    if display is None:
+        raise AccountDoesNotExistError()
 
     # NOTE: We must ensure that the debtor name is unique.
     if debtor_name not in [display.debtor_name, None]:
@@ -420,13 +459,14 @@ def update_account_display(
     display.peg_debtor_home_url = peg_debtor_home_url
     display.latest_update_id += 1
     display.latest_update_ts = current_ts
-    _add_log_entry(
-        creditor,
+
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
         object_type=types.account_display,
         object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=display.latest_update_id,
-        current_ts=current_ts,
-    )
+    ))
 
     return display
 
@@ -452,7 +492,9 @@ def update_account_knowledge(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    knowledge, creditor = _join_and_lock_creditor(AccountKnowledge, creditor_id, debtor_id)
+    knowledge = AccountKnowledge.lock_instance((creditor_id, debtor_id))
+    if knowledge is None:
+        raise AccountDoesNotExistError()
 
     knowledge.interest_rate = interest_rate
     knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
@@ -460,13 +502,14 @@ def update_account_knowledge(
     knowledge.debtor_info_sha256 = debtor_info_sha256
     knowledge.latest_update_id += 1
     knowledge.latest_update_ts = current_ts
-    _add_log_entry(
-        creditor,
+
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
         object_type=types.account_knowledge,
         object_uri=paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=knowledge.latest_update_id,
-        current_ts=current_ts,
-    )
+    ))
 
     return knowledge
 
@@ -496,20 +539,23 @@ def update_account_exchange(
     if policy is not None:
         raise InvalidExchangePolicyError()
 
-    exchange, creditor = _join_and_lock_creditor(AccountExchange, creditor_id, debtor_id)
+    exchange = AccountExchange.lock_instance((creditor_id, debtor_id))
+    if exchange is None:
+        raise AccountDoesNotExistError()
 
     exchange.policy = policy
     exchange.min_principal = min_principal
     exchange.max_principal = max_principal
     exchange.latest_update_id += 1
     exchange.latest_update_ts = current_ts
-    _add_log_entry(
-        creditor,
+
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
         object_type=types.account_exchange,
         object_uri=paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=exchange.latest_update_id,
-        current_ts=current_ts,
-    )
+    ))
 
     return exchange
 
@@ -520,8 +566,17 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    options = [Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
-    data, creditor = _join_and_lock_creditor(AccountData, creditor_id, debtor_id, options=options)
+    query = db.session.\
+        query(AccountData, Creditor).\
+        join(Creditor, Creditor.creditor_id == AccountData.creditor_id).\
+        filter(AccountData.creditor_id == creditor_id, AccountData.debtor_id == debtor_id).\
+        with_for_update(of=Creditor).\
+        options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+
+    try:
+        data, creditor = query.one()
+    except exc.NoResultFound:
+        raise AccountDoesNotExistError()
 
     if not (data.is_deletion_safe or data.allow_unsafe_deletion):
         raise UnsafeAccountDeletionError()
@@ -570,36 +625,31 @@ def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date
     #       (no heartbeat for a long time).
 
     current_ts = datetime.now(tz=timezone.utc)
-
-    account_data_query = db.session.\
-        query(AccountData, Creditor).\
-        join(Creditor, Creditor.creditor_id == AccountData.creditor_id).\
-        filter(
-            AccountData.creditor_id == creditor_id,
-            AccountData.debtor_id == debtor_id,
-            AccountData.creation_date == creation_date,
-            AccountData.has_server_account == true(),
-            Creditor.deactivated_at_date == null(),
+    data = AccountData.query.\
+        filter_by(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            creation_date=creation_date,
+            has_server_account=True,
         ).\
-        with_for_update(of=Creditor).\
-        options(Load(AccountData).load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS))
-    try:
-        data, creditor = account_data_query.one()
-    except exc.NoResultFound:
-        return
+        with_for_update().\
+        options(load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)).\
+        one_or_none()
 
-    data.has_server_account = False
-    data.principal = 0
-    data.interest = 0.0
-    data.info_latest_update_id += 1
-    data.info_latest_update_ts = current_ts
-    _add_log_entry(
-        creditor,
-        object_type=types.account_info,
-        object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=data.info_latest_update_id,
-        current_ts=current_ts,
-    )
+    if data:
+        data.has_server_account = False
+        data.principal = 0
+        data.interest = 0.0
+        data.info_latest_update_id += 1
+        data.info_latest_update_ts = current_ts
+
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at_ts=current_ts,
+            object_type=types.account_info,
+            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+            object_update_id=data.info_latest_update_id,
+        ))
 
 
 @atomic
@@ -953,20 +1003,6 @@ def _finalize_direct_transfer(
             direct_transfer.error = error
 
 
-def _join_and_lock_creditor(m, creditor_id: int, debtor_id: int, *, options: list = []) -> Tuple[db.Model, Creditor]:
-    query = db.session.\
-        query(m, Creditor).\
-        join(Creditor, Creditor.creditor_id == m.creditor_id).\
-        filter(m.creditor_id == creditor_id, m.debtor_id == debtor_id, Creditor.deactivated_at_date == null()).\
-        with_for_update(of=Creditor).\
-        options(*options)
-
-    try:
-        return query.one()
-    except exc.NoResultFound:
-        raise AccountDoesNotExistError()
-
-
 def _add_log_entry(
         creditor: Creditor,
         *,
@@ -975,7 +1011,7 @@ def _add_log_entry(
         object_update_id: int = None,
         is_deleted: bool = False,
         data: dict = None,
-        current_ts: datetime = None) -> Tuple[int, datetime]:
+        current_ts: datetime = None) -> None:
 
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     creditor_id = creditor.creditor_id
@@ -993,8 +1029,6 @@ def _add_log_entry(
         is_deleted=is_deleted,
         data=data,
     ))
-
-    return entry_id, current_ts
 
 
 def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
@@ -1037,6 +1071,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         latest_update_ts=current_ts,
     )
     db.session.add(account)
+
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,

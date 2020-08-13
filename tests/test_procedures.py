@@ -302,6 +302,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     assert data.has_server_account
     assert data.principal == 1000
     assert data.interest == 15.0
+    p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 2
 
     p.process_account_purge_signal(C_ID, D_ID, date(2020, 1, 2))
@@ -309,10 +310,13 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     assert not data.has_server_account
     assert data.principal == 0
     assert data.interest == 0.0
+
+    p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 3
     entry = LogEntry.query.filter_by(object_type='AccountInfo').one()
     assert entry.object_uri == f'/creditors/{i64_to_u64(C_ID)}/accounts/{i64_to_u64(D_ID)}/info'
     assert not entry.is_deleted
 
     p.process_account_purge_signal(C_ID, D_ID, date(2020, 1, 2))
+    p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 3
