@@ -1,7 +1,6 @@
 from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
-from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import tuple_, null, true
 from sqlalchemy.orm import joinedload, exc, load_only, Load
