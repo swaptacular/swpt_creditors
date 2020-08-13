@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 34a1cc2184a4
+Revision ID: 91deaec0b7f8
 Revises: 8d8c816257ce
-Create Date: 2020-08-13 13:40:25.766811
+Create Date: 2020-08-13 14:49:34.701216
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '34a1cc2184a4'
+revision = '91deaec0b7f8'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -91,21 +91,34 @@ def upgrade():
     comment='Represents an initiated direct transfer. A new row is inserted when a creditor creates a new direct transfer. The row is deleted when the creditor acknowledges (purges) the transfer.'
     )
     op.create_table('log_entry',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('entry_id', sa.BigInteger(), nullable=False),
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('previous_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('object_type', sa.String(), nullable=False),
     sa.Column('object_uri', sa.String(), nullable=False),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
     sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('entry_id', sa.BigInteger(), nullable=False),
+    sa.Column('previous_entry_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('object_update_id > 0'),
     sa.CheckConstraint('previous_entry_id > 0 AND previous_entry_id < entry_id'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE')
     )
     op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
+    op.create_table('pending_log_entry',
+    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('object_type', sa.String(), nullable=False),
+    sa.Column('object_uri', sa.String(), nullable=False),
+    sa.Column('object_update_id', sa.BigInteger(), nullable=True),
+    sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
+    sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('pending_entry_id', sa.BigInteger(), autoincrement=False, nullable=False),
+    sa.CheckConstraint('object_update_id > 0'),
+    sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id')
+    )
     op.create_table('account_data',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -274,6 +287,7 @@ def downgrade():
     op.drop_table('account_display')
     op.drop_index('idx_ledger_last_transfer', table_name='account_data')
     op.drop_table('account_data')
+    op.drop_table('pending_log_entry')
     op.drop_index('idx_log_entry_pk', table_name='log_entry')
     op.drop_table('log_entry')
     op.drop_table('direct_transfer')
