@@ -115,8 +115,8 @@ ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
     'content': ERROR_CONTENT,
 }
 
-FORBIDDEN_ACCOUNT_CREATION = {
-    'description': 'Forbidden account creation.',
+FORBIDDEN_ACCOUNT_OPERATION = {
+    'description': 'Forbidden account operation.',
     'content': ERROR_CONTENT,
 }
 

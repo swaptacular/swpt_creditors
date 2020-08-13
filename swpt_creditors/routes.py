@@ -313,7 +313,7 @@ class AccountsEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
-                                 403: specs.FORBIDDEN_ACCOUNT_CREATION})
+                                 403: specs.FORBIDDEN_ACCOUNT_OPERATION})
     def post(self, debtor_identity, creditorId):
         """Create a new account belonging to a given creditor."""
 
@@ -326,14 +326,14 @@ class AccountsEndpoint(MethodView):
         try:
             inspect_ops.allow_account_creation(creditorId, debtorId, current_app.config['APP_ACCOUNTS_COUNT_LIMIT'])
             account = procedures.create_new_account(creditorId, debtorId)
-        except inspect_ops.ForbiddenAccountCreationError:  # pragma: no cover
+        except inspect_ops.ForbiddenOperationError:  # pragma: no cover
             abort(403)
         except procedures.CreditorDoesNotExistError:
             abort(404)
         except procedures.AccountExistsError:
             return redirect(location, code=303)
 
-        inspect_ops.register_new_account(creditorId, debtorId)
+        inspect_ops.register_account_creation(creditorId, debtorId)
         return account, {'Location': location}
 
 
@@ -415,11 +415,13 @@ class AccountConfigEndpoint(MethodView):
 
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountConfig')
+    @accounts_api.doc(operationId='updateAccountConfig',
+                      responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION})
     def patch(self, account_config, creditorId, debtorId):
         """Update account's configuration."""
 
         try:
+            inspect_ops.allow_account_reconfig(creditorId, debtorId)
             config = procedures.update_account_config(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
@@ -427,10 +429,12 @@ class AccountConfigEndpoint(MethodView):
                 negligible_amount=account_config['negligible_amount'],
                 allow_unsafe_deletion=account_config['allow_unsafe_deletion'],
             )
+        except inspect_ops.ForbiddenOperationError:  # pragma: no cover
+            abort(403)
         except procedures.AccountDoesNotExistError:
             abort(404)
 
-        inspect_ops.configure_existing_account(creditorId, debtorId)
+        inspect_ops.register_account_reconfig(creditorId, debtorId)
         return config
 
 
