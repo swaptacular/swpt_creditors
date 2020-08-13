@@ -333,7 +333,7 @@ class AccountsEndpoint(MethodView):
         except procedures.AccountExistsError:
             return redirect(location, code=303)
 
-        inspect_ops.register_account(creditorId, debtorId)
+        inspect_ops.register_new_account(creditorId, debtorId)
         return account, {'Location': location}
 
 
@@ -381,7 +381,7 @@ class AccountEndpoint(MethodView):
 
         """
 
-        inspect_ops.unregister_account(creditorId, debtorId)
+        inspect_ops.decrement_account_number(creditorId, debtorId)
         try:
             procedures.delete_account(creditorId, debtorId)
             return
@@ -392,13 +392,13 @@ class AccountEndpoint(MethodView):
         except procedures.AccountDoesNotExistError:
             pass
 
-        # NOTE: We unregistered the account before trying to delete
-        # it, and now when we know that the deletion has been
-        # unsuccessful, we register the account again. This guarantees
-        # that in case of a crash, the difference between the number
-        # of registered accounts and the real number of accounts will
-        # always be in users' favor.
-        inspect_ops.register_account(creditorId, debtorId)
+        # NOTE: We decremented the account number before trying to
+        # delete the account, and now when we know that the deletion
+        # has been unsuccessful, we increment the account number
+        # again. This guarantees that in case of a crash, the
+        # difference between the recorded number of accounts and the
+        # real number of accounts will always be in users' favor.
+        inspect_ops.increment_account_number(creditorId, debtorId)
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])
@@ -430,6 +430,7 @@ class AccountConfigEndpoint(MethodView):
         except procedures.AccountDoesNotExistError:
             abort(404)
 
+        inspect_ops.configure_existing_account(creditorId, debtorId)
         return config
 
 
