@@ -145,15 +145,17 @@ def get_creditors_with_pending_log_entries() -> Iterable[int]:
 def process_pending_log_entries(creditor_id: int) -> None:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
+    creditor = Creditor.lock_instance(creditor_id)
+    if creditor is None:
+        return
+
     pending_log_entries = PendingLogEntry.query.\
         filter_by(creditor_id=creditor_id).\
         order_by(PendingLogEntry.pending_entry_id).\
-        with_for_update().\
+        with_for_update(skip_locked=True).\
         all()
 
     if pending_log_entries:
-        creditor = Creditor.lock_instance(creditor_id)
-
         for entry in pending_log_entries:
             previous_entry_id = creditor.latest_log_entry_id
             entry_id = creditor.generate_log_entry_id()
