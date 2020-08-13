@@ -5,12 +5,12 @@ class ForbiddenOperationError(Exception):
     """The operation is forbidden."""
 
 
-def allow_account_creation(creditor_id: int, debtor_id: int, accounts_count_limit: int) -> None:
+def allow_account_creation(creditor_id: int, debtor_id: int) -> None:
     """May Raise `ForbiddenOperationError`."""
 
 
 def register_account_creation(creditor_id: int, debtor_id: int) -> None:
-    # NOTE: We must not forget to increment the account number here.
+    # NOTE: We must not forget to increment the accounts count here.
     pass
 
 

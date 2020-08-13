@@ -324,7 +324,7 @@ class AccountsEndpoint(MethodView):
 
         location = url_for('accounts.AccountEndpoint', _external=True, creditorId=creditorId, debtorId=debtorId)
         try:
-            inspect_ops.allow_account_creation(creditorId, debtorId, current_app.config['APP_ACCOUNTS_COUNT_LIMIT'])
+            inspect_ops.allow_account_creation(creditorId, debtorId)
             account = procedures.create_new_account(creditorId, debtorId)
         except inspect_ops.ForbiddenOperationError:  # pragma: no cover
             abort(403)
