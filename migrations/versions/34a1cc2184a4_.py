@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3b65c0825c9a
+Revision ID: 34a1cc2184a4
 Revises: 8d8c816257ce
-Create Date: 2020-08-11 17:05:57.181635
+Create Date: 2020-08-13 13:40:25.766811
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '3b65c0825c9a'
+revision = '34a1cc2184a4'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -32,8 +32,6 @@ def upgrade():
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('created_at_date', sa.DATE(), nullable=False),
-    sa.Column('direct_transfers_count', sa.Integer(), nullable=False),
-    sa.Column('accounts_count', sa.Integer(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is active."),
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. A `null` means that the creditor has not been deactivated yet. Management operations (like making direct transfers) are not allowed on deactivated creditors. Once deactivated, a creditor stays deactivated until it is deleted. Important note: All creditors are created with their "is active" status bit set to `0`, and it gets set to `1` only after the first management operation has been performed.'),
     sa.Column('latest_log_entry_id', sa.BigInteger(), nullable=False, comment='Gets incremented each time a new entry is added to the log.'),
@@ -44,9 +42,7 @@ def upgrade():
     sa.Column('transfer_list_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('account_list_latest_update_id > 0'),
-    sa.CheckConstraint('accounts_count >= 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
-    sa.CheckConstraint('direct_transfers_count >= 0'),
     sa.CheckConstraint('latest_log_entry_id > 0'),
     sa.CheckConstraint('transfer_list_latest_update_id > 0'),
     sa.PrimaryKeyConstraint('creditor_id')

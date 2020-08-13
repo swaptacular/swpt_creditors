@@ -19,6 +19,7 @@ from swpt_creditors.schemas import (
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
 from swpt_creditors import procedures
+from swpt_creditors import inspect_ops
 
 
 def _url_for(name):
@@ -323,14 +324,16 @@ class AccountsEndpoint(MethodView):
 
         location = url_for('accounts.AccountEndpoint', _external=True, creditorId=creditorId, debtorId=debtorId)
         try:
+            inspect_ops.allow_account_creation(creditorId, debtorId, current_app.config['APP_ACCOUNTS_COUNT_LIMIT'])
             account = procedures.create_new_account(creditorId, debtorId)
-        except procedures.ForbiddenAccountCreationError:
+        except inspect_ops.ForbiddenAccountCreationError:  # pragma: no cover
             abort(403)
         except procedures.CreditorDoesNotExistError:
             abort(404)
         except procedures.AccountExistsError:
             return redirect(location, code=303)
 
+        inspect_ops.register_account_creation(creditorId, debtorId)
         return account, {'Location': location}
 
 

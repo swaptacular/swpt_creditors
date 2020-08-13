@@ -2,8 +2,9 @@ import json
 from copy import copy
 from marshmallow import Schema, fields, validate, missing, pre_dump
 from swpt_lib.utils import i64_to_u64
+from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MIN_INT64, MAX_INT64, DATE0
+from swpt_creditors.models import MAX_INT64, DATE0
 from .common import ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -15,6 +16,10 @@ The moment at which the transfer was initiated.'
 _TRANSFER_DEBTOR_URI_DESCRIPTION = '\
 The URI of the debtor through which the transfer should go. This is analogous to \
 the currency code in "normal" bank transfers.'
+
+
+def _make_invalid_account_uri(debtor_id: int) -> str:
+    return f'swpt:{i64_to_u64(debtor_id)}/!'
 
 
 def _parse_transfer_note(transfer_note):
@@ -294,9 +299,17 @@ class CommittedTransferSchema(Schema):
         )
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
-        # TODO: Use a `swpt_lib.utils` function for this.
-        obj.sender = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{obj.sender_identity}'}
-        obj.recipient = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}/{obj.recipient_identity}'}
+        try:
+            sender_uri = make_account_uri(obj.debtor_id, obj.sender_identity)
+        except ValueError:
+            sender_uri = _make_invalid_account_uri(obj.debtor_id)
+        obj.sender = {'uri': sender_uri}
+
+        try:
+            recipient_uri = make_account_uri(obj.debtor_id, obj.recipient_identity)
+        except ValueError:
+            recipient_uri = _make_invalid_account_uri(obj.debtor_id)
+        obj.recipient = {'uri': recipient_uri}
 
         note = _parse_transfer_note(obj.transfer_note)
         if note is not None:

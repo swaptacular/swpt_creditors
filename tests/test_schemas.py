@@ -1085,6 +1085,13 @@ def test_serialize_committed_transfer(app):
     ct.transfer_note = '[]'
     assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': '[]'}
 
+    # invalid identity
+    ct.sender_identity = 1000 * '1'
+    ct.recipient_identity = 1000 * '1'
+    data = cts.dump(ct)
+    assert data['sender'] == {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!'}
+    assert data['recipient'] == {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!'}
+
 
 def test_deserialize_log_pagination_params(app):
     ais = schemas.LogPaginationParamsSchema()

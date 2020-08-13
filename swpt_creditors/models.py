@@ -91,8 +91,6 @@ class Creditor(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_date = db.Column(db.DATE, nullable=False, default=get_now_utc)
-    direct_transfers_count = db.Column(db.Integer, nullable=False, default=0)
-    accounts_count = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(
         db.SmallInteger,
         nullable=False,
@@ -123,8 +121,6 @@ class Creditor(db.Model):
     transfer_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.CheckConstraint(latest_log_entry_id > 0),
-        db.CheckConstraint(direct_transfers_count >= 0),
-        db.CheckConstraint(accounts_count >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(account_list_latest_update_id > 0),
         db.CheckConstraint(transfer_list_latest_update_id > 0),

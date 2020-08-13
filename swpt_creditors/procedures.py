@@ -113,10 +113,6 @@ class AccountExistsError(Exception):
     """The same account record already exists."""
 
 
-class ForbiddenAccountCreationError(Exception):
-    """The creation of the account is forbidden."""
-
-
 class AccountsConflictError(Exception):
     """A different account with the same debtor ID already exists."""
 
@@ -268,9 +264,6 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
     if creditor is None:
         raise CreditorDoesNotExistError()
-
-    if creditor.accounts_count >= current_app.config['APP_ACCOUNTS_COUNT_LIMIT']:
-        raise ForbiddenAccountCreationError()
 
     if has_account(creditor_id, debtor_id):
         raise AccountExistsError()
@@ -524,11 +517,6 @@ def update_account_exchange(
 
 @atomic
 def delete_account(creditor_id: int, debtor_id: int) -> None:
-    # TODO: Make sure users do not remove accounts unsafely too
-    #       often. For example, users may create and remove hundreds
-    #       of accounts per minute, significantly raising the cost for
-    #       the operator of the service.
-
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
@@ -574,7 +562,6 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
             current_ts=current_ts,
         )
 
-    creditor.accounts_count = max(0, creditor.accounts_count - 1)
     Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
 
 
@@ -879,8 +866,6 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
 
     assert number_of_deleted_rows in [0, 1]
     if number_of_deleted_rows == 1:
-        # TODO: Update creditor's direct transfers count.
-
         # Note that deleting the `RunningTransfer` record may result
         # in dismissing an already committed transfer. This is not a
         # problem in this case, however, because the user has ordered
@@ -1053,8 +1038,6 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         latest_update_ts=current_ts,
     )
     db.session.add(account)
-    creditor.accounts_count += 1
-
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
