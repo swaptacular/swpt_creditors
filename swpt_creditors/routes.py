@@ -333,7 +333,7 @@ class AccountsEndpoint(MethodView):
         except procedures.AccountExistsError:
             return redirect(location, code=303)
 
-        inspect_ops.register_account_creation(creditorId, debtorId)
+        inspect_ops.register_account(creditorId, debtorId)
         return account, {'Location': location}
 
 
@@ -381,14 +381,24 @@ class AccountEndpoint(MethodView):
 
         """
 
+        inspect_ops.unregister_account(creditorId, debtorId)
         try:
             procedures.delete_account(creditorId, debtorId)
+            return
         except procedures.PegAccountDeletionError:
             abort(409)
         except procedures.UnsafeAccountDeletionError:
             abort(403)
         except procedures.AccountDoesNotExistError:
             pass
+
+        # NOTE: We unregistered the account before trying to delete
+        # it, and now when we know that the deletion has been
+        # unsuccessful, we register the account again. This guarantees
+        # that in case of a crash, the difference between the number
+        # of registered accounts and the real number of accounts will
+        # always be in users' favor.
+        inspect_ops.register_account(creditorId, debtorId)
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])
