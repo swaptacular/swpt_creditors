@@ -699,7 +699,7 @@ def process_account_update_signal(
     if (current_ts - ts).total_seconds() > ttl:
         return
 
-    data = AccountData.get_instance((creditor_id, debtor_id))
+    data = AccountData.lock_instance((creditor_id, debtor_id))
     if data is None:
         _discard_orphaned_account(creditor_id, debtor_id, config_flags, negligible_amount)
         return
@@ -1142,6 +1142,9 @@ def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
 
 
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
+    # TODO: Consider consulting the `CreditorSpace` before performing
+    #       this potentially dangerous operation.
+
     scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= DEFAULT_NEGLIGIBLE_AMOUNT):
         db.session.add(ConfigureAccountSignal(
