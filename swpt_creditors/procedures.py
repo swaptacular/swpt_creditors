@@ -715,7 +715,7 @@ def process_account_update_signal(
 
     data = AccountData.get_instance((creditor_id, debtor_id))
     if data is None:
-        # TODO: Should we consider creating an account record here?
+        _discard_orphaned_account(creditor_id, debtor_id, config_flags, negligible_amount)
         return
 
     if ts > data.last_heartbeat_ts:
@@ -945,26 +945,6 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
     return number_of_deleted_rows == 1
 
 
-def _discard_orphaned_account(
-        creditor_id: int,
-        debtor_id: int,
-        status_flags: int,
-        config_flags: int,
-        negligible_amount: float) -> None:
-
-    is_scheduled_for_deletion = config_flags & AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-    has_huge_negligible_amount = negligible_amount >= DEFAULT_NEGLIGIBLE_AMOUNT
-    if not (is_scheduled_for_deletion and has_huge_negligible_amount):
-        db.session.add(ConfigureAccountSignal(
-            creditor_id=creditor_id,
-            debtor_id=debtor_id,
-            ts=datetime.now(tz=timezone.utc),
-            seqnum=0,
-            negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
-            is_scheduled_for_deletion=True,
-        ))
-
-
 def _insert_ledger_entry(
         creditor_id: int,
         debtor_id: int,
@@ -1173,3 +1153,17 @@ def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
         _insert_ledger_update_pending_log_entry(data, current_ts)
 
     data.ledger_last_transfer_number = 0
+
+
+def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
+    scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= DEFAULT_NEGLIGIBLE_AMOUNT):
+        db.session.add(ConfigureAccountSignal(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            ts=datetime.now(tz=timezone.utc),
+            seqnum=0,
+            negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
+            config_flags=DEFAULT_CONFIG_FLAGS | scheduled_for_deletion_flag,
+            config='',
+        ))
