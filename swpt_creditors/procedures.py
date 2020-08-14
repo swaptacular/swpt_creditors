@@ -662,7 +662,7 @@ def process_rejected_config_signal(
             config_flags=config_flags,
             config_error=None,
         ).\
-        filter(func.abs(AccountData.negligible_amount - negligible_amount) < EPS * negligible_amount).\
+        filter(func.abs(AccountData.negligible_amount - negligible_amount) <= EPS * negligible_amount).\
         with_for_update().\
         options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
         one_or_none()
@@ -719,7 +719,7 @@ def process_account_update_signal(
         and last_config_ts == data.last_config_ts
         and last_config_seqnum == data.last_config_ts
         and config_flags == data.config_flags
-        and abs(data.negligible_amount - negligible_amount) < EPS * negligible_amount
+        and abs(data.negligible_amount - negligible_amount) <= EPS * negligible_amount
     )
     config_error = None if is_config_effectual else data.config_error
 
@@ -730,7 +730,7 @@ def process_account_update_signal(
         not data.has_server_account
         or data.status_flags != status_flags
         or data.account_id != account_id
-        or data.interest_rate != interest_rate
+        or abs(data.interest_rate - interest_rate) > EPS * interest_rate
         or data.last_interest_rate_change_ts != last_interest_rate_change_ts
         or data.debtor_info_url != debtor_info_url
         or data.is_config_effectual != is_config_effectual
