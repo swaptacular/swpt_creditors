@@ -648,8 +648,6 @@ def process_rejected_config_signal(
         config_flags: int,
         rejection_code: str) -> None:
 
-    assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
-
     if config != '':
         return
 
@@ -696,18 +694,6 @@ def process_account_update_signal(
         last_transfer_committed_at: datetime,
         ts: datetime,
         ttl: int) -> None:
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT32 <= last_change_seqnum <= MAX_INT32
-    assert -MAX_INT64 <= principal <= MAX_INT64
-    assert INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL
-    assert 0 <= last_transfer_number <= MAX_INT64
-    assert MIN_INT32 <= last_config_seqnum <= MAX_INT32
-    assert negligible_amount >= 0.0
-    assert MIN_INT32 <= config_flags <= MAX_INT32
-    assert MIN_INT32 <= status_flags <= MAX_INT32
-    assert ttl > 0
 
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - ts).total_seconds() > ttl:
