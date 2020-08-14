@@ -17,6 +17,7 @@ from swpt_creditors.models import (
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
+EPS = 1e-5
 TD_SECOND = timedelta(seconds=1)
 TD_5_SECONDS = timedelta(seconds=5)
 PENDING_ACCOUNT_COMMIT_PK = tuple_(
@@ -661,7 +662,7 @@ def process_rejected_config_signal(
             config_flags=config_flags,
             config_error=None,
         ).\
-        filter(func.abs(AccountData.negligible_amount - negligible_amount) < 1e-5 * negligible_amount).\
+        filter(func.abs(AccountData.negligible_amount - negligible_amount) < EPS * negligible_amount).\
         with_for_update().\
         options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
         one_or_none()
@@ -717,8 +718,8 @@ def process_account_update_signal(
         config == ''
         and last_config_ts == data.last_config_ts
         and last_config_seqnum == data.last_config_ts
-        and negligible_amount == data.negligible_amount
         and config_flags == data.config_flags
+        and abs(data.negligible_amount - negligible_amount) < EPS * negligible_amount
     )
     config_error = None if is_config_effectual else data.config_error
 
