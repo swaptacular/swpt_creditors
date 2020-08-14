@@ -622,7 +622,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
 
 
 @atomic
-def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date: date) -> None:
+def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date: date) -> None:
     # TODO: Do not foget to do the same thing when the account is dead
     #       (no heartbeat for a long time).
 
@@ -642,6 +642,51 @@ def process_account_purge_signal(creditor_id: int, debtor_id: int, creation_date
         data.has_server_account = False
         data.principal = 0
         data.interest = 0.0
+        data.info_latest_update_id += 1
+        data.info_latest_update_ts = current_ts
+
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at_ts=current_ts,
+            object_type=types.account_info,
+            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+            object_update_id=data.info_latest_update_id,
+        ))
+
+
+@atomic
+def process_rejected_config_signal(
+        debtor_id: int,
+        creditor_id: int,
+        config_ts: datetime,
+        config_seqnum: int,
+        negligible_amount: float,
+        config: str,
+        config_flags: int,
+        rejection_code: str) -> None:
+
+    assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
+
+    if config != '':
+        return
+
+    current_ts = datetime.now(tz=timezone.utc)
+    data = AccountData.query.\
+        filter_by(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            last_config_ts=config_ts,
+            last_config_seqnum=config_seqnum,
+            negligible_amount=negligible_amount,
+            config_flags=config_flags,
+            config_error=None,
+        ).\
+        with_for_update().\
+        options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
+        one_or_none()
+
+    if data:
+        data.config_error = rejection_code
         data.info_latest_update_id += 1
         data.info_latest_update_ts = current_ts
 
