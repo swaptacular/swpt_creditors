@@ -361,15 +361,7 @@ def update_account_config(
     # updated. Therefore, if the account is safe to delete now, we
     # need to inform the client about the upcoming change.
     if data.is_deletion_safe:
-        data.info_latest_update_id += 1
-        data.info_latest_update_ts = current_ts
-        db.session.add(PendingLogEntry(
-            creditor_id=creditor_id,
-            added_at_ts=current_ts,
-            object_type=types.account_info,
-            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
-            object_update_id=data.info_latest_update_id,
-        ))
+        _insert_info_update_pending_log_entry(data, current_ts)
 
     data.last_config_ts = current_ts
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
@@ -642,16 +634,7 @@ def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date
         data.has_server_account = False
         data.principal = 0
         data.interest = 0.0
-        data.info_latest_update_id += 1
-        data.info_latest_update_ts = current_ts
-
-        db.session.add(PendingLogEntry(
-            creditor_id=creditor_id,
-            added_at_ts=current_ts,
-            object_type=types.account_info,
-            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
-            object_update_id=data.info_latest_update_id,
-        ))
+        _insert_info_update_pending_log_entry(data, current_ts)
 
 
 @atomic
@@ -687,41 +670,32 @@ def process_rejected_config_signal(
 
     if data:
         data.config_error = rejection_code
-        data.info_latest_update_id += 1
-        data.info_latest_update_ts = current_ts
-
-        db.session.add(PendingLogEntry(
-            creditor_id=creditor_id,
-            added_at_ts=current_ts,
-            object_type=types.account_info,
-            object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
-            object_update_id=data.info_latest_update_id,
-        ))
+        _insert_info_update_pending_log_entry(data, current_ts)
 
 
 @atomic
 def process_account_update_signal(
         debtor_id: int,
         creditor_id: int,
+        creation_date: date,
         last_change_ts: datetime,
         last_change_seqnum: int,
         principal: int,
         interest: float,
         interest_rate: float,
         last_interest_rate_change_ts: datetime,
-        last_transfer_number: int,
-        last_transfer_committed_at_ts: datetime,
+        status_flags: int,
         last_config_ts: datetime,
         last_config_seqnum: int,
-        creation_date: date,
         negligible_amount: float,
-        config: str,
         config_flags: int,
-        status_flags: int,
-        ts: datetime,
-        ttl: int,
+        config: str,
         account_id: str,
-        debtor_info_url: str) -> None:
+        debtor_info_url: str,
+        last_transfer_number: int,
+        last_transfer_committed_at: datetime,
+        ts: datetime,
+        ttl: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -736,66 +710,68 @@ def process_account_update_signal(
     assert ttl > 0
 
     current_ts = datetime.now(tz=timezone.utc)
+
     if (current_ts - ts).total_seconds() > ttl:
         return
 
-    query = db.session.query(AccountData).\
-        filter(AccountData.creditor_id == creditor_id, AccountData.debtor_id == debtor_id).\
-        with_for_update(of=AccountData)
-
-    try:
-        account_data, account_config = query.one()
-    except exc.NoResultFound:
-        # TODO: Should we schedule the account for deletion here?
+    data = AccountData.get_instance((creditor_id, debtor_id))
+    if data is None:
+        # TODO: Should we consider creating an account record here?
         return
 
-    if creation_date < account_data.creation_date:
+    if creation_date < data.creation_date:
         return
 
-    if ts > account_data.last_heartbeat_ts:
-        account_data.last_heartbeat_ts = min(ts, current_ts)
+    if ts > data.last_heartbeat_ts:
+        data.last_heartbeat_ts = min(ts, current_ts)
 
-    prev_event = (account_data.creation_date, account_data.last_change_ts, Seqnum(account_data.last_change_seqnum))
+    prev_event = (data.creation_date, data.last_change_ts, Seqnum(data.last_change_seqnum))
     this_event = (creation_date, last_change_ts, Seqnum(last_change_seqnum))
     is_new_event = this_event > prev_event
     if not is_new_event:
         return
 
-    last_config_request = (account_data.last_config_ts, Seqnum(account_data.last_config_seqnum))
-    applied_config_request = (last_config_ts, Seqnum(last_config_seqnum))
-    is_same_config = all([
-        account_config.negligible_amount == negligible_amount,
-        account_config.config == config,
-        account_config.config_flags == config_flags,
-    ])
-    is_config_effectual = last_config_request == applied_config_request and is_same_config
+    is_config_effectual = (
+        config == ''
+        and last_config_ts == data.last_config_ts
+        and last_config_seqnum == data.last_config_ts
+        and negligible_amount == data.negligible_amount
+        and config_flags == data.config_flags
+    )
+    config_error = None if is_config_effectual else data.config_error
 
-    account_data.has_server_account = True
-    account_data.creation_date = creation_date
-    account_data.last_change_ts = last_change_ts
-    account_data.last_change_seqnum = last_change_seqnum
-    account_data.principal = principal
-    account_data.interest = interest
-    account_data.interest_rate = interest_rate
-    account_data.last_interest_rate_change_ts = last_interest_rate_change_ts
-    account_data.last_transfer_number = last_transfer_number,
-    account_data.last_transfer_committed_at_ts = last_transfer_committed_at_ts
-    account_data.status_flags = status_flags
-    account_data.account_id = account_id
-    account_data.debtor_info_url = debtor_info_url
-    account_data.is_config_effectual = is_config_effectual
-    account_data.info_latest_update_id = 1  # TODO: generate it.
-    account_data.info_latest_update_ts = current_ts
-    account_data.ledger_latest_update_id = 1  # TODO: generate it.
-    account_data.ledger_latest_update_ts = current_ts
-    if is_config_effectual:
-        account_data.config_error = None
-    elif applied_config_request >= last_config_request:
-        # Normally, this should never happen.
-        account_data.config_error = 'SUPERSEDED_CONFIGURATION'
+    if creation_date > data.creation_date:
+        _reset_ledger(data, current_ts)
+        _insert_ledger_update_pending_log_entry(data, current_ts)
 
-    # TODO: Consider resetting the ledger if
-    #       `account_data.creation_date < creation_date`.
+    info_has_changed = (
+        not data.has_server_account
+        or data.status_flags != status_flags
+        or data.account_id != account_id
+        or data.interest_rate != interest_rate
+        or data.last_interest_rate_change_ts != last_interest_rate_change_ts
+        or data.debtor_info_url != debtor_info_url
+        or data.is_config_effectual != is_config_effectual
+        or data.config_error != config_error
+    )
+    if info_has_changed:
+        _insert_info_update_pending_log_entry(data, current_ts)
+
+    data.has_server_account = True
+    data.creation_date = creation_date
+    data.last_change_ts = last_change_ts
+    data.last_change_seqnum = last_change_seqnum
+    data.principal = principal
+    data.interest = interest
+    data.interest_rate = interest_rate
+    data.last_interest_rate_change_ts = last_interest_rate_change_ts
+    data.status_flags = status_flags
+    data.account_id = account_id
+    data.debtor_info_url = debtor_info_url
+    data.last_transfer_number = last_transfer_number,
+    data.last_transfer_committed_at_ts = last_transfer_committed_at
+    data.is_config_effectual = is_config_effectual
+    data.config_error = config_error
 
 
 @atomic
@@ -1146,3 +1122,58 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         )
 
     return account
+
+
+def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
+    creditor_id = data.creditor_id
+    debtor_id = data.debtor_id
+
+    data.info_latest_update_id += 1
+    data.info_latest_update_ts = current_ts
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
+        object_type=types.account_info,
+        object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=data.info_latest_update_id,
+    ))
+
+
+def _insert_ledger_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
+    creditor_id = data.creditor_id
+    debtor_id = data.debtor_id
+
+    data.ledger_latest_update_id += 1
+    data.ledger_latest_update_ts = current_ts
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
+        object_type=types.account_ledger,
+        object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=data.ledger_latest_update_id,
+    ))
+
+
+def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
+    creditor_id = data.creditor_id
+    debtor_id = data.debtor_id
+
+    if data.ledger_principal != 0:
+        ledger_latest_entry_id = data.ledger_latest_entry_id
+        previous_entry_id = ledger_latest_entry_id or None
+        entry_id = ledger_latest_entry_id + 1
+        db.session.add(LedgerEntry(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            entry_id=entry_id,
+            creation_date=data.creation_date,
+            aquired_amount=-data.ledger_principal,
+            principal=0,
+            added_at_ts=current_ts,
+            previous_entry_id=previous_entry_id,
+        ))
+
+        data.ledger_latest_entry_id = entry_id
+        data.ledger_principal = 0
+
+    data.ledger_last_transfer_number = 0
