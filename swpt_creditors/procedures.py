@@ -710,16 +710,12 @@ def process_account_update_signal(
     assert ttl > 0
 
     current_ts = datetime.now(tz=timezone.utc)
-
     if (current_ts - ts).total_seconds() > ttl:
         return
 
     data = AccountData.get_instance((creditor_id, debtor_id))
     if data is None:
         # TODO: Should we consider creating an account record here?
-        return
-
-    if creation_date < data.creation_date:
         return
 
     if ts > data.last_heartbeat_ts:
@@ -744,7 +740,7 @@ def process_account_update_signal(
         _reset_ledger(data, current_ts)
         _insert_ledger_update_pending_log_entry(data, current_ts)
 
-    info_has_changed = (
+    info_update = (
         not data.has_server_account
         or data.status_flags != status_flags
         or data.account_id != account_id
@@ -754,7 +750,7 @@ def process_account_update_signal(
         or data.is_config_effectual != is_config_effectual
         or data.config_error != config_error
     )
-    if info_has_changed:
+    if info_update:
         _insert_info_update_pending_log_entry(data, current_ts)
 
     data.has_server_account = True
