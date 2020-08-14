@@ -283,11 +283,15 @@ def test_process_account_update_signal(db_session, creditor, setup_account, curr
 def test_process_rejected_config_signal(setup_account):
     c = p.get_account_config(C_ID, D_ID)
     assert c.config_error is None
+    p.process_pending_log_entries(C_ID)
+    ple_count = len(models.LogEntry.query.all())
 
     p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
                                      c.negligible_amount, 'UNEXPECTED', c.config_flags, 'TEST_CODE')
     p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
                                      c.negligible_amount * 1.0001, '', c.config_flags, 'TEST_CODE')
+    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
+                                     c.negligible_amount, '', c.config_flags ^ 1, 'TEST_CODE')
     p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum - 1,
                                      c.negligible_amount, '', c.config_flags, 'TEST_CODE')
     p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum + 1,
@@ -308,15 +312,16 @@ def test_process_rejected_config_signal(setup_account):
     assert c.config_error == 'TEST_CODE'
     assert c.info_latest_update_id == info_latest_update_id + 1
     assert c.info_latest_update_ts >= info_latest_update_ts
-    ple = models.PendingLogEntry.query.one()
+
+    p.process_pending_log_entries(C_ID)
+    assert len(LogEntry.query.all()) == ple_count + 1
+    ple = LogEntry.query.filter_by(object_type='AccountInfo', object_update_id=info_latest_update_id + 1).one()
     assert ple.creditor_id == C_ID
-    assert ple.object_type == 'AccountInfo'
     assert '/info' in ple.object_uri
-    assert ple.object_update_id == info_latest_update_id + 1
 
     p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
                                      c.negligible_amount, '', c.config_flags, 'TEST_CODE')
-    assert len(models.PendingLogEntry.query.all()) == 1
+    assert len(LogEntry.query.all()) == ple_count + 1
 
 
 def test_process_account_purge_signal(db_session, creditor, setup_account, current_ts):
@@ -336,7 +341,6 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
 
     p.process_account_purge_signal(1111, 2222, date(2020, 1, 2))
     p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 1))
-    p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 3))
     data = AccountData.query.one()
     assert data.has_server_account
     assert data.principal == 1000

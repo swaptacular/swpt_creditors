@@ -631,9 +631,9 @@ def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date
         filter_by(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
-            creation_date=creation_date,
             has_server_account=True,
         ).\
+        filter(AccountData.creation_date <= creation_date).\
         with_for_update().\
         options(load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)).\
         one_or_none()
