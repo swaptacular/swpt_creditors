@@ -738,7 +738,6 @@ def process_account_update_signal(
 
     if creation_date > data.creation_date:
         _reset_ledger(data, current_ts)
-        _insert_ledger_update_pending_log_entry(data, current_ts)
 
     info_update = (
         not data.has_server_account
@@ -1171,5 +1170,6 @@ def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
 
         data.ledger_latest_entry_id = entry_id
         data.ledger_principal = 0
+        _insert_ledger_update_pending_log_entry(data, current_ts)
 
     data.ledger_last_transfer_number = 0
