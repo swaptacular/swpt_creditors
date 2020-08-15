@@ -329,8 +329,8 @@ class AccountInfoSchema(MutableResourceSchema):
         data_key='accountIdentity',
         description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
                     "account when it participates in transfers as sender or recipient. When "
-                    "this field is not present, this means that the account has not "
-                    "obtained identity yet, and can not participate in transfers.\n"
+                    "this field is not present, this means that the account does not have "
+                    "an identity yet (or anymore), and can not participate in transfers.\n"
                     "\n"
                     "Note that some accounts may be used only to represent a physical value "
                     "measurement unit (like ounces of gold), and are useful only as links in "
