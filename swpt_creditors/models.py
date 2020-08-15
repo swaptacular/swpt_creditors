@@ -329,21 +329,6 @@ class AccountData(db.Model):
         assert MIN_INT64 <= interest <= MAX_INT64
         return interest
 
-    # TODO: Remove this method? Add `ledger_last_transfer_creation_date` column?
-    def reset_ledger(self, *, account: Account = None, account_creation_date: date = None, current_ts: datetime = None):
-        if account:
-            assert account_creation_date is None
-            assert account.creditor_id == self.creditor_id and account.debtor_id == self.debtor_id
-            self.account_creation_date = account.creation_date
-            self.principal = account.principal
-            self.next_transfer_number = account.last_transfer_number + 1
-        else:
-            account_creation_date = account_creation_date or TS0.date()
-            self.account_creation_date = account_creation_date
-            self.principal = 0
-            self.next_transfer_number = (date_to_int24(account_creation_date) << 40) + 1
-        self.ledger_latest_update_ts = current_ts or datetime.now(tz=timezone.utc)
-
 
 class AccountKnowledge(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
