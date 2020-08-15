@@ -22,10 +22,6 @@ def register_account_reconfig(creditor_id: int, debtor_id: int) -> None:
     pass
 
 
-def configure_existing_account(creditor_id: int, debtor_id: int) -> None:
-    pass
-
-
 def increment_account_number(creditor_id: int, debtor_id: int) -> None:
     pass
 
