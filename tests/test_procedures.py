@@ -1,5 +1,6 @@
 import pytest
-from datetime import date, timedelta
+import time
+from datetime import date, timedelta, datetime, timezone
 from uuid import UUID
 from swpt_lib.utils import i64_to_u64
 from swpt_creditors import procedures as p
@@ -132,152 +133,154 @@ def test_delete_account(db_session, setup_account, current_ts):
     assert AccountConfig.query.one_or_none() is None
 
 
-@pytest.mark.skip
-def test_process_account_update_signal(db_session, creditor, setup_account, current_ts):
-    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    ac = AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+def test_process_account_update_signal(db_session, setup_account):
+    AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).update({
+        'ledger_principal': 1001,
+        'ledger_latest_entry_id': 88,
+        'ledger_last_transfer_number': 888,
+    })
+
+    def get_data():
+        return AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+
+    ad = get_data()
     assert not ad.is_config_effectual
-    assert ac.negligible_amount > 1e20
-    assert ac.config == ''
-    assert ac.config_flags == 0
+    assert ad.ledger_principal == 1001
+    assert ad.ledger_latest_entry_id == 88
+    assert ad.negligible_amount == models.DEFAULT_NEGLIGIBLE_AMOUNT
+    assert ad.config_flags == models.DEFAULT_CONFIG_FLAGS
+    assert ad.last_change_seqnum == 0
+    assert ad.config_error is None
     last_ts = ad.last_config_ts
     last_seqnum = ad.last_config_seqnum
+    negligible_amount = ad.negligible_amount
+    config_flags = ad.config_flags
+    last_heartbeat_ts = ad.last_heartbeat_ts
+    creation_date = date(2020, 1, 15)
 
-    p.process_account_update_signal(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        last_change_ts=current_ts,
-        last_change_seqnum=1,
-        principal=1000,
-        interest=0.0,
-        interest_rate=5.0,
-        last_interest_rate_change_ts=current_ts,
-        last_transfer_number=1,
-        last_transfer_committed_at_ts=current_ts,
-        last_config_ts=last_ts,
-        last_config_seqnum=last_seqnum,
-        creation_date=date(2020, 1, 15),
-        negligible_amount=models.DEFAULT_NEGLIGIBLE_AMOUNT,
-        status_flags=0,
-        ts=current_ts,
-        ttl=1000000,
-        account_id=str(C_ID),
-        config='',
-        config_flags=0,
-        debtor_info_url='',
-    )
-    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert last_ts == ad.last_config_ts
-    assert last_seqnum == ad.last_config_seqnum
-    assert ad.is_config_effectual
+    time.sleep(0.1)
+    current_ts = datetime.now(tz=timezone.utc)
+    assert last_heartbeat_ts < current_ts
 
-    p.process_account_update_signal(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        last_change_ts=current_ts,
-        last_change_seqnum=2,
-        principal=1100,
-        interest=0.0,
-        interest_rate=5.0,
-        last_interest_rate_change_ts=current_ts,
-        last_transfer_number=2,
-        last_transfer_committed_at_ts=current_ts,
-        last_config_ts=last_ts,
-        last_config_seqnum=last_seqnum,
-        creation_date=date(2020, 1, 15),
-        negligible_amount=3.0,
-        status_flags=0,
-        ts=current_ts,
-        ttl=1000000,
-        account_id=str(C_ID),
-        config='',
-        config_flags=0,
-        debtor_info_url='',
-    )
-    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert last_ts == ad.last_config_ts
-    assert last_seqnum == ad.last_config_seqnum
+    params = {
+        'debtor_id': D_ID,
+        'creditor_id': C_ID,
+        'creation_date': creation_date,
+        'last_change_ts': current_ts,
+        'last_change_seqnum': 1,
+        'principal': 1000,
+        'interest': 12.0,
+        'interest_rate': 5.0,
+        'last_interest_rate_change_ts': current_ts - timedelta(days=1),
+        'status_flags': 5,
+        'last_config_ts': last_ts,
+        'last_config_seqnum': last_seqnum,
+        'negligible_amount': negligible_amount,
+        'config_flags': config_flags,
+        'config': '',
+        'account_id': str(C_ID),
+        'debtor_info_url': 'http://example.com',
+        'last_transfer_number': 22,
+        'last_transfer_committed_at': current_ts - timedelta(days=2),
+        'ts': current_ts,
+        'ttl': 0,
+    }
+
+    p.process_account_update_signal(**params)
+    ad = get_data()
+    assert last_heartbeat_ts == ad.last_heartbeat_ts
+    assert ad.last_change_seqnum == 0
     assert not ad.is_config_effectual
+    assert ad.config_error is None
 
-    p.process_account_update_signal(
+    params['ttl'] = 10000
+    p.process_account_update_signal(**params)
+    ad = get_data()
+    assert ad.last_heartbeat_ts > last_heartbeat_ts
+    assert ad.is_config_effectual
+    assert ad.creation_date == creation_date
+    assert ad.last_change_ts == current_ts
+    assert ad.last_change_seqnum == 1
+    assert ad.principal == 1000
+    assert ad.interest == 12.0
+    assert ad.interest_rate == 5.0
+    assert ad.last_interest_rate_change_ts == current_ts - timedelta(days=1)
+    assert ad.status_flags == 5
+    assert ad.last_config_ts == last_ts
+    assert ad.last_config_seqnum == last_seqnum
+    assert ad.account_id == str(C_ID)
+    assert ad.debtor_info_url == 'http://example.com'
+    assert ad.last_transfer_number == 22
+    assert ad.last_transfer_committed_at_ts == current_ts - timedelta(days=2)
+    assert ad.config_error is None
+
+    p.process_account_update_signal(**params)
+    assert ad.last_change_seqnum == 1
+
+    p.process_rejected_config_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        last_change_ts=current_ts,
-        last_change_seqnum=3,
-        principal=1100,
-        interest=0.0,
-        interest_rate=5.0,
-        last_interest_rate_change_ts=current_ts,
-        last_transfer_number=2,
-        last_transfer_committed_at_ts=current_ts,
-        last_config_ts=last_ts,
-        last_config_seqnum=last_seqnum,
-        creation_date=date(2020, 1, 15),
-        negligible_amount=models.DEFAULT_NEGLIGIBLE_AMOUNT,
-        status_flags=0,
-        ts=current_ts,
-        ttl=1000000,
-        account_id=str(C_ID),
+        config_ts=last_ts,
+        config_seqnum=last_seqnum,
+        negligible_amount=negligible_amount,
         config='',
-        config_flags=0,
-        debtor_info_url='',
+        config_flags=config_flags,
+        rejection_code='TEST_CONFIG_ERROR',
     )
-    ad = AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    assert last_ts == ad.last_config_ts
-    assert last_seqnum == ad.last_config_seqnum
+    ad = get_data()
+    assert ad.config_error == 'TEST_CONFIG_ERROR'
+
+    params['last_change_seqnum'] = 2
+    params['principal'] = 1100
+    params['negligible_amount'] = 3.33
+    params['config_flags'] = 77
+    p.process_account_update_signal(**params)
+    ad = get_data()
+    assert ad.last_change_seqnum == 2
+    assert ad.principal == 1100
+    assert ad.negligible_amount == negligible_amount
+    assert ad.config_flags == config_flags
+    assert not ad.is_config_effectual
+    assert ad.config_error == 'TEST_CONFIG_ERROR'
+
+    params['last_change_seqnum'] = 3
+    params['negligible_amount'] = negligible_amount
+    params['config_flags'] = config_flags
+    p.process_account_update_signal(**params)
+    ad = get_data()
+    assert ad.last_change_seqnum == 3
     assert ad.is_config_effectual
+    assert ad.config_error is None
+
+    params['creation_date'] = creation_date + timedelta(days=2)
+    p.process_account_update_signal(**params)
+    ad = get_data()
+    assert ad.last_change_seqnum == 3
+    assert ad.is_config_effectual
+    assert ad.creation_date == creation_date + timedelta(days=2)
+    assert ad.config_error is None
+    assert ad.ledger_principal == 0
+    assert ad.ledger_latest_entry_id == 89
+    assert ad.ledger_last_transfer_number == 0
 
     # Discard orphaned account.
-    p.process_account_update_signal(
-        debtor_id=1235,
-        creditor_id=C_ID,
-        last_change_ts=current_ts,
-        last_change_seqnum=1,
-        principal=1100,
-        interest=0.0,
-        interest_rate=5.0,
-        last_interest_rate_change_ts=current_ts,
-        last_transfer_number=1,
-        last_transfer_committed_at_ts=current_ts,
-        last_config_ts=current_ts - timedelta(days=5),
-        last_config_seqnum=1,
-        creation_date=date(2020, 1, 15),
-        negligible_amount=2.0,
-        status_flags=0,
-        ts=current_ts,
-        ttl=1000000,
-        account_id=str(C_ID),
-        config='',
-        config_flags=0,
-        debtor_info_url='',
-    )
+    params['debtor_id'] = 1235
+    params['last_change_seqnum'] = 1
+    params['negligible_amount'] = 2.0
+    p.process_account_update_signal(**params)
     cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
     assert cas.negligible_amount > 1e22
-    assert cas.is_scheduled_for_deletion
-    p.process_account_update_signal(
-        debtor_id=1235,
-        creditor_id=C_ID,
-        last_change_ts=current_ts,
-        last_change_seqnum=2,
-        principal=1100,
-        interest=0.0,
-        interest_rate=5.0,
-        last_interest_rate_change_ts=current_ts,
-        last_transfer_number=1,
-        last_transfer_committed_at_ts=current_ts,
-        last_config_ts=current_ts - timedelta(days=5),
-        last_config_seqnum=1,
-        creation_date=date(2020, 1, 15),
-        negligible_amount=models.DEFAULT_NEGLIGIBLE_AMOUNT,
-        status_flags=0,
-        ts=current_ts,
-        ttl=1000000,
-        account_id=str(C_ID),
-        config='',
-        config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
-        debtor_info_url='',
-    )
+    assert cas.config_flags & AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+
+    params['last_change_seqnum'] = 2
+    params['negligible_amount'] = models.DEFAULT_NEGLIGIBLE_AMOUNT
+    params['config_flags'] = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    p.process_account_update_signal(**params)
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
+
+    p.process_pending_log_entries(C_ID)
+    assert len(models.LogEntry.query.filter_by(object_type='AccountInfo').all()) == 4
+    assert len(models.LogEntry.query.filter_by(object_type='AccountLedger').all()) == 1
 
 
 def test_process_rejected_config_signal(setup_account):

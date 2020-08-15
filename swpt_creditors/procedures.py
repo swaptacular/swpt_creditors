@@ -722,7 +722,7 @@ def process_account_update_signal(
     is_config_effectual = (
         config == ''
         and last_config_ts == data.last_config_ts
-        and last_config_seqnum == data.last_config_ts
+        and last_config_seqnum == data.last_config_seqnum
         and config_flags == data.config_flags
         and abs(data.negligible_amount - negligible_amount) <= EPS * negligible_amount
     )
