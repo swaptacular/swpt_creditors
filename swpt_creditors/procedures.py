@@ -10,8 +10,7 @@ from swpt_creditors.models import (
     Creditor, LedgerEntry, CommittedTransfer, Account, AccountData, PendingLogEntry,
     ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
     AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer,
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
-    DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
 )
 
 T = TypeVar('T')
@@ -417,6 +416,15 @@ def update_account_display(
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert amount_divisor > 0.0
+    assert MIN_INT32 <= decimal_places <= MAX_INT32
+    assert MIN_INT32 <= own_unit_preference <= MAX_INT32
+    assert peg_currency_debtor_id is None or MIN_INT64 <= peg_currency_debtor_id <= MAX_INT64
+    assert peg_exchange_rate is None or peg_exchange_rate >= 0.0
+    assert (peg_currency_debtor_id is None and peg_exchange_rate is None) or \
+           (peg_currency_debtor_id is not None and peg_exchange_rate is not None)
+    assert debtor_name is not None or own_unit is None
+    assert debtor_name is not None or peg_exchange_rate is None
 
     current_ts = datetime.now(tz=timezone.utc)
     display = AccountDisplay.lock_instance((creditor_id, debtor_id))
@@ -442,18 +450,19 @@ def update_account_display(
     # reference to it.
     peg_account_debtor_id = peg_currency_debtor_id if has_account(creditor_id, peg_currency_debtor_id) else None
 
-    display.debtor_name = debtor_name
-    display.amount_divisor = amount_divisor
-    display.decimal_places = decimal_places
-    display.own_unit = own_unit
-    display.own_unit_preference = own_unit_preference
-    display.hide = hide
-    display.peg_exchange_rate = peg_exchange_rate
-    display.peg_currency_debtor_id = peg_currency_debtor_id
-    display.peg_account_debtor_id = peg_account_debtor_id
-    display.peg_debtor_home_url = peg_debtor_home_url
-    display.latest_update_id += 1
-    display.latest_update_ts = current_ts
+    with db.retry_on_integrity_error():
+        display.debtor_name = debtor_name
+        display.amount_divisor = amount_divisor
+        display.decimal_places = decimal_places
+        display.own_unit = own_unit
+        display.own_unit_preference = own_unit_preference
+        display.hide = hide
+        display.peg_exchange_rate = peg_exchange_rate
+        display.peg_currency_debtor_id = peg_currency_debtor_id
+        display.peg_account_debtor_id = peg_account_debtor_id
+        display.peg_debtor_home_url = peg_debtor_home_url
+        display.latest_update_id += 1
+        display.latest_update_ts = current_ts
 
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
