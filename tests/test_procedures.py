@@ -382,6 +382,7 @@ def test_update_account_config(setup_account, current_ts):
     data = get_data()
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
+    assert not data.has_server_account
     assert get_info_entries_count() == 0
 
     p.update_account_config(C_ID, D_ID, True, 1e30, False)
@@ -389,6 +390,7 @@ def test_update_account_config(setup_account, current_ts):
     data = get_data()
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
+    assert not data.has_server_account
     assert get_info_entries_count() == 0
 
     data = get_data()
@@ -419,16 +421,19 @@ def test_update_account_config(setup_account, current_ts):
     data = get_data()
     assert data.is_config_effectual
     assert not data.is_deletion_safe
+    assert data.has_server_account
     assert get_info_entries_count() == 1
 
     p.process_account_purge_signal(D_ID, C_ID, creation_date)
     data = get_data()
     assert data.is_config_effectual
     assert data.is_deletion_safe
+    assert not data.has_server_account
     assert get_info_entries_count() == 2
 
     p.update_account_config(C_ID, D_ID, True, 1e30, False)
     data = get_data()
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
+    assert not data.has_server_account
     assert get_info_entries_count() == 3
