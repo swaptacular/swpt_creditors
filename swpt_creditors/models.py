@@ -1,14 +1,13 @@
 from __future__ import annotations
 import math
 from typing import Optional
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, true, false, func, or_, and_, FunctionElement
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
-from swpt_lib.utils import date_to_int24
 from swpt_creditors.extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT16 = -1 << 15

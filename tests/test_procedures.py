@@ -368,3 +368,67 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 2))
     p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 3
+
+
+def test_update_account_config(setup_account, current_ts):
+    def get_data():
+        return AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+
+    def get_info_entries_count():
+        p.process_pending_log_entries(C_ID)
+        return len(LogEntry.query.filter_by(object_type='AccountInfo').all())
+
+    creation_date = current_ts.date()
+    data = get_data()
+    assert not data.is_config_effectual
+    assert not data.is_deletion_safe
+    assert get_info_entries_count() == 0
+
+    p.update_account_config(C_ID, D_ID, True, 1e30, False)
+
+    data = get_data()
+    assert not data.is_config_effectual
+    assert not data.is_deletion_safe
+    assert get_info_entries_count() == 0
+
+    data = get_data()
+    params = {
+        'debtor_id': D_ID,
+        'creditor_id': C_ID,
+        'creation_date': creation_date,
+        'last_change_ts': current_ts,
+        'last_change_seqnum': 1,
+        'principal': 0,
+        'interest': 0.0,
+        'interest_rate': 0.0,
+        'last_interest_rate_change_ts': models.TS0,
+        'status_flags': 0,
+        'last_config_ts': data.last_config_ts,
+        'last_config_seqnum': data.last_config_seqnum,
+        'negligible_amount': data.negligible_amount,
+        'config_flags': data.config_flags,
+        'config': '',
+        'account_id': str(C_ID),
+        'debtor_info_url': 'http://example.com',
+        'last_transfer_number': 0,
+        'last_transfer_committed_at': models.TS0,
+        'ts': current_ts,
+        'ttl': 10000,
+    }
+    p.process_account_update_signal(**params)
+    data = get_data()
+    assert data.is_config_effectual
+    assert not data.is_deletion_safe
+    assert get_info_entries_count() == 1
+
+    p.process_account_purge_signal(D_ID, C_ID, creation_date)
+    data = get_data()
+    assert data.is_config_effectual
+    assert data.is_deletion_safe
+    assert get_info_entries_count() == 2
+
+    p.update_account_config(C_ID, D_ID, True, 1e30, False)
+    data = get_data()
+    assert not data.is_config_effectual
+    assert not data.is_deletion_safe
+    assert get_info_entries_count() == 3

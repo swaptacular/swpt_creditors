@@ -231,7 +231,7 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
 
     latest_log_entry_id = db.session.\
         query(Creditor.latest_log_entry_id).\
-        filter(Creditor.creditor_id == creditor_id, Creditor.deactivated_at_date == null()).\
+        filter(Creditor.creditor_id == creditor_id).\
         scalar()
 
     if latest_log_entry_id is None:
