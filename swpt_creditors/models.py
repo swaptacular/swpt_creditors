@@ -465,8 +465,8 @@ class CommittedTransfer(db.Model):
     acquired_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
-    sender_identity = db.Column(db.String, nullable=False)
-    recipient_identity = db.Column(db.String, nullable=False)
+    sender_id = db.Column(db.String, nullable=False)
+    recipient_id = db.Column(db.String, nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],

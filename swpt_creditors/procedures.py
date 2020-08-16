@@ -774,24 +774,24 @@ def process_account_update_signal(
 def process_account_transfer_signal(
         debtor_id: int,
         creditor_id: int,
+        creation_date: date,
         transfer_number: int,
         coordinator_type: str,
-        committed_at_ts: datetime,
+        sender: str,
+        recipient: str,
         acquired_amount: int,
         transfer_note: str,
-        creation_date: date,
+        committed_at_ts: datetime,
         principal: int,
-        previous_transfer_number: int,
-        sender: str,
-        recipient: str) -> None:
+        ts: datetime,
+        previous_transfer_number: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_number <= MAX_INT64
-    assert len(coordinator_type) <= 30
     assert acquired_amount != 0
-    assert -MAX_INT64 <= acquired_amount <= MAX_INT64
-    assert -MAX_INT64 <= principal <= MAX_INT64
+    assert MIN_INT64 <= acquired_amount <= MAX_INT64
+    assert MIN_INT64 <= principal <= MAX_INT64
     assert 0 <= previous_transfer_number <= MAX_INT64
     assert previous_transfer_number < transfer_number
 

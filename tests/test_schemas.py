@@ -1060,8 +1060,8 @@ def test_serialize_committed_transfer(app):
         acquired_amount=1000,
         transfer_note='{"test": "test", "list": [1, 2, 3]}',
         principal=1500,
-        sender_identity='1',
-        recipient_identity='1111',
+        sender_id='1',
+        recipient_id='1111',
     )
     cts = schemas.CommittedTransferSchema(context=CONTEXT)
     assert cts.dump(ct) == {
@@ -1086,8 +1086,8 @@ def test_serialize_committed_transfer(app):
     assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': '[]'}
 
     # invalid identity
-    ct.sender_identity = 1000 * '1'
-    ct.recipient_identity = 1000 * '1'
+    ct.sender_id = 1000 * '1'
+    ct.recipient_id = 1000 * '1'
     data = cts.dump(ct)
     assert data['sender'] == {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!'}
     assert data['recipient'] == {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!'}

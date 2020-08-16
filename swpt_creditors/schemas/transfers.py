@@ -300,13 +300,13 @@ class CommittedTransferSchema(Schema):
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
         try:
-            sender_uri = make_account_uri(obj.debtor_id, obj.sender_identity)
+            sender_uri = make_account_uri(obj.debtor_id, obj.sender_id)
         except ValueError:
             sender_uri = _make_invalid_account_uri(obj.debtor_id)
         obj.sender = {'uri': sender_uri}
 
         try:
-            recipient_uri = make_account_uri(obj.debtor_id, obj.recipient_identity)
+            recipient_uri = make_account_uri(obj.debtor_id, obj.recipient_id)
         except ValueError:
             recipient_uri = _make_invalid_account_uri(obj.debtor_id)
         obj.recipient = {'uri': recipient_uri}
