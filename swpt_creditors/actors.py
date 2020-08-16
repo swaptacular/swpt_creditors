@@ -1,7 +1,8 @@
 import iso8601
-from datetime import date
+from datetime import date, timedelta
 from swpt_creditors.extensions import broker, APP_QUEUE_NAME
 from swpt_creditors import procedures
+from flask import current_app
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
@@ -49,28 +50,31 @@ def on_account_transfer_signal(
         debtor_id: int,
         creditor_id: int,
         transfer_number: int,
-        coordinator_type: str,
-        committed_at: str,
-        acquired_amount: int,
-        transfer_note: str,
         creation_date: str,
-        principal: int,
-        previous_transfer_number: int,
+        coordinator_type: str,
         sender: str,
         recipient: str,
+        acquired_amount: int,
+        transfer_note: str,
+        committed_at: str,
+        principal: int,
+        ts: str,
+        previous_transfer_number: int,
         *args, **kwargs) -> None:
 
     procedures.process_account_transfer_signal(
         debtor_id,
         creditor_id,
+        date.fromisoformat(creation_date),
         transfer_number,
         coordinator_type,
-        iso8601.parse_date(committed_at),
-        acquired_amount,
-        transfer_note,
-        date.fromisoformat(creation_date),
-        principal,
-        previous_transfer_number,
         sender,
         recipient,
+        acquired_amount,
+        transfer_note,
+        iso8601.parse_date(committed_at),
+        principal,
+        iso8601.parse_date(ts),
+        previous_transfer_number,
+        timedelta(days=current_app.config['APP_TRANSFERS_MIN_RETENTION_DAYS']),
     )

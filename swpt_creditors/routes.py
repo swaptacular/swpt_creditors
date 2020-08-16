@@ -6,7 +6,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
-from swpt_creditors.models import MAX_INT64, DATE0
+from swpt_creditors.models import MAX_INT64, DATE0, parse_transfer_slug
 from swpt_creditors.schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, TransferListSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
@@ -58,6 +58,7 @@ class schema_types:
     account_info = 'AccountInfo'
     account_ledger = 'AccountLedger'
     account_list = 'AccountList'
+    committed_transfer = 'CommittedTransfer'
 
 
 CONTEXT = {'paths': path_builder}
@@ -756,14 +757,8 @@ class CommittedTransferEndpoint(MethodView):
         """Return information about sent or received transfer."""
 
         try:
-            epoch, n = transferId.split('-', maxsplit=1)
-            creation_date = DATE0 + timedelta(days=int(epoch))
-            transfer_number = int(n)
-            if not 1 <= transfer_number <= MAX_INT64:
-                raise ValueError
-        except (ValueError, OverflowError):
+            creation_date, transfer_number = parse_transfer_slug(transferId)
+        except ValueError:
             abort(404)
 
-        assert isinstance(creation_date, date)
-        assert isinstance(transfer_number, int)
         abort(500)

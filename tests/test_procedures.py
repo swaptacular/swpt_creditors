@@ -5,7 +5,8 @@ from uuid import UUID
 from swpt_lib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
-from swpt_creditors.models import Creditor, Account, AccountData, ConfigureAccountSignal, LogEntry
+from swpt_creditors.models import Creditor, Account, AccountData, ConfigureAccountSignal, LogEntry, \
+    CommittedTransfer
 
 D_ID = -1
 C_ID = 1
@@ -437,3 +438,61 @@ def test_update_account_config(setup_account, current_ts):
     assert not data.is_deletion_safe
     assert not data.has_server_account
     assert get_info_entries_count() == 3
+
+
+def test_process_account_transfer_signal(db_session, setup_account, current_ts):
+    def get_committed_tranfer_entries_count():
+        p.process_pending_log_entries(C_ID)
+        return len(LogEntry.query.filter_by(object_type='CommittedTransfer').all())
+
+    params = {
+        'debtor_id': D_ID,
+        'creditor_id': C_ID,
+        'creation_date': date(2020, 1, 2),
+        'transfer_number': 1,
+        'coordinator_type': 'direct',
+        'sender': '666',
+        'recipient': str(C_ID),
+        'acquired_amount': 100,
+        'transfer_note': '{"message": "test"}',
+        'committed_at_ts': current_ts,
+        'principal': 1000,
+        'ts': current_ts - timedelta(days=6),
+        'previous_transfer_number': 0,
+        'retention_interval': timedelta(days=5),
+    }
+    p.process_account_transfer_signal(**params)
+    assert len(CommittedTransfer.query.all()) == 0
+    assert get_committed_tranfer_entries_count() == 0
+
+    params['retention_interval'] = timedelta(days=7)
+    p.process_account_transfer_signal(**params)
+    ct = CommittedTransfer.query.one()
+    assert ct.debtor_id == D_ID
+    assert ct.creditor_id == C_ID
+    assert ct.creation_date == params['creation_date']
+    assert ct.transfer_number == 1
+    assert ct.coordinator_type == 'direct'
+    assert ct.sender_id == '666'
+    assert ct.recipient_id == str(C_ID)
+    assert ct.acquired_amount == 100
+    assert ct.transfer_note == params['transfer_note']
+    assert ct.committed_at_ts == current_ts
+    assert ct.principal == 1000
+    assert ct.previous_transfer_number == 0
+    assert get_committed_tranfer_entries_count() == 1
+
+    params['retention_interval'] = timedelta(days=7)
+    p.process_account_transfer_signal(**params)
+    assert len(CommittedTransfer.query.all()) == 1
+    assert get_committed_tranfer_entries_count() == 1
+    le = LogEntry.query.filter_by(object_type='CommittedTransfer').one()
+    assert le.object_uri == f'/creditors/{i64_to_u64(C_ID)}/accounts/{i64_to_u64(D_ID)}/transfers/18263-1'
+    assert not le.is_deleted
+    assert le.object_update_id is None
+
+    params['creditor_id'] = 1235
+    p.process_account_transfer_signal(**params)
+    assert len(CommittedTransfer.query.all()) == 1
+    assert get_committed_tranfer_entries_count() == 1
+    

@@ -11,6 +11,7 @@ from swpt_creditors.models import (
     ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
     AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
+    make_transfer_slug,
 )
 
 T = TypeVar('T')
@@ -784,7 +785,8 @@ def process_account_transfer_signal(
         committed_at_ts: datetime,
         principal: int,
         ts: datetime,
-        previous_transfer_number: int) -> None:
+        previous_transfer_number: int,
+        retention_interval: timedelta) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -795,54 +797,44 @@ def process_account_transfer_signal(
     assert 0 <= previous_transfer_number <= MAX_INT64
     assert previous_transfer_number < transfer_number
 
-    try:
-        account_data = AccountData.get_instance((creditor_id, debtor_id))
-    except CreditorDoesNotExistError:
+    current_ts = datetime.now(tz=timezone.utc)
+    if (current_ts - ts) > retention_interval:
         return
 
-    committed_transfer = CommittedTransfer(
-        account_data=account_data,
+    db.session.add(CommittedTransfer(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        creation_date=creation_date,
         transfer_number=transfer_number,
         coordinator_type=coordinator_type,
-        committed_at_ts=committed_at_ts,
+        sender_id=sender,
+        recipient_id=recipient,
         acquired_amount=acquired_amount,
         transfer_note=transfer_note,
-        creation_date=creation_date,
+        committed_at_ts=committed_at_ts,
         principal=principal,
-        sender=sender,
-        recipient=recipient,
-    )
+        previous_transfer_number=previous_transfer_number,
+    ))
+
     try:
-        db.session.add(committed_transfer)
         db.session.flush()
     except IntegrityError:
-        # Normally, this can happen only when the account commit
-        # message has been re-delivered. Therefore, no action should
-        # be taken.
+        # NOTE: Normally, this can happen only when the
+        # AccountTransfer message has been re-delivered. Therefore, no
+        # action should be taken.
         db.session.rollback()
         return
 
-    current_ts = datetime.now(tz=timezone.utc)
-    if creation_date > account_data.creation_date:
-        account_data.reset(account_creation_date=creation_date, current_ts=current_ts)
-
-    ledger_has_not_been_updated_soon = current_ts - account_data.ledger_latest_update_ts > TD_5_SECONDS
-    if transfer_number == account_data.ledger_next_transfer_number and ledger_has_not_been_updated_soon:
-        # If account commits come in the right order, it is faster to
-        # update the account ledger right away. We must be careful,
-        # though, not to update the account ledger too often, because
-        # this can cause a row lock contention.
-        _update_ledger(account_data, principal, current_ts)
-        _insert_ledger_entry(creditor_id, debtor_id, transfer_number, acquired_amount, principal)
-    elif transfer_number >= account_data.ledger_next_transfer_number:
-        # A dedicated asynchronous task will do the addition to the account
-        # ledger later. (See `process_pending_account_commits()`.)
-        db.session.add(PendingAccountCommit(
-            committed_transfer=committed_transfer,
-            account_new_principal=principal,
-            committed_at_ts=committed_at_ts,
-            committed_amount=acquired_amount,
-        ))
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
+        object_type=types.committed_transfer,
+        object_uri=paths.committed_transfer(
+            creditorId=creditor_id,
+            debtorId=debtor_id,
+            transferId=make_transfer_slug(creation_date, transfer_number),
+        ),
+    ))
 
 
 @atomic

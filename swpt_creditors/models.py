@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
-from typing import Optional
-from datetime import datetime, timezone
+from typing import Optional, Tuple
+from datetime import datetime, timezone, date, timedelta
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
@@ -40,6 +40,29 @@ class utcnow(FunctionElement):
 @compiles(utcnow, 'postgresql')
 def pg_utcnow(element, compiler, **kw):
     return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
+
+
+def make_transfer_slug(creation_date: date, transfer_number: int) -> str:
+    epoch = (creation_date - DATE0).days
+    return f'{epoch}-{transfer_number}'
+
+
+def parse_transfer_slug(slug) -> Tuple[date, int]:
+    epoch, transfer_number = slug.split('-', maxsplit=1)
+    epoch = int(epoch)
+    transfer_number = int(transfer_number)
+
+    try:
+        creation_date = DATE0 + timedelta(days=epoch)
+    except OverflowError:
+        raise ValueError from None
+
+    if not 1 <= transfer_number <= MAX_INT64:
+        raise ValueError
+
+    assert isinstance(creation_date, date)
+    assert isinstance(transfer_number, int)
+    return creation_date, transfer_number
 
 
 class Signal(db.Model):
@@ -461,12 +484,12 @@ class CommittedTransfer(db.Model):
     creation_date = db.Column(db.DATE, nullable=False)
     transfer_number = db.Column(db.BigInteger, nullable=False)
     coordinator_type = db.Column(db.String, nullable=False)
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    acquired_amount = db.Column(db.BigInteger, nullable=False)
-    transfer_note = db.Column(pg.TEXT, nullable=False)
-    principal = db.Column(db.BigInteger, nullable=False)
     sender_id = db.Column(db.String, nullable=False)
     recipient_id = db.Column(db.String, nullable=False)
+    acquired_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_note = db.Column(pg.TEXT, nullable=False)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_number = db.Column(db.BigInteger, nullable=False)
 
     __mapper_args__ = {
@@ -479,9 +502,9 @@ class CommittedTransfer(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(transfer_number > 0),
+        db.CheckConstraint(acquired_amount != 0),
         db.CheckConstraint(previous_transfer_number >= 0),
         db.CheckConstraint(previous_transfer_number < transfer_number),
-        db.CheckConstraint(acquired_amount != 0),
 
         # TODO: `acquired_amount` and `principal` columns are not be
         #       part of the primary key, but should be included in the
