@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 708a822cc879
+Revision ID: 65457977f9a4
 Revises: 8d8c816257ce
-Create Date: 2020-08-16 19:35:52.082738
+Create Date: 2020-08-16 23:01:13.144396
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '708a822cc879'
+revision = '65457977f9a4'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -164,7 +164,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
-    op.create_index('idx_ledger_last_transfer', 'account_data', ['creditor_id', 'debtor_id', 'creation_date', 'ledger_last_transfer_number'], unique=False)
     op.create_table('account_display',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -297,7 +296,6 @@ def downgrade():
     op.drop_index('idx_debtor_name', table_name='account_display')
     op.drop_index('idx_account_peg_debtor_id', table_name='account_display')
     op.drop_table('account_display')
-    op.drop_index('idx_ledger_last_transfer', table_name='account_data')
     op.drop_table('account_data')
     op.drop_table('pending_log_entry')
     op.drop_index('idx_log_entry_pk', table_name='log_entry')

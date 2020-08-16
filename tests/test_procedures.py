@@ -6,7 +6,7 @@ from swpt_lib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
 from swpt_creditors.models import Creditor, Account, AccountData, ConfigureAccountSignal, LogEntry, \
-    CommittedTransfer
+    CommittedTransfer, PendingLedgerUpdate
 
 D_ID = -1
 C_ID = 1
@@ -445,6 +445,40 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
         p.process_pending_log_entries(C_ID)
         return len(LogEntry.query.filter_by(object_type='CommittedTransfer').all())
 
+    def has_pending_ledger_update():
+        return len(PendingLedgerUpdate.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).all()) > 0
+
+    def delete_pending_ledger_update():
+        PendingLedgerUpdate.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).delete()
+        db_session.commit()
+
+    assert not has_pending_ledger_update()
+    p.process_account_update_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=date(2020, 1, 2),
+        last_change_ts=current_ts,
+        last_change_seqnum=1,
+        principal=1000,
+        interest=12.0,
+        interest_rate=5.0,
+        last_interest_rate_change_ts=current_ts - timedelta(days=1),
+        status_flags=5,
+        last_config_ts=current_ts,
+        last_config_seqnum=0,
+        negligible_amount=100.0,
+        config_flags=models.DEFAULT_CONFIG_FLAGS,
+        config='',
+        account_id=str(C_ID),
+        debtor_info_url='http://example.com',
+        last_transfer_number=123,
+        last_transfer_committed_at=current_ts - timedelta(days=2),
+        ts=current_ts,
+        ttl=10000,
+    )
+    assert has_pending_ledger_update()
+    delete_pending_ledger_update()
+
     params = {
         'debtor_id': D_ID,
         'creditor_id': C_ID,
@@ -464,6 +498,7 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
     p.process_account_transfer_signal(**params)
     assert len(CommittedTransfer.query.all()) == 0
     assert get_committed_tranfer_entries_count() == 0
+    assert not has_pending_ledger_update()
 
     params['retention_interval'] = timedelta(days=7)
     p.process_account_transfer_signal(**params)
@@ -481,6 +516,8 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
     assert ct.principal == 1000
     assert ct.previous_transfer_number == 0
     assert get_committed_tranfer_entries_count() == 1
+    assert has_pending_ledger_update()
+    delete_pending_ledger_update()
 
     params['retention_interval'] = timedelta(days=7)
     p.process_account_transfer_signal(**params)
@@ -490,9 +527,9 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
     assert le.object_uri == f'/creditors/{i64_to_u64(C_ID)}/accounts/{i64_to_u64(D_ID)}/transfers/18263-1'
     assert not le.is_deleted
     assert le.object_update_id is None
+    assert not has_pending_ledger_update()
 
     params['creditor_id'] = 1235
     p.process_account_transfer_signal(**params)
     assert len(CommittedTransfer.query.all()) == 1
     assert get_committed_tranfer_entries_count() == 1
-    

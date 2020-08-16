@@ -297,11 +297,6 @@ class AccountData(db.Model):
         db.CheckConstraint(ledger_latest_update_id > 0),
         db.CheckConstraint(ledger_last_transfer_number >= 0),
         db.CheckConstraint(ledger_latest_entry_id >= 0),
-
-        # This index is supposed to allow efficient merge joins with
-        # `PendingAccountCommit`. Not sure if it is actually
-        # beneficial in practice.
-        db.Index('idx_ledger_last_transfer', creditor_id, debtor_id, creation_date, ledger_last_transfer_number),
     )
 
     @property

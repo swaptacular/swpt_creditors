@@ -798,9 +798,23 @@ def process_account_transfer_signal(
     assert previous_transfer_number < transfer_number
 
     current_ts = datetime.now(tz=timezone.utc)
-    if (current_ts - ts) > retention_interval:
+    if (current_ts - min(ts, committed_at_ts)) > retention_interval:
         return
 
+    committed_transfer_query = CommittedTransfer.query.filter_by(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        creation_date=creation_date,
+        transfer_number=transfer_number,
+    )
+    if db.session.query(committed_transfer_query.exists()).scalar():
+        return
+
+    # NOTE: We must obtain a "FOR SHARE" lock here to ensure that the
+    # `ledger_last_transfer_number` will not be increased by another
+    # concurrent transaction, without inserting a corresponding
+    # `PendingLedgerUpdate` record, which would result in the ledger
+    # not being updated.
     ledger_data_query = db.session.\
         query(AccountData.creation_date, AccountData.ledger_last_transfer_number).\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
@@ -810,29 +824,21 @@ def process_account_transfer_signal(
     except exc.NoResultFound:
         return
 
-    db.session.add(CommittedTransfer(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        creation_date=creation_date,
-        transfer_number=transfer_number,
-        coordinator_type=coordinator_type,
-        sender_id=sender,
-        recipient_id=recipient,
-        acquired_amount=acquired_amount,
-        transfer_note=transfer_note,
-        committed_at_ts=committed_at_ts,
-        principal=principal,
-        previous_transfer_number=previous_transfer_number,
-    ))
-
-    try:
-        db.session.flush()
-    except IntegrityError:
-        # NOTE: Normally, this can happen only when the
-        # AccountTransfer message has been re-delivered. Therefore, no
-        # action should be taken.
-        db.session.rollback()
-        return
+    with db.retry_on_integrity_error():
+        db.session.add(CommittedTransfer(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            creation_date=creation_date,
+            transfer_number=transfer_number,
+            coordinator_type=coordinator_type,
+            sender_id=sender,
+            recipient_id=recipient,
+            acquired_amount=acquired_amount,
+            transfer_note=transfer_note,
+            committed_at_ts=committed_at_ts,
+            principal=principal,
+            previous_transfer_number=previous_transfer_number,
+        ))
 
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
