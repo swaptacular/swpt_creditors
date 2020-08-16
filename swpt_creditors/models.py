@@ -515,6 +515,23 @@ class CommittedTransfer(db.Model):
     )
 
 
+class PendingLedgerUpdate(db.Model):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'debtor_id'],
+            ['account_data.creditor_id', 'account_data.debtor_id'],
+            ondelete='CASCADE',
+        ),
+        {
+            'comment': "Represents a very high probability that there is at least one record in "
+                       "the `committed_transfer` table, which should be added to the creditor's "
+                       "account ledger.",
+        }
+    )
+
+
 class DirectTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)

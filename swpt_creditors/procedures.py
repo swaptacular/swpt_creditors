@@ -9,7 +9,7 @@ from swpt_creditors.extensions import db
 from swpt_creditors.models import (
     Creditor, LedgerEntry, CommittedTransfer, Account, AccountData, PendingLogEntry,
     ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
-    AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer,
+    AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, PendingLedgerUpdate,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
     make_transfer_slug,
 )
@@ -737,10 +737,7 @@ def process_account_update_signal(
         and abs(data.negligible_amount - negligible_amount) <= EPS * negligible_amount
     )
     config_error = None if is_config_effectual else data.config_error
-
-    if creation_date > data.creation_date:
-        _reset_ledger(data, current_ts)
-
+    new_server_account = creation_date > data.creation_date
     info_update = (
         not data.has_server_account
         or data.status_flags != status_flags
@@ -769,6 +766,9 @@ def process_account_update_signal(
     data.last_transfer_committed_at_ts = last_transfer_committed_at
     data.is_config_effectual = is_config_effectual
     data.config_error = config_error
+
+    if new_server_account:
+        _reset_ledger(data, current_ts)
 
 
 @atomic
@@ -799,6 +799,15 @@ def process_account_transfer_signal(
 
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - ts) > retention_interval:
+        return
+
+    ledger_data_query = db.session.\
+        query(AccountData.creation_date, AccountData.ledger_last_transfer_number).\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        with_for_update(read=True)
+    try:
+        ledger_date, ledger_last_transfer_number = ledger_data_query.one()
+    except exc.NoResultFound:
         return
 
     db.session.add(CommittedTransfer(
@@ -835,6 +844,9 @@ def process_account_transfer_signal(
             transferId=make_transfer_slug(creation_date, transfer_number),
         ),
     ))
+
+    if creation_date == ledger_date and previous_transfer_number == ledger_last_transfer_number:
+        _ensure_pending_ledger_update(creditor_id, debtor_id)
 
 
 @atomic
@@ -1145,6 +1157,7 @@ def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
         _insert_ledger_update_pending_log_entry(data, current_ts)
 
     data.ledger_last_transfer_number = 0
+    _ensure_pending_ledger_update(creditor_id, debtor_id)
 
 
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
@@ -1165,3 +1178,12 @@ def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: in
             config_flags=DEFAULT_CONFIG_FLAGS | scheduled_for_deletion_flag,
             config='',
         ))
+
+
+def _ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    if PendingLedgerUpdate.get_instance((creditor_id, debtor_id)) is None:
+        with db.retry_on_integrity_error():
+            db.session.add(PendingLedgerUpdate(creditor_id=creditor_id, debtor_id=debtor_id))
