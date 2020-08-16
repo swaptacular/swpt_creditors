@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ccecddd44934
+Revision ID: 50d6cdf9984c
 Revises: 8d8c816257ce
-Create Date: 2020-08-16 14:00:14.699858
+Create Date: 2020-08-16 14:25:05.046759
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ccecddd44934'
+revision = '50d6cdf9984c'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -235,11 +235,14 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('sender_id', sa.String(), nullable=False),
     sa.Column('recipient_id', sa.String(), nullable=False),
+    sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('acquired_amount != 0'),
+    sa.CheckConstraint('previous_transfer_number < transfer_number'),
+    sa.CheckConstraint('previous_transfer_number >= 0'),
     sa.CheckConstraint('transfer_number > 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'creation_date', 'transfer_number')
+    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE')
     )
+    op.create_index('idx_committed_transfer_pk', 'committed_transfer', ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], unique=True)
     op.create_table('ledger_entry',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -277,6 +280,7 @@ def downgrade():
     op.drop_table('pending_account_commit')
     op.drop_index('idx_ledger_entry_pk', table_name='ledger_entry')
     op.drop_table('ledger_entry')
+    op.drop_index('idx_committed_transfer_pk', table_name='committed_transfer')
     op.drop_table('committed_transfer')
     op.drop_table('account_knowledge')
     op.drop_table('account_exchange')

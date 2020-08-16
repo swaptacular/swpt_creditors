@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional, Iterable
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import tuple_, null, func
+from sqlalchemy.sql.expression import tuple_, func
 from sqlalchemy.orm import joinedload, exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
