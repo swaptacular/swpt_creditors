@@ -170,7 +170,7 @@ class LedgerEntrySchema(Schema):
                 creationDate=obj.creation_date,
                 transferNumber=obj.transfer_number,
             )}
-        if obj.previous_entry_id is not None:
+        if obj.previous_entry_id > 0:
             obj.optional_previous_entry_id = obj.previous_entry_id
 
         return obj

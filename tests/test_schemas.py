@@ -99,7 +99,7 @@ def test_serialize_log_entry(app):
         'deleted': True,
     }
 
-    le.previous_entry_id = None
+    le.previous_entry_id = 0
     le.is_deleted = False
     le.data = {'test': 'test', 'list': [1, 2, 3]}
     le.object_update_id = None
@@ -870,7 +870,7 @@ def test_serialize_ledger_entry(app):
         'addedAt': '2020-01-02T00:00:00',
     }
 
-    le.previous_entry_id = None
+    le.previous_entry_id = 0
     le.creation_date = None
     assert les.dump(le) == {
         'type': 'LedgerEntry',
@@ -881,7 +881,7 @@ def test_serialize_ledger_entry(app):
         'addedAt': '2020-01-02T00:00:00',
     }
 
-    le.previous_entry_id = None
+    le.previous_entry_id = 0
     le.creation_date = date(2000, 1, 1)
     le.transfer_number = None
     assert les.dump(le) == {

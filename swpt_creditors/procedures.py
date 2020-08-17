@@ -8,8 +8,8 @@ from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
     Creditor, LedgerEntry, CommittedTransfer, Account, AccountData, PendingLogEntry,
-    ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
-    AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, PendingLedgerUpdate,
+    ConfigureAccountSignal, LogEntry, AccountDisplay, AccountExchange, AccountKnowledge,
+    DirectTransfer, RunningTransfer, PendingLedgerUpdate,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
 )
 
@@ -19,11 +19,6 @@ atomic: Callable[[T], T] = db.atomic
 EPS = 1e-5
 TD_SECOND = timedelta(seconds=1)
 TD_5_SECONDS = timedelta(seconds=5)
-PENDING_ACCOUNT_COMMIT_PK = tuple_(
-    PendingAccountCommit.debtor_id,
-    PendingAccountCommit.creditor_id,
-    PendingAccountCommit.transfer_number,
-)
 ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
     'creditor_id',
     'debtor_id',
@@ -1145,9 +1140,8 @@ def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
     debtor_id = data.debtor_id
 
     if data.ledger_principal != 0:
-        ledger_latest_entry_id = data.ledger_latest_entry_id
-        previous_entry_id = ledger_latest_entry_id or None
-        entry_id = ledger_latest_entry_id + 1
+        previous_entry_id = data.ledger_latest_entry_id
+        entry_id = previous_entry_id + 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
             debtor_id=debtor_id,

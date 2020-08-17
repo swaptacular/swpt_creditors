@@ -336,7 +336,7 @@ class LogEntrySchema(Schema):
         if obj.object_update_id is not None:
             obj.optional_object_update_id = obj.object_update_id
 
-        if obj.previous_entry_id is not None:
+        if obj.previous_entry_id > 0:
             obj.optional_previous_entry_id = obj.previous_entry_id
 
         if isinstance(obj.data, dict) and not obj.is_deleted:

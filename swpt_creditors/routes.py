@@ -41,8 +41,6 @@ def _parse_transfer_slug(slug) -> Tuple[date, int]:
     if not 1 <= transfer_number <= MAX_INT64:
         raise ValueError
 
-    assert isinstance(creation_date, date)
-    assert isinstance(transfer_number, int)
     return creation_date, transfer_number
 
 

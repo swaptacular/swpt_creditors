@@ -90,34 +90,22 @@ class Creditor(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_date = db.Column(db.DATE, nullable=False, default=get_now_utc)
-    status = db.Column(
-        db.SmallInteger,
-        nullable=False,
-        default=0,
-        comment=f"Creditor's status bits: {STATUS_IS_ACTIVE_FLAG} - is active.",
-    )
-    deactivated_at_date = db.Column(
-        db.DATE,
-        comment='The date on which the creditor was deactivated. A `null` means that the '
-                'creditor has not been deactivated yet. Management operations (like making '
-                'direct transfers) are not allowed on deactivated creditors. Once '
-                'deactivated, a creditor stays deactivated until it is deleted. Important '
-                'note: All creditors are created with their "is active" status bit set to `0`, '
-                'and it gets set to `1` only after the first management operation has been '
-                'performed.',
-    )
-    latest_log_entry_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        default=1,
-        comment='Gets incremented each time a new entry is added to the log.',
-    )
+    status = db.Column(db.SmallInteger, nullable=False, default=0)
+    latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     account_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     account_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     transfer_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     transfer_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    deactivated_at_date = db.Column(
+        db.DATE,
+        comment='The date on which the creditor was deactivated. When a creditor gets '
+                'deactivated, all its belonging objects (account, transfers, etc.) are '
+                'removed. A `NULL` value for this column means that the creditor has '
+                'not been deactivated yet. Once deactivated, a creditor stays deactivated '
+                'until it is deleted.',
+    )
     __table_args__ = (
         db.CheckConstraint(latest_log_entry_id > 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
@@ -137,10 +125,9 @@ class Creditor(db.Model):
             self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
 
     def generate_log_entry_id(self):
-        log_entry_id = self.latest_log_entry_id + 1
-        assert log_entry_id <= MAX_INT64
-        self.latest_log_entry_id = log_entry_id
-        return log_entry_id
+        self.latest_log_entry_id += 1
+        assert self.latest_log_entry_id <= MAX_INT64
+        return self.latest_log_entry_id
 
 
 class BaseLogEntry(db.Model):
@@ -165,7 +152,7 @@ class LogEntry(BaseLogEntry):
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint('object_update_id > 0'),
         db.CheckConstraint(entry_id > 0),
-        db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
+        db.CheckConstraint(and_(previous_entry_id >= 0, previous_entry_id < entry_id)),
 
         # TODO: The rest of the columns are not be part of the primary
         #       key, but should be included in the primary key index
@@ -210,7 +197,6 @@ class Account(db.Model):
 class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
-
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -222,14 +208,7 @@ class AccountData(db.Model):
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
     last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
-    last_heartbeat_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-        comment='The moment at which the last `AccountUpdate` message has been processed. It is '
-                'used to detect "dead" accounts. A "dead" account is an account that have been '
-                'removed from the `swpt_accounts` service, but still exist in this table.',
-    )
+    last_heartbeat_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     # AccountConfig data
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
@@ -267,13 +246,13 @@ class AccountData(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(interest_rate >= -100.0),
-        db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(negligible_amount >= 0.0),
-        db.CheckConstraint(config_latest_update_id > 0),
-        db.CheckConstraint(info_latest_update_id > 0),
-        db.CheckConstraint(ledger_latest_update_id > 0),
+        db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(ledger_last_transfer_number >= 0),
         db.CheckConstraint(ledger_latest_entry_id >= 0),
+        db.CheckConstraint(ledger_latest_update_id > 0),
+        db.CheckConstraint(config_latest_update_id > 0),
+        db.CheckConstraint(info_latest_update_id > 0),
     )
 
     @property
@@ -422,8 +401,7 @@ class LedgerEntry(db.Model):
     aquired_amount = db.Column(db.BigInteger, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    previous_entry_id = db.Column(db.BigInteger)
-
+    previous_entry_id = db.Column(db.BigInteger, nullable=False)
     __mapper_args__ = {
         'primary_key': [creditor_id, debtor_id, entry_id],
     }
@@ -435,7 +413,7 @@ class LedgerEntry(db.Model):
         ),
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(entry_id > 0),
-        db.CheckConstraint(and_(previous_entry_id > 0, previous_entry_id < entry_id)),
+        db.CheckConstraint(and_(previous_entry_id >= 0, previous_entry_id < entry_id)),
 
         # TODO: The rest of the columns are not be part of the primary
         #       key, but should be included in the primary key index
@@ -463,7 +441,6 @@ class CommittedTransfer(db.Model):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_number = db.Column(db.BigInteger, nullable=False)
-
     __mapper_args__ = {
         'primary_key': [creditor_id, debtor_id, creation_date, transfer_number],
     }
@@ -640,54 +617,6 @@ class RunningTransfer(db.Model):
     @property
     def is_finalized(self):
         return self.direct_transfer_id is not None
-
-
-# TODO: Implement a daemon that periodically scan the
-#       `PendingAccountCommit` table, finds staled records (ones
-#       having an old `committed_at_ts`), deletes them, and mends the
-#       account ledger. When a transfer can not be added to the ledger
-#       for a long time, this should mean that a preceding transfer
-#       has been lost. This should happen very rarely, but still
-#       eventually we must be able to recover from such losses.
-class PendingAccountCommit(db.Model):
-    # TODO: Add `ReadyAccountCommit` model?
-
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, primary_key=True)
-    transfer_number = db.Column(db.BigInteger, primary_key=True)
-
-    # TODO: Normally, these columns are not part of the primary key,
-    #       but because we want them to be included in the index to
-    #       allow index-only scans, and SQLAlchemy does not support
-    #       that yet (2020-01-11), we include them in the primary key
-    #       as a temporary workaround.
-    committed_amount = db.Column(db.BigInteger, primary_key=True)
-    account_new_principal = db.Column(db.BigInteger, primary_key=True)
-
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'],
-            [
-                'committed_transfer.creditor_id',
-                'committed_transfer.debtor_id',
-                'committed_transfer.creation_date',
-                'committed_transfer.transfer_number',
-            ],
-            ondelete='CASCADE',
-        ),
-        db.CheckConstraint(committed_amount != 0),
-        {
-            'comment': 'Represents an account commit that has not been included in the account ledger '
-                       'yet. A new row is inserted when a `AccountCommitSignal` is received. '
-                       'Periodically, the pending rows are processed, added to account ledgers, and then '
-                       'deleted. This intermediate storage is necessary, because account commits can '
-                       'be received out-of-order, but must be added to the ledgers in-order.',
-        }
-    )
-
-    committed_transfer = db.relationship('CommittedTransfer')
 
 
 class ConfigureAccountSignal(Signal):

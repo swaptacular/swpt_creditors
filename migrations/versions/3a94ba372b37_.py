@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 65457977f9a4
+Revision ID: 3a94ba372b37
 Revises: 8d8c816257ce
-Create Date: 2020-08-16 23:01:13.144396
+Create Date: 2020-08-17 15:38:35.110974
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '65457977f9a4'
+revision = '3a94ba372b37'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -32,15 +32,15 @@ def upgrade():
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('created_at_date', sa.DATE(), nullable=False),
-    sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is active."),
-    sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. A `null` means that the creditor has not been deactivated yet. Management operations (like making direct transfers) are not allowed on deactivated creditors. Once deactivated, a creditor stays deactivated until it is deleted. Important note: All creditors are created with their "is active" status bit set to `0`, and it gets set to `1` only after the first management operation has been performed.'),
-    sa.Column('latest_log_entry_id', sa.BigInteger(), nullable=False, comment='Gets incremented each time a new entry is added to the log.'),
+    sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('latest_log_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('account_list_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('account_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('transfer_list_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. A `NULL` value for this column means that the creditor has not been deactivated yet. Once deactivated, a creditor stays deactivated until it is deleted.'),
     sa.CheckConstraint('account_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
     sa.CheckConstraint('latest_log_entry_id > 0'),
@@ -102,7 +102,7 @@ def upgrade():
     sa.Column('previous_entry_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('object_update_id > 0'),
-    sa.CheckConstraint('previous_entry_id > 0 AND previous_entry_id < entry_id'),
+    sa.CheckConstraint('previous_entry_id >= 0 AND previous_entry_id < entry_id'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE')
     )
     op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
@@ -129,7 +129,7 @@ def upgrade():
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdate` message has been processed. It is used to detect "dead" accounts. A "dead" account is an account that have been removed from the `swpt_accounts` service, but still exist in this table.'),
+    sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
@@ -251,9 +251,9 @@ def upgrade():
     sa.Column('aquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('previous_entry_id', sa.BigInteger(), nullable=True),
+    sa.Column('previous_entry_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('entry_id > 0'),
-    sa.CheckConstraint('previous_entry_id > 0 AND previous_entry_id < entry_id'),
+    sa.CheckConstraint('previous_entry_id >= 0 AND previous_entry_id < entry_id'),
     sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE')
     )
@@ -265,25 +265,11 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
     comment="Represents a very high probability that there is at least one record in the `committed_transfer` table, which should be added to the creditor's account ledger."
     )
-    op.create_table('pending_account_commit',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False),
-    sa.Column('transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('committed_amount', sa.BigInteger(), nullable=False),
-    sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
-    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('committed_amount != 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], ['committed_transfer.creditor_id', 'committed_transfer.debtor_id', 'committed_transfer.creation_date', 'committed_transfer.transfer_number'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'creation_date', 'transfer_number', 'committed_amount', 'account_new_principal'),
-    comment='Represents an account commit that has not been included in the account ledger yet. A new row is inserted when a `AccountCommitSignal` is received. Periodically, the pending rows are processed, added to account ledgers, and then deleted. This intermediate storage is necessary, because account commits can be received out-of-order, but must be added to the ledgers in-order.'
-    )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table('pending_account_commit')
     op.drop_table('pending_ledger_update')
     op.drop_index('idx_ledger_entry_pk', table_name='ledger_entry')
     op.drop_table('ledger_entry')
