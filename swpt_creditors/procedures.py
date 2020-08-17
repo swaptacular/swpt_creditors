@@ -883,7 +883,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
     except exc.NoResultFound:
         return True
 
-    transfers = _get_pending_transfers(data, max_count)
+    transfers = _get_sorted_pending_transfers(data, max_count)
     all_done = max_count is None or len(transfers) < max_count
     for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at_ts in transfers:
         if previous_transfer_number != data.ledger_last_transfer_number:
@@ -952,7 +952,7 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
     return number_of_deleted_rows == 1
 
 
-def _get_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
+def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
     transfer_numbers_query = db.session.\
         query(
             CommittedTransfer.previous_transfer_number,
