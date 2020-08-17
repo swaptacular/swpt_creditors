@@ -875,10 +875,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
     query = db.session.\
         query(PendingLedgerUpdate, AccountData).\
         join(PendingLedgerUpdate.account_data).\
-        filter(
-            PendingLedgerUpdate.creditor_id == creditor_id,
-            PendingLedgerUpdate.debtor_id == debtor_id,
-        ).\
+        filter(PendingLedgerUpdate.creditor_id == creditor_id, PendingLedgerUpdate.debtor_id == debtor_id).\
         with_for_update().\
         options(Load(AccountData).load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
     try:
@@ -886,21 +883,17 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
     except exc.NoResultFound:
         return True
 
-    has_gaps = False
     transfers = _get_pending_transfers(data, max_count)
+    all_done = max_count is None or len(transfers) < max_count
     for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at_ts in transfers:
-        if previous_transfer_number == data.ledger_last_transfer_number:
-            assert acquired_amount != 0
-            _insert_ledger_entry(data, transfer_number, acquired_amount, principal, committed_at_ts, current_ts)
-        elif previous_transfer_number > data.ledger_last_transfer_number:
-            has_gaps = True
+        if previous_transfer_number != data.ledger_last_transfer_number:
+            all_done = True
             break
+        _insert_ledger_entry(data, transfer_number, acquired_amount, principal, committed_at_ts, current_ts)
 
-    if has_gaps or max_count is None or len(transfers) < max_count:
+    if all_done:
         db.session.delete(pending_ledger_update)
-        return True
-
-    return False
+    return all_done
 
 
 @atomic
