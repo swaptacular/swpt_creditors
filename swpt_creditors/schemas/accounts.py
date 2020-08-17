@@ -843,6 +843,10 @@ class AccountSchema(MutableResourceSchema):
 
 
 class AccountsPaginationParamsSchema(Schema):
+    # NOTE: Normally, this field would be defined as integer, but
+    # because we want its type to be "string" in the auto-generated
+    # documentation (which should not be tied to this specific
+    # implementation), we use an ugly hack.
     prev = fields.String(
         load_only=True,
         validate=validate.Regexp('^[0-9A-Za-z_=-]{1,64}$'),
