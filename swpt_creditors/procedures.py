@@ -11,7 +11,6 @@ from swpt_creditors.models import (
     ConfigureAccountSignal, PendingAccountCommit, LogEntry, AccountDisplay,
     AccountExchange, AccountKnowledge, DirectTransfer, RunningTransfer, PendingLedgerUpdate,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
-    make_transfer_slug,
 )
 
 T = TypeVar('T')
@@ -847,7 +846,8 @@ def process_account_transfer_signal(
         object_uri=paths.committed_transfer(
             creditorId=creditor_id,
             debtorId=debtor_id,
-            transferId=make_transfer_slug(creation_date, transfer_number),
+            creationDate=creation_date,
+            transferNumber=transfer_number,
         ),
     ))
 

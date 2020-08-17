@@ -5,7 +5,7 @@ from marshmallow import Schema, ValidationError, fields, validate, pre_dump, pos
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0, make_transfer_slug
+from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
     MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
@@ -167,7 +167,8 @@ class LedgerEntrySchema(Schema):
             obj.optional_transfer = {'uri': paths.committed_transfer(
                 creditorId=obj.creditor_id,
                 debtorId=obj.debtor_id,
-                transferId=make_transfer_slug(obj.creation_date, obj.transfer_number),
+                creationDate=obj.creation_date,
+                transferNumber=obj.transfer_number,
             )}
         if obj.previous_entry_id is not None:
             obj.optional_previous_entry_id = obj.previous_entry_id

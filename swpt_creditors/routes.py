@@ -1,12 +1,13 @@
 from base64 import b16decode
 from functools import partial
+from typing import Tuple
 from datetime import date, timedelta
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
-from swpt_creditors.models import MAX_INT64, DATE0, parse_transfer_slug
+from swpt_creditors.models import MAX_INT64, DATE0
 from swpt_creditors.schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, TransferListSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
@@ -20,6 +21,39 @@ from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
+
+
+def _make_transfer_slug(creation_date: date, transfer_number: int) -> str:
+    epoch = (creation_date - DATE0).days
+    return f'{epoch}-{transfer_number}'
+
+
+def _parse_transfer_slug(slug) -> Tuple[date, int]:
+    epoch, transfer_number = slug.split('-', maxsplit=1)
+    epoch = int(epoch)
+    transfer_number = int(transfer_number)
+
+    try:
+        creation_date = DATE0 + timedelta(days=epoch)
+    except OverflowError:
+        raise ValueError from None
+
+    if not 1 <= transfer_number <= MAX_INT64:
+        raise ValueError
+
+    assert isinstance(creation_date, date)
+    assert isinstance(transfer_number, int)
+    return creation_date, transfer_number
+
+
+def _build_committed_transfer_path(creditorId: int, debtorId: int, creationDate: date, transferNumber: int) -> str:
+    return url_for(
+        'transfers.CommittedTransferEndpoint',
+        creditorId=creditorId,
+        debtorId=debtorId,
+        transferId=_make_transfer_slug(creationDate, transferNumber),
+        _external=False,
+    )
 
 
 def _url_for(name):
@@ -45,7 +79,7 @@ class path_builder:
     debtor_lookup = _url_for('accounts.DebtorLookupEndpoint')
     transfer = _url_for('transfers.TransferEndpoint')
     transfers = _url_for('transfers.TransfersEndpoint')
-    committed_transfer = _url_for('transfers.CommittedTransferEndpoint')
+    committed_transfer = _build_committed_transfer_path
 
 
 class schema_types:
@@ -757,7 +791,7 @@ class CommittedTransferEndpoint(MethodView):
         """Return information about sent or received transfer."""
 
         try:
-            creation_date, transfer_number = parse_transfer_slug(transferId)
+            creation_date, transfer_number = _parse_transfer_slug(transferId)
         except ValueError:
             abort(404)
 

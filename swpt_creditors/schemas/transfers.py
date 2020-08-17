@@ -4,7 +4,7 @@ from marshmallow import Schema, fields, validate, missing, pre_dump
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64, DATE0, make_transfer_slug
+from swpt_creditors.models import MAX_INT64, DATE0
 from .common import ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -294,7 +294,8 @@ class CommittedTransferSchema(Schema):
         obj.uri = paths.committed_transfer(
             creditorId=obj.creditor_id,
             debtorId=obj.debtor_id,
-            transferId=make_transfer_slug(obj.creation_date, obj.transfer_number),
+            creationDate=obj.creation_date,
+            transferNumber=obj.transfer_number,
         )
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 

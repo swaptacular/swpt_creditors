@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
-from typing import Optional, Tuple
-from datetime import datetime, timezone, date, timedelta
+from typing import Optional
+from datetime import datetime, timezone, date
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
@@ -40,29 +40,6 @@ class utcnow(FunctionElement):
 @compiles(utcnow, 'postgresql')
 def pg_utcnow(element, compiler, **kw):
     return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
-
-
-def make_transfer_slug(creation_date: date, transfer_number: int) -> str:
-    epoch = (creation_date - DATE0).days
-    return f'{epoch}-{transfer_number}'
-
-
-def parse_transfer_slug(slug) -> Tuple[date, int]:
-    epoch, transfer_number = slug.split('-', maxsplit=1)
-    epoch = int(epoch)
-    transfer_number = int(transfer_number)
-
-    try:
-        creation_date = DATE0 + timedelta(days=epoch)
-    except OverflowError:
-        raise ValueError from None
-
-    if not 1 <= transfer_number <= MAX_INT64:
-        raise ValueError
-
-    assert isinstance(creation_date, date)
-    assert isinstance(transfer_number, int)
-    return creation_date, transfer_number
 
 
 class Signal(db.Model):
