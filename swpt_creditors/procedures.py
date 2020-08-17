@@ -767,7 +767,8 @@ def process_account_update_signal(
     data.config_error = config_error
 
     if new_server_account:
-        _reset_ledger(data, current_ts)
+        _insert_ledger_entry(data, 0, 0, 0, data.ledger_last_transfer_committed_at_ts, current_ts)
+        _ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
 
 
 @atomic
@@ -886,15 +887,16 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
         return True
 
     has_gaps = False
-    transfer_numbers = _get_pending_transfer_numbers(data, max_count)
-    for transfer_number, previous_transfer_number, acquired_amount, principal in transfer_numbers:
+    transfers = _get_pending_transfers(data, max_count)
+    for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at_ts in transfers:
         if previous_transfer_number == data.ledger_last_transfer_number:
-            _insert_ledger_entry(data, acquired_amount, principal, data.creation_date, transfer_number, current_ts)
+            assert acquired_amount != 0
+            _insert_ledger_entry(data, transfer_number, acquired_amount, principal, committed_at_ts, current_ts)
         elif previous_transfer_number > data.ledger_last_transfer_number:
             has_gaps = True
             break
 
-    if has_gaps or max_count is None or len(transfer_numbers) < max_count:
+    if has_gaps or max_count is None or len(transfers) < max_count:
         db.session.delete(pending_ledger_update)
         return True
 
@@ -957,13 +959,14 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
     return number_of_deleted_rows == 1
 
 
-def _get_pending_transfer_numbers(data: AccountData, max_count: int = None) -> List[Tuple[int, int, int, int]]:
+def _get_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
     transfer_numbers_query = db.session.\
         query(
-            CommittedTransfer.transfer_number,
             CommittedTransfer.previous_transfer_number,
+            CommittedTransfer.transfer_number,
             CommittedTransfer.acquired_amount,
             CommittedTransfer.principal,
+            CommittedTransfer.committed_at_ts,
         ).\
         filter(
             CommittedTransfer.creditor_id == data.creditor_id,
@@ -1116,36 +1119,6 @@ def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetim
     ))
 
 
-def _insert_ledger_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
-    # TODO: Add `data`, containing the principal and the latest etnry ID.
-
-    creditor_id = data.creditor_id
-    debtor_id = data.debtor_id
-
-    data.ledger_latest_update_id += 1
-    data.ledger_latest_update_ts = current_ts
-    db.session.add(PendingLogEntry(
-        creditor_id=creditor_id,
-        added_at_ts=current_ts,
-        object_type=types.account_ledger,
-        object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=data.ledger_latest_update_id,
-    ))
-
-
-def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
-    creditor_id = data.creditor_id
-    debtor_id = data.debtor_id
-
-    if data.ledger_principal != 0:
-        _insert_ledger_entry(data, -data.ledger_principal, 0, None, None, current_ts)
-        data.ledger_principal = 0
-        _insert_ledger_update_pending_log_entry(data, current_ts)
-
-    data.ledger_last_transfer_number = 0
-    _ensure_pending_ledger_update(creditor_id, debtor_id)
-
-
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
     # TODO: Consider consulting the `CreditorSpace` table before
     #       performing this potentially very dangerous
@@ -1177,22 +1150,62 @@ def _ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
 
 def _insert_ledger_entry(
         data: AccountData,
+        transfer_number: int,
         acquired_amount: int,
         principal: int,
-        creation_date: Optional[date],
-        transfer_number: Optional[int],
+        committed_at_ts: datetime,
         current_ts: datetime) -> None:
 
-    previous_entry_id = data.ledger_latest_entry_id
-    entry_id = previous_entry_id + 1
-    db.session.add(LedgerEntry(
-        creditor_id=data.creditor_id,
-        debtor_id=data.debtor_id,
-        entry_id=entry_id,
-        aquired_amount=acquired_amount,
-        principal=principal,
-        added_at_ts=current_ts,
-        previous_entry_id=previous_entry_id,
-    ))
+    creditor_id = data.creditor_id
+    debtor_id = data.debtor_id
+    correction_amount = principal - data.ledger_principal - acquired_amount
 
-    data.ledger_latest_entry_id = entry_id
+    if correction_amount != 0:
+        previous_entry_id = data.ledger_latest_entry_id
+        data.ledger_latest_entry_id += 1
+        db.session.add(LedgerEntry(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            entry_id=data.ledger_latest_entry_id,
+            aquired_amount=correction_amount,
+            principal=principal - acquired_amount,
+            added_at_ts=current_ts,
+            previous_entry_id=previous_entry_id,
+        ))
+
+    if acquired_amount != 0:
+        previous_entry_id = data.ledger_latest_entry_id
+        data.ledger_latest_entry_id += 1
+        db.session.add(LedgerEntry(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            entry_id=data.ledger_latest_entry_id,
+            aquired_amount=acquired_amount,
+            principal=principal,
+            added_at_ts=current_ts,
+            previous_entry_id=previous_entry_id,
+            creation_date=data.creation_date,
+            transfer_number=transfer_number,
+        ))
+
+    data.ledger_principal = principal
+    data.ledger_last_transfer_number = transfer_number
+    data.ledger_last_transfer_committed_at_ts = committed_at_ts
+
+    if correction_amount == 0 and acquired_amount == 0:
+        # NOTE: This can happen only when the first `AccountUpdate`
+        # message for a new server account is processed. In this case
+        # the ledger info does not change, and no log entry is needed.
+        assert transfer_number == 0
+        return
+
+    # TODO: Add `data`, containing the principal and the latest etnry ID.
+    data.ledger_latest_update_id += 1
+    data.ledger_latest_update_ts = current_ts
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
+        object_type=types.account_ledger,
+        object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
+        object_update_id=data.ledger_latest_update_id,
+    ))

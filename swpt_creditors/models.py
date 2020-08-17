@@ -457,7 +457,7 @@ class CommittedTransfer(db.Model):
         db.CheckConstraint(previous_transfer_number >= 0),
         db.CheckConstraint(previous_transfer_number < transfer_number),
 
-        # TODO: `acquired_amount`, `principal`, and
+        # TODO: `acquired_amount`, `principal`, `committed_at_ts`, and
         #       `previous_transfer_number` columns are not be part of
         #       the primary key, but should be included in the primary
         #       key index to allow index-only scans. Because
