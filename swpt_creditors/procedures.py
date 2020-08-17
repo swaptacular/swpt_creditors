@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional, Iterable
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import tuple_, func
+from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import joinedload, exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
@@ -184,16 +184,21 @@ def create_new_creditor(creditor_id: int) -> Creditor:
 
 
 @atomic
+def activate_creditor(creditor_id: int) -> None:
+    creditor = Creditor.lock_instance(creditor_id)
+    if creditor:
+        creditor.is_active = True
+
+
+@atomic
 def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
     if lock:
         creditor = Creditor.lock_instance(creditor_id)
     else:
         creditor = Creditor.get_instance(creditor_id)
 
-    if creditor is None or creditor.deactivated_at_date is not None:
-        return None
-
-    return creditor
+    if creditor and creditor.is_active and creditor.deactivated_at_date is None:
+        return creditor
 
 
 @atomic
@@ -851,48 +856,49 @@ def process_account_transfer_signal(
 
 
 @atomic
-def process_pending_account_commits(creditor_id: int, debtor_id: int, max_count: int = None) -> bool:
-    """Return `False` if some legible account commits remained unprocessed."""
+def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
+    query = db.session.query(PendingLedgerUpdate.creditor_id, PendingLedgerUpdate.debtor_id)
 
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    if max_count is not None:
+        query = query.limit(max_count)
 
-    ledger = _get_ledger(creditor_id, debtor_id, lock=True)
-    if ledger is None:
-        return True
-
-    has_gaps = False
-    pks_to_delete = []
-    current_ts = datetime.now(tz=timezone.utc)
-    pending_transfers = _get_ordered_pending_transfers(ledger, max_count)
-    for transfer_number, committed_amount, account_new_principal in pending_transfers:
-        pk = (creditor_id, debtor_id, transfer_number)
-        if transfer_number == ledger.next_transfer_number:
-            _update_ledger(ledger, account_new_principal, current_ts)
-            _insert_ledger_entry(*pk, committed_amount, account_new_principal)
-        elif transfer_number > ledger.next_transfer_number:
-            has_gaps = True
-            break
-        pks_to_delete.append(pk)
-
-    PendingAccountCommit.query.\
-        filter(PENDING_ACCOUNT_COMMIT_PK.in_(pks_to_delete)).\
-        delete(synchronize_session=False)
-    return has_gaps or max_count is None or len(pending_transfers) < max_count
+    return query.all()
 
 
 @atomic
-def find_legible_pending_account_commits(max_count: int = None):
-    pac = PendingAccountCommit
-    al = 'AccountLedger'
-    query = db.session.query(pac.creditor_id, pac.debtor_id).filter(
-        al.creditor_id == pac.creditor_id,
-        al.debtor_id == pac.debtor_id,
-        al.next_transfer_number == pac.transfer_number
-    )
-    if max_count is not None:
-        query = query.limit(max_count)
-    return query.all()
+def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: int = None) -> bool:
+    """Return `False` if some legible committed transfers remained unprocessed."""
+
+    current_ts = datetime.now(tz=timezone.utc)
+
+    query = db.session.\
+        query(PendingLedgerUpdate, AccountData).\
+        join(PendingLedgerUpdate.account_data).\
+        filter(
+            PendingLedgerUpdate.creditor_id == creditor_id,
+            PendingLedgerUpdate.debtor_id == debtor_id,
+        ).\
+        with_for_update().\
+        options(Load(AccountData).load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+    try:
+        pending_ledger_update, data = query.one()
+    except exc.NoResultFound:
+        return True
+
+    has_gaps = False
+    transfer_numbers = _get_pending_transfer_numbers(data, max_count)
+    for transfer_number, previous_transfer_number, acquired_amount, principal in transfer_numbers:
+        if previous_transfer_number == data.ledger_last_transfer_number:
+            _insert_ledger_entry(data, acquired_amount, principal, data.creation_date, transfer_number, current_ts)
+        elif previous_transfer_number > data.ledger_last_transfer_number:
+            has_gaps = True
+            break
+
+    if has_gaps or max_count is None or len(transfer_numbers) < max_count:
+        db.session.delete(pending_ledger_update)
+        return True
+
+    return False
 
 
 @atomic
@@ -951,36 +957,26 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
     return number_of_deleted_rows == 1
 
 
-def _insert_ledger_entry(
-        creditor_id: int,
-        debtor_id: int,
-        transfer_number: int,
-        committed_amount: int,
-        account_new_principal: int) -> None:
-
-    db.session.add(LedgerEntry(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        transfer_number=transfer_number,
-        committed_amount=committed_amount,
-        account_new_principal=account_new_principal,
-    ))
-
-
-def _get_ordered_pending_transfers(account_data: AccountData, max_count: int = None) -> List[Tuple[int, int]]:
-    creditor_id = account_data.creditor_id
-    debtor_id = account_data.debtor_id
-    query = db.session.\
+def _get_pending_transfer_numbers(data: AccountData, max_count: int = None) -> List[Tuple[int, int, int, int]]:
+    transfer_numbers_query = db.session.\
         query(
-            PendingAccountCommit.transfer_number,
-            PendingAccountCommit.committed_amount,
-            PendingAccountCommit.account_new_principal,
+            CommittedTransfer.transfer_number,
+            CommittedTransfer.previous_transfer_number,
+            CommittedTransfer.acquired_amount,
+            CommittedTransfer.principal,
         ).\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        order_by(PendingAccountCommit.transfer_number)
+        filter(
+            CommittedTransfer.creditor_id == data.creditor_id,
+            CommittedTransfer.debtor_id == data.debtor_id,
+            CommittedTransfer.creation_date == data.creation_date,
+            CommittedTransfer.transfer_number > data.ledger_last_transfer_number,
+        ).\
+        order_by(CommittedTransfer.transfer_number)
+
     if max_count is not None:
-        query = query.limit(max_count)
-    return query.all()
+        transfer_numbers_query = transfer_numbers_query.limit(max_count)
+
+    return transfer_numbers_query.all()
 
 
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
@@ -1121,6 +1117,8 @@ def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetim
 
 
 def _insert_ledger_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
+    # TODO: Add `data`, containing the principal and the latest etnry ID.
+
     creditor_id = data.creditor_id
     debtor_id = data.debtor_id
 
@@ -1140,19 +1138,7 @@ def _reset_ledger(data: AccountData, current_ts: datetime) -> None:
     debtor_id = data.debtor_id
 
     if data.ledger_principal != 0:
-        previous_entry_id = data.ledger_latest_entry_id
-        entry_id = previous_entry_id + 1
-        db.session.add(LedgerEntry(
-            creditor_id=creditor_id,
-            debtor_id=debtor_id,
-            entry_id=entry_id,
-            aquired_amount=-data.ledger_principal,
-            principal=0,
-            added_at_ts=current_ts,
-            previous_entry_id=previous_entry_id,
-        ))
-
-        data.ledger_latest_entry_id = entry_id
+        _insert_ledger_entry(data, -data.ledger_principal, 0, None, None, current_ts)
         data.ledger_principal = 0
         _insert_ledger_update_pending_log_entry(data, current_ts)
 
@@ -1187,3 +1173,26 @@ def _ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
     if PendingLedgerUpdate.get_instance((creditor_id, debtor_id)) is None:
         with db.retry_on_integrity_error():
             db.session.add(PendingLedgerUpdate(creditor_id=creditor_id, debtor_id=debtor_id))
+
+
+def _insert_ledger_entry(
+        data: AccountData,
+        acquired_amount: int,
+        principal: int,
+        creation_date: Optional[date],
+        transfer_number: Optional[int],
+        current_ts: datetime) -> None:
+
+    previous_entry_id = data.ledger_latest_entry_id
+    entry_id = previous_entry_id + 1
+    db.session.add(LedgerEntry(
+        creditor_id=data.creditor_id,
+        debtor_id=data.debtor_id,
+        entry_id=entry_id,
+        aquired_amount=acquired_amount,
+        principal=principal,
+        added_at_ts=current_ts,
+        previous_entry_id=previous_entry_id,
+    ))
+
+    data.ledger_latest_entry_id = entry_id

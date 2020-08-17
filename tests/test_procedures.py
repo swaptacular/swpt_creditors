@@ -17,7 +17,9 @@ RECIPIENT_URI = 'https://example.com/creditors/1'
 
 @pytest.fixture
 def creditor(db_session):
-    return p.create_new_creditor(C_ID)
+    creditor = p.create_new_creditor(C_ID)
+    p.activate_creditor(C_ID)
+    return creditor
 
 
 @pytest.fixture
@@ -69,11 +71,6 @@ def test_process_pending_account_commits(db_session, setup_account, current_ts):
 @pytest.mark.skip
 def test_process_pending_account_commits_no_creditor(db_session):
     assert p.process_pending_account_commits(C_ID, D_ID)
-
-
-@pytest.mark.skip
-def test_find_legible_pending_account_commits(db_session):
-    p.find_legible_pending_account_commits(max_count=10)
 
 
 @pytest.mark.skip
@@ -533,3 +530,8 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
     p.process_account_transfer_signal(**params)
     assert len(CommittedTransfer.query.all()) == 1
     assert get_committed_tranfer_entries_count() == 1
+
+
+def test_get_pending_ledger_updates(db_session):
+    assert p.get_pending_ledger_updates() == []
+    assert p.get_pending_ledger_updates(max_count=10) == []

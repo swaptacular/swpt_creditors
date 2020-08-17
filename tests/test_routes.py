@@ -14,7 +14,9 @@ def client(app, db_session):
 
 @pytest.fixture(scope='function')
 def creditor(db_session):
-    return p.create_new_creditor(2)
+    creditor = p.create_new_creditor(2)
+    p.activate_creditor(2)
+    return creditor
 
 
 @pytest.fixture(scope='function')
@@ -60,6 +62,11 @@ def test_create_creditor(client):
 
     r = client.post('/creditors/2/', json={})
     assert r.status_code == 409
+
+    r = client.get('/creditors/2/')
+    assert r.status_code == 404
+
+    p.activate_creditor(2)
 
     r = client.get('/creditors/2/')
     assert r.status_code == 200

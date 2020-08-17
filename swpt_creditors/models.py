@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 from typing import Optional
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
@@ -423,6 +423,8 @@ class LedgerEntry(db.Model):
         db.Index('idx_ledger_entry_pk', creditor_id, debtor_id, entry_id, unique=True),
     )
 
+    account_data = db.relationship('AccountData')
+
 
 # TODO: Implement a daemon that periodically scan the
 #       `CommittedTransfer` table and deletes old records (ones having
@@ -455,13 +457,16 @@ class CommittedTransfer(db.Model):
         db.CheckConstraint(previous_transfer_number >= 0),
         db.CheckConstraint(previous_transfer_number < transfer_number),
 
-        # TODO: `acquired_amount` and `principal` columns are not be
-        #       part of the primary key, but should be included in the
-        #       primary key index to allow index-only scans. Because
+        # TODO: `acquired_amount`, `principal`, and
+        #       `previous_transfer_number` columns are not be part of
+        #       the primary key, but should be included in the primary
+        #       key index to allow index-only scans. Because
         #       SQLAlchemy does not support this yet (2020-01-11),
         #       temporarily, there are no index-only scans.
         db.Index('idx_committed_transfer_pk', creditor_id, debtor_id, creation_date, transfer_number, unique=True),
     )
+
+    account_data = db.relationship('AccountData')
 
 
 class PendingLedgerUpdate(db.Model):
@@ -479,6 +484,8 @@ class PendingLedgerUpdate(db.Model):
                        "account ledger.",
         }
     )
+
+    account_data = db.relationship('AccountData')
 
 
 class DirectTransfer(db.Model):
