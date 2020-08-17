@@ -1192,20 +1192,14 @@ def _insert_ledger_entry(
     data.ledger_last_transfer_number = transfer_number
     data.ledger_last_transfer_committed_at_ts = committed_at_ts
 
-    if correction_amount == 0 and acquired_amount == 0:
-        # NOTE: This can happen only when the first `AccountUpdate`
-        # message for a new server account is processed. In this case
-        # the ledger info does not change, and no log entry is needed.
-        assert transfer_number == 0
-        return
-
-    # TODO: Add `data`, containing the principal and the latest etnry ID.
-    data.ledger_latest_update_id += 1
-    data.ledger_latest_update_ts = current_ts
-    db.session.add(PendingLogEntry(
-        creditor_id=creditor_id,
-        added_at_ts=current_ts,
-        object_type=types.account_ledger,
-        object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=data.ledger_latest_update_id,
-    ))
+    if correction_amount != 0 or acquired_amount != 0:
+        # TODO: Add `data`, containing the principal and the latest etnry ID.
+        data.ledger_latest_update_id += 1
+        data.ledger_latest_update_ts = current_ts
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at_ts=current_ts,
+            object_type=types.account_ledger,
+            object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
+            object_update_id=data.ledger_latest_update_id,
+        ))
