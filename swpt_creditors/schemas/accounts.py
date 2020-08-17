@@ -1,7 +1,10 @@
 import re
 from base64 import b16encode
 from copy import copy
-from marshmallow import Schema, ValidationError, fields, validate, pre_dump, post_dump, validates_schema
+from marshmallow import (
+    Schema, fields, ValidationError, validate, validates, validates_schema,
+    post_load, pre_dump, post_dump,
+)
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
 from swpt_creditors import models
@@ -840,10 +843,23 @@ class AccountSchema(MutableResourceSchema):
 
 
 class AccountsPaginationParamsSchema(Schema):
-    prev = fields.Integer(
+    prev = fields.String(
         load_only=True,
-        validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
-        format='int64',
+        validate=validate.Regexp('^[0-9A-Za-z_=-]{1,64}$'),
         description='Start with the item that follows the item with this index.',
-        example=1,
+        example='1',
     )
+
+    @validates('prev')
+    def validate_prev(self, value):
+        try:
+            if not MIN_INT64 <= int(value) <= MAX_INT64:
+                raise ValueError
+        except ValueError:
+            raise ValidationError('Invalid value.')
+
+    @post_load
+    def turn_into_integer(self, obj, many, partial):
+        if 'prev' in obj:
+            obj = {'prev': int(obj['prev'])}
+        return obj

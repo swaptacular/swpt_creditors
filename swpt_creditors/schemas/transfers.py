@@ -57,7 +57,7 @@ class TransferErrorSchema(Schema):
         missing=0,
         dump_only=True,
         format="int64",
-        description='The total amount secured (locked) for prepared transfers on the account.',
+        description='The total amount secured (locked) for transfers on the account.',
         example=0,
     )
 
