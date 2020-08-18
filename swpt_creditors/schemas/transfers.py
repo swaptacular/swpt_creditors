@@ -181,6 +181,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     options = fields.Nested(
         TransferOptionsSchema,
         required=True,
+        dump_only=True,
         description="Transfer's `TransferOptions`.",
     )
     initiated_at_ts = fields.DateTime(
