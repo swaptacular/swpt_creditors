@@ -978,29 +978,6 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
     return number_of_deleted_rows == 1
 
 
-def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
-    transfer_numbers_query = db.session.\
-        query(
-            CommittedTransfer.previous_transfer_number,
-            CommittedTransfer.transfer_number,
-            CommittedTransfer.acquired_amount,
-            CommittedTransfer.principal,
-            CommittedTransfer.committed_at_ts,
-        ).\
-        filter(
-            CommittedTransfer.creditor_id == data.creditor_id,
-            CommittedTransfer.debtor_id == data.debtor_id,
-            CommittedTransfer.creation_date == data.creation_date,
-            CommittedTransfer.transfer_number > data.ledger_last_transfer_number,
-        ).\
-        order_by(CommittedTransfer.transfer_number)
-
-    if max_count is not None:
-        transfer_numbers_query = transfer_numbers_query.limit(max_count)
-
-    return transfer_numbers_query.all()
-
-
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 < coordinator_request_id <= MAX_INT64
@@ -1023,6 +1000,29 @@ def _finalize_direct_transfer(
         direct_transfer.is_successful = error is None
         if error is not None:
             direct_transfer.error = error
+
+
+def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
+    transfer_numbers_query = db.session.\
+        query(
+            CommittedTransfer.previous_transfer_number,
+            CommittedTransfer.transfer_number,
+            CommittedTransfer.acquired_amount,
+            CommittedTransfer.principal,
+            CommittedTransfer.committed_at_ts,
+        ).\
+        filter(
+            CommittedTransfer.creditor_id == data.creditor_id,
+            CommittedTransfer.debtor_id == data.debtor_id,
+            CommittedTransfer.creation_date == data.creation_date,
+            CommittedTransfer.transfer_number > data.ledger_last_transfer_number,
+        ).\
+        order_by(CommittedTransfer.transfer_number)
+
+    if max_count is not None:
+        transfer_numbers_query = transfer_numbers_query.limit(max_count)
+
+    return transfer_numbers_query.all()
 
 
 def _add_log_entry(

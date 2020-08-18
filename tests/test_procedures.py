@@ -15,6 +15,11 @@ TEST_UUID2 = UUID('123e4567-e89b-12d3-a456-426655440001')
 RECIPIENT_URI = 'https://example.com/creditors/1'
 
 
+@pytest.fixture(params=[2, None])
+def max_count(request):
+    return request.param
+
+
 @pytest.fixture
 def creditor(db_session):
     creditor = p.create_new_creditor(C_ID)
@@ -535,3 +540,86 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
 def test_get_pending_ledger_updates(db_session):
     assert p.get_pending_ledger_updates() == []
     assert p.get_pending_ledger_updates(max_count=10) == []
+
+
+def test_process_pending_ledger_update(setup_account, max_count, current_ts):
+    creation_date = date(2020, 1, 2)
+
+    params = {
+        'debtor_id': D_ID,
+        'creditor_id': C_ID,
+        'creation_date': creation_date,
+        'transfer_number': 1,
+        'coordinator_type': 'direct',
+        'sender': '666',
+        'recipient': str(C_ID),
+        'acquired_amount': 1000,
+        'transfer_note': '{"message": "test"}',
+        'committed_at_ts': current_ts,
+        'principal': 1100,
+        'ts': current_ts,
+        'previous_transfer_number': 0,
+        'retention_interval': timedelta(days=5),
+    }
+    p.process_account_transfer_signal(**params)
+
+    params['transfer_number'] = 20
+    params['previous_transfer_number'] = 1
+    params['principal'] = 2100
+    p.process_account_transfer_signal(**params)
+
+    params['transfer_number'] = 22
+    params['previous_transfer_number'] = 21
+    params['principal'] = 4150
+    p.process_account_transfer_signal(**params)
+
+    assert p.get_pending_ledger_updates() == []
+
+    p.process_account_update_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=creation_date,
+        last_change_ts=current_ts,
+        last_change_seqnum=1,
+        principal=0,
+        interest=0.0,
+        interest_rate=0.0,
+        last_interest_rate_change_ts=models.TS0,
+        status_flags=0,
+        last_config_ts=current_ts,
+        last_config_seqnum=0,
+        negligible_amount=10.0,
+        config_flags=models.DEFAULT_CONFIG_FLAGS,
+        config='',
+        account_id=str(C_ID),
+        debtor_info_url='http://example.com',
+        last_transfer_number=0,
+        last_transfer_committed_at=models.TS0,
+        ts=current_ts,
+        ttl=10000,
+    )
+    assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
+    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 0
+
+    assert p.process_pending_ledger_update(2222, D_ID, max_count=max_count)
+    assert p.process_pending_ledger_update(C_ID, 1111, max_count=max_count)
+
+    n = 0
+    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count):
+        x = len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000))
+        assert x > n
+        n = x
+
+    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 3
+    assert p.get_pending_ledger_updates() == []
+
+    params['transfer_number'] = 21
+    params['previous_transfer_number'] = 20
+    params['principal'] = 3150
+    p.process_account_transfer_signal(**params)
+
+    assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
+    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count):
+        pass
+    assert p.get_pending_ledger_updates() == []
+    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 6
