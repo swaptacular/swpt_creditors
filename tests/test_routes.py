@@ -1,5 +1,5 @@
 from urllib.parse import urljoin, urlparse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pytest
 import iso8601
 from swpt_lib.utils import u64_to_i64
@@ -22,6 +22,14 @@ def creditor(db_session):
 @pytest.fixture(scope='function')
 def account(creditor):
     return p.create_new_account(2, 1)
+
+
+@pytest.fixture(scope='function')
+def ledger_entries(db_session, account, current_ts):
+    data = m.AccountData.query.one()
+    p._insert_ledger_entry(data, 1, 100, 100, current_ts - timedelta(minutes=2), current_ts)
+    p._insert_ledger_entry(data, 2, 200, 350, current_ts - timedelta(minutes=1), current_ts)
+    db_session.commit()
 
 
 def _get_all_pages(client, url, page_type, streaming=False):
@@ -795,3 +803,58 @@ def test_get_account_ledger(client, account):
         'first': '/creditors/2/accounts/1/entries?prev=1'
     }
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+
+
+def test_ledger_entries_list(ledger_entries, client, current_ts):
+    r = client.get('/creditors/2222/accounts/1/entries?prev=100')
+    assert r.status_code == 404 or r.get_json()['items'] == []
+
+    r = client.get('/creditors/2/accounts/1111/entries?prev=100')
+    assert r.status_code == 404 or r.get_json()['items'] == []
+
+    items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=100', page_type='LedgerEntriesPage')
+    assert items == [
+        {
+            'type': 'LedgerEntry',
+            'ledger': {'uri': '/creditors/2/accounts/1/ledger'},
+            'addedAt': current_ts.isoformat(),
+            'entryId': 3,
+            'previousEntryId': 2,
+            'aquiredAmount': 200,
+            'principal': 350,
+            'transfer': {'uri': '/creditors/2/accounts/1/transfers/0-2'},
+        },
+        {
+            'type': 'LedgerEntry',
+            'ledger': {'uri': '/creditors/2/accounts/1/ledger'},
+            'addedAt': current_ts.isoformat(),
+            'entryId': 2,
+            'previousEntryId': 1,
+            'aquiredAmount': 50,
+            'principal': 150,
+        },
+        {
+            'type': 'LedgerEntry',
+            'ledger': {'uri': '/creditors/2/accounts/1/ledger'},
+            'addedAt': current_ts.isoformat(),
+            'entryId': 1,
+            'aquiredAmount': 100,
+            'principal': 100,
+            'transfer': {'uri': '/creditors/2/accounts/1/transfers/0-1'},
+        },
+    ]
+
+    items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=1', page_type='LedgerEntriesPage')
+    assert len(items) == 0
+
+    items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=100&stop=1', page_type='LedgerEntriesPage')
+    assert len(items) == 2
+
+    items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=3&stop=1', page_type='LedgerEntriesPage')
+    assert len(items) == 1
+
+    items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=2&stop=1000', page_type='LedgerEntriesPage')
+    assert len(items) == 0
+
+    items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=2&stop=2', page_type='LedgerEntriesPage')
+    assert len(items) == 0

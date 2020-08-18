@@ -15,7 +15,7 @@ from swpt_creditors.schemas import (
     TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
     AccountLedgerSchema, AccountInfoSchema, AccountListSchema, LogPaginationParamsSchema,
-    AccountsPaginationParamsSchema,
+    AccountsPaginationParamsSchema, LedgerEntriesPaginationParamsSchema,
 )
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
@@ -637,10 +637,10 @@ class AccountLedgerEndpoint(MethodView):
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
 class AccountLedgerEntriesEndpoint(MethodView):
-    @accounts_api.arguments(PaginationParametersSchema, location='query')
+    @accounts_api.arguments(LedgerEntriesPaginationParamsSchema, location='query')
     @accounts_api.response(LedgerEntriesPageSchema(context=CONTEXT), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
     @accounts_api.doc(operationId='getAccountLedgerEntriesPage')
-    def get(self, pagination_parameters, creditorId, debtorId):
+    def get(self, params, creditorId, debtorId):
         """Return a collection of ledger entries for a given account.
 
         The returned object will be a fragment (a page) of a paginated
@@ -649,28 +649,34 @@ class AccountLedgerEntriesEndpoint(MethodView):
         fragments, will be sorted in reverse-chronological order
         (bigger `entryId`s go first). Normally, the entries will
         constitute a singly linked list, each entry (except the most
-        ancient one) referring to its ancestor. Note that:
-
-        * If the `prev` URL query parameter is not specified, then the
-          returned fragment will start with the latest ledger entry
-          for the given account.
-
-        * If the `prev` URL query parameter is specified, then the
-          returned fragment will start with the latest ledger entry
-          for the given account, which have smaller `entryId` than the
-          specified value.
-
-        * When the `stop` URL query parameter contains the `entryId`
-          of a ledger entry, then the returned fragment, and all the
-          subsequent fragments, will contain only ledger entries that
-          are newer than that entry (have bigger entry IDs than the
-          specified one). This can be used to prevent repeatedly
-          receiving ledger entries that the client already knows
-          about.
+        ancient one) referring to its ancestor.
 
         """
 
-        abort(404)
+        n = current_app.config['APP_LEDGER_ENTRIES_PER_PAGE']
+        try:
+            ledger_entries = procedures.get_account_ledger_entries(
+                creditorId,
+                debtorId,
+                count=n,
+                prev=params['prev'],
+                stop=params['stop'],
+            )
+        except procedures.AccountDoesNotExistError:  # pragma: no cover
+            abort(404)
+
+        if len(ledger_entries) < n:
+            # The last page does not have a 'next' link.
+            return {
+                'uri': request.full_path,
+                'items': ledger_entries,
+            }
+
+        return {
+            'uri': request.full_path,
+            'items': ledger_entries,
+            'next': f'?prev={ledger_entries[-1].entry_id}&stop={params["stop"]}',
+        }
 
 
 transfers_api = Blueprint(

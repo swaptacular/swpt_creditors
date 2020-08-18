@@ -248,6 +248,32 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
 
 
 @atomic
+def get_account_ledger_entries(
+        creditor_id: int,
+        debtor_id: int,
+        *,
+        prev: int,
+        stop: int = 0,
+        count: int = 1) -> List[LedgerEntry]:
+
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert 0 <= prev <= MAX_INT64
+    assert 0 <= stop <= MAX_INT64
+    assert count >= 1
+
+    return LedgerEntry.query.\
+        filter(
+            LedgerEntry.creditor_id == creditor_id,
+            LedgerEntry.debtor_id == debtor_id,
+            LedgerEntry.entry_id < prev,
+            LedgerEntry.entry_id > stop,
+        ).\
+        order_by(LedgerEntry.entry_id.desc()).\
+        limit(count).\
+        all()
+
+
+@atomic
 def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -> List[int]:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert count >= 1

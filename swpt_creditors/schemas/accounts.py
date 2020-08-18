@@ -867,3 +867,26 @@ class AccountsPaginationParamsSchema(Schema):
         if 'prev' in obj:
             obj = {'prev': int(obj['prev'])}
         return obj
+
+
+class LedgerEntriesPaginationParamsSchema(Schema):
+    prev = fields.Integer(
+        required=True,
+        load_only=True,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        description='The returned fragment will begin with the latest ledger entry for the given '
+                    'account, whose `entryId` is smaller (older) than the value of this parameter.',
+        example=100,
+    )
+    stop = fields.Integer(
+        missing=0,
+        load_only=True,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        description='The returned fragment, and all the subsequent fragments, will contain only '
+                    'ledger entries whose `entryId` is bigger (newer) than the value of this '
+                    'parameter. This can be used to prevent repeatedly receiving ledger entries '
+                    'that the client already knows about.',
+        example=50,
+    )
