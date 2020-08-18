@@ -543,6 +543,10 @@ def test_get_pending_ledger_updates(db_session):
 
 
 def test_process_pending_ledger_update(setup_account, max_count, current_ts):
+    def get_ledger_update_entries_count():
+        p.process_pending_log_entries(C_ID)
+        return len(LogEntry.query.filter_by(object_type='AccountLedger').all())
+
     creation_date = date(2020, 1, 2)
 
     params = {
@@ -573,6 +577,7 @@ def test_process_pending_ledger_update(setup_account, max_count, current_ts):
     params['principal'] = 4150
     p.process_account_transfer_signal(**params)
 
+    assert get_ledger_update_entries_count() == 0
     assert p.get_pending_ledger_updates() == []
 
     p.process_account_update_signal(
@@ -598,6 +603,7 @@ def test_process_pending_ledger_update(setup_account, max_count, current_ts):
         ts=current_ts,
         ttl=10000,
     )
+    assert get_ledger_update_entries_count() == 0
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 0
 
@@ -610,6 +616,8 @@ def test_process_pending_ledger_update(setup_account, max_count, current_ts):
         assert x > n
         n = x
 
+    lue_count = get_ledger_update_entries_count()
+    assert lue_count > 0
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 3
     assert p.get_pending_ledger_updates() == []
 
@@ -621,5 +629,13 @@ def test_process_pending_ledger_update(setup_account, max_count, current_ts):
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
     while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count):
         pass
+    assert get_ledger_update_entries_count() > lue_count
     assert p.get_pending_ledger_updates() == []
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 6
+
+    log_entry = p.get_creditor_log_entries(C_ID, count=1000)[0][-1]
+    assert log_entry.creditor_id == C_ID
+    assert log_entry.object_type == 'AccountLedger'
+    assert log_entry.object_uri == '/creditors/1/accounts/18446744073709551615/ledger'
+    assert log_entry.object_update_id > 2
+    assert not log_entry.is_deleted
