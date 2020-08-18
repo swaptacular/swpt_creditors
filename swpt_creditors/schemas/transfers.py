@@ -178,6 +178,11 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description="The URI of creditor's `TransferList`.",
         example={'uri': '/creditors/2/transfer-list'},
     )
+    options = fields.Nested(
+        TransferOptionsSchema,
+        required=True,
+        description="Transfer's `TransferOptions`.",
+    )
     initiated_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
