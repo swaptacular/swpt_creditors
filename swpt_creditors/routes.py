@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from swpt_lib.utils import i64_to_u64
+from swpt_lib.utils import i64_to_u64, u64_to_i64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.models import MAX_INT64, DATE0
 from swpt_creditors.schemas import (
@@ -325,8 +325,13 @@ class AccountsEndpoint(MethodView):
 
         """
 
+        try:
+            prev = u64_to_i64(int(params['prev'])) if 'prev' in params else None
+        except ValueError:
+            abort(422, errors={'query': {'prev': ['Invalid value.']}})
+
         n = current_app.config['APP_ACCOUNTS_PER_PAGE']
-        debtor_ids = procedures.get_creditor_debtor_ids(creditorId, count=n, prev=params.get('prev'))
+        debtor_ids = procedures.get_creditor_debtor_ids(creditorId, count=n, prev=prev)
         items = [{'uri': f'{i64_to_u64(debtor_id)}/'} for debtor_id in debtor_ids]
 
         if len(debtor_ids) < n:

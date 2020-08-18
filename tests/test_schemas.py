@@ -1112,17 +1112,17 @@ def test_deserialize_log_pagination_params(app):
 def test_deserialize_accounts_pagination_params(app):
     ais = schemas.AccountsPaginationParamsSchema()
     assert ais.load({}) == {}
-    assert ais.load({'prev': str(i64_to_u64(0))}) == {'prev': 0}
-    assert ais.load({'prev': str(i64_to_u64(-1))}) == {'prev': -1}
-    assert ais.load({'prev': str(i64_to_u64(1))}) == {'prev': 1}
-    assert ais.load({'prev': str(i64_to_u64(models.MIN_INT64))}) == {'prev': models.MIN_INT64}
-    assert ais.load({'prev': str(i64_to_u64(models.MAX_INT64))}) == {'prev': models.MAX_INT64}
+    assert ais.load({'prev': str(i64_to_u64(0))}) == {'prev': str(i64_to_u64(0))}
+    assert ais.load({'prev': str(i64_to_u64(-1))}) == {'prev': str(i64_to_u64(-1))}
+    assert ais.load({'prev': str(i64_to_u64(1))}) == {'prev': str(i64_to_u64(1))}
+    assert ais.load({'prev': str(i64_to_u64(models.MIN_INT64))}) == {'prev': str(i64_to_u64(models.MIN_INT64))}
+    assert ais.load({'prev': str(i64_to_u64(models.MAX_INT64))}) == {'prev': str(i64_to_u64(models.MAX_INT64))}
 
     with pytest.raises(ValidationError):
-        ais.load({'prev': str(-1)})
+        ais.load({'prev': ''})
 
     with pytest.raises(ValidationError):
-        ais.load({'prev': str(models.MAX_UINT64 + 1)})
+        ais.load({'prev': 65 * 'x'})
 
     with pytest.raises(ValidationError):
-        ais.load({'prev': 'something'})
+        ais.load({'prev': '?s^#@'})

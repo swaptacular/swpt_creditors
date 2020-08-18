@@ -843,30 +843,13 @@ class AccountSchema(MutableResourceSchema):
 
 
 class AccountsPaginationParamsSchema(Schema):
-    # NOTE: Normally, this field would be defined as integer, but
-    # because we want its type to be "string" in the auto-generated
-    # documentation (which should not be tied to this specific
-    # implementation), we use an ugly-looking hack.
     prev = fields.String(
         load_only=True,
         validate=validate.Regexp('^[0-9A-Za-z_=-]{1,64}$'),
-        description='Start with the item that follows the item with this index.',
+        description='The returned fragment will begin with the first account that follows the '
+                    'account whose debtor ID is equal to value of this parameter.',
         example='1',
     )
-
-    @validates('prev')
-    def validate_prev(self, value):
-        try:
-            u64_to_i64(int(value))
-        except ValueError:
-            raise ValidationError('Invalid value.')
-
-    @post_load
-    def turn_into_integer(self, obj, many, partial):
-        if 'prev' in obj:
-            prev = u64_to_i64(int(obj['prev']))
-            obj = {'prev': prev}
-        return obj
 
 
 class LedgerEntriesPaginationParamsSchema(Schema):

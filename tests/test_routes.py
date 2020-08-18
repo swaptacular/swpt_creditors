@@ -164,6 +164,9 @@ def test_account_list_page(client, account):
     assert data['latestUpdateId'] > 1
     assert iso8601.parse_date(data['latestUpdateAt'])
 
+    r = client.get('/creditors/2/accounts/?prev=-1')
+    assert r.status_code == 422
+
     # one account (one page)
     items = _get_all_pages(client, '/creditors/2/accounts/', page_type='ObjectReferencesPage')
     assert [item['uri'] for item in items] == ['1/']
