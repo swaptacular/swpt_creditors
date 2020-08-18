@@ -4,7 +4,7 @@ from marshmallow import Schema, fields, validate, missing, pre_dump
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64, DATE0
+from swpt_creditors.models import MAX_INT64
 from .common import ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema, URI_DESCRIPTION
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
@@ -26,7 +26,7 @@ def _parse_transfer_note(transfer_note):
     # TODO: Move this function to `swpt_lib.utils`.
 
     if transfer_note == '':
-        return None
+        return {}
 
     try:
         note = json.loads(transfer_note)
@@ -149,8 +149,9 @@ class TransferCreationRequestSchema(Schema):
         description="Transfer's `TransferOptions`.",
     )
     note = fields.Dict(
-        description='An optional note from the sender. Can be any JSON object containing '
-                    'information that the sender wants the recipient to see.',
+        required=True,
+        description='A note from the sender. Can be any JSON object that contains information '
+                    'which the sender wants the recipient to see.',
     )
 
 
@@ -274,9 +275,10 @@ class CommittedTransferSchema(Schema):
         example=1000,
     )
     note = fields.Dict(
+        required=True,
         dump_only=True,
-        description='An optional note from the committer of the transfer. Can be any JSON object '
-                    'containing information that whoever committed the transfer wants the '
+        description='A note from the committer of the transfer. Can be any JSON object that '
+                    'contains information which whoever committed the transfer wants the '
                     'recipient (and the sender) to see.',
     )
     committed_at_ts = fields.DateTime(
@@ -311,8 +313,6 @@ class CommittedTransferSchema(Schema):
             recipient_uri = _make_invalid_account_uri(obj.debtor_id)
         obj.recipient = {'uri': recipient_uri}
 
-        note = _parse_transfer_note(obj.transfer_note)
-        if note is not None:
-            obj.note = note
+        obj.note = _parse_transfer_note(obj.transfer_note)
 
         return obj

@@ -1079,7 +1079,7 @@ def test_serialize_committed_transfer(app):
     }
 
     ct.transfer_note = ''
-    assert 'note' not in cts.dump(ct)
+    assert cts.dump(ct)['note'] == {}
 
     ct.transfer_note = 'test'
     assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': 'test'}
