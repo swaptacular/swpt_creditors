@@ -2,6 +2,7 @@ import pytest
 import math
 from marshmallow import ValidationError
 from datetime import date, datetime, timezone
+from swpt_lib.utils import i64_to_u64
 from swpt_creditors import schemas
 from swpt_creditors import models
 from swpt_creditors import procedures
@@ -1111,17 +1112,17 @@ def test_deserialize_log_pagination_params(app):
 def test_deserialize_accounts_pagination_params(app):
     ais = schemas.AccountsPaginationParamsSchema()
     assert ais.load({}) == {}
-    assert ais.load({'prev': str(0)}) == {'prev': 0}
-    assert ais.load({'prev': str(-1)}) == {'prev': -1}
-    assert ais.load({'prev': str(1)}) == {'prev': 1}
-    assert ais.load({'prev': str(models.MIN_INT64)}) == {'prev': models.MIN_INT64}
-    assert ais.load({'prev': str(models.MAX_INT64)}) == {'prev': models.MAX_INT64}
+    assert ais.load({'prev': str(i64_to_u64(0))}) == {'prev': 0}
+    assert ais.load({'prev': str(i64_to_u64(-1))}) == {'prev': -1}
+    assert ais.load({'prev': str(i64_to_u64(1))}) == {'prev': 1}
+    assert ais.load({'prev': str(i64_to_u64(models.MIN_INT64))}) == {'prev': models.MIN_INT64}
+    assert ais.load({'prev': str(i64_to_u64(models.MAX_INT64))}) == {'prev': models.MAX_INT64}
 
     with pytest.raises(ValidationError):
-        ais.load({'prev': str(models.MIN_INT64 - 1)})
+        ais.load({'prev': str(-1)})
 
     with pytest.raises(ValidationError):
-        ais.load({'prev': str(models.MAX_INT64 + 1)})
+        ais.load({'prev': str(models.MAX_UINT64 + 1)})
 
     with pytest.raises(ValidationError):
         ais.load({'prev': 'something'})

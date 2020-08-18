@@ -5,7 +5,7 @@ from marshmallow import (
     Schema, fields, ValidationError, validate, validates, validates_schema,
     post_load, pre_dump, post_dump,
 )
-from swpt_lib.utils import i64_to_u64
+from swpt_lib.utils import i64_to_u64, u64_to_i64
 from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0
@@ -846,7 +846,7 @@ class AccountsPaginationParamsSchema(Schema):
     # NOTE: Normally, this field would be defined as integer, but
     # because we want its type to be "string" in the auto-generated
     # documentation (which should not be tied to this specific
-    # implementation), we use an ugly hack.
+    # implementation), we use an ugly-looking hack.
     prev = fields.String(
         load_only=True,
         validate=validate.Regexp('^[0-9A-Za-z_=-]{1,64}$'),
@@ -857,15 +857,15 @@ class AccountsPaginationParamsSchema(Schema):
     @validates('prev')
     def validate_prev(self, value):
         try:
-            if not MIN_INT64 <= int(value) <= MAX_INT64:
-                raise ValueError
+            u64_to_i64(int(value))
         except ValueError:
             raise ValidationError('Invalid value.')
 
     @post_load
     def turn_into_integer(self, obj, many, partial):
         if 'prev' in obj:
-            obj = {'prev': int(obj['prev'])}
+            prev = u64_to_i64(int(obj['prev']))
+            obj = {'prev': prev}
         return obj
 
 

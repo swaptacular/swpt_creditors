@@ -339,7 +339,7 @@ class AccountsEndpoint(MethodView):
         return {
             'uri': request.full_path,
             'items': items,
-            'next': f'?prev={debtor_ids[-1]}',
+            'next': f'?prev={i64_to_u64(debtor_ids[-1])}',
         }
 
     @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
