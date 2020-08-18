@@ -1186,7 +1186,13 @@ def _insert_ledger_entry(
     data.ledger_last_transfer_committed_at_ts = committed_at_ts
 
     if correction_amount != 0 or acquired_amount != 0:
-        # TODO: Add `data`, containing the principal and the latest etnry ID.
+        # TODO: Use bulk insert for adding `PendingLogEntry`s. Now
+        #       each added row causes a database roundtrip to load the
+        #       auto-incremented primary key.
+
+        # TODO: Add `data`, containing the principal and the latest
+        #       etnry ID.
+
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
         db.session.add(PendingLogEntry(
