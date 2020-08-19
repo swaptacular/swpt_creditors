@@ -91,7 +91,7 @@ def test_create_creditor(client):
 
 def test_update_creditor(client, creditor):
     r = client.patch('/creditors/2222/', json={})
-    assert r.status_code == 404
+    assert r.status_code == 405
 
     r = client.patch('/creditors/2/', json={})
     assert r.status_code == 200

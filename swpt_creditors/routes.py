@@ -149,7 +149,7 @@ class CreditorEndpoint(MethodView):
         try:
             creditor = procedures.update_creditor(creditorId)
         except procedures.CreditorDoesNotExistError:
-            abort(404)
+            abort(405)
         return creditor
 
 
