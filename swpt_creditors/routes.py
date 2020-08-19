@@ -12,7 +12,7 @@ from swpt_creditors.schemas import (
     CreditorCreationRequestSchema, CreditorSchema, DebtorIdentitySchema, TransferListSchema,
     AccountSchema, AccountConfigSchema, CommittedTransferSchema, LedgerEntriesPageSchema,
     WalletSchema, ObjectReferencesPageSchema, PaginationParametersSchema, LogEntriesPageSchema,
-    TransferCreationRequestSchema, TransferSchema, CancelTransferRequestSchema,
+    TransferCreationRequestSchema, TransferSchema, TransferCancelationRequestSchema,
     AccountDisplaySchema, AccountExchangeSchema, AccountIdentitySchema, AccountKnowledgeSchema,
     AccountLedgerSchema, AccountInfoSchema, AccountListSchema, LogPaginationParamsSchema,
     AccountsPaginationParamsSchema, LedgerEntriesPaginationParamsSchema,
@@ -762,7 +762,7 @@ class TransferEndpoint(MethodView):
 
         return procedures.get_direct_transfer(creditorId, transferUuid) or abort(404)
 
-    @transfers_api.arguments(CancelTransferRequestSchema)
+    @transfers_api.arguments(TransferCancelationRequestSchema)
     @transfers_api.response(TransferSchema(context=CONTEXT))
     @transfers_api.doc(operationId='cancelTransfer',
                        responses={403: specs.TRANSFER_CANCELLATION_FAILURE})

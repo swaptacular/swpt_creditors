@@ -219,10 +219,10 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         return missing
 
 
-class CancelTransferRequestSchema(Schema):
+class TransferCancelationRequestSchema(Schema):
     type = fields.String(
-        missing='CancelTransferRequest',
-        default='CancelTransferRequest',
+        missing='TransferCancelationRequest',
+        default='TransferCancelationRequest',
         description='The type of this object.',
     )
 
