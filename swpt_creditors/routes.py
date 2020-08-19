@@ -114,7 +114,7 @@ class CreditorEndpoint(MethodView):
 
         creditor = procedures.get_creditor(creditorId)
         if creditor is None:
-            abort(405)
+            abort(403)
         return creditor
 
     @creditors_api.arguments(CreditorCreationRequestSchema)
@@ -149,7 +149,7 @@ class CreditorEndpoint(MethodView):
         try:
             creditor = procedures.update_creditor(creditorId)
         except procedures.CreditorDoesNotExistError:
-            abort(405)
+            abort(403)
         return creditor
 
 

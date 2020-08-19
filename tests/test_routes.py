@@ -56,7 +56,7 @@ def _get_all_pages(client, url, page_type, streaming=False):
 
 def test_create_creditor(client):
     r = client.get('/creditors/2/')
-    assert r.status_code == 405
+    assert r.status_code == 403
 
     r = client.post('/creditors/2/', json={})
     assert r.status_code == 202
@@ -71,7 +71,7 @@ def test_create_creditor(client):
     assert r.status_code == 409
 
     r = client.get('/creditors/2/')
-    assert r.status_code == 405
+    assert r.status_code == 403
 
     p.activate_creditor(2)
 
@@ -91,7 +91,7 @@ def test_create_creditor(client):
 
 def test_update_creditor(client, creditor):
     r = client.patch('/creditors/2222/', json={})
-    assert r.status_code == 405
+    assert r.status_code == 403
 
     r = client.patch('/creditors/2/', json={})
     assert r.status_code == 200
