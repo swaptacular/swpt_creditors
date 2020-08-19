@@ -2,10 +2,9 @@ import re
 from base64 import b16encode
 from copy import copy
 from marshmallow import (
-    Schema, fields, ValidationError, validate, validates, validates_schema,
-    post_load, pre_dump, post_dump,
+    Schema, fields, ValidationError, validate, validates_schema, pre_dump, post_dump,
 )
-from swpt_lib.utils import i64_to_u64, u64_to_i64
+from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0
@@ -44,6 +43,35 @@ class DebtorIdentitySchema(ValidateTypeMixin, Schema):
     def assert_required_fields(self, obj, many):
         assert 'uri' in obj
         return obj
+
+
+class DebtorInfoSchema(ValidateTypeMixin, Schema):
+    type = fields.String(
+        missing='DebtorInfo',
+        default='DebtorInfo',
+        description='The type of this object.',
+    )
+    url = fields.String(
+        required=True,
+        validate=validate.Length(max=200),
+        format='uri',
+        description='A link (Internationalized Resource Identifier) referring to a document '
+                    'containing information about the debtor.',
+        example='https://example.com/debtors/1/',
+    )
+    optional_content_type = fields.String(
+        data_key='contentType',
+        validate=validate.Length(max=100),
+        description='Optional MIME type of the document that the `url` field refers to.',
+        example='text/html',
+    )
+    optional_sha256 = fields.String(
+        validate=validate.Regexp('^[0-9A-F]{64}$'),
+        data_key='sha256',
+        description='Optional SHA-256 cryptographic hash (Base16 encoded) of content of the '
+                    'document that the `url` field refers to.',
+        example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+    )
 
 
 class CurrencyPegSchema(ValidateTypeMixin, Schema):
@@ -379,12 +407,11 @@ class AccountInfoSchema(MutableResourceSchema):
                     'system configuration problem. The value alludes to the cause of the problem.',
         example='CONFIG_IS_INEFFECTUAL',
     )
-    optional_debtor_info_url = fields.String(
+    optional_debtor_info = fields.Nested(
+        DebtorInfoSchema,
         dump_only=True,
-        format='uri',
-        data_key='debtorInfoUrl',
-        description='Optional link containing additional information about the debtor.',
-        example='https://example.com/debtors/1/',
+        data_key='debtorInfo',
+        description='Optional information about the debtor.',
     )
 
     @pre_dump
@@ -401,7 +428,7 @@ class AccountInfoSchema(MutableResourceSchema):
             obj.optional_config_error = obj.config_error
 
         if obj.debtor_info_url is not None:
-            obj.optional_debtor_info_url = obj.debtor_info_url
+            obj.optional_debtor_info = {'url': obj.debtor_info_url}
 
         try:
             obj.optional_account_identity = {'uri': make_account_uri(obj.debtor_id, obj.account_id)}
@@ -449,16 +476,10 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         description="Optional `AccountIdentity`, which is known to the creditor.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
-    optional_debtor_info_sha256 = fields.String(
-        validate=validate.Regexp('^[0-9A-F]{64}$'),
-        data_key='debtorInfoSha256',
-        description="Optional SHA-256 cryptographic hash (Base16 encoded) of a JSON document "
-                    "(UTF-8 encoded) that contains additional information about the debtor, which "
-                    "is known to the creditor. Normally, the hashed JSON document will be obtained "
-                    "by visiting the `debtorInfoUrl` specified in the account's `AccountInfo`. Note "
-                    "that the hashed JSON document may be a fragment of a bigger containing "
-                    "document (RFC6901).",
-        example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+    optional_debtor_info = fields.Nested(
+        DebtorInfoSchema,
+        data_key='debtorInfo',
+        description='Optional information about the debtor, which is known to the creditor.',
     )
 
     @pre_dump
@@ -469,8 +490,15 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         obj.uri = paths.account_knowledge(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
-        if obj.debtor_info_sha256 is not None:
-            obj.optional_debtor_info_sha256 = b16encode(obj.debtor_info_sha256).decode()
+        if obj.debtor_info_url is not None:
+            debtor_info = {
+                'url': obj.debtor_info_url,
+            }
+            if obj.debtor_info_sha256 is not None:
+                debtor_info['optional_sha256'] = b16encode(obj.debtor_info_sha256).decode()
+            if obj.debtor_info_content_type is not None:
+                debtor_info['optional_content_type'] = obj.debtor_info_content_type
+            obj.optional_debtor_info = debtor_info
 
         if obj.account_identity is not None:
             obj.optional_account_identity = {'uri': obj.account_identity}

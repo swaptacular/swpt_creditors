@@ -309,6 +309,8 @@ class AccountKnowledge(db.Model):
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest_rate_changed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     account_identity = db.Column(db.String)
+    debtor_info_url = db.Column(db.String)
+    debtor_info_content_type = db.Column(db.String)
     debtor_info_sha256 = db.Column(db.LargeBinary)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

@@ -453,6 +453,8 @@ def test_serialize_account_knowledge(app):
         account_identity='https://example.com/USD/accounts/123',
         interest_rate=11.0,
         interest_rate_changed_at_ts=datetime(2020, 1, 2),
+        debtor_info_url='http://example.com',
+        debtor_info_content_type='text/html',
         debtor_info_sha256=32 * b'\x01',
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
@@ -463,7 +465,12 @@ def test_serialize_account_knowledge(app):
         'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'accountIdentity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'debtorInfoSha256': 32 * '01',
+        'debtorInfo': {
+            'type': 'DebtorInfo',
+            'url': 'http://example.com',
+            'contentType': 'text/html',
+            'sha256': 32 * '01',
+        },
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
@@ -472,6 +479,7 @@ def test_serialize_account_knowledge(app):
 
     ak.account_identity = None
     ak.debtor_info_sha256 = None
+    ak.debtor_info_content_type = None
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
         'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
@@ -480,6 +488,10 @@ def test_serialize_account_knowledge(app):
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
+        'debtorInfo': {
+            'type': 'DebtorInfo',
+            'url': 'http://example.com',
+        },
     }
 
 
@@ -496,7 +508,12 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({
         'type': 'AccountKnowledge',
         'accountIdentity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'debtorInfoSha256': 16 * 'BA01',
+        'debtorInfo': {
+            'type': 'DebtorInfo',
+            'url': 'http://example.com',
+            'contentType': 'text/html',
+            'sha256': 16 * 'BA01',
+        },
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
     })
@@ -505,7 +522,32 @@ def test_deserialize_account_knowledge(app):
         'interest_rate': 11.0,
         'interest_rate_changed_at_ts': datetime(2020, 1, 2),
         'optional_account_identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'optional_debtor_info_sha256': 16 * 'BA01',
+        'optional_debtor_info': {
+            'type': 'DebtorInfo',
+            'url': 'http://example.com',
+            'optional_content_type': 'text/html',
+            'optional_sha256': 16 * 'BA01',
+        },
+    }
+
+    data = aks.load({
+        'type': 'AccountKnowledge',
+        'accountIdentity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
+        'debtorInfo': {
+            'url': 'http://example.com',
+        },
+        'interestRate': 11.0,
+        'interestRateChangedAt': '2020-01-02T00:00:00',
+    })
+    assert data == {
+        'type': 'AccountKnowledge',
+        'interest_rate': 11.0,
+        'interest_rate_changed_at_ts': datetime(2020, 1, 2),
+        'optional_account_identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
+        'optional_debtor_info': {
+            'type': 'DebtorInfo',
+            'url': 'http://example.com',
+        },
     }
 
     with pytest.raises(ValidationError):
@@ -513,15 +555,6 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError):
         aks.load({'identity': {'type': 'AccountIdentity', 'uri': 1000 * 'x'}})
-
-    with pytest.raises(ValidationError):
-        aks.load({'debtorInfoSha256': 63 * '0'})
-
-    with pytest.raises(ValidationError):
-        aks.load({'debtorInfoSha256': 64 * 'g'})
-
-    with pytest.raises(ValidationError):
-        aks.load({'debtorInfoSha256': 64 * 'f'})
 
 
 def test_serialize_account_config(app):
@@ -656,7 +689,7 @@ def test_serialize_account_info(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
         'accountIdentity': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!bm90IFVSTCBzYWZl'},
         'configError': 'TEST_ERROR',
-        'debtorInfoUrl': 'https://example.com/debtor',
+        'debtorInfo': {'type': 'DebtorInfo', 'url': 'https://example.com/debtor'},
     }
 
 
@@ -1126,3 +1159,65 @@ def test_deserialize_accounts_pagination_params(app):
 
     with pytest.raises(ValidationError):
         ais.load({'prev': '?s^#@'})
+
+
+def test_serialize_debtor_info(app):
+    dis = schemas.DebtorInfoSchema()
+
+    assert dis.dump({
+        'url': 'http://example.com',
+    }) == {
+        'type': 'DebtorInfo',
+        'url': 'http://example.com',
+    }
+
+    assert dis.dump({
+        'url': 'http://example.com',
+        'optional_content_type': 'text/html',
+        'optional_sha256': 16 * 'BA01',
+    }) == {
+        'type': 'DebtorInfo',
+        'url': 'http://example.com',
+        'contentType': 'text/html',
+        'sha256': 16 * 'BA01',
+    }
+
+
+def test_deserialize_debtor_info(app):
+    dis = schemas.DebtorInfoSchema()
+
+    data = dis.load({
+        'url': 'http://example.com',
+    })
+    assert data == {
+        'type': 'DebtorInfo',
+        'url': 'http://example.com',
+    }
+
+    data = dis.load({
+        'type': 'DebtorInfo',
+        'url': 'http://example.com',
+        'contentType': 'text/html',
+        'sha256': 16 * 'BA01',
+    })
+    assert data == {
+        'type': 'DebtorInfo',
+        'url': 'http://example.com',
+        'optional_content_type': 'text/html',
+        'optional_sha256': 16 * 'BA01',
+    }
+
+    with pytest.raises(ValidationError):
+        dis.load({'type': 'WrongType'})
+
+    with pytest.raises(ValidationError):
+        dis.load({'url': 1000 * 'x'})
+
+    with pytest.raises(ValidationError):
+        dis.load({'url': 'http://example.com', 'content_type': 1000 * 'x'})
+
+    with pytest.raises(ValidationError):
+        dis.load({'url': 'http://example.com', 'sha256': 64 * 'G'})
+
+    with pytest.raises(ValidationError):
+        dis.load({'url': 'http://example.com', 'sha256': 64 * 'f'})

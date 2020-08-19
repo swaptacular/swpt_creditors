@@ -597,7 +597,8 @@ class AccountKnowledgeEndpoint(MethodView):
         """
 
         optional_account_identity = account_knowledge.get('optional_account_identity')
-        optional_debtor_info_sha256 = account_knowledge.get('optional_debtor_info_sha256')
+        optional_debtor_info = account_knowledge.get('optional_debtor_info')
+        optional_debtor_info_sha256 = optional_debtor_info and optional_debtor_info.get('optional_sha256')
 
         try:
             knowledge = procedures.update_account_knowledge(
@@ -606,6 +607,8 @@ class AccountKnowledgeEndpoint(MethodView):
                 interest_rate=account_knowledge['interest_rate'],
                 interest_rate_changed_at_ts=account_knowledge['interest_rate_changed_at_ts'],
                 account_identity=optional_account_identity and optional_account_identity['uri'],
+                debtor_info_url=optional_debtor_info and optional_debtor_info['url'],
+                debtor_info_content_type=optional_debtor_info and optional_debtor_info.get('optional_content_type'),
                 debtor_info_sha256=optional_debtor_info_sha256 and b16decode(optional_debtor_info_sha256),
             )
         except procedures.AccountDoesNotExistError:

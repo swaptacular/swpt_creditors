@@ -516,6 +516,8 @@ def update_account_knowledge(
         interest_rate: float,
         interest_rate_changed_at_ts: datetime,
         account_identity: Optional[str],
+        debtor_info_url: Optional[str],
+        debtor_info_content_type: Optional[str],
         debtor_info_sha256: Optional[bytes]) -> AccountKnowledge:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -529,6 +531,8 @@ def update_account_knowledge(
     knowledge.interest_rate = interest_rate
     knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
     knowledge.account_identity = account_identity
+    knowledge.debtor_info_url = debtor_info_url
+    knowledge.debtor_info_content_type = debtor_info_content_type
     knowledge.debtor_info_sha256 = debtor_info_sha256
     knowledge.latest_update_id += 1
     knowledge.latest_update_ts = current_ts

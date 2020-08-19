@@ -712,16 +712,21 @@ def test_account_knowledge(client, account):
     assert iso8601.parse_date(data['interestRateChangedAt']) == m.TS0
     assert data['interestRate'] == 0.0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
-    assert 'debtorInfoSha256' not in data
+    assert 'debtorInfo' not in data
     assert 'accountIdentity' not in data
 
     request_data = {
-        'debtorInfoSha256': 64 * '0',
         'interestRate': 11.5,
         'interestRateChangedAt': '2020-01-01T00:00:00Z',
         'accountIdentity': {
             'type': 'AccountIdentity',
             'uri': 'swpt:1/2',
+        },
+        'debtorInfo': {
+            'type': 'DebtorInfo',
+            'url': 'http://example.com',
+            'contentType': 'text/html',
+            'sha256': 64 * '0',
         },
     }
 
@@ -735,12 +740,17 @@ def test_account_knowledge(client, account):
     assert data['uri'] == '/creditors/2/accounts/1/knowledge'
     assert data['latestUpdateId'] == 2
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert data['debtorInfoSha256'] == 64 * '0'
     assert data['interestRate'] == 11.5
     assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
     assert data['accountIdentity'] == {'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
+    assert data['debtorInfo'] == {
+        'type': 'DebtorInfo',
+        'url': 'http://example.com',
+        'contentType': 'text/html',
+        'sha256': 64 * '0',
+    }
 
-    del request_data['debtorInfoSha256']
+    del request_data['debtorInfo']
     del request_data['accountIdentity']
     r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
     assert r.status_code == 200
@@ -751,7 +761,7 @@ def test_account_knowledge(client, account):
     assert data['latestUpdateId'] == 3
     assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert 'debtorInfoSha256' not in data
+    assert 'debtorInfo' not in data
     assert 'accountIdentity' not in data
 
     p.process_pending_log_entries(2)
