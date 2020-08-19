@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 82c40048557a
+Revision ID: b3e620053abf
 Revises: 8d8c816257ce
-Create Date: 2020-08-19 12:44:47.117857
+Create Date: 2020-08-19 16:13:54.152117
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '82c40048557a'
+revision = 'b3e620053abf'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -31,7 +31,7 @@ def upgrade():
     )
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
-    sa.Column('created_at_date', sa.DATE(), nullable=False),
+    sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.Column('latest_log_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_id', sa.BigInteger(), nullable=False),
@@ -43,6 +43,7 @@ def upgrade():
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. A `NULL` value for this column means that the creditor has not been deactivated yet. Once deactivated, a creditor stays deactivated until it is deleted.'),
     sa.CheckConstraint('account_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
+    sa.CheckConstraint('deactivated_at_date IS NULL OR (status & 1) != 0'),
     sa.CheckConstraint('latest_log_entry_id > 0'),
     sa.CheckConstraint('transfer_list_latest_update_id > 0'),
     sa.PrimaryKeyConstraint('creditor_id')

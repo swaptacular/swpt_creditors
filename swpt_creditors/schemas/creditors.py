@@ -30,12 +30,11 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         default='Creditor',
         description='The type of this object.',
     )
-    created_at_date = fields.Date(
+    created_at_ts = fields.DateTime(
         required=True,
         dump_only=True,
-        data_key='createdOn',
-        description='The date on which the creditor was created.',
-        example='2019-11-30',
+        data_key='createdAt',
+        description='The moment at which the creditor was created.',
     )
 
     @pre_dump

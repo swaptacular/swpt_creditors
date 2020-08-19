@@ -89,7 +89,7 @@ class Creditor(db.Model):
     STATUS_IS_ACTIVE_FLAG = 1
 
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
-    created_at_date = db.Column(db.DATE, nullable=False, default=get_now_utc)
+    created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     status = db.Column(db.SmallInteger, nullable=False, default=0)
     latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
@@ -111,6 +111,10 @@ class Creditor(db.Model):
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(account_list_latest_update_id > 0),
         db.CheckConstraint(transfer_list_latest_update_id > 0),
+        db.CheckConstraint(or_(
+            deactivated_at_date == null(),
+            status.op('&')(STATUS_IS_ACTIVE_FLAG) != 0,
+        )),
     )
 
     @property

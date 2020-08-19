@@ -114,11 +114,11 @@ class CreditorEndpoint(MethodView):
 
         creditor = procedures.get_creditor(creditorId)
         if creditor is None:
-            abort(404)
+            abort(405)
         return creditor
 
     @creditors_api.arguments(CreditorCreationRequestSchema)
-    @creditors_api.response(CreditorSchema(context=CONTEXT), code=201, headers=specs.LOCATION_HEADER)
+    @creditors_api.response(CreditorSchema(context=CONTEXT), code=202)
     @creditors_api.doc(operationId='createCreditor',
                        responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_creation_options, creditorId):
@@ -133,7 +133,7 @@ class CreditorEndpoint(MethodView):
             creditor = procedures.create_new_creditor(creditorId)
         except procedures.CreditorExistsError:
             abort(409)
-        return creditor, {'Location': path_builder.creditor(creditorId=creditorId)}
+        return creditor
 
     @creditors_api.arguments(CreditorSchema)
     @creditors_api.response(CreditorSchema(context=CONTEXT))

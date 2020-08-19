@@ -56,23 +56,22 @@ def _get_all_pages(client, url, page_type, streaming=False):
 
 def test_create_creditor(client):
     r = client.get('/creditors/2/')
-    assert r.status_code == 404
+    assert r.status_code == 405
 
     r = client.post('/creditors/2/', json={})
-    assert r.status_code == 201
-    assert r.headers['Location'] == 'http://example.com/creditors/2/'
+    assert r.status_code == 202
     data = r.get_json()
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert iso8601.parse_date(data['createdOn'])
+    assert iso8601.parse_date(data['createdAt'])
 
     r = client.post('/creditors/2/', json={})
     assert r.status_code == 409
 
     r = client.get('/creditors/2/')
-    assert r.status_code == 404
+    assert r.status_code == 405
 
     p.activate_creditor(2)
 
@@ -83,7 +82,7 @@ def test_create_creditor(client):
     assert data['uri'] == '/creditors/2/'
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert iso8601.parse_date(data['createdOn'])
+    assert iso8601.parse_date(data['createdAt'])
 
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
@@ -101,7 +100,7 @@ def test_update_creditor(client, creditor):
     assert data['uri'] == '/creditors/2/'
     assert data['latestUpdateId'] == 2
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert data['createdOn']
+    assert data['createdAt']
 
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)

@@ -15,7 +15,7 @@ C_ID = 1
 def test_serialize_creditor(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_date=date(2019, 11, 30),
+        created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
         latest_log_entry_id=1,
@@ -26,7 +26,7 @@ def test_serialize_creditor(app):
     assert cs.dump(c) == {
         'type': 'Creditor',
         'uri': '/creditors/1/',
-        'createdOn': '2019-11-30',
+        'createdAt': '2019-11-30T00:00:00',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
@@ -51,7 +51,7 @@ def test_deserialize_creditor(app):
 def test_serialize_wallet(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_date=date(2019, 11, 30),
+        created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
         latest_log_entry_id=12345,
@@ -153,7 +153,7 @@ def test_serialize_log_entries_page(app):
 def test_serialize_account_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_date=date(2019, 11, 30),
+        created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
         latest_log_entry_id=1,
@@ -175,7 +175,7 @@ def test_serialize_account_list(app):
 def test_serialize_transfer_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_date=date(2019, 11, 30),
+        created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
         latest_log_entry_id=1,
