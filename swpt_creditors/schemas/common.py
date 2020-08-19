@@ -10,13 +10,6 @@ there are no remaining items, this field will not be present. If this field \
 is present, there might be remaining items, even when the `items` array is \
 empty. This can be a relative URI.'
 
-PAGE_FORTHCOMING_DESCRIPTION = '\
-An URI of another `{type}` object which would contain items that \
-might be added in the future. That is: items that are not currently available, \
-but may become available in the future. This is useful when we want to follow \
-a continuous stream of new items. This field will not be present when the \
-`next` field is present. This can be a relative URI.'
-
 
 class ValidateTypeMixin:
     @validates('type')
@@ -61,26 +54,62 @@ class PaginatedListSchema(Schema):
                     'The object retrieved from this URI will have: 1) An `items` field (an '
                     'array), which will contain the first items of the paginated list; 2) May '
                     'have a `next` field (a string), which would contain the URI of the next '
-                    'page in the list; 3) May have a `forthcoming` field, for obtaining items '
-                    'that might be added to the paginated list in the future.',
+                    'page in the list.',
         example='/list?page=1',
-    )
-    forthcoming = fields.String(
-        dump_only=True,
-        format='uri-reference',
-        description='An optional URI for obtaining items that might be added to the paginated list '
-                    'in the future. This is useful when we want to skip all items currently in the '
-                    'list, but follow the forthcoming stream of new items. If this field is not '
-                    'present, this means that the "streaming" feature is not supported by the '
-                    'paginated list. The object retrieved from this URI will be of the same type as '
-                    'the one retrieved from the `first` field. This can be a relative URI.',
-        example='/list?page=1000',
     )
 
     @post_dump
     def assert_required_fields(self, obj, many):
         assert 'itemsType' in obj
         assert 'first' in obj
+        return obj
+
+
+class PaginatedStreamSchema(Schema):
+    type = fields.Function(
+        lambda obj: 'PaginatedStream',
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='PaginatedStream',
+    )
+    items_type = fields.String(
+        required=True,
+        dump_only=True,
+        data_key='itemsType',
+        description='The type of the items in the paginated stream.',
+        example='string',
+    )
+    first = fields.String(
+        required=True,
+        dump_only=True,
+        format='uri-reference',
+        description='The URI of the first page in the paginated stream. This can be a relative '
+                    'URI. The object retrieved from this URI will have: 1) An `items` field (an '
+                    'array), which will contain the first items of the paginated stream; 2) May '
+                    'have a `next` field (a string), which would contain the URI of the next '
+                    'page in the stream; 3) If the `next` field is not present, will have a '
+                    '`forthcoming` field, for obtaining items that might be added to the stream '
+                    'in the future.',
+        example='/stream?page=1',
+    )
+    forthcoming = fields.String(
+        required=True,
+        dump_only=True,
+        format='uri-reference',
+        description='An URI for obtaining items that might be added to the paginated stream in the '
+                    'future. This is useful when the client wants to skip all items currently in the '
+                    'stream, but to follow the forthcoming stream of new items. The object retrieved '
+                    'from this URI will be of the same type as the one retrieved from the `first` '
+                    'field. This can be a relative URI.',
+        example='/stream?page=1000',
+    )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'itemsType' in obj
+        assert 'first' in obj
+        assert 'forthcoming' in obj
         return obj
 
 

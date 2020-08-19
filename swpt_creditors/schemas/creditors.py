@@ -3,8 +3,8 @@ from marshmallow import Schema, fields, validate, pre_dump, post_dump
 from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64
 from .common import (
-    ObjectReferenceSchema, PaginatedListSchema, MutableResourceSchema, ValidateTypeMixin,
-    URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, PAGE_FORTHCOMING_DESCRIPTION,
+    ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, MutableResourceSchema,
+    ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
 
 
@@ -50,9 +50,6 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
 
 
 class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
-    class Meta:
-        exclude = ['forthcoming']
-
     uri = fields.String(
         required=True,
         dump_only=True,
@@ -91,9 +88,6 @@ class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
 
 
 class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
-    class Meta:
-        exclude = ['forthcoming']
-
     uri = fields.String(
         required=True,
         dump_only=True,
@@ -164,21 +158,20 @@ class WalletSchema(Schema):
         example={'uri': '/creditors/2/account-list'},
     )
     log = fields.Nested(
-        PaginatedListSchema,
+        PaginatedStreamSchema,
         required=True,
         dump_only=True,
-        description="A `PaginatedList` of creditor's `LogEntry`s. The paginated list will be "
+        description="A `PaginatedStream` of creditor's `LogEntry`s. The paginated stream will be "
                     "sorted in chronological order (smaller entry IDs go first). Normally, the "
-                    "entries will constitute a singly linked list, each entry (except the most  "
-                    "ancient one) referring to its ancestor. Also, this is a \"streaming\" "
-                    "paginated list (the `forthcoming` field will be present), allowing the "
-                    "clients of the API to reliably and efficiently invalidate their caches, "
-                    "simply by following the \"log\" .",
+                    "log entries will constitute a singly linked list, each entry (except the most "
+                    "ancient one) referring to its ancestor. The main purpose of the log stream "
+                    "is to allow the clients of the API to reliably and efficiently invalidate "
+                    "their caches, simply by following the \"log\".",
         example={
             'first': '/creditors/2/log',
             'forthcoming': '/creditors/2/log?prev=12345',
             'itemsType': 'LogEntry',
-            'type': 'PaginatedList',
+            'type': 'PaginatedStream',
         },
     )
     transfer_list = fields.Nested(
@@ -386,7 +379,11 @@ class LogEntriesPageSchema(Schema):
     forthcoming = fields.String(
         dump_only=True,
         format='uri-reference',
-        description=PAGE_FORTHCOMING_DESCRIPTION.format(type='LogEntriesPage'),
+        description='An URI of another `LogEntriesPage` object which would contain items that '
+                    'might be added in the future. That is: items that are not currently available, '
+                    'but may become available in the future. This is useful when we want to follow '
+                    'a continuous stream of log entries. This field will not be present if, and '
+                    'only if, the `next` field is present. This can be a relative URI.',
         example='?prev=12345',
     )
 

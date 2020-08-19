@@ -126,7 +126,7 @@ def test_get_wallet(client, creditor):
     assert data['uri'] == '/creditors/2/wallet'
     assert data['creditor'] == {'uri': '/creditors/2/'}
     log = data['log']
-    assert log['type'] == 'PaginatedList'
+    assert log['type'] == 'PaginatedStream'
     assert log['first'] == '/creditors/2/log'
     assert log['forthcoming'] == '/creditors/2/log?prev=1'
     assert log['itemsType'] == 'LogEntry'

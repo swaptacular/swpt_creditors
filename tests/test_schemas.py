@@ -68,7 +68,7 @@ def test_serialize_wallet(app):
         'createAccount': {'uri': '/creditors/1/accounts/'},
         'createTransfer': {'uri': '/creditors/1/transfers/'},
         'log': {
-            'type': 'PaginatedList',
+            'type': 'PaginatedStream',
             'itemsType': 'LogEntry',
             'first': '/creditors/1/log',
             'forthcoming': '/creditors/1/log?prev=12345',
@@ -933,21 +933,27 @@ def test_serialize_paginated_list(app):
     pl = {
         'items_type': 'String',
         'first': '/first',
-        'forthcoming': '/more',
     }
     pls = schemas.PaginatedListSchema(context=CONTEXT)
     assert pls.dump(pl) == {
         'type': 'PaginatedList',
         'itemsType': 'String',
         'first': '/first',
-        'forthcoming': '/more',
     }
 
-    del pl['forthcoming']
-    assert pls.dump(pl) == {
-        'type': 'PaginatedList',
+
+def test_serialize_paginated_stream(app):
+    ps = {
+        'items_type': 'String',
+        'first': '/first',
+        'forthcoming': '/more',
+    }
+    pss = schemas.PaginatedStreamSchema(context=CONTEXT)
+    assert pss.dump(ps) == {
+        'type': 'PaginatedStream',
         'itemsType': 'String',
         'first': '/first',
+        'forthcoming': '/more',
     }
 
 
