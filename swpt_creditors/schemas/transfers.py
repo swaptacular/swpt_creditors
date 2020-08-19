@@ -151,7 +151,7 @@ class TransferCreationRequestSchema(Schema):
     note = fields.Dict(
         required=True,
         description='A note from the sender. Can be any JSON object that contains information '
-                    'which the sender wants the recipient to see.',
+                    'which the sender wants the recipient to see. Can be an empty object.',
     )
 
 
@@ -285,7 +285,7 @@ class CommittedTransferSchema(Schema):
         dump_only=True,
         description='A note from the committer of the transfer. Can be any JSON object that '
                     'contains information which whoever committed the transfer wants the '
-                    'recipient (and the sender) to see.',
+                    'recipient (and the sender) to see. Can be an empty object.',
     )
     committed_at_ts = fields.DateTime(
         required=True,
