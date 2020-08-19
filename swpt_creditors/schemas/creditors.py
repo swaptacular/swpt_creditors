@@ -18,7 +18,7 @@ class CreditorCreationRequestSchema(ValidateTypeMixin, Schema):
     activate = fields.Boolean(
         missing=False,
         load_only=True,
-        description='Whether the creditor must be activated immediately after its creation.',
+        description='Whether to activate the creditor immediately after its creation.',
     )
 
 
