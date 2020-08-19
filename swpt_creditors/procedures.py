@@ -10,7 +10,8 @@ from swpt_creditors.models import (
     Creditor, LedgerEntry, CommittedTransfer, Account, AccountData, PendingLogEntry,
     ConfigureAccountSignal, LogEntry, AccountDisplay, AccountExchange, AccountKnowledge,
     DirectTransfer, RunningTransfer, PendingLedgerUpdate,
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_CREDITOR_STATUS,
+    DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
 )
 
 T = TypeVar('T')
@@ -169,10 +170,11 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
 
 @atomic
-def create_new_creditor(creditor_id: int) -> Creditor:
+def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
-    creditor = Creditor(creditor_id=creditor_id)
+    creditor = Creditor(creditor_id=creditor_id, status=DEFAULT_CREDITOR_STATUS)
+    creditor.is_active = activate
 
     db.session.add(creditor)
     try:

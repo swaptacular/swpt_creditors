@@ -121,7 +121,7 @@ class CreditorEndpoint(MethodView):
     @creditors_api.response(CreditorSchema(context=CONTEXT), code=202)
     @creditors_api.doc(operationId='createCreditor',
                        responses={409: specs.CONFLICTING_CREDITOR})
-    def post(self, creditor_creation_options, creditorId):
+    def post(self, creditor_creation_request, creditorId):
         """Try to create a new creditor. Requires special privileges.
 
         ---
@@ -130,7 +130,7 @@ class CreditorEndpoint(MethodView):
         """
 
         try:
-            creditor = procedures.create_new_creditor(creditorId)
+            creditor = procedures.create_new_creditor(creditorId, activate=creditor_creation_request['activate'])
         except procedures.CreditorExistsError:
             abort(409)
         return creditor

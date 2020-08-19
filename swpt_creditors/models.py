@@ -25,6 +25,7 @@ INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
 FIRST_LOG_ENTRY_ID = 2
+DEFAULT_CREDITOR_STATUS = 0
 DEFAULT_CONFIG_FLAGS = 0
 DEFAULT_NEGLIGIBLE_AMOUNT = 1e30
 
@@ -90,7 +91,7 @@ class Creditor(db.Model):
 
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    status = db.Column(db.SmallInteger, nullable=False, default=0)
+    status = db.Column(db.SmallInteger, nullable=False, default=DEFAULT_CREDITOR_STATUS)
     latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)

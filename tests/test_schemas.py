@@ -1083,8 +1083,14 @@ def test_deserialize_pagination_parameters(app):
 
 def test_deserialize_creditor_creation_request(app):
     ccr = schemas.CreditorCreationRequestSchema(context=CONTEXT)
-    assert ccr.load({}) == {'type': 'CreditorCreationRequest'}
-    assert ccr.load({'type': 'CreditorCreationRequest'}) == {'type': 'CreditorCreationRequest'}
+    assert ccr.load({}) == {'type': 'CreditorCreationRequest', 'activate': False}
+    assert ccr.load({
+        'type': 'CreditorCreationRequest',
+        'activate': True
+    }) == {
+        'type': 'CreditorCreationRequest',
+        'activate': True,
+    }
 
     with pytest.raises(ValidationError):
         ccr.load({'type': 'WrongType'})

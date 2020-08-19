@@ -88,6 +88,12 @@ def test_create_creditor(client):
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 0
 
+    r = client.post('/creditors/3/', json={'activate': True})
+    assert r.status_code == 202
+
+    r = client.get('/creditors/3/')
+    assert r.status_code == 200
+
 
 def test_update_creditor(client, creditor):
     r = client.patch('/creditors/2222/', json={})

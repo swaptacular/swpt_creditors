@@ -10,10 +10,15 @@ from .common import (
 
 class CreditorCreationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        load_only=True,
         missing='CreditorCreationRequest',
+        load_only=True,
         description='The type of this object.',
         example='CreditorCreationRequest',
+    )
+    activate = fields.Boolean(
+        missing=False,
+        load_only=True,
+        description='Whether the creditor must be activated immediately after its creation.',
     )
 
 
