@@ -497,7 +497,7 @@ class AccountDisplayEndpoint(MethodView):
 
         optional_peg = account_display.get('optional_peg')
         optional_debtor_name = account_display.get('optional_debtor_name')
-        optional_own_unit = account_display.get('optional_own_unit')
+        optional_unit = account_display.get('optional_unit')
 
         try:
             peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])
@@ -511,17 +511,15 @@ class AccountDisplayEndpoint(MethodView):
                 debtor_name=optional_debtor_name,
                 amount_divisor=account_display['amount_divisor'],
                 decimal_places=account_display['decimal_places'],
-                own_unit=optional_own_unit,
-                own_unit_preference=account_display['own_unit_preference'],
+                unit=optional_unit,
+                use_own_unit=account_display['use_own_unit'],
                 hide=account_display['hide'],
                 peg_currency_debtor_id=peg_currency_debtor_id,
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
                 peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
             )
         except procedures.AccountDebtorNameConflictError:
-            abort(409, errors={'json': {'debtorName': ['Another account with this debtorName already exist.']}})
-        except procedures.AccountOwnUnitConflictError:
-            abort(409, errors={'json': {'ownUnit': ['Another account with this ownUnit already exist.']}})
+            abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
         except procedures.AccountDoesNotExistError:
             abort(404)
 

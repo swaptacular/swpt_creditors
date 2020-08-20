@@ -107,7 +107,7 @@ TRANSFER_EXISTS = {
 }
 
 ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
-    'description': 'Another account with the same `debtorName` or `ownUnit` already exists.',
+    'description': 'Another account with the same `debtorName` already exists.',
     'content': ERROR_CONTENT,
 }
 

@@ -687,13 +687,14 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
     optional_debtor_name = fields.String(
         validate=validate.Length(min=1, max=40),
         data_key='debtorName',
-        description='The name of the debtor. **All accounts belonging to a given '
-                    'creditor must have different `debtorName`s. When a new account '
-                    'has been created, this field will not be present, and it must '
-                    'be set as soon as possible**, otherwise the real identity of the '
-                    'debtor may remain unknown to the creditor, which may lead to '
-                    'confusion and financial loses. The creditor may choose any '
-                    'name that is convenient, or easy to remember.',
+        description='The name of the debtor. All accounts belonging to a given creditor '
+                    'must have different `debtorName`s. The creditor may choose any name '
+                    'that is convenient, or easy to remember.'
+                    '\n\n'
+                    '**Important note:** When a new account has been created, this field will '
+                    'not be present, and it must be set as soon as possible, otherwise the '
+                    'real identity of the debtor may remain unknown to the creditor, which '
+                    'may lead to confusion and financial loses. ',
         example='United States of America',
     )
     optional_peg = fields.Nested(
@@ -705,35 +706,30 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "currency, and the peg currency). Sometimes the peg currency is itself "
                     "pegged to another currency. This is called a \"peg-chain\".",
     )
-    optional_own_unit = fields.String(
-        validate=validate.Length(min=1, max=4),
-        data_key='ownUnit',
-        description="Optional abbreviation for a value measurement unit that is unique for the "
-                    "account's debtor. It should be shown right after the displayed amount, "
-                    "\"500.00 USD\" for example. **All accounts belonging to a given creditor must "
-                    "have different `ownUnit`s**. Thus, setting this field for an account is most "
-                    "probably a bad idea, unless the account's debtor tokens are already widely "
-                    "recognized. Notably, one currency being pegged to another currency is not "
-                    "a good reason for the pegged currency to have the same `ownUnit` as the peg "
-                    "currency. In practice, many of creditor's accounts might be pegged to other "
-                    "accounts, and only a few would need to have their `ownUnit` field set.",
+    optional_unit = fields.String(
+        validate=validate.Length(min=1, max=20),
+        data_key='unit',
+        description="The value measurement unit specified by the debtor. It should be "
+                    "shown right after the displayed amount, \"500.00 USD\" for example. In "
+                    "practice, many of creditor's accounts may be pegged to other accounts, "
+                    "and may have their `useOwnUnit` fields set to `False`."
+                    "\n\n"
+                    "**Important note:** When a new account has been created, this field will "
+                    "not be present, and it must be set as soon as possible, otherwise the "
+                    "value measurement unit may remain unknown to the creditor, which may "
+                    "lead to confusion and financial loses.",
         example='USD',
     )
-    own_unit_preference = fields.Integer(
-        missing=0,
-        validate=validate.Range(min=MIN_INT32, max=MAX_INT32),
-        data_key='ownUnitPreference',
-        format='int32',
-        description="A number that expresses creditor's preference for seeing the balances on "
-                    "other accounts, measured in this account's `ownUnit`. A bigger number "
-                    "indicates a bigger preference (negative numbers are allowed too). To "
-                    "determine the value measurement unit in which to show the balance on a given "
-                    "account, the account's `peg`-chain should be followed (skipping accounts "
-                    "without `ownUnit`), and the unit with the biggest `ownUnitPreference` "
-                    "value should be chosen. In case of a tie, units that are closer down the "
-                    "chain of pegs should be preferred. If no unit is found, the generic currency "
-                    "sign (\u00a4), or the \"XXX\" ISO 4217 currency code should be shown.",
-        example=0,
+    use_own_unit = fields.Boolean(
+        missing=True,
+        data_key='useOwnUnit',
+        description="Whether the `unit` field should be used to display the balances on this account, "
+                    "and the accounts pegged to this account. To determine the value measurement "
+                    "unit in which to show the balance on a given account, the account's `peg`-chain "
+                    "should be followed until an account with `useOwnUnit` set to `True` is "
+                    "found. If such account has not been found, or the account that has been found "
+                    "does not have its `unit` field set, the generic currency sign (\u00a4), or the "
+                    "\"XXX\" ISO 4217 currency code should be shown.",
     )
     hide = fields.Boolean(
         missing=False,
@@ -751,9 +747,12 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
 
     @validates_schema
     def validate_debtor_name(self, data, **kwargs):
-        if 'optional_debtor_name' not in data:
-            if 'optional_own_unit' in data:
-                raise ValidationError("Can not set ownUnit without debtorName.")
+        if 'optional_debtor_name' in data:
+            if 'optional_unit' not in data:
+                raise ValidationError("Can not set debtorName without unit.")
+        else:
+            if 'optional_unit' in data:
+                raise ValidationError("Can not set unit without debtorName.")
             if 'optional_peg' in data:
                 raise ValidationError("Can not set peg without debtorName.")
 
@@ -765,8 +764,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         obj.uri = paths.account_display(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
-        if obj.own_unit is not None:
-            obj.optional_own_unit = obj.own_unit
+        if obj.unit is not None:
+            obj.optional_unit = obj.unit
 
         if obj.debtor_name is not None:
             obj.optional_debtor_name = obj.debtor_name

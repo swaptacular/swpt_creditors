@@ -296,7 +296,7 @@ def test_create_account(client, creditor):
             'amountDivisor': 1.0,
             'decimalPlaces': 0,
             'hide': False,
-            'ownUnitPreference': 0,
+            'useOwnUnit': True,
             'latestUpdateAt': latestUpdateAt,
             'latestUpdateId': latestUpdateId,
         },
@@ -493,13 +493,13 @@ def test_account_display(client, account):
     assert data['uri'] == '/creditors/2/accounts/1/display'
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert data['ownUnitPreference'] == 0
+    assert data['useOwnUnit'] == True
     assert data['amountDivisor'] == 1.0
     assert data['hide'] is False
     assert data['decimalPlaces'] == 0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'peg' not in data
-    assert 'ownUnit' not in data
+    assert 'unit' not in data
     assert 'debtorName' not in data
 
     p.process_pending_log_entries(2)
@@ -515,7 +515,7 @@ def test_account_display(client, account):
 
     r = client.patch('/creditors/2/accounts/11/display', json={
         'debtorName': 'existing debtor',
-        'ownUnit': 'EUR',
+        'unit': 'EUR',
     })
     assert r.status_code == 200
 
@@ -524,8 +524,8 @@ def test_account_display(client, account):
         'debtorName': 'United States of America',
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
-        'ownUnit': 'USD',
-        'ownUnitPreference': 1000000,
+        'unit': 'USD',
+        'useOwnUnit': False,
         'hide': True,
         'peg': {
             'type': 'CurrencyPeg',
@@ -551,8 +551,8 @@ def test_account_display(client, account):
     assert data['debtorName'] == 'United States of America'
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
-    assert data['ownUnit'] == 'USD'
-    assert data['ownUnitPreference'] == 1000000
+    assert data['unit'] == 'USD'
+    assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
         'type': 'CurrencyPeg',
@@ -584,8 +584,8 @@ def test_account_display(client, account):
     assert data['debtorName'] == 'United States of America'
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
-    assert data['ownUnit'] == 'USD'
-    assert data['ownUnitPreference'] == 1000000
+    assert data['unit'] == 'USD'
+    assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
         'type': 'CurrencyPeg',
@@ -598,18 +598,11 @@ def test_account_display(client, account):
     }
 
     request_data['debtorName'] = 'existing debtor'
-    request_data['ownUnit'] = 'USD'
+    request_data['unit'] = 'USD'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
     data = r.get_json()
-    assert data['errors']['json']['debtorName'] == ['Another account with this debtorName already exist.']
-
-    request_data['debtorName'] = 'United States of America'
-    request_data['ownUnit'] = 'EUR'
-    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
-    assert r.status_code == 409
-    data = r.get_json()
-    assert data['errors']['json']['ownUnit'] == ['Another account with this ownUnit already exist.']
+    assert data['errors']['json']['debtorName'] == ['Another account with the same debtorName already exist.']
 
     p.process_pending_log_entries(2)
     r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:1111'})
@@ -638,7 +631,7 @@ def test_account_display(client, account):
     assert r.status_code == 204
 
     request_data['debtorName'] = 'existing debtor'
-    request_data['ownUnit'] = 'EUR'
+    request_data['unit'] = 'EUR'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 200
 

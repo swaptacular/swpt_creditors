@@ -128,10 +128,6 @@ class AccountDebtorNameConflictError(Exception):
     """Another account with this debtorName already exist."""
 
 
-class AccountOwnUnitConflictError(Exception):
-    """Another another account with this ownUnit already exist."""
-
-
 @atomic
 def get_creditors_with_pending_log_entries() -> Iterable[int]:
     return set(t[0] for t in db.session.query(PendingLogEntry.creditor_id).all())
@@ -435,8 +431,8 @@ def update_account_display(
         debtor_name: Optional[str],
         amount_divisor: float,
         decimal_places: int,
-        own_unit: Optional[str],
-        own_unit_preference: int,
+        unit: Optional[str],
+        use_own_unit: bool,
         hide: bool,
         peg_exchange_rate: Optional[float],
         peg_currency_debtor_id: Optional[int],
@@ -446,12 +442,12 @@ def update_account_display(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert amount_divisor > 0.0
     assert MIN_INT32 <= decimal_places <= MAX_INT32
-    assert MIN_INT32 <= own_unit_preference <= MAX_INT32
     assert peg_currency_debtor_id is None or MIN_INT64 <= peg_currency_debtor_id <= MAX_INT64
     assert peg_exchange_rate is None or peg_exchange_rate >= 0.0
     assert (peg_currency_debtor_id is None and peg_exchange_rate is None) or \
            (peg_currency_debtor_id is not None and peg_exchange_rate is not None)
-    assert debtor_name is not None or own_unit is None
+    assert (debtor_name is None and unit is None) or \
+           (debtor_name is not None and unit is not None)
     assert debtor_name is not None or peg_exchange_rate is None
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -466,13 +462,6 @@ def update_account_display(
         if debtor_name_confilict:
             raise AccountDebtorNameConflictError()
 
-    # NOTE: We must ensure that the own unit is unique.
-    if own_unit not in [display.own_unit, None]:
-        own_unit_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, own_unit=own_unit)
-        own_unit_conflict = db.session.query(own_unit_query.exists()).scalar()
-        if own_unit_conflict:
-            raise AccountOwnUnitConflictError()
-
     # NOTE: When a currency peg is specified, and the creditor already
     # has an account in the specified peg currency, then we must set a
     # reference to it.
@@ -482,8 +471,8 @@ def update_account_display(
         display.debtor_name = debtor_name
         display.amount_divisor = amount_divisor
         display.decimal_places = decimal_places
-        display.own_unit = own_unit
-        display.own_unit_preference = own_unit_preference
+        display.unit = unit
+        display.use_own_unit = use_own_unit
         display.hide = hide
         display.peg_exchange_rate = peg_exchange_rate
         display.peg_currency_debtor_id = peg_currency_debtor_id
