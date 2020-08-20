@@ -383,7 +383,6 @@ class AccountDisplay(db.Model):
         db.CheckConstraint(or_(peg_currency_debtor_id != null(), peg_exchange_rate == null())),
         db.CheckConstraint(or_(peg_account_debtor_id == peg_currency_debtor_id, peg_account_debtor_id == null())),
         db.Index('idx_debtor_name', creditor_id, debtor_name, unique=True, postgresql_where=debtor_name != null()),
-        db.Index('idx_own_unit', creditor_id, own_unit, unique=True, postgresql_where=own_unit != null()),
         db.Index(
             'idx_account_peg_debtor_id',
             creditor_id,

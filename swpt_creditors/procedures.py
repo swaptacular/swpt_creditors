@@ -128,10 +128,6 @@ class AccountDebtorNameConflictError(Exception):
     """Another account with this debtorName already exist."""
 
 
-class AccountOwnUnitConflictError(Exception):
-    """Another another account with this ownUnit already exist."""
-
-
 @atomic
 def get_creditors_with_pending_log_entries() -> Iterable[int]:
     return set(t[0] for t in db.session.query(PendingLogEntry.creditor_id).all())
@@ -465,13 +461,6 @@ def update_account_display(
         debtor_name_confilict = db.session.query(debtor_name_query.exists()).scalar()
         if debtor_name_confilict:
             raise AccountDebtorNameConflictError()
-
-    # NOTE: We must ensure that the own unit is unique.
-    if own_unit not in [display.own_unit, None]:
-        own_unit_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, own_unit=own_unit)
-        own_unit_conflict = db.session.query(own_unit_query.exists()).scalar()
-        if own_unit_conflict:
-            raise AccountOwnUnitConflictError()
 
     # NOTE: When a currency peg is specified, and the creditor already
     # has an account in the specified peg currency, then we must set a
