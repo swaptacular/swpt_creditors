@@ -499,7 +499,7 @@ def test_account_display(client, account):
     assert data['decimalPlaces'] == 0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'peg' not in data
-    assert 'ownUnit' not in data
+    assert 'unit' not in data
     assert 'debtorName' not in data
 
     p.process_pending_log_entries(2)
@@ -515,7 +515,7 @@ def test_account_display(client, account):
 
     r = client.patch('/creditors/2/accounts/11/display', json={
         'debtorName': 'existing debtor',
-        'ownUnit': 'EUR',
+        'unit': 'EUR',
     })
     assert r.status_code == 200
 
@@ -524,7 +524,7 @@ def test_account_display(client, account):
         'debtorName': 'United States of America',
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
-        'ownUnit': 'USD',
+        'unit': 'USD',
         'useOwnUnit': False,
         'hide': True,
         'peg': {
@@ -551,7 +551,7 @@ def test_account_display(client, account):
     assert data['debtorName'] == 'United States of America'
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
-    assert data['ownUnit'] == 'USD'
+    assert data['unit'] == 'USD'
     assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
@@ -584,7 +584,7 @@ def test_account_display(client, account):
     assert data['debtorName'] == 'United States of America'
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
-    assert data['ownUnit'] == 'USD'
+    assert data['unit'] == 'USD'
     assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
@@ -598,7 +598,7 @@ def test_account_display(client, account):
     }
 
     request_data['debtorName'] = 'existing debtor'
-    request_data['ownUnit'] = 'USD'
+    request_data['unit'] = 'USD'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
     data = r.get_json()
@@ -631,7 +631,7 @@ def test_account_display(client, account):
     assert r.status_code == 204
 
     request_data['debtorName'] = 'existing debtor'
-    request_data['ownUnit'] = 'EUR'
+    request_data['unit'] = 'EUR'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 200
 

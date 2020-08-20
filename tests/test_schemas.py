@@ -201,7 +201,7 @@ def test_serialize_account_display(app):
         debtor_name='Test Debtor',
         amount_divisor=100.0,
         decimal_places=2,
-        own_unit='XXX',
+        unit='XXX',
         use_own_unit=True,
         hide=False,
         peg_exchange_rate=1.0,
@@ -217,7 +217,7 @@ def test_serialize_account_display(app):
         'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'debtorName': 'Test Debtor',
-        'ownUnit': 'XXX',
+        'unit': 'XXX',
         'useOwnUnit': True,
         'peg': {
             'type': 'CurrencyPeg',
@@ -234,7 +234,7 @@ def test_serialize_account_display(app):
     }
 
     ad.debtor_name = None
-    ad.own_unit = None
+    ad.unit = None
     ad.peg_debtor_home_url = None
     ad.peg_account_debtor_id = None
     assert ads.dump(ad) == {
@@ -283,7 +283,7 @@ def test_deserialize_account_display(app):
     data = ads.load({
         'type': 'AccountDisplay',
         'debtorName': 'Test Debtor',
-        'ownUnit': 'XXX',
+        'unit': 'XXX',
         'useOwnUnit': False,
         'peg': {
             'type': 'CurrencyPeg',
@@ -300,7 +300,7 @@ def test_deserialize_account_display(app):
         'amount_divisor': 100.0,
         'decimal_places': 2,
         'hide': False,
-        'optional_own_unit': 'XXX',
+        'optional_unit': 'XXX',
         'optional_debtor_name': 'Test Debtor',
         'optional_peg': {
             'type': 'CurrencyPeg',
@@ -312,11 +312,11 @@ def test_deserialize_account_display(app):
     with pytest.raises(ValidationError):
         ads.load({'type': 'WrongType'})
 
-    with pytest.raises(ValidationError, match='Can not set ownUnit without debtorName.'):
-        ads.load({'ownUnit': 'USD'})
+    with pytest.raises(ValidationError, match='Can not set unit without debtorName.'):
+        ads.load({'unit': 'USD'})
 
     with pytest.raises(ValidationError, match='Length must be between 1 and'):
-        ads.load({'debtorName': 'Test Debtor', 'ownUnit': 1000 * 'x'})
+        ads.load({'debtorName': 'Test Debtor', 'unit': 1000 * 'x'})
 
     with pytest.raises(ValidationError):
         ads.load({'useOwnUnit': 'not boolean'})

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 6365074f73b7
+Revision ID: 41d0e3e1c3ed
 Revises: 8d8c816257ce
-Create Date: 2020-08-20 14:13:15.367399
+Create Date: 2020-08-20 15:47:13.351700
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '6365074f73b7'
+revision = '41d0e3e1c3ed'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -171,7 +171,7 @@ def upgrade():
     sa.Column('debtor_name', sa.String(), nullable=True),
     sa.Column('amount_divisor', sa.FLOAT(), nullable=False),
     sa.Column('decimal_places', sa.Integer(), nullable=False),
-    sa.Column('own_unit', sa.String(), nullable=True),
+    sa.Column('unit', sa.String(), nullable=True),
     sa.Column('use_own_unit', sa.BOOLEAN(), nullable=False),
     sa.Column('hide', sa.BOOLEAN(), nullable=False),
     sa.Column('peg_exchange_rate', sa.FLOAT(), nullable=True),
@@ -181,8 +181,8 @@ def upgrade():
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount_divisor > 0.0'),
-    sa.CheckConstraint('debtor_name IS NOT NULL OR own_unit IS NULL'),
     sa.CheckConstraint('debtor_name IS NOT NULL OR peg_exchange_rate IS NULL'),
+    sa.CheckConstraint('debtor_name IS NOT NULL OR unit IS NULL'),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('peg_account_debtor_id = peg_currency_debtor_id OR peg_account_debtor_id IS NULL'),
     sa.CheckConstraint('peg_currency_debtor_id IS NOT NULL OR peg_exchange_rate IS NULL'),

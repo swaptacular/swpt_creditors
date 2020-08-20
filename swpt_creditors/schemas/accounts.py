@@ -705,23 +705,24 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "currency, and the peg currency). Sometimes the peg currency is itself "
                     "pegged to another currency. This is called a \"peg-chain\".",
     )
-    optional_own_unit = fields.String(
+    optional_unit = fields.String(
         validate=validate.Length(min=1, max=20),
-        data_key='ownUnit',
+        data_key='unit',
         description="Optional abbreviation for the value measurement unit specified by the account's "
-                    "debtor. In practice, many of creditor's accounts may be pegged to other "
+                    "debtor. It should be shown right after the displayed amount, \"500.00 USD\" "
+                    "for example. In practice, many of creditor's accounts may be pegged to other "
                     "accounts, and may have their `useOwnUnit` fields set to `False`.",
         example='USD',
     )
     use_own_unit = fields.Boolean(
         missing=True,
         data_key='useOwnUnit',
-        description="Whether the `ownUnit` should be used to display the balances on this account, "
+        description="Whether the `unit` field should be used to display the balances on this account, "
                     "and the accounts pegged to this account. To determine the value measurement "
                     "unit in which to show the balance on a given account, the account's `peg`-chain "
                     "should be followed until an account with `useOwnUnit` set to `True` is "
                     "found. If such account has not been found, or the account that has been found "
-                    "does not have an `onwUnit` set, the generic currency sign (\u00a4), or the "
+                    "does not have its `unit` field set, the generic currency sign (\u00a4), or the "
                     "\"XXX\" ISO 4217 currency code should be shown.",
     )
     hide = fields.Boolean(
@@ -741,8 +742,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
     @validates_schema
     def validate_debtor_name(self, data, **kwargs):
         if 'optional_debtor_name' not in data:
-            if 'optional_own_unit' in data:
-                raise ValidationError("Can not set ownUnit without debtorName.")
+            if 'optional_unit' in data:
+                raise ValidationError("Can not set unit without debtorName.")
             if 'optional_peg' in data:
                 raise ValidationError("Can not set peg without debtorName.")
 
@@ -754,8 +755,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         obj.uri = paths.account_display(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
-        if obj.own_unit is not None:
-            obj.optional_own_unit = obj.own_unit
+        if obj.unit is not None:
+            obj.optional_unit = obj.unit
 
         if obj.debtor_name is not None:
             obj.optional_debtor_name = obj.debtor_name

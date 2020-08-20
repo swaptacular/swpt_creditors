@@ -355,7 +355,7 @@ class AccountDisplay(db.Model):
     debtor_name = db.Column(db.String)
     amount_divisor = db.Column(db.FLOAT, nullable=False, default=1.0)
     decimal_places = db.Column(db.Integer, nullable=False, default=0)
-    own_unit = db.Column(db.String)
+    unit = db.Column(db.String)
     use_own_unit = db.Column(db.BOOLEAN, nullable=False, default=True)
     hide = db.Column(db.BOOLEAN, nullable=False, default=False)
     peg_exchange_rate = db.Column(db.FLOAT)
@@ -377,7 +377,7 @@ class AccountDisplay(db.Model):
         db.CheckConstraint(amount_divisor > 0.0),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(peg_exchange_rate >= 0.0),
-        db.CheckConstraint(or_(debtor_name != null(), own_unit == null())),
+        db.CheckConstraint(or_(debtor_name != null(), unit == null())),
         db.CheckConstraint(or_(debtor_name != null(), peg_exchange_rate == null())),
         db.CheckConstraint(or_(peg_exchange_rate != null(), peg_account_debtor_id == null())),
         db.CheckConstraint(or_(peg_currency_debtor_id != null(), peg_exchange_rate == null())),

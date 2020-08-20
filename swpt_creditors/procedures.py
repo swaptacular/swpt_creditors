@@ -431,7 +431,7 @@ def update_account_display(
         debtor_name: Optional[str],
         amount_divisor: float,
         decimal_places: int,
-        own_unit: Optional[str],
+        unit: Optional[str],
         use_own_unit: bool,
         hide: bool,
         peg_exchange_rate: Optional[float],
@@ -446,7 +446,7 @@ def update_account_display(
     assert peg_exchange_rate is None or peg_exchange_rate >= 0.0
     assert (peg_currency_debtor_id is None and peg_exchange_rate is None) or \
            (peg_currency_debtor_id is not None and peg_exchange_rate is not None)
-    assert debtor_name is not None or own_unit is None
+    assert debtor_name is not None or unit is None
     assert debtor_name is not None or peg_exchange_rate is None
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -470,7 +470,7 @@ def update_account_display(
         display.debtor_name = debtor_name
         display.amount_divisor = amount_divisor
         display.decimal_places = decimal_places
-        display.own_unit = own_unit
+        display.unit = unit
         display.use_own_unit = use_own_unit
         display.hide = hide
         display.peg_exchange_rate = peg_exchange_rate
