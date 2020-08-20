@@ -315,7 +315,7 @@ def test_deserialize_account_display(app):
     with pytest.raises(ValidationError, match='Can not set ownUnit without debtorName.'):
         ads.load({'ownUnit': 'USD'})
 
-    with pytest.raises(ValidationError, match='Length must be between 1 and 4.'):
+    with pytest.raises(ValidationError, match='Length must be between 1 and'):
         ads.load({'debtorName': 'Test Debtor', 'ownUnit': 1000 * 'x'})
 
     with pytest.raises(ValidationError):

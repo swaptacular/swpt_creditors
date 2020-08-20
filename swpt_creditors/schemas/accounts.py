@@ -706,7 +706,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "pegged to another currency. This is called a \"peg-chain\".",
     )
     optional_own_unit = fields.String(
-        validate=validate.Length(min=1, max=4),
+        validate=validate.Length(min=1, max=20),
         data_key='ownUnit',
         description="Optional abbreviation for a value measurement unit that is unique for the "
                     "account's debtor. It should be shown right after the displayed amount, "
