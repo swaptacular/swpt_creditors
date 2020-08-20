@@ -512,11 +512,11 @@ class AccountDisplayEndpoint(MethodView):
                 amount_divisor=account_display['amount_divisor'],
                 decimal_places=account_display['decimal_places'],
                 unit=optional_unit,
-                use_own_unit=account_display['use_own_unit'],
                 hide=account_display['hide'],
                 peg_currency_debtor_id=peg_currency_debtor_id,
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
                 peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
+                peg_use_for_display=optional_peg and optional_peg['use_for_display'],
             )
         except procedures.AccountDebtorNameConflictError:
             abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})

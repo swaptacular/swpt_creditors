@@ -7,7 +7,7 @@ from marshmallow import (
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TS0
+from swpt_creditors.models import MIN_INT64, MAX_INT64, TS0
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
     MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
@@ -110,6 +110,11 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
                     "valuable as peg currency's tokens.",
         example=1.0,
     )
+    use_for_display = fields.Boolean(
+        required=True,
+        data_key='useForDisplay',
+        description="Whether the peg dictates how the balance on the pegged account is displayed.",
+    )
     display = fields.Nested(
         ObjectReferenceSchema,
         dump_only=True,
@@ -123,6 +128,7 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
     def assert_required_fields(self, obj, many):
         assert 'debtorIdentity' in obj
         assert 'exchangeRate' in obj
+        assert 'useForDisplay' in obj
         return obj
 
 
@@ -691,7 +697,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     'must have different `debtorName`s. The creditor may choose any name '
                     'that is convenient, or easy to remember.'
                     '\n\n'
-                    '**Important note:** When a new account has been created, this field will '
+                    '**Important note:** When a new account is created, this field will '
                     'not be present, and it must be set as soon as possible, otherwise the '
                     'real identity of the debtor may remain unknown to the creditor, which '
                     'may lead to confusion and financial loses. ',
@@ -710,26 +716,28 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         validate=validate.Length(min=1, max=20),
         data_key='unit',
         description="The value measurement unit specified by the debtor. It should be "
-                    "shown right after the displayed amount, \"500.00 USD\" for example. In "
-                    "practice, many of creditor's accounts may be pegged to other accounts, "
-                    "and may have their `useOwnUnit` fields set to `False`."
+                    "shown right after the displayed amount, \"500.00 USD\" for example. If "
+                    "the account does not have its `unit` field set, the generic currency "
+                    "sign (\u00a4), or the \"XXX\" ISO 4217 currency code should be shown."
                     "\n\n"
-                    "**Important note:** When a new account has been created, this field will "
+                    "**Important note:** When a new account is created, this field will "
                     "not be present, and it must be set as soon as possible, otherwise the "
                     "value measurement unit may remain unknown to the creditor, which may "
-                    "lead to confusion and financial loses.",
+                    "lead to confusion and financial loses."
+                    "\n\n"
+                    "To determine the value measurement unit in which to show the balance "
+                    "on a given account, the account's \"peg-chain\" should be followed "
+                    "until an account is found for which at least one of the following "
+                    "conditions is true:"
+                    "\n * The account is not pegged to another currency."
+                    "\n * The account is pegged to another currency, but the "
+                    "`CurrencyPeg` has its `useForDisplay` field set to `False`."
+                    "\n * The account is pegged to another currency, but the "
+                    "creditor does not have an account in this currency."
+                    "\n * The account is pegged to another currency, the "
+                    "creditor has an account in this currency, but the peg  "
+                    "currency's account does not have its `unit` field set.",
         example='USD',
-    )
-    use_own_unit = fields.Boolean(
-        missing=True,
-        data_key='useOwnUnit',
-        description="Whether the `unit` field should be used to display the balances on this account, "
-                    "and the accounts pegged to this account. To determine the value measurement "
-                    "unit in which to show the balance on a given account, the account's `peg`-chain "
-                    "should be followed until an account with `useOwnUnit` set to `True` is "
-                    "found. If such account has not been found, or the account that has been found "
-                    "does not have its `unit` field set, the generic currency sign (\u00a4), or the "
-                    "\"XXX\" ISO 4217 currency code should be shown.",
     )
     hide = fields.Boolean(
         missing=False,
@@ -774,6 +782,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
             peg = {
                 'exchange_rate': obj.peg_exchange_rate,
                 'debtor_identity': {'uri': make_debtor_uri(obj.peg_currency_debtor_id)},
+                'use_for_display': obj.peg_use_for_display,
             }
             if obj.peg_account_debtor_id is not None:
                 display_path = paths.account_display(creditorId=obj.creditor_id, debtorId=obj.peg_account_debtor_id)

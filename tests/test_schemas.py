@@ -202,11 +202,11 @@ def test_serialize_account_display(app):
         amount_divisor=100.0,
         decimal_places=2,
         unit='XXX',
-        use_own_unit=True,
         hide=False,
         peg_exchange_rate=1.0,
         peg_currency_debtor_id=-2,
         peg_account_debtor_id=-2,
+        peg_use_for_display=False,
         peg_debtor_home_url='https://example.com/debtor-home-url',
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
@@ -218,10 +218,10 @@ def test_serialize_account_display(app):
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'debtorName': 'Test Debtor',
         'unit': 'XXX',
-        'useOwnUnit': True,
         'peg': {
             'type': 'CurrencyPeg',
             'display': {'uri': '/creditors/1/accounts/18446744073709551614/display'},
+            'useForDisplay': False,
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:18446744073709551614'},
             'debtorHomeUrl': 'https://example.com/debtor-home-url',
             'exchangeRate': 1.0,
@@ -237,14 +237,15 @@ def test_serialize_account_display(app):
     ad.unit = None
     ad.peg_debtor_home_url = None
     ad.peg_account_debtor_id = None
+    ad.peg_use_for_display = True
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
         'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'useOwnUnit': True,
         'peg': {
             'type': 'CurrencyPeg',
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:18446744073709551614'},
+            'useForDisplay': True,
             'exchangeRate': 1.0,
         },
         'amountDivisor': 100.0,
@@ -259,7 +260,6 @@ def test_serialize_account_display(app):
         'type': 'AccountDisplay',
         'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'useOwnUnit': True,
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'hide': False,
@@ -274,7 +274,6 @@ def test_deserialize_account_display(app):
     data = ads.load({})
     assert data == {
         'type': 'AccountDisplay',
-        'use_own_unit': True,
         'amount_divisor': 1.0,
         'decimal_places': 0,
         'hide': False,
@@ -284,10 +283,10 @@ def test_deserialize_account_display(app):
         'type': 'AccountDisplay',
         'debtorName': 'Test Debtor',
         'unit': 'XXX',
-        'useOwnUnit': False,
         'peg': {
             'type': 'CurrencyPeg',
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
+            'useForDisplay': True,
             'exchangeRate': 1.5,
         },
         'amountDivisor': 100.0,
@@ -296,7 +295,6 @@ def test_deserialize_account_display(app):
     })
     assert data == {
         'type': 'AccountDisplay',
-        'use_own_unit': False,
         'amount_divisor': 100.0,
         'decimal_places': 2,
         'hide': False,
@@ -305,6 +303,7 @@ def test_deserialize_account_display(app):
         'optional_peg': {
             'type': 'CurrencyPeg',
             'exchange_rate': 1.5,
+            'use_for_display': True,
             'debtor_identity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
         },
     }
@@ -320,9 +319,6 @@ def test_deserialize_account_display(app):
 
     with pytest.raises(ValidationError, match='Can not set debtorName without unit.'):
         ads.load({'debtorName': 'Test Debtor'})
-
-    with pytest.raises(ValidationError):
-        ads.load({'useOwnUnit': 'not boolean'})
 
     with pytest.raises(ValidationError):
         ads.load({'amountDivisor': 0.0})
@@ -341,36 +337,9 @@ def test_deserialize_account_display(app):
             'peg': {
                 'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
                 'exchangeRate': 1.5,
+                'useForDisplay': True,
             }
         })
-
-    with pytest.raises(ValidationError, match='Invalid type.'):
-        ads.load({
-            'debtorName': 'Test Debtor',
-            'peg': {
-                'type': 'WrongType',
-                'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
-                'exchangeRate': 1.5,
-            }
-        })
-
-    with pytest.raises(ValidationError):
-        ads.load({'peg': {
-            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
-            'exchangeRate': -1.5,
-        }})
-
-    with pytest.raises(ValidationError):
-        ads.load({'peg': {
-            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
-            'exchangeRate': -1.5,
-        }})
-
-    with pytest.raises(ValidationError):
-        ads.load({'peg': {
-            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 1000 * 'x'},
-            'exchangeRate': 1.5,
-        }})
 
 
 def test_serialize_account_exchange(app):
@@ -726,6 +695,7 @@ def test_serialize_currency_peg(app):
     cp = {
         'type': 'CurrencyPeg',
         'debtor_identity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
+        'use_for_display': True,
         'optional_debtor_home_url': 'http://example.com/debtor-home-url',
         'exchange_rate': 2.5,
         'display': {'uri': '/creditors/2/accounts/11/display'}
@@ -734,6 +704,7 @@ def test_serialize_currency_peg(app):
     assert cps.dump(cp) == {
         'type': 'CurrencyPeg',
         'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
+        'useForDisplay': True,
         'debtorHomeUrl': 'http://example.com/debtor-home-url',
         'exchangeRate': 2.5,
         'display': {'uri': '/creditors/2/accounts/11/display'}
@@ -742,10 +713,12 @@ def test_serialize_currency_peg(app):
     del cp['type']
     del cp['optional_debtor_home_url']
     del cp['display']
+    cp['use_for_display'] = False
     assert cps.dump(cp) == {
         'type': 'CurrencyPeg',
         'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
         'exchangeRate': 2.5,
+        'useForDisplay': False,
     }
 
 
@@ -755,11 +728,13 @@ def test_deserialize_currency_peg(app):
     data = cps.load({
         'debtorIdentity': {'uri': 'swpt:111'},
         'exchangeRate': 2.5,
+        'useForDisplay': False,
     })
     assert data == {
         'type': 'CurrencyPeg',
         'debtor_identity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
         'exchange_rate': 2.5,
+        'use_for_display': False,
     }
 
     data = cps.load({
@@ -767,12 +742,14 @@ def test_deserialize_currency_peg(app):
         'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
         'exchangeRate': 2.5,
         'debtorHomeUrl': 'http://example.com/debtor-home-url',
+        'useForDisplay': True,
     })
     assert data == {
         'type': 'CurrencyPeg',
         'debtor_identity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
         'exchange_rate': 2.5,
         'optional_debtor_home_url': 'http://example.com/debtor-home-url',
+        'use_for_display': True,
     }
 
     with pytest.raises(ValidationError):
@@ -780,6 +757,7 @@ def test_deserialize_currency_peg(app):
             'type': 'WrongType',
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
             'exchangeRate': 2.5,
+            'useForDisplay': True,
         })
 
     with pytest.raises(ValidationError):
@@ -787,6 +765,7 @@ def test_deserialize_currency_peg(app):
             'type': 'CurrencyPeg',
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 1000 * 'x'},
             'exchangeRate': 2.5,
+            'useForDisplay': True,
         })
 
     with pytest.raises(ValidationError):
@@ -794,6 +773,7 @@ def test_deserialize_currency_peg(app):
             'type': 'CurrencyPeg',
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
             'exchangeRate': -0.01,
+            'useForDisplay': True,
         })
 
     with pytest.raises(ValidationError, match='Not a valid URL.'):
@@ -802,6 +782,7 @@ def test_deserialize_currency_peg(app):
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
             'exchangeRate': 2.5,
             'debtorHomeUrl': '',
+            'useForDisplay': True,
         })
 
     with pytest.raises(ValidationError, match='Longer than maximum length 200.'):
@@ -810,6 +791,15 @@ def test_deserialize_currency_peg(app):
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
             'exchangeRate': 2.5,
             'debtorHomeUrl': 'http://example.com/{}'.format(1000 * 'x'),
+            'useForDisplay': True,
+        })
+
+    with pytest.raises(ValidationError, match='Missing data for required field.'):
+        cps.load({
+            'type': 'CurrencyPeg',
+            'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:111'},
+            'exchangeRate': 2.5,
+            'debtorHomeUrl': 'http://example.com',
         })
 
 

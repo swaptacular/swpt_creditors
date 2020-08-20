@@ -296,7 +296,6 @@ def test_create_account(client, creditor):
             'amountDivisor': 1.0,
             'decimalPlaces': 0,
             'hide': False,
-            'useOwnUnit': True,
             'latestUpdateAt': latestUpdateAt,
             'latestUpdateId': latestUpdateId,
         },
@@ -493,7 +492,6 @@ def test_account_display(client, account):
     assert data['uri'] == '/creditors/2/accounts/1/display'
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert data['useOwnUnit'] == True
     assert data['amountDivisor'] == 1.0
     assert data['hide'] is False
     assert data['decimalPlaces'] == 0
@@ -525,11 +523,11 @@ def test_account_display(client, account):
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'unit': 'USD',
-        'useOwnUnit': False,
         'hide': True,
         'peg': {
             'type': 'CurrencyPeg',
             'exchangeRate': 10.0,
+            'useForDisplay': True,
             'debtorIdentity': {
                 'type': 'DebtorIdentity',
                 'uri': 'swpt:11',
@@ -552,11 +550,11 @@ def test_account_display(client, account):
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
     assert data['unit'] == 'USD'
-    assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
         'type': 'CurrencyPeg',
         'exchangeRate': 10.0,
+        'useForDisplay': True,
         'debtorIdentity': {
             'type': 'DebtorIdentity',
             'uri': 'swpt:11',
@@ -576,6 +574,7 @@ def test_account_display(client, account):
 
     request_data['peg']['debtorIdentity']['uri'] = 'swpt:1111'
     request_data['peg']['debtorHomeUrl'] = 'https://example.com/another-debtor-home-url'
+    request_data['peg']['useForDisplay'] = False
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 200
     data = r.get_json()
@@ -585,11 +584,11 @@ def test_account_display(client, account):
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
     assert data['unit'] == 'USD'
-    assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
         'type': 'CurrencyPeg',
         'exchangeRate': 10.0,
+        'useForDisplay': False,
         'debtorIdentity': {
             'type': 'DebtorIdentity',
             'uri': 'swpt:1111',
