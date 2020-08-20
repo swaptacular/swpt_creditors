@@ -446,7 +446,8 @@ def update_account_display(
     assert peg_exchange_rate is None or peg_exchange_rate >= 0.0
     assert (peg_currency_debtor_id is None and peg_exchange_rate is None) or \
            (peg_currency_debtor_id is not None and peg_exchange_rate is not None)
-    assert debtor_name is not None or unit is None
+    assert (debtor_name is None and unit is None) or \
+           (debtor_name is not None and unit is not None)
     assert debtor_name is not None or peg_exchange_rate is None
 
     current_ts = datetime.now(tz=timezone.utc)

@@ -687,13 +687,14 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
     optional_debtor_name = fields.String(
         validate=validate.Length(min=1, max=40),
         data_key='debtorName',
-        description='The name of the debtor. **All accounts belonging to a given '
-                    'creditor must have different `debtorName`s. When a new account '
-                    'has been created, this field will not be present, and it must '
-                    'be set as soon as possible**, otherwise the real identity of the '
-                    'debtor may remain unknown to the creditor, which may lead to '
-                    'confusion and financial loses. The creditor may choose any '
-                    'name that is convenient, or easy to remember.',
+        description='The name of the debtor. All accounts belonging to a given creditor '
+                    'must have different `debtorName`s. The creditor may choose any name '
+                    'that is convenient, or easy to remember.'
+                    '\n\n'
+                    '**Important note:** When a new account has been created, this field will '
+                    'not be present, and it must be set as soon as possible, otherwise the '
+                    'real identity of the debtor may remain unknown to the creditor, which '
+                    'may lead to confusion and financial loses. ',
         example='United States of America',
     )
     optional_peg = fields.Nested(
@@ -708,10 +709,15 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
     optional_unit = fields.String(
         validate=validate.Length(min=1, max=20),
         data_key='unit',
-        description="Optional abbreviation for the value measurement unit specified by the account's "
-                    "debtor. It should be shown right after the displayed amount, \"500.00 USD\" "
-                    "for example. In practice, many of creditor's accounts may be pegged to other "
-                    "accounts, and may have their `useOwnUnit` fields set to `False`.",
+        description="The value measurement unit specified by the debtor. It should be "
+                    "shown right after the displayed amount, \"500.00 USD\" for example. In "
+                    "practice, many of creditor's accounts may be pegged to other accounts, "
+                    "and may have their `useOwnUnit` fields set to `False`."
+                    "\n\n"
+                    "**Important note:** When a new account has been created, this field will "
+                    "not be present, and it must be set as soon as possible, otherwise the "
+                    "value measurement unit may remain unknown to the creditor, which may "
+                    "lead to confusion and financial loses.",
         example='USD',
     )
     use_own_unit = fields.Boolean(
@@ -741,7 +747,10 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
 
     @validates_schema
     def validate_debtor_name(self, data, **kwargs):
-        if 'optional_debtor_name' not in data:
+        if 'optional_debtor_name' in data:
+            if 'optional_unit' not in data:
+                raise ValidationError("Can not set debtorName without unit.")
+        else:
             if 'optional_unit' in data:
                 raise ValidationError("Can not set unit without debtorName.")
             if 'optional_peg' in data:
