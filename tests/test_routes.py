@@ -296,7 +296,7 @@ def test_create_account(client, creditor):
             'amountDivisor': 1.0,
             'decimalPlaces': 0,
             'hide': False,
-            'ownUnitPreference': 0,
+            'useOwnUnit': True,
             'latestUpdateAt': latestUpdateAt,
             'latestUpdateId': latestUpdateId,
         },
@@ -493,7 +493,7 @@ def test_account_display(client, account):
     assert data['uri'] == '/creditors/2/accounts/1/display'
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert data['ownUnitPreference'] == 0
+    assert data['useOwnUnit'] == True
     assert data['amountDivisor'] == 1.0
     assert data['hide'] is False
     assert data['decimalPlaces'] == 0
@@ -525,7 +525,7 @@ def test_account_display(client, account):
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'ownUnit': 'USD',
-        'ownUnitPreference': 1000000,
+        'useOwnUnit': False,
         'hide': True,
         'peg': {
             'type': 'CurrencyPeg',
@@ -552,7 +552,7 @@ def test_account_display(client, account):
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
     assert data['ownUnit'] == 'USD'
-    assert data['ownUnitPreference'] == 1000000
+    assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
         'type': 'CurrencyPeg',
@@ -585,7 +585,7 @@ def test_account_display(client, account):
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
     assert data['ownUnit'] == 'USD'
-    assert data['ownUnitPreference'] == 1000000
+    assert data['useOwnUnit'] == False
     assert data['hide'] is True
     assert data['peg'] == {
         'type': 'CurrencyPeg',
@@ -602,7 +602,7 @@ def test_account_display(client, account):
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
     data = r.get_json()
-    assert data['errors']['json']['debtorName'] == ['Another account with this debtorName already exist.']
+    assert data['errors']['json']['debtorName'] == ['Another account with the same debtorName already exist.']
 
     p.process_pending_log_entries(2)
     r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:1111'})

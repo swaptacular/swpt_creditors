@@ -356,7 +356,7 @@ class AccountDisplay(db.Model):
     amount_divisor = db.Column(db.FLOAT, nullable=False, default=1.0)
     decimal_places = db.Column(db.Integer, nullable=False, default=0)
     own_unit = db.Column(db.String)
-    own_unit_preference = db.Column(db.Integer, nullable=False, default=0)
+    use_own_unit = db.Column(db.BOOLEAN, nullable=False, default=True)
     hide = db.Column(db.BOOLEAN, nullable=False, default=False)
     peg_exchange_rate = db.Column(db.FLOAT)
     peg_currency_debtor_id = db.Column(db.BigInteger)

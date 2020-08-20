@@ -432,7 +432,7 @@ def update_account_display(
         amount_divisor: float,
         decimal_places: int,
         own_unit: Optional[str],
-        own_unit_preference: int,
+        use_own_unit: bool,
         hide: bool,
         peg_exchange_rate: Optional[float],
         peg_currency_debtor_id: Optional[int],
@@ -442,7 +442,6 @@ def update_account_display(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert amount_divisor > 0.0
     assert MIN_INT32 <= decimal_places <= MAX_INT32
-    assert MIN_INT32 <= own_unit_preference <= MAX_INT32
     assert peg_currency_debtor_id is None or MIN_INT64 <= peg_currency_debtor_id <= MAX_INT64
     assert peg_exchange_rate is None or peg_exchange_rate >= 0.0
     assert (peg_currency_debtor_id is None and peg_exchange_rate is None) or \
@@ -472,7 +471,7 @@ def update_account_display(
         display.amount_divisor = amount_divisor
         display.decimal_places = decimal_places
         display.own_unit = own_unit
-        display.own_unit_preference = own_unit_preference
+        display.use_own_unit = use_own_unit
         display.hide = hide
         display.peg_exchange_rate = peg_exchange_rate
         display.peg_currency_debtor_id = peg_currency_debtor_id

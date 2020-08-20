@@ -202,7 +202,7 @@ def test_serialize_account_display(app):
         amount_divisor=100.0,
         decimal_places=2,
         own_unit='XXX',
-        own_unit_preference=0,
+        use_own_unit=True,
         hide=False,
         peg_exchange_rate=1.0,
         peg_currency_debtor_id=-2,
@@ -218,7 +218,7 @@ def test_serialize_account_display(app):
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'debtorName': 'Test Debtor',
         'ownUnit': 'XXX',
-        'ownUnitPreference': 0,
+        'useOwnUnit': True,
         'peg': {
             'type': 'CurrencyPeg',
             'display': {'uri': '/creditors/1/accounts/18446744073709551614/display'},
@@ -241,7 +241,7 @@ def test_serialize_account_display(app):
         'type': 'AccountDisplay',
         'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'ownUnitPreference': 0,
+        'useOwnUnit': True,
         'peg': {
             'type': 'CurrencyPeg',
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'swpt:18446744073709551614'},
@@ -259,7 +259,7 @@ def test_serialize_account_display(app):
         'type': 'AccountDisplay',
         'uri': '/creditors/1/accounts/18446744073709551615/display',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'ownUnitPreference': 0,
+        'useOwnUnit': True,
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'hide': False,
@@ -274,7 +274,7 @@ def test_deserialize_account_display(app):
     data = ads.load({})
     assert data == {
         'type': 'AccountDisplay',
-        'own_unit_preference': 0,
+        'use_own_unit': True,
         'amount_divisor': 1.0,
         'decimal_places': 0,
         'hide': False,
@@ -284,7 +284,7 @@ def test_deserialize_account_display(app):
         'type': 'AccountDisplay',
         'debtorName': 'Test Debtor',
         'ownUnit': 'XXX',
-        'ownUnitPreference': 1,
+        'useOwnUnit': False,
         'peg': {
             'type': 'CurrencyPeg',
             'debtorIdentity': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
@@ -296,7 +296,7 @@ def test_deserialize_account_display(app):
     })
     assert data == {
         'type': 'AccountDisplay',
-        'own_unit_preference': 1,
+        'use_own_unit': False,
         'amount_divisor': 100.0,
         'decimal_places': 2,
         'hide': False,
@@ -319,10 +319,7 @@ def test_deserialize_account_display(app):
         ads.load({'debtorName': 'Test Debtor', 'ownUnit': 1000 * 'x'})
 
     with pytest.raises(ValidationError):
-        ads.load({'ownUnitPreference': models.MIN_INT32 - 1})
-
-    with pytest.raises(ValidationError):
-        ads.load({'ownUnitPreference': models.MAX_INT32 + 1})
+        ads.load({'useOwnUnit': 'not boolean'})
 
     with pytest.raises(ValidationError):
         ads.load({'amountDivisor': 0.0})

@@ -512,7 +512,7 @@ class AccountDisplayEndpoint(MethodView):
                 amount_divisor=account_display['amount_divisor'],
                 decimal_places=account_display['decimal_places'],
                 own_unit=optional_own_unit,
-                own_unit_preference=account_display['own_unit_preference'],
+                use_own_unit=account_display['use_own_unit'],
                 hide=account_display['hide'],
                 peg_currency_debtor_id=peg_currency_debtor_id,
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],

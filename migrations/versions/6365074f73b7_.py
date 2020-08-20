@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ae4d080ea8bf
+Revision ID: 6365074f73b7
 Revises: 8d8c816257ce
-Create Date: 2020-08-20 13:47:29.931324
+Create Date: 2020-08-20 14:13:15.367399
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ae4d080ea8bf'
+revision = '6365074f73b7'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -172,7 +172,7 @@ def upgrade():
     sa.Column('amount_divisor', sa.FLOAT(), nullable=False),
     sa.Column('decimal_places', sa.Integer(), nullable=False),
     sa.Column('own_unit', sa.String(), nullable=True),
-    sa.Column('own_unit_preference', sa.Integer(), nullable=False),
+    sa.Column('use_own_unit', sa.BOOLEAN(), nullable=False),
     sa.Column('hide', sa.BOOLEAN(), nullable=False),
     sa.Column('peg_exchange_rate', sa.FLOAT(), nullable=True),
     sa.Column('peg_currency_debtor_id', sa.BigInteger(), nullable=True),
