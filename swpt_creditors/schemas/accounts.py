@@ -402,13 +402,6 @@ class AccountInfoSchema(MutableResourceSchema):
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
     )
-    overflown = fields.Boolean(
-        dump_only=True,
-        missing=False,
-        description='Whether the account is "overflown". A `true` indicates that the account\'s '
-                    'principal have breached the `int64` boundaries.',
-        example=False,
-    )
     optional_config_error = fields.String(
         dump_only=True,
         data_key='configError',

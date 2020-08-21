@@ -314,7 +314,6 @@ def test_create_account(client, creditor):
             'account': {'uri': '/creditors/2/accounts/1/'},
             'interestRate': 0.0,
             'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
-            'overflown': False,
             'safeToDelete': False,
             'latestUpdateAt': latestUpdateAt,
             'latestUpdateId': latestUpdateId,
@@ -790,7 +789,6 @@ def test_get_account_info(client, account):
     assert iso8601.parse_date(data['interestRateChangedAt']) == m.TS0
     assert data['interestRate'] == 0.0
     assert data['safeToDelete'] is False
-    assert data['overflown'] is False
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'debtorInfo' not in data
     assert 'identity' not in data

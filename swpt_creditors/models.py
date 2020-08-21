@@ -261,10 +261,6 @@ class AccountData(db.Model):
     )
 
     @property
-    def overflown(self):
-        return bool(self.status_flags & self.STATUS_OVERFLOWN_FLAG)
-
-    @property
     def is_scheduled_for_deletion(self):
         return bool(self.config_flags & self.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
 
