@@ -693,12 +693,13 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         required=True,
         validate=validate.Range(min=0.0, min_inclusive=False),
         data_key='amountDivisor',
-        description="Account's amounts should be divided by this number before being "
-                    "displayed. Important note: This value should be used for display "
-                    "purposes only. Notably, the value of this field must be ignored when "
-                    "the exchange rate between pegged accounts is being calculated."
+        description="Account's amount should be divided by this number before being "
+                    "displayed. For new accounts the value of this field will be `1`."
                     "\n\n"
-                    "**Note:** For new accounts, the value of this field will be `1`.",
+                    "**Important note:** This value should be used for display purposes "
+                    "only. Notably, the value of this field must be ignored when the "
+                    "exchange rate between pegged accounts is calculated.",
+
         example=100.0,
     )
     decimal_places = fields.Integer(
@@ -706,9 +707,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         validate=validate.Range(min=-20, max=20),
         data_key='decimalPlaces',
         description='The number of digits to show after the decimal point, when displaying '
-                    'the amount.'
-                    '\n\n'
-                    '**Note:** For new accounts, the value of this field will be `0`.',
+                    'the amount. For new accounts the value of this field will be `0`.',
         example=2,
     )
     optional_debtor_name = fields.String(
@@ -718,10 +717,10 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     'must have different `debtorName`s. The creditor may choose any name '
                     'that is convenient, or easy to remember.'
                     '\n\n'
-                    '**Important note:** When a new account is created, this field will '
-                    'not be present, and it must be set as soon as possible, otherwise the '
-                    'real identity of the debtor may remain unknown to the creditor, which '
-                    'may lead to confusion and financial loses. ',
+                    "**Important note:** For new accounts this field will not be present, "
+                    "and it must be set as soon as possible, otherwise the real identity "
+                    "of the debtor may remain unknown to the creditor, which may lead "
+                    "to confusion and financial loses.",
         example='United States of America',
     )
     optional_peg = fields.Nested(
@@ -741,11 +740,6 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "the account does not have its `unit` field set, the generic currency "
                     "sign (\u00a4), or the \"XXX\" ISO 4217 currency code should be shown."
                     "\n\n"
-                    "**Important note:** When a new account is created, this field will "
-                    "not be present, and it must be set as soon as possible, otherwise the "
-                    "value measurement unit may remain unknown to the creditor, which may "
-                    "lead to confusion and financial loses."
-                    "\n\n"
                     "To determine the value measurement unit in which to show the balance "
                     "on a given account, the account's \"peg-chain\" should be followed "
                     "until an account is found for which at least one of the following "
@@ -757,22 +751,28 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "creditor does not have an account in this currency."
                     "\n * The account is pegged to another currency, the "
                     "creditor has an account in this currency, but the peg  "
-                    "currency's account does not have its `unit` field set.",
+                    "currency's account does not have its `unit` field set."
+                    "\n\n"
+                    "**Important note:** For new accounts this field will not be present, "
+                    "and it must be set as soon as possible, otherwise the value measurement "
+                    "unit may remain unknown to the creditor, which may lead to confusion "
+                    "and financial loses.",
         example='USD',
     )
     hide = fields.Boolean(
         required=True,
-        description="If `true`, the account should not be shown in the list of accounts "
-                    "belonging to the creditor. This may be convenient for special-purpose "
-                    "accounts. For example, *dummy accounts* are accounts whose balances "
-                    "are always zero, and no transfers can be made from/to them. Dummy "
-                    "accounts can be useful for two purposes: 1) They can represent physical "
-                    "value measurement units (like ounces of gold), to which debtors can peg "
-                    "their currencies; 2) They can represent accounts with debtors to which no "
-                    "network connection is available, still allowing those accounts to act as "
-                    "links in a chain of currency pegs."
+        description="Whether the account should be hidden. That is: not shown when the user "
+                    "views his account list. For new accounts the value of this field "
+                    "will be `False`."
                     "\n\n"
-                    "**Note:** For new accounts, the value of this field will be `False`.",
+                    "This may be convenient for special-purpose accounts. For example, *dummy "
+                    "accounts* are accounts whose balances are always zero, and no transfers "
+                    "can be made from/to them. Dummy accounts can be useful for two "
+                    "purposes: 1) They can represent physical value measurement units (like "
+                    "ounces of gold), to which debtors can peg their currencies; 2) They can "
+                    "represent accounts with debtors to which no network connection is "
+                    "available, still allowing those accounts to act as links in a chain of "
+                    "currency pegs.",
         example=False,
     )
 
