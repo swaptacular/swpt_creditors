@@ -554,7 +554,9 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'is not safe, is to first schedule it for deletion, and delete it only '
                     'when the account status indicates that deletion is safe. Note that '
                     'this may also require making outgoing transfers, so as to reduce the '
-                    'balance on the account to a negligible amount.',
+                    'balance on the account to a negligible amount.'
+                    '\n\n'
+                    '**Note:** For new accounts, the value of this field will be `False`.',
         example=False,
     )
     negligible_amount = fields.Float(
@@ -564,16 +566,20 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
         description='The maximum amount that is considered negligible. It can be used '
                     'to decide whether the account can be safely deleted, and whether an '
                     'incoming transfer should be considered as insignificant. Must be '
-                    'non-negative. **For new accounts, the value of this field will be '
-                    'a huge number** (`1e30` for example).',
+                    'non-negative.'
+                    '\n\n'
+                    '**Note:** For new accounts, the value of this field will be some '
+                    'huge number (`1e30` for example).',
         example=0.0,
     )
     allow_unsafe_deletion = fields.Boolean(
-        missing=False,
+        required=True,
         data_key='allowUnsafeDeletion',
         description='Whether unsafe deletion of the account is allowed by the creditor. Note '
                     'that the deletion of an account which allows unsafe deletion may result in '
-                    'losing a non-negligible amount of money on the account.',
+                    'losing a non-negligible amount of money on the account.'
+                    '\n\n'
+                    '**Note:** For new accounts, the value of this field will be `False`.',
         example=False,
     )
 

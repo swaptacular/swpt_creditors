@@ -626,6 +626,7 @@ def test_deserialize_account_config(app):
     data = acs.load({
         'negligibleAmount': 1.0,
         'scheduledForDeletion': True,
+        'allowUnsafeDeletion': False,
     })
     assert data == {
         'type': 'AccountConfig',
@@ -648,7 +649,12 @@ def test_deserialize_account_config(app):
     }
 
     with pytest.raises(ValidationError):
-        acs.load({'type': 'WrongType'})
+        acs.load({
+            'type': 'WrongType',
+            'negligibleAmount': 1.0,
+            'allowUnsafeDeletion': True,
+            'scheduledForDeletion': False,
+        })
 
 
 def test_serialize_account_info(app):
