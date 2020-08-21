@@ -623,7 +623,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         example='conservative',
     )
     min_principal = fields.Integer(
-        missing=MIN_INT64,
+        required=True,
         validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='minPrincipal',
@@ -633,7 +633,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         example=1000,
     )
     max_principal = fields.Integer(
-        missing=MAX_INT64,
+        required=True,
         validate=validate.Range(min=MIN_INT64, max=MAX_INT64),
         format='int64',
         data_key='maxPrincipal',

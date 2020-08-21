@@ -668,27 +668,24 @@ def test_account_exchange(client, account):
     assert 'policy' not in data
 
     r = client.patch('/creditors/2/accounts/1/exchange', json={})
-    assert r.status_code == 200
+    assert r.status_code == 422
     data = r.get_json()
-    assert data['type'] == 'AccountExchange'
-    assert data['latestUpdateId'] == 3
-    assert data['minPrincipal'] == p.MIN_INT64
-    assert data['maxPrincipal'] == p.MAX_INT64
-    assert 'policy' not in data
+    assert 'maxPrincipal' in data['errors']['json']
+    assert 'minPrincipal' in data['errors']['json']
 
-    r = client.patch('/creditors/2/accounts/1/exchange', json={'policy': 'INVALID'})
+    request_data['policy'] = 'INVALID'
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 422
     data = r.get_json()
     assert data['errors']['json']['policy'] == ['Invalid policy name.']
 
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 4
+    assert len(entries) == 3
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', 1),
         ('AccountList', '/creditors/2/account-list', 2),
         ('AccountExchange', '/creditors/2/accounts/1/exchange', 2),
-        ('AccountExchange', '/creditors/2/accounts/1/exchange', 3),
     ]
 
 

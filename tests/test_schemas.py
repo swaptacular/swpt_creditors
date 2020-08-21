@@ -379,11 +379,14 @@ def test_serialize_account_exchange(app):
 def test_deserialize_account_exchange(app):
     aes = schemas.AccountExchangeSchema(context=CONTEXT)
 
-    data = aes.load({})
+    data = aes.load({
+        'minPrincipal': -1000,
+        'maxPrincipal': -500,
+    })
     assert data == {
         'type': 'AccountExchange',
-        'min_principal': models.MIN_INT64,
-        'max_principal': models.MAX_INT64,
+        'min_principal': -1000,
+        'max_principal': -500,
     }
 
     data = aes.load({
