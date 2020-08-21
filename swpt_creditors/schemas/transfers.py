@@ -54,10 +54,10 @@ class TransferErrorSchema(Schema):
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
     totalLockedAmount = fields.Integer(
-        missing=0,
         dump_only=True,
         format="int64",
-        description='The total amount secured (locked) for transfers on the account.',
+        description='The total amount secured (locked) for transfers on the account. When this '
+                    'field is not present, this means that the locked amount is unknown.',
         example=0,
     )
 
