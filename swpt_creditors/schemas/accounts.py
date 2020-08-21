@@ -376,14 +376,14 @@ class AccountInfoSchema(MutableResourceSchema):
         description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
                     "account when it participates in transfers as sender or recipient. When "
                     "this field is not present, this means that the account does not have "
-                    "an identity yet (or anymore), and can not participate in transfers.\n"
-                    "\n"
-                    "Note that some accounts may be used only to represent a physical value "
-                    "measurement unit (like ounces of gold), and are useful only as links in "
-                    "a chain of currency pegs. Those *dummy accounts* will have *dummy debtors*, "
-                    "which do not represent a person or an organization, do not owe anything "
-                    "to anyone, and are used solely as identifiers of value measurement "
-                    "units. For dummy accounts, this field will never be present.",
+                    "an identity yet (or anymore), and can not participate in transfers."
+                    "\n\n"
+                    "**Note:** This field will not be present at all for *dummy accounts*. "
+                    "Dummy accounts can be useful for two purposes: 1) They can represent "
+                    "physical value measurement units (like ounces of gold), to which "
+                    "debtors can peg their currencies; 2) They can represent accounts with "
+                    "debtors to which no network connection is available, still allowing "
+                    "those accounts to act as links in a chain of currency pegs.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
     is_deletion_safe = fields.Boolean(
@@ -693,8 +693,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         required=True,
         validate=validate.Range(min=0.0, min_inclusive=False),
         data_key='amountDivisor',
-        description="Account's amount should be divided by this number before being "
-                    "displayed. For new accounts the value of this field will be `1`."
+        description="Before displaying the amount, it should be divided by this number. For "
+                    "new accounts the value of this field will be `1`."
                     "\n\n"
                     "**Important note:** This value should be used for display purposes "
                     "only. Notably, the value of this field must be ignored when the "
@@ -763,16 +763,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         required=True,
         description="Whether the account should be hidden. That is: not shown when the user "
                     "views his account list. For new accounts the value of this field "
-                    "will be `False`."
-                    "\n\n"
-                    "This may be convenient for special-purpose accounts. For example, *dummy "
-                    "accounts* are accounts whose balances are always zero, and no transfers "
-                    "can be made from/to them. Dummy accounts can be useful for two "
-                    "purposes: 1) They can represent physical value measurement units (like "
-                    "ounces of gold), to which debtors can peg their currencies; 2) They can "
-                    "represent accounts with debtors to which no network connection is "
-                    "available, still allowing those accounts to act as links in a chain of "
-                    "currency pegs.",
+                    "will be `False`.",
         example=False,
     )
 
