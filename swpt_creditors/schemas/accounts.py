@@ -690,21 +690,25 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     amount_divisor = fields.Float(
-        missing=1.0,
+        required=True,
         validate=validate.Range(min=0.0, min_inclusive=False),
         data_key='amountDivisor',
         description="Account's amounts should be divided by this number before being "
                     "displayed. Important note: This value should be used for display "
                     "purposes only. Notably, the value of this field must be ignored when "
-                    "the exchange rate between pegged accounts is being calculated.",
+                    "the exchange rate between pegged accounts is being calculated."
+                    "\n\n"
+                    "**Note:** For new accounts, the value of this field will be `1`.",
         example=100.0,
     )
     decimal_places = fields.Integer(
-        missing=0,
+        required=True,
         validate=validate.Range(min=-20, max=20),
         data_key='decimalPlaces',
         description='The number of digits to show after the decimal point, when displaying '
-                    'the amount.',
+                    'the amount.'
+                    '\n\n'
+                    '**Note:** For new accounts, the value of this field will be `0`.',
         example=2,
     )
     optional_debtor_name = fields.String(
@@ -757,7 +761,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         example='USD',
     )
     hide = fields.Boolean(
-        missing=False,
+        required=True,
         description="If `true`, the account should not be shown in the list of accounts "
                     "belonging to the creditor. This may be convenient for special-purpose "
                     "accounts. For example, *dummy accounts* are accounts whose balances "
@@ -766,7 +770,9 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "value measurement units (like ounces of gold), to which debtors can peg "
                     "their currencies; 2) They can represent accounts with debtors to which no "
                     "network connection is available, still allowing those accounts to act as "
-                    "links in a chain of currency pegs.",
+                    "links in a chain of currency pegs."
+                    "\n\n"
+                    "**Note:** For new accounts, the value of this field will be `False`.",
         example=False,
     )
 

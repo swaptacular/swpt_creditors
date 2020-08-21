@@ -271,7 +271,13 @@ def test_serialize_account_display(app):
 def test_deserialize_account_display(app):
     ads = schemas.AccountDisplaySchema(context=CONTEXT)
 
-    data = ads.load({})
+    base_data = {
+        'amountDivisor': 1.0,
+        'decimalPlaces': 0,
+        'hide': False,
+    }
+
+    data = ads.load(base_data)
     assert data == {
         'type': 'AccountDisplay',
         'amount_divisor': 1.0,
@@ -309,37 +315,55 @@ def test_deserialize_account_display(app):
     }
 
     with pytest.raises(ValidationError):
-        ads.load({'type': 'WrongType'})
+        x = base_data.copy()
+        x['type'] = 'WrongType'
+        ads.load(x)
 
     with pytest.raises(ValidationError, match='Can not set unit without debtorName.'):
-        ads.load({'unit': 'USD'})
+        x = base_data.copy()
+        x['unit'] = 'USD'
+        ads.load(x)
 
     with pytest.raises(ValidationError, match='Length must be between 1 and'):
-        ads.load({'debtorName': 'Test Debtor', 'unit': 1000 * 'x'})
+        x = base_data.copy()
+        x.update({'debtorName': 'Test Debtor', 'unit': 1000 * 'x'})
+        ads.load(x)
+
+    with pytest.raises(ValidationError, match='Length must be between 1 and'):
+        x = base_data.copy()
+        x.update({'debtorName': 1000 * 'x', 'unit': 'USD'})
+        ads.load(x)
 
     with pytest.raises(ValidationError, match='Can not set debtorName without unit.'):
-        ads.load({'debtorName': 'Test Debtor'})
+        x = base_data.copy()
+        x['debtorName'] = 'Test Debtor'
+        ads.load(x)
 
     with pytest.raises(ValidationError):
-        ads.load({'amountDivisor': 0.0})
+        x = base_data.copy()
+        x['amountDivisor'] = 0.0
+        ads.load(x)
 
     with pytest.raises(ValidationError):
-        ads.load({'amountDivisor': -0.01})
+        x = base_data.copy()
+        x['amountDivisor'] = -0.01
+        ads.load(x)
 
     with pytest.raises(ValidationError):
-        ads.load({'decimalPlaces': 10000})
-
-    with pytest.raises(ValidationError):
-        ads.load({'debtorName': 1000 * 'x'})
+        x = base_data.copy()
+        x['decimalPlaces'] = 10000
+        ads.load(x)
 
     with pytest.raises(ValidationError, match='Can not set peg without debtorName.'):
-        ads.load({
+        x = base_data.copy()
+        x.update({
             'peg': {
                 'debtor': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
                 'exchangeRate': 1.5,
                 'useForDisplay': True,
             }
         })
+        ads.load(x)
 
 
 def test_serialize_account_exchange(app):

@@ -511,6 +511,9 @@ def test_account_display(client, account):
     r = client.patch('/creditors/2/accounts/11/display', json={
         'debtorName': 'existing debtor',
         'unit': 'EUR',
+        'amountDivisor': 100.0,
+        'decimalPlaces': 2,
+        'hide': True,
     })
     assert r.status_code == 200
 
