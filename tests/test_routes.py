@@ -275,7 +275,7 @@ def test_create_account(client, creditor):
         'uri': '/creditors/2/accounts/1/',
         'accountList': {'uri': '/creditors/2/account-list'},
         'createdAt': createdAt,
-        'debtorIdentity': {
+        'debtor': {
             'type': 'DebtorIdentity',
             'uri': 'swpt:1',
         },
@@ -528,7 +528,7 @@ def test_account_display(client, account):
             'type': 'CurrencyPeg',
             'exchangeRate': 10.0,
             'useForDisplay': True,
-            'debtorIdentity': {
+            'debtor': {
                 'type': 'DebtorIdentity',
                 'uri': 'swpt:11',
             },
@@ -555,7 +555,7 @@ def test_account_display(client, account):
         'type': 'CurrencyPeg',
         'exchangeRate': 10.0,
         'useForDisplay': True,
-        'debtorIdentity': {
+        'debtor': {
             'type': 'DebtorIdentity',
             'uri': 'swpt:11',
         },
@@ -563,16 +563,16 @@ def test_account_display(client, account):
         'debtorHomeUrl': 'https://example.com/debtor-home-url',
     }
 
-    request_data['peg']['debtorIdentity']['uri'] = 'INVALID'
+    request_data['peg']['debtor']['uri'] = 'INVALID'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 422
     data = r.get_json()
-    assert data['errors']['json']['peg']['debtorIdentity']['uri'] == ['The URI can not be recognized.']
+    assert data['errors']['json']['peg']['debtor']['uri'] == ['The URI can not be recognized.']
 
     r = client.delete('/creditors/2/accounts/11/')
     assert r.status_code == 409
 
-    request_data['peg']['debtorIdentity']['uri'] = 'swpt:1111'
+    request_data['peg']['debtor']['uri'] = 'swpt:1111'
     request_data['peg']['debtorHomeUrl'] = 'https://example.com/another-debtor-home-url'
     request_data['peg']['useForDisplay'] = False
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
@@ -589,7 +589,7 @@ def test_account_display(client, account):
         'type': 'CurrencyPeg',
         'exchangeRate': 10.0,
         'useForDisplay': False,
-        'debtorIdentity': {
+        'debtor': {
             'type': 'DebtorIdentity',
             'uri': 'swpt:1111',
         },
@@ -710,12 +710,12 @@ def test_account_knowledge(client, account):
     assert data['interestRate'] == 0.0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'debtorInfo' not in data
-    assert 'accountIdentity' not in data
+    assert 'identity' not in data
 
     request_data = {
         'interestRate': 11.5,
         'interestRateChangedAt': '2020-01-01T00:00:00Z',
-        'accountIdentity': {
+        'identity': {
             'type': 'AccountIdentity',
             'uri': 'swpt:1/2',
         },
@@ -739,7 +739,7 @@ def test_account_knowledge(client, account):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['interestRate'] == 11.5
     assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
-    assert data['accountIdentity'] == {'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
+    assert data['identity'] == {'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
     assert data['debtorInfo'] == {
         'type': 'DebtorInfo',
         'url': 'http://example.com',
@@ -748,7 +748,7 @@ def test_account_knowledge(client, account):
     }
 
     del request_data['debtorInfo']
-    del request_data['accountIdentity']
+    del request_data['identity']
     r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
     assert r.status_code == 200
     data = r.get_json()
@@ -759,7 +759,7 @@ def test_account_knowledge(client, account):
     assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert 'debtorInfo' not in data
-    assert 'accountIdentity' not in data
+    assert 'identity' not in data
 
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
@@ -788,8 +788,8 @@ def test_get_account_info(client, account):
     assert data['safeToDelete'] is False
     assert data['overflown'] is False
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
-    assert 'debtorInfoUrl' not in data
-    assert 'accountIdentity' not in data
+    assert 'debtorInfo' not in data
+    assert 'identity' not in data
     assert 'configError' not in data
 
 

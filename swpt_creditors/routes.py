@@ -500,9 +500,9 @@ class AccountDisplayEndpoint(MethodView):
         optional_unit = account_display.get('optional_unit')
 
         try:
-            peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor_identity']['uri'])
+            peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor']['uri'])
         except ValueError:
-            abort(422, errors={'json': {'peg': {'debtorIdentity': {'uri': ['The URI can not be recognized.']}}}})
+            abort(422, errors={'json': {'peg': {'debtor': {'uri': ['The URI can not be recognized.']}}}})
 
         try:
             display = procedures.update_account_display(
@@ -594,7 +594,7 @@ class AccountKnowledgeEndpoint(MethodView):
 
         """
 
-        optional_account_identity = account_knowledge.get('optional_account_identity')
+        optional_identity = account_knowledge.get('optional_identity')
         optional_debtor_info = account_knowledge.get('optional_debtor_info')
         optional_debtor_info_sha256 = optional_debtor_info and optional_debtor_info.get('optional_sha256')
 
@@ -604,7 +604,7 @@ class AccountKnowledgeEndpoint(MethodView):
                 debtor_id=debtorId,
                 interest_rate=account_knowledge['interest_rate'],
                 interest_rate_changed_at_ts=account_knowledge['interest_rate_changed_at_ts'],
-                account_identity=optional_account_identity and optional_account_identity['uri'],
+                identity=optional_identity and optional_identity['uri'],
                 debtor_info_url=optional_debtor_info and optional_debtor_info['url'],
                 debtor_info_content_type=optional_debtor_info and optional_debtor_info.get('optional_content_type'),
                 debtor_info_sha256=optional_debtor_info_sha256 and b16decode(optional_debtor_info_sha256),

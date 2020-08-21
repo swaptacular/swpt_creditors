@@ -506,7 +506,7 @@ def update_account_knowledge(
         debtor_id: int,
         interest_rate: float,
         interest_rate_changed_at_ts: datetime,
-        account_identity: Optional[str],
+        identity: Optional[str],
         debtor_info_url: Optional[str],
         debtor_info_content_type: Optional[str],
         debtor_info_sha256: Optional[bytes]) -> AccountKnowledge:
@@ -521,7 +521,7 @@ def update_account_knowledge(
 
     knowledge.interest_rate = interest_rate
     knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
-    knowledge.account_identity = account_identity
+    knowledge.identity = identity
     knowledge.debtor_info_url = debtor_info_url
     knowledge.debtor_info_content_type = debtor_info_content_type
     knowledge.debtor_info_sha256 = debtor_info_sha256

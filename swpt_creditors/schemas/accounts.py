@@ -85,10 +85,9 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
         default='CurrencyPeg',
         description='The type of this object.',
     )
-    debtor_identity = fields.Nested(
+    debtor = fields.Nested(
         DebtorIdentitySchema,
         required=True,
-        data_key='debtorIdentity',
         description="The peg currency's `DebtorIdentity`.",
         example={'type': 'DebtorIdentity', 'uri': 'swpt:111'},
     )
@@ -126,7 +125,7 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
 
     @post_dump
     def assert_required_fields(self, obj, many):
-        assert 'debtorIdentity' in obj
+        assert 'debtor' in obj
         assert 'exchangeRate' in obj
         assert 'useForDisplay' in obj
         return obj
@@ -365,10 +364,10 @@ class AccountInfoSchema(MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    optional_account_identity = fields.Nested(
+    optional_identity = fields.Nested(
         AccountIdentitySchema,
         dump_only=True,
-        data_key='accountIdentity',
+        data_key='identity',
         description="Account's `AccountIdentity`. It uniquely and reliably identifies the "
                     "account when it participates in transfers as sender or recipient. When "
                     "this field is not present, this means that the account does not have "
@@ -442,7 +441,7 @@ class AccountInfoSchema(MutableResourceSchema):
             obj.optional_debtor_info = {'url': obj.debtor_info_url}
 
         try:
-            obj.optional_account_identity = {'uri': make_account_uri(obj.debtor_id, obj.account_id)}
+            obj.optional_identity = {'uri': make_account_uri(obj.debtor_id, obj.account_id)}
         except ValueError:
             pass
 
@@ -481,9 +480,9 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         description='The moment at which the latest change in the interest rate, which is known '
                     'to the creditor, has happened.',
     )
-    optional_account_identity = fields.Nested(
+    optional_identity = fields.Nested(
         AccountIdentitySchema,
-        data_key='accountIdentity',
+        data_key='identity',
         description="Optional `AccountIdentity`, which is known to the creditor.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
@@ -511,8 +510,8 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
                 debtor_info['optional_content_type'] = obj.debtor_info_content_type
             obj.optional_debtor_info = debtor_info
 
-        if obj.account_identity is not None:
-            obj.optional_account_identity = {'uri': obj.account_identity}
+        if obj.identity is not None:
+            obj.optional_identity = {'uri': obj.identity}
 
         return obj
 
@@ -781,7 +780,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         if obj.peg_exchange_rate is not None:
             peg = {
                 'exchange_rate': obj.peg_exchange_rate,
-                'debtor_identity': {'uri': make_debtor_uri(obj.peg_currency_debtor_id)},
+                'debtor': {'uri': make_debtor_uri(obj.peg_currency_debtor_id)},
                 'use_for_display': obj.peg_use_for_display,
             }
             if obj.peg_account_debtor_id is not None:
@@ -817,11 +816,11 @@ class AccountSchema(MutableResourceSchema):
         description="The URI of creditor's `AccountList`.",
         example={'uri': '/creditors/2/account-list'},
     )
-    debtor_identity = fields.Nested(
+    debtor = fields.Nested(
         DebtorIdentitySchema,
         required=True,
         dump_only=True,
-        data_key='debtorIdentity',
+        data_key='debtor',
         description="Account's `DebtorIdentity`.",
         example={'type': 'DebtorIdentity', 'uri': 'swpt:1'},
     )
@@ -874,7 +873,7 @@ class AccountSchema(MutableResourceSchema):
         paths = self.context['paths']
         obj = copy(obj)
         obj.uri = paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
-        obj.debtor_identity = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
+        obj.debtor = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
         obj.account_list = {'uri': paths.account_list(creditorId=obj.creditor_id)}
         obj.config = obj.data
         obj.info = obj.data
