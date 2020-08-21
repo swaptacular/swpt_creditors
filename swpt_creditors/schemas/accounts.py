@@ -15,6 +15,7 @@ from .common import (
 )
 
 URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
+KNOWLEDGE_MAX_BYTES = 2000
 
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
@@ -486,7 +487,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @validates_schema(pass_original=True)
     def validate_max_length(self, data, original_data, **kwargs):
-        if len(json.dumps(original_data).encode('utf8')) > 2000:
+        if len(json.dumps(original_data, ensure_ascii=False).encode('utf8')) > KNOWLEDGE_MAX_BYTES:
             raise ValidationError("The message is too big.")
 
     @pre_dump

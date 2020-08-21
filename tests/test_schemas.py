@@ -429,6 +429,13 @@ def test_serialize_account_knowledge(app):
             },
             'interestRate': 11.0,
             'interestRateChangedAt': '2020-01-02T00:00:00',
+
+            # ignored
+            'latestUpdateId': 1000,
+            'latestUpdateAt': '2010-01-01T00:00:00',
+            'account': '',
+            'uri': '',
+            'type': '',
         },
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
@@ -477,6 +484,7 @@ def test_serialize_account_knowledge(app):
 
 
 def test_deserialize_account_knowledge(app):
+    n = int(0.4 * schemas.KNOWLEDGE_MAX_BYTES)
     aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
 
     data = aks.load({})
@@ -492,13 +500,13 @@ def test_deserialize_account_knowledge(app):
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
         'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
-        'unknownField': {'innerField': 666},
+        'unknownField': {'innerField': n * 'Ш'},
     })
     assert data == {
         'type': 'AccountKnowledge',
         'data': {
             'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
-            'unknownField': {'innerField': 666},
+            'unknownField': {'innerField': n * 'Ш'},
         }
     }
 
@@ -554,7 +562,7 @@ def test_deserialize_account_knowledge(app):
         aks.load({'type': 'WrongType'})
 
     with pytest.raises(ValidationError):
-        aks.load({'identity': {'type': 'AccountIdentity', 'uri': 1000 * 'x'}})
+        aks.load({'identity': {'type': 'AccountIdentity', 'uri': 2 * n * 'x'}})
 
     with pytest.raises(ValidationError):
         aks.load({'interestRateChangedAt': 'INVALID TIMESTAMP'})
@@ -566,10 +574,10 @@ def test_deserialize_account_knowledge(app):
         aks.load({'interestRate': 'not a number'})
 
     with pytest.raises(ValidationError):
-        aks.load({'tooLong': 50000 * 'x'})
+        aks.load({'tooLong': 3 * n * 'x'})
 
     with pytest.raises(ValidationError):
-        aks.load({str(x): x for x in range(5000)})
+        aks.load({str(x): x for x in range(n)})
 
 
 def test_serialize_account_config(app):
