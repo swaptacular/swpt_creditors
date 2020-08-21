@@ -34,6 +34,7 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         missing='Creditor',
         default='Creditor',
         description='The type of this object.',
+        example='Creditor',
     )
     created_at_ts = fields.DateTime(
         required=True,
