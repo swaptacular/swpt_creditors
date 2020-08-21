@@ -567,13 +567,10 @@ class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
     @accounts_api.doc(operationId='getAccountKnowledge')
     def get(self, creditorId, debtorId):
-        """Return the acknowledged account information.
+        """Return account's stored knowledge.
 
-        The returned object contains information that has been made
-        known to the creditor (the owner of the account). This is
-        useful, for example, to decide whether the creditor has been
-        informed already about an important change in the account's
-        status that has occurred.
+        The returned object contains previously stored knowledge about
+        the account.
 
         """
 
@@ -586,29 +583,18 @@ class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountKnowledge')
     def patch(self, account_knowledge, creditorId, debtorId):
-        """Update the acknowledged account information.
+        """Update account's stored knowledge.
 
-        This operation should be performed when an important change in
-        the account's status, that has occurred, has been made known
-        to the creditor (the owner of the account).
+        This operation should be performed when an important knowledge
+        about the account needs to be stored. In addition to the
+        properties defined in the `AccountKnowledge` schema, the
+        passed object may contain any other properties, which will be
+        stored as well.
 
         """
 
-        optional_identity = account_knowledge.get('optional_identity')
-        optional_debtor_info = account_knowledge.get('optional_debtor_info')
-        optional_debtor_info_sha256 = optional_debtor_info and optional_debtor_info.get('optional_sha256')
-
         try:
-            knowledge = procedures.update_account_knowledge(
-                creditor_id=creditorId,
-                debtor_id=debtorId,
-                interest_rate=account_knowledge['interest_rate'],
-                interest_rate_changed_at_ts=account_knowledge['interest_rate_changed_at_ts'],
-                identity=optional_identity and optional_identity['uri'],
-                debtor_info_url=optional_debtor_info and optional_debtor_info['url'],
-                debtor_info_content_type=optional_debtor_info and optional_debtor_info.get('optional_content_type'),
-                debtor_info_sha256=optional_debtor_info_sha256 and b16decode(optional_debtor_info_sha256),
-            )
+            knowledge = procedures.update_account_knowledge(creditorId, debtorId, account_knowledge['data'])
         except procedures.AccountDoesNotExistError:
             abort(404)
 

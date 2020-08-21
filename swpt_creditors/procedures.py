@@ -501,15 +501,7 @@ def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountK
 
 
 @atomic
-def update_account_knowledge(
-        creditor_id: int,
-        debtor_id: int,
-        interest_rate: float,
-        interest_rate_changed_at_ts: datetime,
-        identity: Optional[str],
-        debtor_info_url: Optional[str],
-        debtor_info_content_type: Optional[str],
-        debtor_info_sha256: Optional[bytes]) -> AccountKnowledge:
+def update_account_knowledge(creditor_id: int, debtor_id: int, data: dict) -> AccountKnowledge:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -519,12 +511,7 @@ def update_account_knowledge(
     if knowledge is None:
         raise AccountDoesNotExistError()
 
-    knowledge.interest_rate = interest_rate
-    knowledge.interest_rate_changed_at_ts = interest_rate_changed_at_ts
-    knowledge.identity = identity
-    knowledge.debtor_info_url = debtor_info_url
-    knowledge.debtor_info_content_type = debtor_info_content_type
-    knowledge.debtor_info_sha256 = debtor_info_sha256
+    knowledge.data = data
     knowledge.latest_update_id += 1
     knowledge.latest_update_ts = current_ts
 

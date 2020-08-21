@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 0510acfe009c
+Revision ID: d900790b3df1
 Revises: 8d8c816257ce
-Create Date: 2020-08-21 14:03:23.149208
+Create Date: 2020-08-21 15:09:05.746151
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '0510acfe009c'
+revision = 'd900790b3df1'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -212,16 +212,10 @@ def upgrade():
     op.create_table('account_knowledge',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('interest_rate', sa.REAL(), nullable=False),
-    sa.Column('interest_rate_changed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('identity', sa.String(), nullable=True),
-    sa.Column('debtor_info_url', sa.String(), nullable=True),
-    sa.Column('debtor_info_content_type', sa.String(), nullable=True),
-    sa.Column('debtor_info_sha256', sa.LargeBinary(), nullable=True),
+    sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('latest_update_id > 0'),
-    sa.CheckConstraint('octet_length(debtor_info_sha256) = 32'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )

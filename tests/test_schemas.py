@@ -419,12 +419,17 @@ def test_serialize_account_knowledge(app):
     ak = models.AccountKnowledge(
         creditor_id=C_ID,
         debtor_id=D_ID,
-        identity='https://example.com/USD/accounts/123',
-        interest_rate=11.0,
-        interest_rate_changed_at_ts=datetime(2020, 1, 2),
-        debtor_info_url='http://example.com',
-        debtor_info_content_type='text/html',
-        debtor_info_sha256=32 * b'\x01',
+        data={
+            'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
+            'debtorInfo': {
+                'type': 'DebtorInfo',
+                'url': 'http://example.com',
+                'contentType': 'text/html',
+                'sha256': 32 * '01',
+            },
+            'interestRate': 11.0,
+            'interestRateChangedAt': '2020-01-02T00:00:00',
+        },
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
@@ -446,14 +451,21 @@ def test_serialize_account_knowledge(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
 
-    ak.identity = None
-    ak.debtor_info_sha256 = None
-    ak.debtor_info_content_type = None
+    ak.data = {
+        'interestRate': 'not a number',
+        'interestRateChangedAt': '2020-01-02T00:00:00',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+        'debtorInfo': {
+            'type': 'DebtorInfo',
+            'url': 'http://example.com',
+        },
+    }
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
         'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'interestRate': 11.0,
+        'interestRate': 'not a number',
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
@@ -470,8 +482,24 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({})
     assert data == {
         'type': 'AccountKnowledge',
-        'interest_rate': 0.0,
-        'interest_rate_changed_at_ts': models.TS0,
+        'data': {},
+    }
+
+    data = aks.load({
+        'type': 'AccountKnowledge',
+        'uri': '',
+        'account': '',
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+        'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
+        'unknownField': {'innerField': 666},
+    })
+    assert data == {
+        'type': 'AccountKnowledge',
+        'data': {
+            'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
+            'unknownField': {'innerField': 666},
+        }
     }
 
     data = aks.load({
@@ -484,18 +512,20 @@ def test_deserialize_account_knowledge(app):
             'sha256': 16 * 'BA01',
         },
         'interestRate': 11.0,
-        'interestRateChangedAt': '2020-01-02T00:00:00',
+        'interestRateChangedAt': '1970-01-01T00:00:00Z',
     })
     assert data == {
         'type': 'AccountKnowledge',
-        'interest_rate': 11.0,
-        'interest_rate_changed_at_ts': datetime(2020, 1, 2),
-        'optional_identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'optional_debtor_info': {
-            'type': 'DebtorInfo',
-            'url': 'http://example.com',
-            'optional_content_type': 'text/html',
-            'optional_sha256': 16 * 'BA01',
+        'data': {
+            'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
+            'debtorInfo': {
+                'type': 'DebtorInfo',
+                'url': 'http://example.com',
+                'contentType': 'text/html',
+                'sha256': 16 * 'BA01',
+            },
+            'interestRate': 11.0,
+            'interestRateChangedAt': '1970-01-01T00:00:00Z',
         },
     }
 
@@ -510,12 +540,13 @@ def test_deserialize_account_knowledge(app):
     })
     assert data == {
         'type': 'AccountKnowledge',
-        'interest_rate': 11.0,
-        'interest_rate_changed_at_ts': datetime(2020, 1, 2),
-        'optional_identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'optional_debtor_info': {
-            'type': 'DebtorInfo',
-            'url': 'http://example.com',
+        'data': {
+            'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
+            'debtorInfo': {
+                'url': 'http://example.com',
+            },
+            'interestRate': 11.0,
+            'interestRateChangedAt': '2020-01-02T00:00:00',
         },
     }
 
@@ -524,6 +555,21 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError):
         aks.load({'identity': {'type': 'AccountIdentity', 'uri': 1000 * 'x'}})
+
+    with pytest.raises(ValidationError):
+        aks.load({'interestRateChangedAt': 'INVALID TIMESTAMP'})
+
+    with pytest.raises(ValidationError):
+        aks.load({'debtorInfo': {}})
+
+    with pytest.raises(ValidationError):
+        aks.load({'interestRate': 'not a number'})
+
+    with pytest.raises(ValidationError):
+        aks.load({'tooLong': 50000 * 'x'})
+
+    with pytest.raises(ValidationError):
+        aks.load({str(x): x for x in range(5000)})
 
 
 def test_serialize_account_config(app):

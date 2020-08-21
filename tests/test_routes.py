@@ -323,8 +323,6 @@ def test_create_account(client, creditor):
             'type': 'AccountKnowledge',
             'uri': '/creditors/2/accounts/1/knowledge',
             'account': {'uri': '/creditors/2/accounts/1/'},
-            'interestRate': 0.0,
-            'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
             'latestUpdateAt': latestUpdateAt,
             'latestUpdateId': latestUpdateId,
         },
@@ -706,8 +704,6 @@ def test_account_knowledge(client, account):
     assert data['uri'] == '/creditors/2/accounts/1/knowledge'
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
-    assert iso8601.parse_date(data['interestRateChangedAt']) == m.TS0
-    assert data['interestRate'] == 0.0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'debtorInfo' not in data
     assert 'identity' not in data
@@ -725,7 +721,14 @@ def test_account_knowledge(client, account):
             'contentType': 'text/html',
             'sha256': 64 * '0',
         },
+        'nonStandardField': True,
     }
+
+    r = client.patch('/creditors/2/accounts/1111/knowledge', json=[])
+    assert r.status_code == 422
+
+    r = client.patch('/creditors/2/accounts/1111/knowledge', json=1)
+    assert r.status_code == 422
 
     r = client.patch('/creditors/2/accounts/1111/knowledge', json=request_data)
     assert r.status_code == 404
@@ -746,6 +749,7 @@ def test_account_knowledge(client, account):
         'contentType': 'text/html',
         'sha256': 64 * '0',
     }
+    assert data['nonStandardField'] is True
 
     del request_data['debtorInfo']
     del request_data['identity']

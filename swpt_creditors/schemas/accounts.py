@@ -1,8 +1,9 @@
 import re
-from base64 import b16encode
+import json
 from copy import copy
 from marshmallow import (
     Schema, fields, ValidationError, validate, validates_schema, pre_dump, post_dump,
+    post_load, INCLUDE,
 )
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
@@ -449,6 +450,9 @@ class AccountInfoSchema(MutableResourceSchema):
 
 
 class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
+    class Meta:
+        unknown = INCLUDE
+
     uri = fields.String(
         required=True,
         dump_only=True,
@@ -468,29 +472,29 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    interest_rate = fields.Float(
-        missing=0.0,
-        data_key='interestRate',
-        description='An annual account interest rate (in percents), which is known to the creditor.',
+    interestRate = fields.Float(
+        description='Optional annual account interest rate (in percents), which is known to '
+                    'the creditor.',
         example=0.0,
     )
-    interest_rate_changed_at_ts = fields.DateTime(
-        missing=TS0,
-        data_key='interestRateChangedAt',
-        description='The moment at which the latest change in the interest rate, which is known '
-                    'to the creditor, has happened.',
+    interestRateChangedAt = fields.DateTime(
+        description='Optional moment at which the latest change in the interest rate has '
+                    'happened, which is known to the creditor.',
     )
-    optional_identity = fields.Nested(
+    identity = fields.Nested(
         AccountIdentitySchema,
-        data_key='identity',
         description="Optional `AccountIdentity`, which is known to the creditor.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
-    optional_debtor_info = fields.Nested(
+    debtorInfo = fields.Nested(
         DebtorInfoSchema,
-        data_key='debtorInfo',
-        description='Optional information about the debtor, which is known to the creditor.',
+        description='Optional `DebtorInfo`, which is known to the creditor.',
     )
+
+    @validates_schema(pass_original=True)
+    def validate_max_length(self, data, original_data, **kwargs):
+        if len(json.dumps(original_data).encode('utf8')) > 2000:
+            raise ValidationError("The message is too big.")
 
     @pre_dump
     def process_account_knowledge_instance(self, obj, many):
@@ -500,20 +504,27 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         obj.uri = paths.account_knowledge(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
-        if obj.debtor_info_url is not None:
-            debtor_info = {
-                'url': obj.debtor_info_url,
-            }
-            if obj.debtor_info_sha256 is not None:
-                debtor_info['optional_sha256'] = b16encode(obj.debtor_info_sha256).decode()
-            if obj.debtor_info_content_type is not None:
-                debtor_info['optional_content_type'] = obj.debtor_info_content_type
-            obj.optional_debtor_info = debtor_info
-
-        if obj.identity is not None:
-            obj.optional_identity = {'uri': obj.identity}
-
         return obj
+
+    @post_dump(pass_original=True)
+    def include_data(self, obj, original_obj, many):
+        result = obj
+        if isinstance(original_obj.data, dict):
+            result = {}
+            result.update(original_obj.data)
+            result.update(obj)
+
+        return result
+
+    @post_load(pass_original=True)
+    def bundle_data(self, obj, original_obj, many, partial):
+        for field in ['uri', 'type', 'account', 'latestUpdateId', 'latestUpdateAt']:
+            original_obj.pop(field, None),
+
+        return {
+            'type': 'AccountKnowledge',
+            'data': original_obj,
+        }
 
 
 class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):

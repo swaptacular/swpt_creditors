@@ -311,12 +311,7 @@ class AccountData(db.Model):
 class AccountKnowledge(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    interest_rate_changed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
-    identity = db.Column(db.String)
-    debtor_info_url = db.Column(db.String)
-    debtor_info_content_type = db.Column(db.String)
-    debtor_info_sha256 = db.Column(db.LargeBinary)
+    data = db.Column(pg.JSON, nullable=False, default={})
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
@@ -326,7 +321,6 @@ class AccountKnowledge(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(latest_update_id > 0),
-        db.CheckConstraint(func.octet_length(debtor_info_sha256) == 32),
     )
 
 
