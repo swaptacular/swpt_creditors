@@ -23,6 +23,7 @@ class DebtorIdentitySchema(ValidateTypeMixin, Schema):
         missing='DebtorIdentity',
         default='DebtorIdentity',
         description='The type of this object.',
+        example='DebtorIdentity',
     )
     uri = fields.String(
         required=True,
@@ -52,6 +53,7 @@ class DebtorInfoSchema(ValidateTypeMixin, Schema):
         missing='DebtorInfo',
         default='DebtorInfo',
         description='The type of this object.',
+        example='DebtorInfo',
     )
     url = fields.String(
         required=True,
@@ -86,6 +88,7 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
         missing='CurrencyPeg',
         default='CurrencyPeg',
         description='The type of this object.',
+        example='CurrencyPeg',
     )
     debtor = fields.Nested(
         DebtorIdentitySchema,
@@ -458,6 +461,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         missing='AccountKnowledge',
         default='AccountKnowledge',
         description='The type of this object.',
+        example='AccountKnowledge',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -533,6 +537,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
         missing='AccountConfig',
         default='AccountConfig',
         description='The type of this object.',
+        example='AccountConfig',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -599,6 +604,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         description='The type of this object. Different implementations may use different '
                     '**additional fields**, providing more exchange settings for the '
                     'account. This field contains the name of the used schema.',
+        example='AccountExchange',
     )
     account = fields.Nested(
         ObjectReferenceSchema,
@@ -668,6 +674,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         missing='AccountDisplay',
         default='AccountDisplay',
         description='The type of this object.',
+        example='AccountDisplay',
     )
     account = fields.Nested(
         ObjectReferenceSchema,

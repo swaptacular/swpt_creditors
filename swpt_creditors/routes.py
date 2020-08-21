@@ -751,7 +751,7 @@ class TransferEndpoint(MethodView):
     @transfers_api.doc(operationId='cancelTransfer',
                        responses={403: specs.TRANSFER_CANCELLATION_FAILURE})
     def post(self, cancel_transfer_request, creditorId, transferUuid):
-        """Cancel a transfer.
+        """Try to cancel a transfer.
 
         This operation will fail if the transfer can not be canceled.
 

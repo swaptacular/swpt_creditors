@@ -169,6 +169,7 @@ class AccountIdentitySchema(ValidateTypeMixin, Schema):
         missing='AccountIdentity',
         default='AccountIdentity',
         description='The type of this object.',
+        example='AccountIdentity',
     )
     uri = fields.String(
         required=True,

@@ -67,6 +67,7 @@ class TransferOptionsSchema(Schema):
         missing='TransferOptions',
         default='TransferOptions',
         description='The type of this object.',
+        example='TransferOptions',
     )
     min_interest_rate = fields.Float(
         missing=-100.0,
@@ -123,6 +124,7 @@ class TransferCreationRequestSchema(Schema):
         missing='TransferCreationRequest',
         default='TransferCreationRequest',
         description='The type of this object.',
+        example='TransferCreationRequest',
     )
     transfer_uuid = fields.UUID(
         required=True,
@@ -224,6 +226,7 @@ class TransferCancelationRequestSchema(Schema):
         missing='TransferCancelationRequest',
         default='TransferCancelationRequest',
         description='The type of this object.',
+        example='TransferCancelationRequest',
     )
 
 
