@@ -287,7 +287,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         example=0,
     )
     ledger_interest = fields.Integer(
-        missing=0,
+        required=True,
         dump_only=True,
         format='int64',
         data_key='interest',
@@ -394,14 +394,14 @@ class AccountInfoSchema(MutableResourceSchema):
         example=False,
     )
     interest_rate = fields.Float(
-        missing=0.0,
+        required=True,
         dump_only=True,
         data_key='interestRate',
         description='Annual rate (in percents) at which interest accumulates on the account.',
         example=0.0,
     )
     last_interest_rate_change_ts = fields.DateTime(
-        missing=TS0,
+        required=True,
         dump_only=True,
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
