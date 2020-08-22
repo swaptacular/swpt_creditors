@@ -252,12 +252,12 @@ class CommittedTransferSchema(Schema):
         description="The URI of the affected `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    coordinator_type = fields.String(
-        missing='direct',
+    coordinator = fields.String(
         dump_only=True,
-        data_key='coordinator',
-        description='Indicates the subsystem which requested the transfer.',
-        example='direct',
+        description='When the transfer was not initiated by the sender, this field '
+                    'indicates the subsystem which initiated the transfer. For interest '
+                    'payments the value of this field will be `"interest"`.',
+        example='interest',
     )
     sender = fields.Nested(
         AccountIdentitySchema,
@@ -321,6 +321,10 @@ class CommittedTransferSchema(Schema):
         except ValueError:
             recipient_uri = _make_invalid_account_uri(obj.debtor_id)
         obj.recipient = {'uri': recipient_uri}
+
+        coordinator = obj.coordinator_type
+        if coordinator not in ['direct', 'exchange'] or (obj.acquired_amount < 0 and coordinator == 'exchage'):
+            obj.coordinator = coordinator
 
         obj.note = _parse_transfer_note(obj.transfer_note)
 

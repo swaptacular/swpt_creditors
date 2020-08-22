@@ -1190,7 +1190,6 @@ def test_serialize_committed_transfer(app):
         'type': 'CommittedTransfer',
         'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666',
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
-        'coordinator': 'direct',
         'committedAt': '2020-01-01T00:00:00',
         'sender': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1'},
         'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1111'},
@@ -1199,7 +1198,10 @@ def test_serialize_committed_transfer(app):
     }
 
     ct.transfer_note = ''
-    assert cts.dump(ct)['note'] == {}
+    ct.coordinator_type = 'interest'
+    data = cts.dump(ct)
+    assert data['note'] == {}
+    assert data['coordinator'] == 'interest'
 
     ct.transfer_note = 'test'
     assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': 'test'}
