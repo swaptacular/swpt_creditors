@@ -254,9 +254,10 @@ class CommittedTransferSchema(Schema):
     )
     coordinator = fields.String(
         dump_only=True,
-        description='When the transfer was not initiated by the sender, this field '
-                    'indicates the subsystem which initiated the transfer. For interest '
-                    'payments the value of this field will be `"interest"`.',
+        description="When the transfer was not initiated by the owner of the sender's "
+                    "account directly, this field indicates the subsystem which initiated "
+                    "the transfer. For interest payments the value of this field will be "
+                    "`\"interest\"`.",
         example='interest',
     )
     sender = fields.Nested(
@@ -323,7 +324,7 @@ class CommittedTransferSchema(Schema):
         obj.recipient = {'uri': recipient_uri}
 
         coordinator = obj.coordinator_type
-        if coordinator not in ['direct', 'exchange'] or (obj.acquired_amount < 0 and coordinator == 'exchage'):
+        if coordinator != 'direct':
             obj.coordinator = coordinator
 
         obj.note = _parse_transfer_note(obj.transfer_note)
