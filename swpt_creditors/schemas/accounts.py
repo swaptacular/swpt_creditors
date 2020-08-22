@@ -491,7 +491,12 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @validates_schema(pass_original=True)
     def validate_max_length(self, data, original_data, **kwargs):
-        if len(json.dumps(original_data, ensure_ascii=False).encode('utf8')) > KNOWLEDGE_MAX_BYTES:
+        try:
+            s = json.dumps(original_data, ensure_ascii=False, allow_nan=False)
+        except ValueError:
+            raise ValidationError("The message is not JSON compliant.")
+
+        if len(s.encode('utf8')) > KNOWLEDGE_MAX_BYTES:
             raise ValidationError("The message is too big.")
 
     @pre_dump

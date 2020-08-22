@@ -603,6 +603,15 @@ def test_deserialize_account_knowledge(app):
     with pytest.raises(ValidationError):
         aks.load({'tooLong': 3 * n * 'x'})
 
+    with pytest.raises(ValidationError, match='not JSON compliant'):
+        aks.loads('{"notJsonCompliant": NaN}')
+
+    with pytest.raises(ValidationError, match='not JSON compliant'):
+        aks.loads('{"notJsonCompliant": -Infinity}')
+
+    with pytest.raises(ValidationError, match='not JSON compliant'):
+        aks.loads('{"notJsonCompliant": Infinity}')
+
     with pytest.raises(ValidationError):
         aks.load({str(x): x for x in range(n)})
 
