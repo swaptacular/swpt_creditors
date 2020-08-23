@@ -480,7 +480,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     )
 
     @validates_schema(pass_original=True)
-    def validate_max_length(self, data, original_data, **kwargs):
+    def validate_max_bytes(self, data, original_data, **kwargs):
         for field in ['uri', 'account', 'latestUpdateId', 'latestUpdateAt']:
             if field in original_data:
                 raise ValidationError(f'Can not modify "{field}".')
@@ -506,7 +506,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
     @post_dump(pass_original=True)
-    def include_data(self, obj, original_obj, many):
+    def unbundle_data(self, obj, original_obj, many):
         if isinstance(original_obj.data, dict):
             result = {}
             result.update(original_obj.data)
@@ -517,11 +517,13 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         return result
 
     @post_load(pass_original=True)
-    def bundle_data(self, obj, original_obj, many, partial):
-        original_obj.pop('type', None)
+    def bundle_data(self, obj, original_data, many, partial):
+        stored_data = original_data.copy()
+        stored_data.pop('type', None)
+
         return {
             'type': 'AccountKnowledge',
-            'data': original_obj,
+            'data': stored_data,
         }
 
 
