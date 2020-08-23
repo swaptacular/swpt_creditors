@@ -722,7 +722,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "**Important note:** For new accounts this field will not be present, "
                     "and it must be set as soon as possible, otherwise the real identity "
                     "of the debtor may remain unknown to the creditor, which may lead "
-                    "to confusion and financial loses.",
+                    "to confusion and financial loses. Also, `peg` and `unit` fields can "
+                    "be set only when this field is set too.",
         example='United States of America',
     )
     optional_peg = fields.Nested(

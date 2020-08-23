@@ -57,7 +57,8 @@ class TransferErrorSchema(Schema):
         dump_only=True,
         format="int64",
         description='The total amount secured (locked) for transfers on the account. When this '
-                    'field is not present, this means that the locked amount is unknown.',
+                    'field is not present, this means that the locked amount is unknown or is '
+                    'irrelevant for this type of error.',
         example=0,
     )
 
