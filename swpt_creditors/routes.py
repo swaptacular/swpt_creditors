@@ -184,15 +184,13 @@ class LogEntriesEndpoint(MethodView):
         list. The paginated list contains recent log entries. The
         returned fragment, and all the subsequent fragments, will be
         sorted in chronological order (smaller `entryId`s go
-        first). Normally, the log entries will constitute a singly
-        linked list, each entry (except the most ancient one)
-        referring to its ancestor.
+        first).
 
         """
 
         n = current_app.config['APP_LOG_ENTRIES_PER_PAGE']
         try:
-            log_entries, latest_log_entry_id = procedures.get_creditor_log_entries(
+            log_entries, last_log_entry_id = procedures.get_creditor_log_entries(
                 creditorId,
                 count=n,
                 prev=params['prev'],
@@ -205,7 +203,7 @@ class LogEntriesEndpoint(MethodView):
             return {
                 'uri': request.full_path,
                 'items': log_entries,
-                'forthcoming': f'?prev={latest_log_entry_id}',
+                'forthcoming': f'?prev={last_log_entry_id}',
             }
 
         return {
@@ -639,9 +637,7 @@ class AccountLedgerEntriesEndpoint(MethodView):
         list. The paginated list contains ledger entries for a given
         account. The returned fragment, and all the subsequent
         fragments, will be sorted in reverse-chronological order
-        (bigger `entryId`s go first). Normally, the entries will
-        constitute a singly linked list, each entry (except the most
-        ancient one) referring to its ancestor.
+        (bigger `entryId`s go first).
 
         """
 

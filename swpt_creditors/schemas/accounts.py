@@ -155,8 +155,9 @@ class LedgerEntrySchema(Schema):
         dump_only=True,
         format='int64',
         data_key='entryId',
-        description='The ID of the ledger entry. This will always be a positive number. Later '
-                    'ledger entries have bigger IDs.',
+        description='The ID of the ledger entry. This will always be a positive number. The first '
+                    'ledger entry has an ID of `1`, and the ID of each subsequent ledger entry will '
+                    'be equal to the ID of the previous ledger entry plus one.',
         example=12345,
     )
     added_at_ts = fields.DateTime(
@@ -192,15 +193,6 @@ class LedgerEntrySchema(Schema):
                     'negligible transfers.',
         example={'uri': '/creditors/2/accounts/1/transfers/18444-999'},
     )
-    optional_previous_entry_id = fields.Integer(
-        dump_only=True,
-        data_key='previousEntryId',
-        format='int64',
-        description="The `entryId` of the previous `LedgerEntry` for this account. Previous "
-                    "entries have smaller IDs. When this field is not present, this means "
-                    "that there are no previous entries in the account's ledger.",
-        example=122,
-    )
 
     @pre_dump
     def process_ledger_entry_instance(self, obj, many):
@@ -215,8 +207,6 @@ class LedgerEntrySchema(Schema):
                 creationDate=obj.creation_date,
                 transferNumber=obj.transfer_number,
             )}
-        if obj.previous_entry_id > 0:
-            obj.optional_previous_entry_id = obj.previous_entry_id
 
         return obj
 
@@ -307,22 +297,22 @@ class AccountLedgerSchema(MutableResourceSchema):
         description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers '
                     'for which the account is either the sender or the recipient. The '
                     'paginated list will be sorted in reverse-chronological order '
-                    '(bigger `entryId`s go first). Noramlly, the entries will constitute '
-                    'a singly linked list, each entry (except the most ancient one) '
-                    'referring to its ancestor.',
+                    '(bigger `entryId`s go first).',
         example={
             'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
-    latest_entry_id = fields.Integer(
+    next_entry_id = fields.Integer(
+        required=True,
         dump_only=True,
         format='int64',
-        data_key='latestEntryId',
-        description="The ID of the latest ledger entry. This will always be a positive number. "
-                    "Later ledger entries have bigger IDs. When this field is not present, this "
-                    "means that there are no entries in the account's ledger.",
+        data_key='nextEntryId',
+        description='The `entryID` of the next ledger entry to come. This will always be a '
+                    'positive number. The first ledger entry for each account will have an ID '
+                    'of `1`, and the ID of each subsequent ledger entry will be equal to the '
+                    'ID of the previous ledger entry plus one.',
         example=123,
     )
 
@@ -336,12 +326,11 @@ class AccountLedgerSchema(MutableResourceSchema):
         obj.latest_update_id = obj.ledger_latest_update_id
         obj.latest_update_ts = obj.ledger_latest_update_ts
         entries_path = paths.account_ledger_entries(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.next_entry_id = obj.ledger_last_entry_id + 1
         obj.entries = {
             'items_type': 'LedgerEntry',
-            'first': f'{entries_path}?prev={obj.ledger_latest_entry_id + 1}'
+            'first': f'{entries_path}?prev={obj.next_entry_id}'
         }
-        if obj.ledger_latest_entry_id > 0:
-            obj.latest_entry_id = obj.ledger_latest_entry_id
 
         return obj
 

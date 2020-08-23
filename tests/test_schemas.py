@@ -18,7 +18,7 @@ def test_serialize_creditor(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=1,
+        last_log_entry_id=1,
         creditor_latest_update_id=1,
         creditor_latest_update_ts=datetime(2020, 1, 1),
     )
@@ -54,7 +54,7 @@ def test_serialize_wallet(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=12345,
+        last_log_entry_id=12345,
     )
     ws = schemas.WalletSchema(context=CONTEXT)
     assert ws.dump(c) == {
@@ -81,7 +81,6 @@ def test_serialize_log_entry(app):
         creditor_id=C_ID,
         entry_id=12345,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=12344,
         object_type='Account',
         object_uri='/creditors/1/accounts/123/',
         object_update_id=777,
@@ -92,7 +91,6 @@ def test_serialize_log_entry(app):
     assert les.dump(le) == {
         'type': 'LogEntry',
         'entryId': 12345,
-        'previousEntryId': 12344,
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'Account',
         'object': {'uri': '/creditors/1/accounts/123/'},
@@ -100,7 +98,6 @@ def test_serialize_log_entry(app):
         'deleted': True,
     }
 
-    le.previous_entry_id = 0
     le.is_deleted = False
     le.data = {'test': 'test', 'list': [1, 2, 3]}
     le.object_update_id = None
@@ -119,7 +116,6 @@ def test_serialize_log_entries_page(app):
         creditor_id=C_ID,
         entry_id=12345,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=12344,
         object_type='Account',
         object_uri='/creditors/1/accounts/123/',
         is_deleted=True,
@@ -156,7 +152,7 @@ def test_serialize_account_list(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=1,
+        last_log_entry_id=1,
         account_list_latest_update_id=1,
         account_list_latest_update_ts=datetime(2020, 1, 1),
     )
@@ -178,7 +174,7 @@ def test_serialize_transfer_list(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=1,
+        last_log_entry_id=1,
         transfer_list_latest_update_id=1,
         transfer_list_latest_update_ts=datetime(2020, 1, 1),
     )
@@ -926,7 +922,7 @@ def test_serialize_account_ledger(app):
         ledger_last_transfer_number=122,
         ledger_latest_update_id=2,
         ledger_latest_update_ts=datetime(2020, 1, 2),
-        ledger_latest_entry_id=0,
+        ledger_last_entry_id=0,
     )
     als = schemas.AccountLedgerSchema(context=CONTEXT)
     assert als.dump(ad) == {
@@ -940,12 +936,13 @@ def test_serialize_account_ledger(app):
             'itemsType': 'LedgerEntry',
             'first': '/creditors/1/accounts/18446744073709551615/entries?prev=1',
         },
+        'nextEntryId': 1,
         'latestUpdateId': 2,
         'latestUpdateAt': '2020-01-02T00:00:00',
     }
 
-    ad.ledger_latest_entry_id = 54321
-    assert als.dump(ad)['latestEntryId'] == 54321
+    ad.ledger_last_entry_id = 54321
+    assert als.dump(ad)['nextEntryId'] == 54322
     assert als.dump(ad)['entries']['first'] == '/creditors/1/accounts/18446744073709551615/entries?prev=54322'
 
     ad.interest_rate = 7.0
@@ -975,21 +972,18 @@ def test_serialize_ledger_entry(app):
         aquired_amount=1000,
         principal=3000,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=1,
     )
     les = schemas.LedgerEntrySchema(context=CONTEXT)
     assert les.dump(le) == {
         'type': 'LedgerEntry',
         'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
         'entryId': 2,
-        'previousEntryId': 1,
         'principal': 3000,
         'transfer': {'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666'},
         'aquiredAmount': 1000,
         'addedAt': '2020-01-02T00:00:00',
     }
 
-    le.previous_entry_id = 0
     le.creation_date = None
     assert les.dump(le) == {
         'type': 'LedgerEntry',
@@ -1000,7 +994,6 @@ def test_serialize_ledger_entry(app):
         'addedAt': '2020-01-02T00:00:00',
     }
 
-    le.previous_entry_id = 0
     le.creation_date = date(2000, 1, 1)
     le.transfer_number = None
     assert les.dump(le) == {
@@ -1051,7 +1044,6 @@ def test_serialize_ledger_entries_page(app):
         aquired_amount=1000,
         principal=3000,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=1,
     )
     lep = {
         'uri': '/test',

@@ -42,11 +42,11 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'debtor_id',
     'creation_date',
     'ledger_principal',
-    'ledger_latest_entry_id',
-    'ledger_latest_update_id',
-    'ledger_latest_update_ts',
+    'ledger_last_entry_id',
     'ledger_last_transfer_number',
     'ledger_last_transfer_committed_at_ts',
+    'ledger_latest_update_id',
+    'ledger_latest_update_ts',
     'principal',
     'interest',
     'interest_rate',
@@ -149,12 +149,9 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
     if pending_log_entries:
         for entry in pending_log_entries:
-            previous_entry_id = creditor.latest_log_entry_id
-            entry_id = creditor.generate_log_entry_id()
             db.session.add(LogEntry(
                 creditor_id=creditor_id,
-                entry_id=entry_id,
-                previous_entry_id=previous_entry_id,
+                entry_id=creditor.generate_log_entry_id(),
                 object_type=entry.object_type,
                 object_uri=entry.object_uri,
                 object_update_id=entry.object_update_id,
@@ -227,12 +224,12 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
     assert count >= 1
     assert 0 <= prev <= MAX_INT64
 
-    latest_log_entry_id = db.session.\
-        query(Creditor.latest_log_entry_id).\
+    last_log_entry_id = db.session.\
+        query(Creditor.last_log_entry_id).\
         filter(Creditor.creditor_id == creditor_id).\
         scalar()
 
-    if latest_log_entry_id is None:
+    if last_log_entry_id is None:
         raise CreditorDoesNotExistError()
 
     log_entries = LogEntry.query.\
@@ -242,7 +239,7 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
         limit(count).\
         all()
 
-    return log_entries, latest_log_entry_id
+    return log_entries, last_log_entry_id
 
 
 @atomic
@@ -1010,22 +1007,16 @@ def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> L
 def _add_log_entry(
         creditor: Creditor,
         *,
+        current_ts: datetime,
         object_type: str,
         object_uri: str,
         object_update_id: int = None,
         is_deleted: bool = False,
-        data: dict = None,
-        current_ts: datetime = None) -> None:
-
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    creditor_id = creditor.creditor_id
-    previous_entry_id = creditor.latest_log_entry_id
-    entry_id = creditor.generate_log_entry_id()
+        data: dict = None) -> None:
 
     db.session.add(LogEntry(
-        creditor_id=creditor_id,
-        entry_id=entry_id,
-        previous_entry_id=previous_entry_id,
+        creditor_id=creditor.creditor_id,
+        entry_id=creditor.generate_log_entry_id(),
         object_type=object_type,
         object_uri=object_uri,
         object_update_id=object_update_id,
@@ -1162,29 +1153,25 @@ def _insert_ledger_entry(
     correction_amount = principal - data.ledger_principal - acquired_amount
 
     if correction_amount != 0:
-        previous_entry_id = data.ledger_latest_entry_id
-        data.ledger_latest_entry_id += 1
+        data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
-            entry_id=data.ledger_latest_entry_id,
+            entry_id=data.ledger_last_entry_id,
             aquired_amount=correction_amount,
             principal=principal - acquired_amount,
             added_at_ts=current_ts,
-            previous_entry_id=previous_entry_id,
         ))
 
     if acquired_amount != 0:
-        previous_entry_id = data.ledger_latest_entry_id
-        data.ledger_latest_entry_id += 1
+        data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
-            entry_id=data.ledger_latest_entry_id,
+            entry_id=data.ledger_last_entry_id,
             aquired_amount=acquired_amount,
             principal=principal,
             added_at_ts=current_ts,
-            previous_entry_id=previous_entry_id,
             creation_date=data.creation_date,
             transfer_number=transfer_number,
         ))

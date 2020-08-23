@@ -167,11 +167,9 @@ class WalletSchema(Schema):
         required=True,
         dump_only=True,
         description="A `PaginatedStream` of creditor's `LogEntry`s. The paginated stream will be "
-                    "sorted in chronological order (smaller entry IDs go first). Normally, the "
-                    "log entries will constitute a singly linked list, each entry (except the most "
-                    "ancient one) referring to its ancestor. The main purpose of the log stream "
-                    "is to allow the clients of the API to reliably and efficiently invalidate "
-                    "their caches, simply by following the \"log\".",
+                    "sorted in chronological order (smaller entry IDs go first). The main "
+                    "purpose of the log stream is to allow the clients of the API to reliably "
+                    "and efficiently invalidate their caches, simply by following the \"log\".",
         example={
             'first': '/creditors/2/log',
             'forthcoming': '/creditors/2/log?prev=12345',
@@ -246,7 +244,7 @@ class WalletSchema(Schema):
         obj.log = {
             'items_type': 'LogEntry',
             'first': log_path,
-            'forthcoming': f'{log_path}?prev={obj.latest_log_entry_id}',
+            'forthcoming': f'{log_path}?prev={obj.last_log_entry_id}',
         }
 
         return obj
@@ -265,18 +263,10 @@ class LogEntrySchema(Schema):
         dump_only=True,
         format='int64',
         data_key='entryId',
-        description='The ID of this log entry. This will always be a positive number. Later '
-                    'log entries have bigger IDs.',
+        description='The ID of the log entry. This will always be a positive number. The first '
+                    'log entry has an ID of `1`, and the ID of each subsequent log entry will '
+                    'be equal to the ID of the previous log entry plus one.',
         example=12345,
-    )
-    optional_previous_entry_id = fields.Integer(
-        dump_only=True,
-        data_key='previousEntryId',
-        format='int64',
-        description="The `entryId` of the previous `LogEntry` for the creditor. Previous "
-                    "log entries have smaller IDs. When this field is not present, this "
-                    "means that the entry is the first log entry for the creditor.",
-        example=12344,
     )
     added_at_ts = fields.DateTime(
         required=True,
@@ -333,9 +323,6 @@ class LogEntrySchema(Schema):
 
         if obj.object_update_id is not None:
             obj.optional_object_update_id = obj.object_update_id
-
-        if obj.previous_entry_id > 0:
-            obj.optional_previous_entry_id = obj.previous_entry_id
 
         if isinstance(obj.data, dict) and not obj.is_deleted:
             obj.optional_data = obj.data
