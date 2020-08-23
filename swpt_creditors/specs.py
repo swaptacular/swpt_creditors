@@ -163,6 +163,7 @@ LOG_ENTRIES_EXAMPLE = {
             'objectType': 'Account',
             'object': {'uri': '/creditors/2/accounts/1/'},
             'objectUpdateId': 10,
+            'deleted': False,
         },
     ],
     'forthcoming': '?prev=12345',
