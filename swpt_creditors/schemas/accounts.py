@@ -484,10 +484,10 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         try:
             s = json.dumps(original_data, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
         except ValueError:
-            raise ValidationError("The message is not JSON compliant.")
+            raise ValidationError('The message is not JSON compliant.')
 
-        if len(s.encode('utf8')) - 2 > self.MAX_BYTES:
-            raise ValidationError("The message is too big.")
+        if len(s.encode('utf8')) > self.MAX_BYTES:
+            raise ValidationError(f'The total length of the stored data exceeds {self.MAX_BYTES} bytes.')
 
     @pre_dump
     def process_account_knowledge_instance(self, obj, many):

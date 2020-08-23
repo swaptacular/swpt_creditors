@@ -587,8 +587,8 @@ class AccountKnowledgeEndpoint(MethodView):
         about the account needs to be stored. In addition to the
         properties defined in the `AccountKnowledge` schema, the
         passed object may contain any other properties, which will be
-        stored as well. The total length of the other properties can
-        not exceed 2000 bytes (UTF-8 encoded, including separators).
+        stored as well. The total length of the stored data can not
+        exceed 2000 bytes (JSON, UTF-8 encoded).
 
         """
 

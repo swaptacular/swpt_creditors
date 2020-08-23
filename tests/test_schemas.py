@@ -597,8 +597,11 @@ def test_deserialize_account_knowledge(app):
     with pytest.raises(ValidationError):
         aks.load({'interestRate': 'not a number'})
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=r'The total length of the stored data exceeds \d'):
         aks.load({'tooLong': 3 * n * 'x'})
+
+    with pytest.raises(ValidationError, match=r'The total length of the stored data exceeds \d'):
+        aks.load({str(x): x for x in range(n)})
 
     with pytest.raises(ValidationError, match='not JSON compliant'):
         aks.loads('{"notJsonCompliant": NaN}')
@@ -608,9 +611,6 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError, match='not JSON compliant'):
         aks.loads('{"notJsonCompliant": Infinity}')
-
-    with pytest.raises(ValidationError):
-        aks.load({str(x): x for x in range(n)})
 
 
 def test_serialize_account_config(app):
