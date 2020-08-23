@@ -971,21 +971,18 @@ def test_serialize_ledger_entry(app):
         aquired_amount=1000,
         principal=3000,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=1,
     )
     les = schemas.LedgerEntrySchema(context=CONTEXT)
     assert les.dump(le) == {
         'type': 'LedgerEntry',
         'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
         'entryId': 2,
-        'previousEntryId': 1,
         'principal': 3000,
         'transfer': {'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666'},
         'aquiredAmount': 1000,
         'addedAt': '2020-01-02T00:00:00',
     }
 
-    le.previous_entry_id = 0
     le.creation_date = None
     assert les.dump(le) == {
         'type': 'LedgerEntry',
@@ -996,7 +993,6 @@ def test_serialize_ledger_entry(app):
         'addedAt': '2020-01-02T00:00:00',
     }
 
-    le.previous_entry_id = 0
     le.creation_date = date(2000, 1, 1)
     le.transfer_number = None
     assert les.dump(le) == {
@@ -1047,7 +1043,6 @@ def test_serialize_ledger_entries_page(app):
         aquired_amount=1000,
         principal=3000,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=1,
     )
     lep = {
         'uri': '/test',

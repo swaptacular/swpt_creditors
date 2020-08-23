@@ -167,11 +167,9 @@ class WalletSchema(Schema):
         required=True,
         dump_only=True,
         description="A `PaginatedStream` of creditor's `LogEntry`s. The paginated stream will be "
-                    "sorted in chronological order (smaller entry IDs go first). Normally, the "
-                    "log entries will constitute a singly linked list, each entry (except the most "
-                    "ancient one) referring to its ancestor. The main purpose of the log stream "
-                    "is to allow the clients of the API to reliably and efficiently invalidate "
-                    "their caches, simply by following the \"log\".",
+                    "sorted in chronological order (smaller entry IDs go first). The main "
+                    "purpose of the log stream is to allow the clients of the API to reliably "
+                    "and efficiently invalidate their caches, simply by following the \"log\".",
         example={
             'first': '/creditors/2/log',
             'forthcoming': '/creditors/2/log?prev=12345',

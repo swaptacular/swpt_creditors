@@ -184,9 +184,7 @@ class LogEntriesEndpoint(MethodView):
         list. The paginated list contains recent log entries. The
         returned fragment, and all the subsequent fragments, will be
         sorted in chronological order (smaller `entryId`s go
-        first). Normally, the log entries will constitute a singly
-        linked list, each entry (except the most ancient one)
-        referring to its ancestor.
+        first).
 
         """
 
@@ -639,9 +637,7 @@ class AccountLedgerEntriesEndpoint(MethodView):
         list. The paginated list contains ledger entries for a given
         account. The returned fragment, and all the subsequent
         fragments, will be sorted in reverse-chronological order
-        (bigger `entryId`s go first). Normally, the entries will
-        constitute a singly linked list, each entry (except the most
-        ancient one) referring to its ancestor.
+        (bigger `entryId`s go first).
 
         """
 

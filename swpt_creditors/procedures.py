@@ -1153,7 +1153,6 @@ def _insert_ledger_entry(
     correction_amount = principal - data.ledger_principal - acquired_amount
 
     if correction_amount != 0:
-        previous_entry_id = data.ledger_latest_entry_id
         data.ledger_latest_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
@@ -1162,11 +1161,9 @@ def _insert_ledger_entry(
             aquired_amount=correction_amount,
             principal=principal - acquired_amount,
             added_at_ts=current_ts,
-            previous_entry_id=previous_entry_id,
         ))
 
     if acquired_amount != 0:
-        previous_entry_id = data.ledger_latest_entry_id
         data.ledger_latest_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
@@ -1175,7 +1172,6 @@ def _insert_ledger_entry(
             aquired_amount=acquired_amount,
             principal=principal,
             added_at_ts=current_ts,
-            previous_entry_id=previous_entry_id,
             creation_date=data.creation_date,
             transfer_number=transfer_number,
         ))

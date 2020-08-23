@@ -398,7 +398,6 @@ class LedgerEntry(db.Model):
     aquired_amount = db.Column(db.BigInteger, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    previous_entry_id = db.Column(db.BigInteger, nullable=False)
     __mapper_args__ = {
         'primary_key': [creditor_id, debtor_id, entry_id],
     }
@@ -410,7 +409,6 @@ class LedgerEntry(db.Model):
         ),
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(entry_id > 0),
-        db.CheckConstraint(and_(previous_entry_id >= 0, previous_entry_id < entry_id)),
 
         # TODO: The rest of the columns are not be part of the primary
         #       key, but should be included in the primary key index
