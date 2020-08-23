@@ -139,7 +139,7 @@ def test_delete_account(db_session, setup_account, current_ts):
 def test_process_account_update_signal(db_session, setup_account):
     AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).update({
         'ledger_principal': 1001,
-        'ledger_latest_entry_id': 88,
+        'ledger_last_entry_id': 88,
         'ledger_last_transfer_number': 888,
     })
 
@@ -149,7 +149,7 @@ def test_process_account_update_signal(db_session, setup_account):
     ad = get_data()
     assert not ad.is_config_effectual
     assert ad.ledger_principal == 1001
-    assert ad.ledger_latest_entry_id == 88
+    assert ad.ledger_last_entry_id == 88
     assert ad.negligible_amount == models.DEFAULT_NEGLIGIBLE_AMOUNT
     assert ad.config_flags == models.DEFAULT_CONFIG_FLAGS
     assert ad.last_change_seqnum == 0
@@ -263,7 +263,7 @@ def test_process_account_update_signal(db_session, setup_account):
     assert ad.creation_date == creation_date + timedelta(days=2)
     assert ad.config_error is None
     assert ad.ledger_principal == 0
-    assert ad.ledger_latest_entry_id == 89
+    assert ad.ledger_last_entry_id == 89
     assert ad.ledger_last_transfer_number == 0
 
     # Discard orphaned account.

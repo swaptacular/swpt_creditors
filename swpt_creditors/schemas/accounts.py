@@ -304,13 +304,15 @@ class AccountLedgerSchema(MutableResourceSchema):
             'first': '/creditors/2/accounts/1/entries?prev=124',
         },
     )
-    latest_entry_id = fields.Integer(
+    next_entry_id = fields.Integer(
+        required=True,
         dump_only=True,
         format='int64',
-        data_key='latestEntryId',
-        description="The ID of the latest ledger entry. This will always be a positive number. "
-                    "Later ledger entries have bigger IDs. When this field is not present, this "
-                    "means that there are no entries in the account's ledger.",
+        data_key='nextEntryId',
+        description='The `entryID` of the next ledger entry to come. This will always be a '
+                    'positive number. The first ledger entry for each account will have an ID '
+                    'of `1`, and the ID of each subsequent ledger entry will be equal to the '
+                    'ID of the previous ledger entry plus one.',
         example=123,
     )
 
@@ -324,12 +326,11 @@ class AccountLedgerSchema(MutableResourceSchema):
         obj.latest_update_id = obj.ledger_latest_update_id
         obj.latest_update_ts = obj.ledger_latest_update_ts
         entries_path = paths.account_ledger_entries(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
+        obj.next_entry_id = obj.ledger_last_entry_id + 1
         obj.entries = {
             'items_type': 'LedgerEntry',
-            'first': f'{entries_path}?prev={obj.ledger_latest_entry_id + 1}'
+            'first': f'{entries_path}?prev={obj.next_entry_id}'
         }
-        if obj.ledger_latest_entry_id > 0:
-            obj.latest_entry_id = obj.ledger_latest_entry_id
 
         return obj
 

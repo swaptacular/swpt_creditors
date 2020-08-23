@@ -18,7 +18,7 @@ def test_serialize_creditor(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=1,
+        last_log_entry_id=1,
         creditor_latest_update_id=1,
         creditor_latest_update_ts=datetime(2020, 1, 1),
     )
@@ -54,7 +54,7 @@ def test_serialize_wallet(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=12345,
+        last_log_entry_id=12345,
     )
     ws = schemas.WalletSchema(context=CONTEXT)
     assert ws.dump(c) == {
@@ -152,7 +152,7 @@ def test_serialize_account_list(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=1,
+        last_log_entry_id=1,
         account_list_latest_update_id=1,
         account_list_latest_update_ts=datetime(2020, 1, 1),
     )
@@ -174,7 +174,7 @@ def test_serialize_transfer_list(app):
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
-        latest_log_entry_id=1,
+        last_log_entry_id=1,
         transfer_list_latest_update_id=1,
         transfer_list_latest_update_ts=datetime(2020, 1, 1),
     )
@@ -922,7 +922,7 @@ def test_serialize_account_ledger(app):
         ledger_last_transfer_number=122,
         ledger_latest_update_id=2,
         ledger_latest_update_ts=datetime(2020, 1, 2),
-        ledger_latest_entry_id=0,
+        ledger_last_entry_id=0,
     )
     als = schemas.AccountLedgerSchema(context=CONTEXT)
     assert als.dump(ad) == {
@@ -936,12 +936,13 @@ def test_serialize_account_ledger(app):
             'itemsType': 'LedgerEntry',
             'first': '/creditors/1/accounts/18446744073709551615/entries?prev=1',
         },
+        'nextEntryId': 1,
         'latestUpdateId': 2,
         'latestUpdateAt': '2020-01-02T00:00:00',
     }
 
-    ad.ledger_latest_entry_id = 54321
-    assert als.dump(ad)['latestEntryId'] == 54321
+    ad.ledger_last_entry_id = 54321
+    assert als.dump(ad)['nextEntryId'] == 54322
     assert als.dump(ad)['entries']['first'] == '/creditors/1/accounts/18446744073709551615/entries?prev=54322'
 
     ad.interest_rate = 7.0

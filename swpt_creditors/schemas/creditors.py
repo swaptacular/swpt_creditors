@@ -244,7 +244,7 @@ class WalletSchema(Schema):
         obj.log = {
             'items_type': 'LogEntry',
             'first': log_path,
-            'forthcoming': f'{log_path}?prev={obj.latest_log_entry_id}',
+            'forthcoming': f'{log_path}?prev={obj.last_log_entry_id}',
         }
 
         return obj

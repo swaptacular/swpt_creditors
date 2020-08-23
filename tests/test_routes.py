@@ -336,6 +336,7 @@ def test_create_account(client, creditor):
                 'itemsType': 'LedgerEntry',
                 'type': 'PaginatedList',
             },
+            'nextEntryId': 1,
             'latestUpdateAt': latestUpdateAt,
             'latestUpdateId': latestUpdateId,
         },

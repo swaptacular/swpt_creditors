@@ -42,11 +42,11 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'debtor_id',
     'creation_date',
     'ledger_principal',
-    'ledger_latest_entry_id',
-    'ledger_latest_update_id',
-    'ledger_latest_update_ts',
+    'ledger_last_entry_id',
     'ledger_last_transfer_number',
     'ledger_last_transfer_committed_at_ts',
+    'ledger_latest_update_id',
+    'ledger_latest_update_ts',
     'principal',
     'interest',
     'interest_rate',
@@ -224,12 +224,12 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
     assert count >= 1
     assert 0 <= prev <= MAX_INT64
 
-    latest_log_entry_id = db.session.\
-        query(Creditor.latest_log_entry_id).\
+    last_log_entry_id = db.session.\
+        query(Creditor.last_log_entry_id).\
         filter(Creditor.creditor_id == creditor_id).\
         scalar()
 
-    if latest_log_entry_id is None:
+    if last_log_entry_id is None:
         raise CreditorDoesNotExistError()
 
     log_entries = LogEntry.query.\
@@ -239,7 +239,7 @@ def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0)
         limit(count).\
         all()
 
-    return log_entries, latest_log_entry_id
+    return log_entries, last_log_entry_id
 
 
 @atomic
@@ -1153,22 +1153,22 @@ def _insert_ledger_entry(
     correction_amount = principal - data.ledger_principal - acquired_amount
 
     if correction_amount != 0:
-        data.ledger_latest_entry_id += 1
+        data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
-            entry_id=data.ledger_latest_entry_id,
+            entry_id=data.ledger_last_entry_id,
             aquired_amount=correction_amount,
             principal=principal - acquired_amount,
             added_at_ts=current_ts,
         ))
 
     if acquired_amount != 0:
-        data.ledger_latest_entry_id += 1
+        data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
-            entry_id=data.ledger_latest_entry_id,
+            entry_id=data.ledger_last_entry_id,
             aquired_amount=acquired_amount,
             principal=principal,
             added_at_ts=current_ts,

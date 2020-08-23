@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from marshmallow import Schema, fields
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, false, func, or_, and_, FunctionElement
+from sqlalchemy.sql.expression import null, true, false, or_, and_, FunctionElement
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.types import DateTime
 from swpt_creditors.extensions import db, broker, MAIN_EXCHANGE_NAME
@@ -91,7 +91,7 @@ class Creditor(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     status = db.Column(db.SmallInteger, nullable=False, default=DEFAULT_CREDITOR_STATUS)
-    latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
+    last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     account_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
@@ -107,7 +107,7 @@ class Creditor(db.Model):
                 'until it is deleted.',
     )
     __table_args__ = (
-        db.CheckConstraint(latest_log_entry_id >= 0),
+        db.CheckConstraint(last_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(account_list_latest_update_id > 0),
         db.CheckConstraint(transfer_list_latest_update_id > 0),
@@ -129,9 +129,9 @@ class Creditor(db.Model):
             self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
 
     def generate_log_entry_id(self):
-        self.latest_log_entry_id += 1
-        assert self.latest_log_entry_id <= MAX_INT64
-        return self.latest_log_entry_id
+        self.last_log_entry_id += 1
+        assert self.last_log_entry_id <= MAX_INT64
+        return self.last_log_entry_id
 
 
 class BaseLogEntry(db.Model):
@@ -235,11 +235,11 @@ class AccountData(db.Model):
 
     # AccountLedger data
     ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
+    ledger_last_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     ledger_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    ledger_latest_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
 
     __table_args__ = (
         db.ForeignKeyConstraint(
@@ -250,8 +250,8 @@ class AccountData(db.Model):
         db.CheckConstraint(interest_rate >= -100.0),
         db.CheckConstraint(negligible_amount >= 0.0),
         db.CheckConstraint(last_transfer_number >= 0),
+        db.CheckConstraint(ledger_last_entry_id >= 0),
         db.CheckConstraint(ledger_last_transfer_number >= 0),
-        db.CheckConstraint(ledger_latest_entry_id >= 0),
         db.CheckConstraint(ledger_latest_update_id > 0),
         db.CheckConstraint(config_latest_update_id > 0),
         db.CheckConstraint(info_latest_update_id > 0),
