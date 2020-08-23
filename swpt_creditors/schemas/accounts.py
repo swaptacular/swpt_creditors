@@ -481,11 +481,14 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @validates_schema(pass_original=True)
     def validate_max_length(self, data, original_data, **kwargs):
-        modified_data = original_data.copy()
-        modified_data.pop('type', None)
+        for field in ['uri', 'account', 'latestUpdateId', 'latestUpdateAt']:
+            if field in original_data:
+                raise ValidationError(f'Can not modify "{field}".')
 
+        stored_data = original_data.copy()
+        stored_data.pop('type', None)
         try:
-            s = json.dumps(modified_data, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+            s = json.dumps(stored_data, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
         except ValueError:
             raise ValidationError('The message is not JSON compliant.')
 
@@ -504,19 +507,18 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @post_dump(pass_original=True)
     def include_data(self, obj, original_obj, many):
-        result = obj
         if isinstance(original_obj.data, dict):
             result = {}
             result.update(original_obj.data)
             result.update(obj)
+        else:
+            result = obj
 
         return result
 
     @post_load(pass_original=True)
     def bundle_data(self, obj, original_obj, many, partial):
-        for field in ['uri', 'type', 'account', 'latestUpdateId', 'latestUpdateAt']:
-            original_obj.pop(field, None),
-
+        original_obj.pop('type', None)
         return {
             'type': 'AccountKnowledge',
             'data': original_obj,

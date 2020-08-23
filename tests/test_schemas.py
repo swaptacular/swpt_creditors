@@ -519,10 +519,6 @@ def test_deserialize_account_knowledge(app):
 
     data = aks.load({
         'type': 'AccountKnowledge',
-        'uri': '',
-        'account': '',
-        'latestUpdateId': 1,
-        'latestUpdateAt': '2020-01-01T00:00:00',
         'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
         'unknownField': {'innerField': n * 'Ш'},
     })
@@ -611,6 +607,10 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError, match='not JSON compliant'):
         aks.loads('{"notJsonCompliant": Infinity}')
+
+    for field in ['uri', 'account', 'latestUpdateId', 'latestUpdateAt']:
+        with pytest.raises(ValidationError, match=f'Can not modify "{field}".'):
+            aks.load({field: 'x'})
 
 
 def test_serialize_account_config(app):
