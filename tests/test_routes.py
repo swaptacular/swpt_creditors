@@ -199,7 +199,7 @@ def test_account_list_page(client, account):
         ('Account', '/creditors/2/accounts/9223372036854775808/'),
         ('AccountList', '/creditors/2/account-list'),
     ]
-    assert all(['deleted' not in e for e in entries])
+    assert all([e['deleted'] is False for e in entries])
     assert all(['data' not in e for e in entries])
     assert all([e['type'] == 'LogEntry' not in e for e in entries])
     assert all([iso8601.parse_date(e['addedAt']) not in e for e in entries])

@@ -107,6 +107,7 @@ def test_serialize_log_entry(app):
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'Account',
         'object': {'uri': '/creditors/1/accounts/123/'},
+        'deleted': False,
         'data': le.data,
     }
 

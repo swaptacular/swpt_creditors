@@ -288,6 +288,12 @@ class LogEntrySchema(Schema):
         description='The URI of the object that has been created, updated, or deleted.',
         example={'uri': '/creditors/2/accounts/1/'},
     )
+    is_deleted = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='deleted',
+        description='Whether the object has been deleted.',
+    )
     optional_object_update_id = fields.Integer(
         dump_only=True,
         data_key='objectUpdateId',
@@ -296,11 +302,6 @@ class LogEntrySchema(Schema):
                     'have an update ID in it its new state (for example, the object may have '
                     'been deleted, or could be immutable).',
         example=10,
-    )
-    deleted = fields.Boolean(
-        missing=False,
-        dump_only=True,
-        description='Whether the object has been deleted.',
     )
     optional_data = fields.Dict(
         missing={},
@@ -317,9 +318,6 @@ class LogEntrySchema(Schema):
         assert isinstance(obj, models.LogEntry)
         obj = copy(obj)
         obj.object = {'uri': obj.object_uri}
-
-        if obj.is_deleted:
-            obj.deleted = True
 
         if obj.object_update_id is not None:
             obj.optional_object_update_id = obj.object_update_id
