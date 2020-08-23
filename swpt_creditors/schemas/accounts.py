@@ -481,8 +481,11 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @validates_schema(pass_original=True)
     def validate_max_length(self, data, original_data, **kwargs):
+        modified_data = original_data.copy()
+        modified_data.pop('type', None)
+
         try:
-            s = json.dumps(original_data, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+            s = json.dumps(modified_data, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
         except ValueError:
             raise ValidationError('The message is not JSON compliant.')
 
