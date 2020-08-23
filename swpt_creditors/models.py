@@ -24,7 +24,6 @@ DATE0 = TS0.date()
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 ROOT_CREDITOR_ID = 0
-FIRST_LOG_ENTRY_ID = 2
 DEFAULT_CREDITOR_STATUS = 0
 DEFAULT_CONFIG_FLAGS = 0
 DEFAULT_NEGLIGIBLE_AMOUNT = 1e30
@@ -92,7 +91,7 @@ class Creditor(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     status = db.Column(db.SmallInteger, nullable=False, default=DEFAULT_CREDITOR_STATUS)
-    latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     account_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
@@ -108,7 +107,7 @@ class Creditor(db.Model):
                 'until it is deleted.',
     )
     __table_args__ = (
-        db.CheckConstraint(latest_log_entry_id > 0),
+        db.CheckConstraint(latest_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(account_list_latest_update_id > 0),
         db.CheckConstraint(transfer_list_latest_update_id > 0),
@@ -149,7 +148,6 @@ class BaseLogEntry(db.Model):
 class LogEntry(BaseLogEntry):
     creditor_id = db.Column(db.BigInteger, nullable=False)
     entry_id = db.Column(db.BigInteger, nullable=False)
-    previous_entry_id = db.Column(db.BigInteger, nullable=False)
     __mapper_args__ = {
         'primary_key': [creditor_id, entry_id],
     }
@@ -157,7 +155,6 @@ class LogEntry(BaseLogEntry):
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint('object_update_id > 0'),
         db.CheckConstraint(entry_id > 0),
-        db.CheckConstraint(and_(previous_entry_id >= 0, previous_entry_id < entry_id)),
 
         # TODO: The rest of the columns are not be part of the primary
         #       key, but should be included in the primary key index

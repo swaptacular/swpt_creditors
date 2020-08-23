@@ -113,7 +113,7 @@ def test_update_creditor(client, creditor):
     assert len(entries) == 1
     e = entries[0]
     assert e['type'] == 'LogEntry'
-    assert e['entryId'] == m.FIRST_LOG_ENTRY_ID
+    assert e['entryId'] == 1
     assert e['objectType'] == 'Creditor'
     assert e['object'] == {'uri': '/creditors/2/'}
     assert not e.get('deleted')
@@ -133,7 +133,7 @@ def test_get_wallet(client, creditor):
     log = data['log']
     assert log['type'] == 'PaginatedStream'
     assert log['first'] == '/creditors/2/log'
-    assert log['forthcoming'] == '/creditors/2/log?prev=1'
+    assert log['forthcoming'] == '/creditors/2/log?prev=0'
     assert log['itemsType'] == 'LogEntry'
     dt = data['transferList']
     assert dt['uri'] == '/creditors/2/transfer-list'
@@ -150,7 +150,7 @@ def test_get_log_page(client, creditor):
     data = r.get_json()
     assert data['type'] == 'LogEntriesPage'
     assert data['items'] == []
-    assert data['forthcoming'] == '?prev=1'
+    assert data['forthcoming'] == '?prev=0'
     assert 'next' not in data
 
 
@@ -356,7 +356,7 @@ def test_create_account(client, creditor):
     assert entries[1]['objectType'] == 'AccountList'
     e = entries[0]
     assert e['type'] == 'LogEntry'
-    assert e['entryId'] == m.FIRST_LOG_ENTRY_ID
+    assert e['entryId'] == 1
     assert e['objectType'] == 'Account'
     assert e['object'] == {'uri': '/creditors/2/accounts/1/'}
     assert not e.get('deleted')
@@ -623,8 +623,7 @@ def test_account_display(client, account):
         ('AccountList', '/creditors/2/account-list', 4),
         ('AccountDisplay', '/creditors/2/accounts/1/display', 4),
     ]
-    assert all([entries[i]['previousEntryId'] == entries[i - 1]['entryId']for i in range(1, len(entries))])
-    assert all([entries[i]['entryId'] > entries[i - 1]['entryId']for i in range(1, len(entries))])
+    assert all([entries[i]['entryId'] - entries[i - 1]['entryId'] == 1 for i in range(1, len(entries))])
 
     r = client.delete('/creditors/2/accounts/11/')
     assert r.status_code == 204

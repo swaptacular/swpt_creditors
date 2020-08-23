@@ -149,12 +149,9 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
     if pending_log_entries:
         for entry in pending_log_entries:
-            previous_entry_id = creditor.latest_log_entry_id
-            entry_id = creditor.generate_log_entry_id()
             db.session.add(LogEntry(
                 creditor_id=creditor_id,
-                entry_id=entry_id,
-                previous_entry_id=previous_entry_id,
+                entry_id=creditor.generate_log_entry_id(),
                 object_type=entry.object_type,
                 object_uri=entry.object_uri,
                 object_update_id=entry.object_update_id,
@@ -1010,22 +1007,16 @@ def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> L
 def _add_log_entry(
         creditor: Creditor,
         *,
+        current_ts: datetime,
         object_type: str,
         object_uri: str,
         object_update_id: int = None,
         is_deleted: bool = False,
-        data: dict = None,
-        current_ts: datetime = None) -> None:
-
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    creditor_id = creditor.creditor_id
-    previous_entry_id = creditor.latest_log_entry_id
-    entry_id = creditor.generate_log_entry_id()
+        data: dict = None) -> None:
 
     db.session.add(LogEntry(
-        creditor_id=creditor_id,
-        entry_id=entry_id,
-        previous_entry_id=previous_entry_id,
+        creditor_id=creditor.creditor_id,
+        entry_id=creditor.generate_log_entry_id(),
         object_type=object_type,
         object_uri=object_uri,
         object_update_id=object_update_id,

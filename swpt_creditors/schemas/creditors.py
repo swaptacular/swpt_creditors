@@ -265,18 +265,10 @@ class LogEntrySchema(Schema):
         dump_only=True,
         format='int64',
         data_key='entryId',
-        description='The ID of this log entry. This will always be a positive number. Later '
-                    'log entries have bigger IDs.',
+        description='The ID of the log entry. This will always be a positive number. The first '
+                    'log entry has an ID of `1`, and the ID of each subsequent log entry will '
+                    'be equal to the ID of the previous log entry plus one.',
         example=12345,
-    )
-    optional_previous_entry_id = fields.Integer(
-        dump_only=True,
-        data_key='previousEntryId',
-        format='int64',
-        description="The `entryId` of the previous `LogEntry` for the creditor. Previous "
-                    "log entries have smaller IDs. When this field is not present, this "
-                    "means that the entry is the first log entry for the creditor.",
-        example=12344,
     )
     added_at_ts = fields.DateTime(
         required=True,
@@ -333,9 +325,6 @@ class LogEntrySchema(Schema):
 
         if obj.object_update_id is not None:
             obj.optional_object_update_id = obj.object_update_id
-
-        if obj.previous_entry_id > 0:
-            obj.optional_previous_entry_id = obj.previous_entry_id
 
         if isinstance(obj.data, dict) and not obj.is_deleted:
             obj.optional_data = obj.data

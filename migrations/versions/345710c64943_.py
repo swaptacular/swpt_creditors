@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d900790b3df1
+Revision ID: 345710c64943
 Revises: 8d8c816257ce
-Create Date: 2020-08-21 15:09:05.746151
+Create Date: 2020-08-23 13:50:50.024111
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'd900790b3df1'
+revision = '345710c64943'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -44,7 +44,7 @@ def upgrade():
     sa.CheckConstraint('account_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
     sa.CheckConstraint('deactivated_at_date IS NULL OR (status & 1) != 0'),
-    sa.CheckConstraint('latest_log_entry_id > 0'),
+    sa.CheckConstraint('latest_log_entry_id >= 0'),
     sa.CheckConstraint('transfer_list_latest_update_id > 0'),
     sa.PrimaryKeyConstraint('creditor_id')
     )
@@ -100,10 +100,8 @@ def upgrade():
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('entry_id', sa.BigInteger(), nullable=False),
-    sa.Column('previous_entry_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('object_update_id > 0'),
-    sa.CheckConstraint('previous_entry_id >= 0 AND previous_entry_id < entry_id'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE')
     )
     op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)

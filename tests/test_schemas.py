@@ -81,7 +81,6 @@ def test_serialize_log_entry(app):
         creditor_id=C_ID,
         entry_id=12345,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=12344,
         object_type='Account',
         object_uri='/creditors/1/accounts/123/',
         object_update_id=777,
@@ -92,7 +91,6 @@ def test_serialize_log_entry(app):
     assert les.dump(le) == {
         'type': 'LogEntry',
         'entryId': 12345,
-        'previousEntryId': 12344,
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'Account',
         'object': {'uri': '/creditors/1/accounts/123/'},
@@ -100,7 +98,6 @@ def test_serialize_log_entry(app):
         'deleted': True,
     }
 
-    le.previous_entry_id = 0
     le.is_deleted = False
     le.data = {'test': 'test', 'list': [1, 2, 3]}
     le.object_update_id = None
@@ -119,7 +116,6 @@ def test_serialize_log_entries_page(app):
         creditor_id=C_ID,
         entry_id=12345,
         added_at_ts=datetime(2020, 1, 2),
-        previous_entry_id=12344,
         object_type='Account',
         object_uri='/creditors/1/accounts/123/',
         is_deleted=True,
