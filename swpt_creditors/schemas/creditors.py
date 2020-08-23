@@ -293,6 +293,7 @@ class LogEntrySchema(Schema):
         dump_only=True,
         data_key='deleted',
         description='Whether the object has been deleted.',
+        example=False,
     )
     optional_object_update_id = fields.Integer(
         dump_only=True,
