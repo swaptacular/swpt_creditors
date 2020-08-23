@@ -511,7 +511,7 @@ def test_serialize_account_knowledge(app):
 
 
 def test_deserialize_account_knowledge(app):
-    n = int(0.4 * schemas.KNOWLEDGE_MAX_BYTES)
+    n = int(0.4 * schemas.AccountKnowledgeSchema.MAX_BYTES)
     aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
 
     data = aks.load({})

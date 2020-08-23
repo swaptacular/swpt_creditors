@@ -15,7 +15,6 @@ from .common import (
 )
 
 URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
-KNOWLEDGE_MAX_BYTES = 2000
 
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
@@ -447,6 +446,8 @@ class AccountInfoSchema(MutableResourceSchema):
 
 
 class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
+    MAX_BYTES = 2000
+
     class Meta:
         unknown = INCLUDE
 
@@ -496,7 +497,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         except ValueError:
             raise ValidationError("The message is not JSON compliant.")
 
-        if len(s.encode('utf8')) > KNOWLEDGE_MAX_BYTES:
+        if len(s.encode('utf8')) > self.MAX_BYTES:
             raise ValidationError("The message is too big.")
 
     @pre_dump
