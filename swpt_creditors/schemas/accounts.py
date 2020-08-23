@@ -759,7 +759,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "**Important note:** For new accounts this field will not be present, "
                     "and it must be set as soon as possible, otherwise the value measurement "
                     "unit may remain unknown to the creditor, which may lead to confusion "
-                    "and financial loses.",
+                    "and financial loses. Also, the `debtorName` field can be set only "
+                    "when this field is set too.",
         example='USD',
     )
     hide = fields.Boolean(
