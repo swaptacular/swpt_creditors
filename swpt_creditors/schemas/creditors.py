@@ -298,10 +298,10 @@ class LogEntrySchema(Schema):
     optional_object_update_id = fields.Integer(
         dump_only=True,
         data_key='objectUpdateId',
-        description='A positive number which gets bigger after each change in the object. When '
-                    'this field is not present, this means that the changed object does not '
-                    'have an update ID in it its new state (for example, the object may have '
-                    'been deleted, or could be immutable).',
+        description='A positive number which gets incremented after each change in the '
+                    'object. When this field is not present, this means that the changed object '
+                    'does not have an update ID (the object is immutable, or has been deleted, '
+                    'for example).',
         example=10,
     )
     optional_data = fields.Dict(

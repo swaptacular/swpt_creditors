@@ -8,7 +8,7 @@ from marshmallow import (
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MIN_INT64, MAX_INT64, TS0
+from swpt_creditors.models import MIN_INT64, MAX_INT64
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
     MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
