@@ -481,12 +481,13 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
 
     @validates_schema(pass_original=True)
     def validate_max_bytes(self, data, original_data, **kwargs):
-        for field in ['uri', 'account', 'latestUpdateId', 'latestUpdateAt']:
+        for field in ['uri', 'account', 'latestUpdateAt']:
             if field in original_data:
                 raise ValidationError(f'Can not modify "{field}".')
 
         stored_data = original_data.copy()
         stored_data.pop('type', None)
+        stored_data.pop('latestUpdateId', None)
         try:
             s = json.dumps(stored_data, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
         except ValueError:
@@ -520,9 +521,11 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     def bundle_data(self, obj, original_data, many, partial):
         stored_data = original_data.copy()
         stored_data.pop('type', None)
+        stored_data.pop('latestUpdateId', None)
 
         return {
             'type': 'AccountKnowledge',
+            'latest_update_id': obj['latest_update_id'],
             'data': stored_data,
         }
 

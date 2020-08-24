@@ -388,7 +388,11 @@ def test_update_account_config(setup_account, current_ts):
     assert not data.has_server_account
     assert get_info_entries_count() == 0
 
-    p.update_account_config(C_ID, D_ID, True, 1e30, False)
+    p.update_account_config(C_ID, D_ID,
+                            is_scheduled_for_deletion=True,
+                            negligible_amount=1e30,
+                            allow_unsafe_deletion=False,
+                            latest_update_id=2)
 
     data = get_data()
     assert not data.is_config_effectual
@@ -434,7 +438,11 @@ def test_update_account_config(setup_account, current_ts):
     assert not data.has_server_account
     assert get_info_entries_count() == 2
 
-    p.update_account_config(C_ID, D_ID, True, 1e30, False)
+    p.update_account_config(C_ID, D_ID,
+                            is_scheduled_for_deletion=True,
+                            negligible_amount=1e30,
+                            allow_unsafe_deletion=False,
+                            latest_update_id=3)
     data = get_data()
     assert not data.is_config_effectual
     assert not data.is_deletion_safe

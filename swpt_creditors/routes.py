@@ -137,7 +137,8 @@ class CreditorEndpoint(MethodView):
 
     @creditors_api.arguments(CreditorSchema)
     @creditors_api.response(CreditorSchema(context=CONTEXT))
-    @creditors_api.doc(operationId='updateCreditor')
+    @creditors_api.doc(operationId='updateCreditor',
+                       responses={409: specs.UPDATE_CONFLICT})
     def patch(self, creditor, creditorId):
         """Update a creditor.
 
@@ -147,9 +148,12 @@ class CreditorEndpoint(MethodView):
         """
 
         try:
-            creditor = procedures.update_creditor(creditorId)
+            creditor = procedures.update_creditor(creditorId, latest_update_id=creditor['latest_update_id'])
         except procedures.CreditorDoesNotExistError:
             abort(403)
+        except procedures.UpdateConflictError:
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
+
         return creditor
 
 
@@ -421,10 +425,10 @@ class AccountEndpoint(MethodView):
         try:
             procedures.delete_account(creditorId, debtorId)
             return
-        except procedures.PegAccountDeletionError:
-            abort(409)
         except procedures.UnsafeAccountDeletionError:
             abort(403)
+        except procedures.PegAccountDeletionError:
+            abort(409)
         except procedures.AccountDoesNotExistError:
             pass
 
@@ -452,7 +456,8 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountConfig',
-                      responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION})
+                      responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION,
+                                 409: specs.UPDATE_CONFLICT})
     def patch(self, account_config, creditorId, debtorId):
         """Update account's configuration."""
 
@@ -464,11 +469,14 @@ class AccountConfigEndpoint(MethodView):
                 is_scheduled_for_deletion=account_config['is_scheduled_for_deletion'],
                 negligible_amount=account_config['negligible_amount'],
                 allow_unsafe_deletion=account_config['allow_unsafe_deletion'],
+                latest_update_id=account_config['latest_update_id'],
             )
         except inspect_ops.ForbiddenOperationError:  # pragma: no cover
             abort(403)
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.UpdateConflictError:
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         inspect_ops.register_account_reconfig(creditorId, debtorId)
         return config
@@ -489,7 +497,7 @@ class AccountDisplayEndpoint(MethodView):
     @accounts_api.arguments(AccountDisplaySchema)
     @accounts_api.response(AccountDisplaySchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountDisplay',
-                      responses={409: specs.ACCOUNT_DISPLAY_UPDATE_CONFLICT})
+                      responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings."""
 
@@ -515,11 +523,14 @@ class AccountDisplayEndpoint(MethodView):
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
                 peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
                 peg_use_for_display=optional_peg and optional_peg['use_for_display'],
+                latest_update_id=account_display['latest_update_id'],
             )
-        except procedures.AccountDebtorNameConflictError:
-            abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.AccountDebtorNameConflictError:
+            abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
+        except procedures.UpdateConflictError:
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         return display
 
@@ -538,7 +549,8 @@ class AccountExchangeEndpoint(MethodView):
 
     @accounts_api.arguments(AccountExchangeSchema)
     @accounts_api.response(AccountExchangeSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountExchange')
+    @accounts_api.doc(operationId='updateAccountExchange',
+                      responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_exchange, creditorId, debtorId):
         """Update account's exchange settings."""
 
@@ -551,9 +563,12 @@ class AccountExchangeEndpoint(MethodView):
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
                 policy=optional_policy,
+                latest_update_id=account_exchange['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.UpdateConflictError:
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
         except procedures.InvalidExchangePolicyError:
             abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
 
@@ -563,7 +578,8 @@ class AccountExchangeEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/knowledge', parameters=[CID, DID])
 class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountKnowledge')
+    @accounts_api.doc(operationId='getAccountKnowledge',
+                      responses={409: specs.UPDATE_CONFLICT})
     def get(self, creditorId, debtorId):
         """Return account's stored knowledge.
 
@@ -579,7 +595,8 @@ class AccountKnowledgeEndpoint(MethodView):
 
     @accounts_api.arguments(AccountKnowledgeSchema)
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountKnowledge')
+    @accounts_api.doc(operationId='updateAccountKnowledge',
+                      responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_knowledge, creditorId, debtorId):
         """Update account's stored knowledge.
 
@@ -588,15 +605,22 @@ class AccountKnowledgeEndpoint(MethodView):
         properties defined in the `AccountKnowledge` schema, the
         passed object may contain any other properties, which will be
         stored as well. The total length of the stored data can not
-        exceed 2000 bytes (JSON, UTF-8 encoded, excluding the `type`
-        property).
+        exceed 2000 bytes (JSON, UTF-8 encoded, excluding `type` and
+        `latestUpdateId` properties).
 
         """
 
         try:
-            knowledge = procedures.update_account_knowledge(creditorId, debtorId, account_knowledge['data'])
+            knowledge = procedures.update_account_knowledge(
+                creditorId,
+                debtorId,
+                latest_update_id=account_knowledge['latest_update_id'],
+                data=account_knowledge['data'],
+            )
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.UpdateConflictError:
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         return knowledge
 
@@ -757,10 +781,10 @@ class TransferEndpoint(MethodView):
 
         try:
             transfer = procedures.cancel_transfer(creditorId, transferUuid)
+        except procedures.TransferCancellationError:
+            abort(403)
         except procedures.TransferDoesNotExistError:
             abort(404)
-        except procedures.TransferUpdateConflictError:
-            abort(409)
         return transfer
 
     @transfers_api.response(code=204)

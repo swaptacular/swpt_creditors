@@ -106,13 +106,13 @@ TRANSFER_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-ACCOUNT_DISPLAY_UPDATE_CONFLICT = {
-    'description': 'Another account with the same `debtorName` already exists.',
+FORBIDDEN_ACCOUNT_OPERATION = {
+    'description': 'Forbidden account operation.',
     'content': ERROR_CONTENT,
 }
 
-FORBIDDEN_ACCOUNT_OPERATION = {
-    'description': 'Forbidden account operation.',
+UPDATE_CONFLICT = {
+    'description': 'Conflicting update attempts.',
     'content': ERROR_CONTENT,
 }
 

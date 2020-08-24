@@ -35,17 +35,28 @@ def test_serialize_creditor(app):
 def test_deserialize_creditor(app):
     cs = schemas.CreditorSchema(context=CONTEXT)
 
-    data = cs.load({})
+    data = cs.load({
+        'latestUpdateId': 2,
+    })
     assert data == {
         'type': 'Creditor',
+        'latest_update_id': 2,
     }
-    data = cs.load({'type': 'Creditor'})
+
+    data = cs.load({
+        'type': 'Creditor',
+        'latestUpdateId': 2,
+    })
     assert data == {
         'type': 'Creditor',
+        'latest_update_id': 2,
     }
 
     with pytest.raises(ValidationError):
-        cs.load({'type': 'WrongType'})
+        cs.load({})
+
+    with pytest.raises(ValidationError):
+        cs.load({'type': 'WrongType', 'latestUpdateId': 2})
 
 
 def test_serialize_wallet(app):
@@ -272,6 +283,7 @@ def test_deserialize_account_display(app):
         'amountDivisor': 1.0,
         'decimalPlaces': 0,
         'hide': False,
+        'latestUpdateId': 2,
     }
 
     data = ads.load(base_data)
@@ -280,6 +292,7 @@ def test_deserialize_account_display(app):
         'amount_divisor': 1.0,
         'decimal_places': 0,
         'hide': False,
+        'latest_update_id': 2,
     }
 
     data = ads.load({
@@ -295,6 +308,7 @@ def test_deserialize_account_display(app):
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'hide': False,
+        'latestUpdateId': 2,
     })
     assert data == {
         'type': 'AccountDisplay',
@@ -309,6 +323,7 @@ def test_deserialize_account_display(app):
             'use_for_display': True,
             'debtor': {'type': 'DebtorIdentity', 'uri': 'https://example.com/gold'},
         },
+        'latest_update_id': 2,
     }
 
     with pytest.raises(ValidationError):
@@ -403,11 +418,13 @@ def test_deserialize_account_exchange(app):
     data = aes.load({
         'minPrincipal': -1000,
         'maxPrincipal': -500,
+        'latestUpdateId': 2,
     })
     assert data == {
         'type': 'AccountExchange',
         'min_principal': -1000,
         'max_principal': -500,
+        'latest_update_id': 2,
     }
 
     data = aes.load({
@@ -415,28 +432,52 @@ def test_deserialize_account_exchange(app):
         'minPrincipal': 1000,
         'maxPrincipal': 5000,
         'policy': 'test policy',
+        'latestUpdateId': 2,
     })
     assert data == {
         'type': 'AccountExchange',
         'min_principal': 1000,
         'max_principal': 5000,
         'optional_policy': 'test policy',
+        'latest_update_id': 2,
     }
 
-    with pytest.raises(ValidationError):
-        aes.load({'type': 'WrongType'})
+    with pytest.raises(ValidationError, match='Invalid type.'):
+        aes.load({
+            'type': 'WrongType',
+            'minPrincipal': 1000,
+            'maxPrincipal': 5000,
+            'latestUpdateId': 2,
+        })
 
-    with pytest.raises(ValidationError):
-        aes.load({'minPrincipal': 5000, 'maxPrincipal': 1000})
+    with pytest.raises(ValidationError, match='maxPrincipal must be equal or greater than minPrincipal.'):
+        aes.load({
+            'minPrincipal': 5000,
+            'maxPrincipal': 1000,
+            'latestUpdateId': 2,
+        })
 
-    with pytest.raises(ValidationError):
-        aes.load({'minPrincipal': models.MIN_INT64 - 1})
+    with pytest.raises(ValidationError, match='greater than or equal'):
+        aes.load({
+            'minPrincipal': models.MIN_INT64 - 1,
+            'maxPrincipal': 1000,
+            'latestUpdateId': 2,
+        })
 
-    with pytest.raises(ValidationError):
-        aes.load({'maxPrincipal': models.MAX_INT64 + 1})
+    with pytest.raises(ValidationError, match='less than or equal'):
+        aes.load({
+            'minPrincipal': 0,
+            'maxPrincipal': models.MAX_INT64 + 1,
+            'latestUpdateId': 2,
+        })
 
-    with pytest.raises(ValidationError):
-        aes.load({'policy': 1000 * 'x'})
+    with pytest.raises(ValidationError, match='Length must be between 1 and'):
+        aes.load({
+            'minPrincipal': 0,
+            'maxPrincipal': 0,
+            'policy': 1000 * 'x',
+            'latestUpdateId': 2,
+        })
 
 
 def test_serialize_account_knowledge(app):
@@ -485,8 +526,6 @@ def test_serialize_account_knowledge(app):
     ak.data = {
         'interestRate': 'not a number',
         'interestRateChangedAt': '2020-01-02T00:00:00',
-        'latestUpdateId': 1,
-        'latestUpdateAt': '2020-01-01T00:00:00',
         'debtorInfo': {
             'type': 'DebtorInfo',
             'url': 'http://example.com',
@@ -511,19 +550,22 @@ def test_deserialize_account_knowledge(app):
     n = int(0.4 * schemas.AccountKnowledgeSchema.MAX_BYTES)
     aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
 
-    data = aks.load({})
+    data = aks.load({'latestUpdateId': 1})
     assert data == {
         'type': 'AccountKnowledge',
+        'latest_update_id': 1,
         'data': {},
     }
 
     data = aks.load({
         'type': 'AccountKnowledge',
+        'latestUpdateId': 1,
         'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
         'unknownField': {'innerField': n * 'Ш'},
     })
     assert data == {
         'type': 'AccountKnowledge',
+        'latest_update_id': 1,
         'data': {
             'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
             'unknownField': {'innerField': n * 'Ш'},
@@ -532,6 +574,7 @@ def test_deserialize_account_knowledge(app):
 
     data = aks.load({
         'type': 'AccountKnowledge',
+        'latestUpdateId': 1,
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
         'debtorInfo': {
             'type': 'DebtorInfo',
@@ -544,6 +587,7 @@ def test_deserialize_account_knowledge(app):
     })
     assert data == {
         'type': 'AccountKnowledge',
+        'latest_update_id': 1,
         'data': {
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
             'debtorInfo': {
@@ -559,6 +603,7 @@ def test_deserialize_account_knowledge(app):
 
     data = aks.load({
         'type': 'AccountKnowledge',
+        'latestUpdateId': 1,
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
         'debtorInfo': {
             'url': 'http://example.com',
@@ -568,6 +613,7 @@ def test_deserialize_account_knowledge(app):
     })
     assert data == {
         'type': 'AccountKnowledge',
+        'latest_update_id': 1,
         'data': {
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
             'debtorInfo': {
@@ -578,39 +624,35 @@ def test_deserialize_account_knowledge(app):
         },
     }
 
-    with pytest.raises(ValidationError):
-        aks.load({'type': 'WrongType'})
+    with pytest.raises(ValidationError, match='Invalid type.'):
+        aks.load({'type': 'WrongType', 'latestUpdateId': 1})
 
-    with pytest.raises(ValidationError):
-        aks.load({'identity': {'type': 'AccountIdentity', 'uri': 2 * n * 'x'}})
+    with pytest.raises(ValidationError, match='Longer than maximum length'):
+        aks.load({'latestUpdateId': 1, 'identity': {'type': 'AccountIdentity', 'uri': 2 * n * 'x'}})
 
-    with pytest.raises(ValidationError):
-        aks.load({'interestRateChangedAt': 'INVALID TIMESTAMP'})
+    with pytest.raises(ValidationError, match='Not a valid datetime.'):
+        aks.load({'latestUpdateId': 1, 'interestRateChangedAt': 'INVALID TIMESTAMP'})
 
-    with pytest.raises(ValidationError):
-        aks.load({'debtorInfo': {}})
+    with pytest.raises(ValidationError, match='Missing data for required field.'):
+        aks.load({'latestUpdateId': 1, 'debtorInfo': {}})
 
-    with pytest.raises(ValidationError):
-        aks.load({'interestRate': 'not a number'})
-
-    with pytest.raises(ValidationError, match=r'The total length of the stored data exceeds \d'):
-        aks.load({'tooLong': 3 * n * 'x'})
+    with pytest.raises(ValidationError, match='Not a valid number.'):
+        aks.load({'latestUpdateId': 1, 'interestRate': 'not a number'})
 
     with pytest.raises(ValidationError, match=r'The total length of the stored data exceeds \d'):
-        aks.load({str(x): x for x in range(n)})
+        aks.load({'latestUpdateId': 1, 'tooLong': 3 * n * 'x'})
+
+    with pytest.raises(ValidationError, match=r'The total length of the stored data exceeds \d'):
+        d = {str(x): x for x in range(n)}
+        d['latestUpdateId'] = 1
+        aks.load(d)
 
     with pytest.raises(ValidationError, match='not JSON compliant'):
-        aks.loads('{"notJsonCompliant": NaN}')
+        aks.loads('{"latestUpdateId": 1, "notJsonCompliant": NaN}')
 
-    with pytest.raises(ValidationError, match='not JSON compliant'):
-        aks.loads('{"notJsonCompliant": -Infinity}')
-
-    with pytest.raises(ValidationError, match='not JSON compliant'):
-        aks.loads('{"notJsonCompliant": Infinity}')
-
-    for field in ['uri', 'account', 'latestUpdateId', 'latestUpdateAt']:
+    for field in ['uri', 'account', 'latestUpdateAt']:
         with pytest.raises(ValidationError, match=f'Can not modify "{field}".'):
-            aks.load({field: 'x'})
+            aks.load({'latestUpdateId': 1, field: 'x'})
 
 
 def test_serialize_account_config(app):
@@ -657,12 +699,14 @@ def test_deserialize_account_config(app):
         'negligibleAmount': 1.0,
         'scheduledForDeletion': True,
         'allowUnsafeDeletion': False,
+        'latestUpdateId': 2,
     })
     assert data == {
         'type': 'AccountConfig',
         'negligible_amount': 1.0,
         'is_scheduled_for_deletion': True,
         'allow_unsafe_deletion': False,
+        'latest_update_id': 2,
     }
 
     data = acs.load({
@@ -670,20 +714,39 @@ def test_deserialize_account_config(app):
         'negligibleAmount': 1.0,
         'allowUnsafeDeletion': True,
         'scheduledForDeletion': False,
+        'latestUpdateId': 2,
     })
     assert data == {
         'type': 'AccountConfig',
         'negligible_amount': 1.0,
         'is_scheduled_for_deletion': False,
         'allow_unsafe_deletion': True,
+        'latest_update_id': 2,
     }
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match='Invalid type.'):
         acs.load({
             'type': 'WrongType',
             'negligibleAmount': 1.0,
             'allowUnsafeDeletion': True,
             'scheduledForDeletion': False,
+            'latestUpdateId': 2,
+        })
+
+    with pytest.raises(ValidationError, match='Must be greater than or equal to 1 and'):
+        acs.load({
+            'negligibleAmount': 1.0,
+            'allowUnsafeDeletion': True,
+            'scheduledForDeletion': False,
+            'latestUpdateId': 0,
+        })
+
+    with pytest.raises(ValidationError, match='Must be greater than or equal to 1 and'):
+        acs.load({
+            'negligibleAmount': 1.0,
+            'allowUnsafeDeletion': True,
+            'scheduledForDeletion': False,
+            'latestUpdateId': models.MAX_INT64 + 1,
         })
 
 
