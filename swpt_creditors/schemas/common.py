@@ -211,7 +211,7 @@ class MutableResourceSchema(Schema):
                     'When the object is changed by the client, the value of this field must be '
                     'incremented by the client. In this case, the server will use the value of the '
                     'field to detect conflicts which can occur when two clients try to update the '
-                    'resource simultaneously.',
+                    'object simultaneously.',
         example=123,
     )
     latest_update_ts = fields.DateTime(
