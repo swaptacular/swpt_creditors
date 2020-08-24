@@ -137,7 +137,8 @@ class CreditorEndpoint(MethodView):
 
     @creditors_api.arguments(CreditorSchema)
     @creditors_api.response(CreditorSchema(context=CONTEXT))
-    @creditors_api.doc(operationId='updateCreditor')
+    @creditors_api.doc(operationId='updateCreditor',
+                       responses={409: specs.UPDATE_CONFLICT})
     def patch(self, creditor, creditorId):
         """Update a creditor.
 
@@ -151,7 +152,7 @@ class CreditorEndpoint(MethodView):
         except procedures.CreditorDoesNotExistError:
             abort(403)
         except procedures.UpdateConflictError:
-            abort(409)
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         return creditor
 
@@ -424,10 +425,10 @@ class AccountEndpoint(MethodView):
         try:
             procedures.delete_account(creditorId, debtorId)
             return
-        except procedures.PegAccountDeletionError:
-            abort(409)
         except procedures.UnsafeAccountDeletionError:
             abort(403)
+        except procedures.PegAccountDeletionError:
+            abort(409)
         except procedures.AccountDoesNotExistError:
             pass
 
@@ -455,7 +456,8 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountConfig',
-                      responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION})
+                      responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION,
+                                 409: specs.UPDATE_CONFLICT})
     def patch(self, account_config, creditorId, debtorId):
         """Update account's configuration."""
 
@@ -474,7 +476,7 @@ class AccountConfigEndpoint(MethodView):
         except procedures.AccountDoesNotExistError:
             abort(404)
         except procedures.UpdateConflictError:
-            abort(409)
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         inspect_ops.register_account_reconfig(creditorId, debtorId)
         return config
@@ -495,7 +497,7 @@ class AccountDisplayEndpoint(MethodView):
     @accounts_api.arguments(AccountDisplaySchema)
     @accounts_api.response(AccountDisplaySchema(context=CONTEXT))
     @accounts_api.doc(operationId='updateAccountDisplay',
-                      responses={409: specs.ACCOUNT_DISPLAY_UPDATE_CONFLICT})
+                      responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings."""
 
@@ -523,12 +525,12 @@ class AccountDisplayEndpoint(MethodView):
                 peg_use_for_display=optional_peg and optional_peg['use_for_display'],
                 latest_update_id=account_display['latest_update_id'],
             )
-        except procedures.AccountDebtorNameConflictError:
-            abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.AccountDebtorNameConflictError:
+            abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
         except procedures.UpdateConflictError:
-            abort(409)
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         return display
 
@@ -547,7 +549,8 @@ class AccountExchangeEndpoint(MethodView):
 
     @accounts_api.arguments(AccountExchangeSchema)
     @accounts_api.response(AccountExchangeSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountExchange')
+    @accounts_api.doc(operationId='updateAccountExchange',
+                      responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_exchange, creditorId, debtorId):
         """Update account's exchange settings."""
 
@@ -564,10 +567,10 @@ class AccountExchangeEndpoint(MethodView):
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.UpdateConflictError:
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
         except procedures.InvalidExchangePolicyError:
             abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
-        except procedures.UpdateConflictError:
-            abort(409)
 
         return exchange
 
@@ -575,7 +578,8 @@ class AccountExchangeEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/knowledge', parameters=[CID, DID])
 class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='getAccountKnowledge')
+    @accounts_api.doc(operationId='getAccountKnowledge',
+                      responses={409: specs.UPDATE_CONFLICT})
     def get(self, creditorId, debtorId):
         """Return account's stored knowledge.
 
@@ -591,7 +595,8 @@ class AccountKnowledgeEndpoint(MethodView):
 
     @accounts_api.arguments(AccountKnowledgeSchema)
     @accounts_api.response(AccountKnowledgeSchema(context=CONTEXT))
-    @accounts_api.doc(operationId='updateAccountKnowledge')
+    @accounts_api.doc(operationId='updateAccountKnowledge',
+                      responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_knowledge, creditorId, debtorId):
         """Update account's stored knowledge.
 
@@ -615,7 +620,7 @@ class AccountKnowledgeEndpoint(MethodView):
         except procedures.AccountDoesNotExistError:
             abort(404)
         except procedures.UpdateConflictError:
-            abort(409)
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         return knowledge
 
@@ -776,10 +781,10 @@ class TransferEndpoint(MethodView):
 
         try:
             transfer = procedures.cancel_transfer(creditorId, transferUuid)
-        except procedures.TransferDoesNotExistError:
-            abort(404)
         except procedures.TransferCancellationError:
             abort(403)
+        except procedures.TransferDoesNotExistError:
+            abort(404)
         return transfer
 
     @transfers_api.response(code=204)
