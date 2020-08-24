@@ -512,7 +512,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
             result = {}
             result.update(original_obj.data)
             result.update(obj)
-        else:
+        else:  # pragma: no cover
             result = obj
 
         return result
