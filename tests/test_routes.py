@@ -96,10 +96,10 @@ def test_create_creditor(client):
 
 
 def test_update_creditor(client, creditor):
-    r = client.patch('/creditors/2222/', json={})
+    r = client.patch('/creditors/2222/', json={'latestUpdateId': 2})
     assert r.status_code == 403
 
-    r = client.patch('/creditors/2/', json={})
+    r = client.patch('/creditors/2/', json={'latestUpdateId': 2})
     assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'Creditor'
@@ -107,6 +107,9 @@ def test_update_creditor(client, creditor):
     assert data['latestUpdateId'] == 2
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['createdAt']
+
+    r = client.patch('/creditors/2/', json={'latestUpdateId': 2})
+    assert r.status_code == 409
 
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
@@ -394,6 +397,7 @@ def test_delete_account(client, account):
         'scheduledForDeletion': True,
         'negligibleAmount': m.DEFAULT_NEGLIGIBLE_AMOUNT,
         'allowUnsafeDeletion': True,
+        'latestUpdateId': 2,
     })
     assert r.status_code == 200
 
@@ -452,6 +456,7 @@ def test_account_config(client, account):
         'negligibleAmount': 100.0,
         'allowUnsafeDeletion': True,
         'scheduledForDeletion': True,
+        'latestUpdateId': 2,
     }
 
     r = client.patch('/creditors/2/accounts/1111/config', json=request_data)
@@ -468,6 +473,9 @@ def test_account_config(client, account):
     assert data['allowUnsafeDeletion'] is True
     assert data['negligibleAmount'] == 100.0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+
+    r = client.patch('/creditors/2/accounts/1/config', json=request_data)
+    assert r.status_code == 409
 
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
@@ -506,6 +514,7 @@ def test_account_display(client, account):
         'scheduledForDeletion': True,
         'negligibleAmount': m.DEFAULT_NEGLIGIBLE_AMOUNT,
         'allowUnsafeDeletion': True,
+        'latestUpdateId': 2,
     })
     assert r.status_code == 200
 
@@ -515,6 +524,7 @@ def test_account_display(client, account):
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'hide': True,
+        'latestUpdateId': 2,
     })
     assert r.status_code == 200
 
@@ -535,6 +545,7 @@ def test_account_display(client, account):
             },
             'debtorHomeUrl': 'https://example.com/debtor-home-url',
         },
+        'latestUpdateId': 2,
     }
 
     r = client.patch('/creditors/2/accounts/1111/display', json=request_data)
@@ -552,6 +563,7 @@ def test_account_display(client, account):
     assert data['decimalPlaces'] == 2
     assert data['unit'] == 'USD'
     assert data['hide'] is True
+    assert data['latestUpdateId'] == 2
     assert data['peg'] == {
         'type': 'CurrencyPeg',
         'exchangeRate': 10.0,
@@ -563,6 +575,9 @@ def test_account_display(client, account):
         'display': {'uri': '/creditors/2/accounts/11/display'},
         'debtorHomeUrl': 'https://example.com/debtor-home-url',
     }
+
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 409
 
     request_data['peg']['debtor']['uri'] = 'INVALID'
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
@@ -576,6 +591,7 @@ def test_account_display(client, account):
     request_data['peg']['debtor']['uri'] = 'swpt:1111'
     request_data['peg']['debtorHomeUrl'] = 'https://example.com/another-debtor-home-url'
     request_data['peg']['useForDisplay'] = False
+    request_data['latestUpdateId'] = 3
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 200
     data = r.get_json()
@@ -586,6 +602,7 @@ def test_account_display(client, account):
     assert data['decimalPlaces'] == 2
     assert data['unit'] == 'USD'
     assert data['hide'] is True
+    assert data['latestUpdateId'] == 3
     assert data['peg'] == {
         'type': 'CurrencyPeg',
         'exchangeRate': 10.0,
@@ -599,6 +616,7 @@ def test_account_display(client, account):
 
     request_data['debtorName'] = 'existing debtor'
     request_data['unit'] = 'USD'
+    request_data['latestUpdateId'] = 4
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
     data = r.get_json()
@@ -631,6 +649,7 @@ def test_account_display(client, account):
 
     request_data['debtorName'] = 'existing debtor'
     request_data['unit'] = 'EUR'
+    request_data['latestUpdateId'] = 5
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 200
 
@@ -654,6 +673,7 @@ def test_account_exchange(client, account):
     request_data = {
         'minPrincipal': 1000,
         'maxPrincipal': 2000,
+        'latestUpdateId': 2,
     }
 
     r = client.patch('/creditors/2/accounts/1111/exchange', json=request_data)
@@ -670,13 +690,18 @@ def test_account_exchange(client, account):
     assert data['maxPrincipal'] == 2000
     assert 'policy' not in data
 
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+    assert r.status_code == 409
+
     r = client.patch('/creditors/2/accounts/1/exchange', json={})
     assert r.status_code == 422
     data = r.get_json()
+    assert 'latestUpdateId' in data['errors']['json']
     assert 'maxPrincipal' in data['errors']['json']
     assert 'minPrincipal' in data['errors']['json']
 
     request_data['policy'] = 'INVALID'
+    request_data['latestUpdateId'] = 3
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 422
     data = r.get_json()
@@ -708,6 +733,7 @@ def test_account_knowledge(client, account):
     assert 'identity' not in data
 
     request_data = {
+        'latestUpdateId': 2,
         'interestRate': 11.5,
         'interestRateChangedAt': '2020-01-01T00:00:00Z',
         'identity': {
@@ -750,8 +776,12 @@ def test_account_knowledge(client, account):
     }
     assert data['nonStandardField'] is True
 
+    r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
+    assert r.status_code == 409
+
     del request_data['debtorInfo']
     del request_data['identity']
+    request_data['latestUpdateId'] = 3
     r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
     assert r.status_code == 200
     data = r.get_json()

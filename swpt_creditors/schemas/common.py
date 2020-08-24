@@ -194,13 +194,24 @@ class AccountIdentitySchema(ValidateTypeMixin, Schema):
 class MutableResourceSchema(Schema):
     latest_update_id = fields.Integer(
         required=True,
-        dump_only=True,
+        validate=validate.Range(min=1, max=MAX_INT64),
         data_key='latestUpdateId',
         format='int64',
-        description='The value of the `objectUpdateId` field in the latest `LogEntry` for this '
-                    'object in the log. This will always be a positive number which gets '
-                    'incremented after each update. It can be used to decide whether a network '
-                    'request should made to obtain the newest state of the object.',
+        description='The sequential number of the latest update in the object. This will always '
+                    'be a positive number, which starts from `1` and gets incremented after each '
+                    'change in the object.'
+                    '\n\n'
+                    'When the object is changed by the server, the value of this field will be '
+                    'incremented automatically, and will be equal to the value of the '
+                    '`objectUpdateId` field in the latest `LogEntry` for this object in the '
+                    'log. In this case, the value of the field can be used by the client to decide '
+                    'whether a network request should made to obtain the newest state of the '
+                    'object.'
+                    '\n\n'
+                    'When the object is changed by the client, the value of this field must be '
+                    'incremented by the client. In this case, the server will use the value of the '
+                    'field to detect conflicts which can occur when two clients try to update the '
+                    'resource simultaneously.',
         example=123,
     )
     latest_update_ts = fields.DateTime(

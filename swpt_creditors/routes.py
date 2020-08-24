@@ -147,9 +147,12 @@ class CreditorEndpoint(MethodView):
         """
 
         try:
-            creditor = procedures.update_creditor(creditorId)
+            creditor = procedures.update_creditor(creditorId, latest_update_id=creditor['latest_update_id'])
         except procedures.CreditorDoesNotExistError:
             abort(403)
+        except procedures.UpdateConflictError:
+            abort(409)
+
         return creditor
 
 
@@ -464,11 +467,14 @@ class AccountConfigEndpoint(MethodView):
                 is_scheduled_for_deletion=account_config['is_scheduled_for_deletion'],
                 negligible_amount=account_config['negligible_amount'],
                 allow_unsafe_deletion=account_config['allow_unsafe_deletion'],
+                latest_update_id=account_config['latest_update_id'],
             )
         except inspect_ops.ForbiddenOperationError:  # pragma: no cover
             abort(403)
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.UpdateConflictError:
+            abort(409)
 
         inspect_ops.register_account_reconfig(creditorId, debtorId)
         return config
@@ -515,11 +521,14 @@ class AccountDisplayEndpoint(MethodView):
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
                 peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
                 peg_use_for_display=optional_peg and optional_peg['use_for_display'],
+                latest_update_id=account_display['latest_update_id'],
             )
         except procedures.AccountDebtorNameConflictError:
             abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.UpdateConflictError:
+            abort(409)
 
         return display
 
@@ -551,11 +560,14 @@ class AccountExchangeEndpoint(MethodView):
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
                 policy=optional_policy,
+                latest_update_id=account_exchange['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
         except procedures.InvalidExchangePolicyError:
             abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
+        except procedures.UpdateConflictError:
+            abort(409)
 
         return exchange
 
@@ -588,15 +600,22 @@ class AccountKnowledgeEndpoint(MethodView):
         properties defined in the `AccountKnowledge` schema, the
         passed object may contain any other properties, which will be
         stored as well. The total length of the stored data can not
-        exceed 2000 bytes (JSON, UTF-8 encoded, excluding the `type`
-        property).
+        exceed 2000 bytes (JSON, UTF-8 encoded, excluding `type` and
+        `latestUpdateId` properties).
 
         """
 
         try:
-            knowledge = procedures.update_account_knowledge(creditorId, debtorId, account_knowledge['data'])
+            knowledge = procedures.update_account_knowledge(
+                creditorId,
+                debtorId,
+                latest_update_id=account_knowledge['latest_update_id'],
+                data=account_knowledge['data'],
+            )
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.UpdateConflictError:
+            abort(409)
 
         return knowledge
 
@@ -759,8 +778,8 @@ class TransferEndpoint(MethodView):
             transfer = procedures.cancel_transfer(creditorId, transferUuid)
         except procedures.TransferDoesNotExistError:
             abort(404)
-        except procedures.TransferUpdateConflictError:
-            abort(409)
+        except procedures.TransferCancellationError:
+            abort(403)
         return transfer
 
     @transfers_api.response(code=204)

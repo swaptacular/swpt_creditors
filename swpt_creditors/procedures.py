@@ -80,6 +80,10 @@ def init(path_builder, schema_types):
     types = schema_types
 
 
+class UpdateConflictError(Exception):
+    """A conflict occurred while trying to update a resource."""
+
+
 class CreditorDoesNotExistError(Exception):
     """The creditor does not exist."""
 
@@ -96,8 +100,8 @@ class TransferDoesNotExistError(Exception):
     """The transfer does not exist."""
 
 
-class TransferUpdateConflictError(Exception):
-    """The requested transfer update is not possible."""
+class TransferCancellationError(Exception):
+    """The transfer can not be canceled."""
 
 
 class TransferCanNotBeCanceledError(Exception):
@@ -197,7 +201,7 @@ def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
 
 
 @atomic
-def update_creditor(creditor_id: int) -> Creditor:
+def update_creditor(creditor_id: int, *, latest_update_id: int) -> Creditor:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -205,7 +209,10 @@ def update_creditor(creditor_id: int) -> Creditor:
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    creditor.creditor_latest_update_id += 1
+    if latest_update_id != creditor.creditor_latest_update_id + 1:
+        raise UpdateConflictError()
+
+    creditor.creditor_latest_update_id = latest_update_id
     creditor.creditor_latest_update_ts = current_ts
     _add_log_entry(
         creditor,
@@ -365,9 +372,11 @@ def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountData
 def update_account_config(
         creditor_id: int,
         debtor_id: int,
+        *,
         is_scheduled_for_deletion: bool,
         negligible_amount: float,
-        allow_unsafe_deletion: bool) -> AccountData:
+        allow_unsafe_deletion: bool,
+        latest_update_id: int) -> AccountData:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -377,6 +386,9 @@ def update_account_config(
     data = AccountData.lock_instance((creditor_id, debtor_id), *options)
     if data is None:
         raise AccountDoesNotExistError()
+
+    if latest_update_id != data.config_latest_update_id + 1:
+        raise UpdateConflictError()
 
     # NOTE: The account will not be safe to delete once the config is
     # updated. Therefore, if the account is safe to delete now, we
@@ -390,7 +402,7 @@ def update_account_config(
     data.is_scheduled_for_deletion = is_scheduled_for_deletion
     data.negligible_amount = negligible_amount
     data.allow_unsafe_deletion = allow_unsafe_deletion
-    data.config_latest_update_id += 1
+    data.config_latest_update_id = latest_update_id
     data.config_latest_update_ts = current_ts
 
     db.session.add(PendingLogEntry(
@@ -398,7 +410,7 @@ def update_account_config(
         added_at_ts=current_ts,
         object_type=types.account_config,
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=data.config_latest_update_id,
+        object_update_id=latest_update_id,
     ))
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
@@ -425,6 +437,7 @@ def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDis
 def update_account_display(
         creditor_id: int,
         debtor_id: int,
+        *,
         debtor_name: Optional[str],
         amount_divisor: float,
         decimal_places: int,
@@ -433,7 +446,8 @@ def update_account_display(
         peg_exchange_rate: Optional[float],
         peg_currency_debtor_id: Optional[int],
         peg_debtor_home_url: Optional[str],
-        peg_use_for_display: Optional[bool]) -> AccountDisplay:
+        peg_use_for_display: Optional[bool],
+        latest_update_id: int) -> AccountDisplay:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -446,11 +460,15 @@ def update_account_display(
     assert (debtor_name is None and unit is None) or \
            (debtor_name is not None and unit is not None)
     assert debtor_name is not None or peg_exchange_rate is None
+    assert 1 <= latest_update_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
     display = AccountDisplay.lock_instance((creditor_id, debtor_id))
     if display is None:
         raise AccountDoesNotExistError()
+
+    if latest_update_id != display.latest_update_id + 1:
+        raise UpdateConflictError()
 
     # NOTE: We must ensure that the debtor name is unique.
     if debtor_name not in [display.debtor_name, None]:
@@ -475,7 +493,7 @@ def update_account_display(
         display.peg_account_debtor_id = peg_account_debtor_id
         display.peg_debtor_home_url = peg_debtor_home_url
         display.peg_use_for_display = peg_use_for_display
-        display.latest_update_id += 1
+        display.latest_update_id = latest_update_id
         display.latest_update_ts = current_ts
 
     db.session.add(PendingLogEntry(
@@ -483,7 +501,7 @@ def update_account_display(
         added_at_ts=current_ts,
         object_type=types.account_display,
         object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=display.latest_update_id,
+        object_update_id=latest_update_id,
     ))
 
     return display
@@ -498,7 +516,12 @@ def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountK
 
 
 @atomic
-def update_account_knowledge(creditor_id: int, debtor_id: int, data: dict) -> AccountKnowledge:
+def update_account_knowledge(
+        creditor_id: int,
+        debtor_id: int,
+        *,
+        latest_update_id: int,
+        data: dict) -> AccountKnowledge:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -508,8 +531,11 @@ def update_account_knowledge(creditor_id: int, debtor_id: int, data: dict) -> Ac
     if knowledge is None:
         raise AccountDoesNotExistError()
 
+    if latest_update_id != knowledge.latest_update_id + 1:
+        raise UpdateConflictError()
+
     knowledge.data = data
-    knowledge.latest_update_id += 1
+    knowledge.latest_update_id = latest_update_id
     knowledge.latest_update_ts = current_ts
 
     db.session.add(PendingLogEntry(
@@ -517,7 +543,7 @@ def update_account_knowledge(creditor_id: int, debtor_id: int, data: dict) -> Ac
         added_at_ts=current_ts,
         object_type=types.account_knowledge,
         object_uri=paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=knowledge.latest_update_id,
+        object_update_id=latest_update_id,
     ))
 
     return knowledge
@@ -535,9 +561,11 @@ def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountEx
 def update_account_exchange(
         creditor_id: int,
         debtor_id: int,
+        *,
         policy: Optional[str],
         min_principal: int,
-        max_principal: int) -> AccountKnowledge:
+        max_principal: int,
+        latest_update_id: int) -> AccountKnowledge:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -552,10 +580,13 @@ def update_account_exchange(
     if exchange is None:
         raise AccountDoesNotExistError()
 
+    if latest_update_id != exchange.latest_update_id + 1:
+        raise UpdateConflictError()
+
     exchange.policy = policy
     exchange.min_principal = min_principal
     exchange.max_principal = max_principal
-    exchange.latest_update_id += 1
+    exchange.latest_update_id = latest_update_id
     exchange.latest_update_ts = current_ts
 
     db.session.add(PendingLogEntry(
@@ -563,7 +594,7 @@ def update_account_exchange(
         added_at_ts=current_ts,
         object_type=types.account_exchange,
         object_uri=paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=exchange.latest_update_id,
+        object_update_id=latest_update_id,
     ))
 
     return exchange
