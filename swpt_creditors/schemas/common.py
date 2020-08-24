@@ -116,7 +116,6 @@ class PaginatedStreamSchema(Schema):
 class ObjectReferenceSchema(Schema):
     uri = fields.String(
         required=True,
-        dump_only=True,
         format='uri-reference',
         description="The URI of the object. Can be a relative URI.",
         example='https://example.com/objects/1',

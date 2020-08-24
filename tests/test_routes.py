@@ -692,6 +692,8 @@ def test_account_exchange(client, account):
 
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 409
+    data = r.get_json()
+    assert 'latestUpdateId' in data['errors']['json']
 
     r = client.patch('/creditors/2/accounts/1/exchange', json={})
     assert r.status_code == 422
@@ -706,6 +708,12 @@ def test_account_exchange(client, account):
     assert r.status_code == 422
     data = r.get_json()
     assert data['errors']['json']['policy'] == ['Invalid policy name.']
+
+    del request_data['policy']
+    request_data['peg'] = {'exchangeRate': 1.5, 'account': {'uri': '/creditors/2/accounts/11/'}}
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+    assert r.status_code == 409
+    assert data['errors']['json']['peg']['account']['uri'] == 'Account does not exist.'
 
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)

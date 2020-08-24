@@ -1,7 +1,7 @@
-from base64 import b16decode
 from functools import partial
 from typing import Tuple
 from datetime import date, timedelta
+from werkzeug.routing import NotFound, RequestRedirect, MethodNotAllowed
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
@@ -56,6 +56,18 @@ def _build_committed_transfer_path(creditorId: int, debtorId: int, creationDate:
 
 def _url_for(name):
     return staticmethod(partial(url_for, name, _external=False))
+
+
+def _parse_account_path(creditor_id: int, path: str):
+    try:
+        endpoint, params = current_app.url_map.bind('localhost').match(path)
+    except (NotFound, RequestRedirect, MethodNotAllowed):
+        raise ValueError
+
+    if endpoint != 'accounts.AccountEndpoint' or params['creditorId'] != creditor_id:
+        raise ValueError
+
+    return params['debtorId']
 
 
 class path_builder:
@@ -501,14 +513,8 @@ class AccountDisplayEndpoint(MethodView):
     def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings."""
 
-        optional_peg = account_display.get('optional_peg')
         optional_debtor_name = account_display.get('optional_debtor_name')
         optional_unit = account_display.get('optional_unit')
-
-        try:
-            peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor']['uri'])
-        except ValueError:
-            abort(422, errors={'json': {'peg': {'debtor': {'uri': ['The URI can not be recognized.']}}}})
 
         try:
             display = procedures.update_account_display(
@@ -519,10 +525,6 @@ class AccountDisplayEndpoint(MethodView):
                 decimal_places=account_display['decimal_places'],
                 unit=optional_unit,
                 hide=account_display['hide'],
-                peg_currency_debtor_id=peg_currency_debtor_id,
-                peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
-                peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
-                peg_use_for_display=optional_peg and optional_peg['use_for_display'],
                 latest_update_id=account_display['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
@@ -555,18 +557,31 @@ class AccountExchangeEndpoint(MethodView):
         """Update account's exchange settings."""
 
         optional_policy = account_exchange.get('optional_policy')
+        optional_peg = account_exchange.get('optional_peg')
+
+        if optional_peg:
+            try:
+                peg_debtor_id = _parse_account_path(creditorId, optional_peg['account']['uri'])
+            except ValueError:
+                abort(409, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})
+        else:
+            peg_debtor_id = None
 
         try:
             exchange = procedures.update_account_exchange(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
+                policy=optional_policy,
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
-                policy=optional_policy,
+                peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
+                peg_debtor_id=peg_debtor_id,
                 latest_update_id=account_exchange['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
+        except procedures.PegAccountDoesNotExistError:
+            abort(409, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})
         except procedures.UpdateConflictError:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
         except procedures.InvalidExchangePolicyError:
