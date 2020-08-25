@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 785bf5766905
+Revision ID: 6025d137ea98
 Revises: 8d8c816257ce
-Create Date: 2020-08-24 18:55:13.736458
+Create Date: 2020-08-25 19:30:44.085494
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '785bf5766905'
+revision = '6025d137ea98'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -194,7 +194,7 @@ def upgrade():
     sa.CheckConstraint('peg_debtor_id IS NULL AND peg_exchange_rate IS NULL OR peg_debtor_id IS NOT NULL AND peg_exchange_rate IS NOT NULL'),
     sa.CheckConstraint('peg_exchange_rate >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['creditor_id', 'peg_debtor_id'], ['account.creditor_id', 'account.debtor_id'], ),
+    sa.ForeignKeyConstraint(['creditor_id', 'peg_debtor_id'], ['account_exchange.creditor_id', 'account_exchange.debtor_id'], ),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
     op.create_index('idx_peg_debtor_id', 'account_exchange', ['creditor_id', 'peg_debtor_id'], unique=False, postgresql_where=sa.text('peg_debtor_id IS NOT NULL'))
