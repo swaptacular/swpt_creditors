@@ -1,10 +1,12 @@
-from base64 import b16decode
 from functools import partial
 from typing import Tuple
+from urllib.parse import urlparse, urljoin
 from datetime import date, timedelta
+from werkzeug.routing import NotFound, RequestRedirect, MethodNotAllowed
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+from swpt_lib.endpoints import get_server_name, get_url_scheme
 from swpt_lib.utils import i64_to_u64, u64_to_i64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.models import MAX_INT64, DATE0
@@ -56,6 +58,28 @@ def _build_committed_transfer_path(creditorId: int, debtorId: int, creationDate:
 
 def _url_for(name):
     return staticmethod(partial(url_for, name, _external=False))
+
+
+def _parse_peg_account_uri(creditor_id: int, base_url: str, uri: str) -> int:
+    Error = procedures.PegAccountDoesNotExistError
+
+    try:
+        scheme, netloc, path, *rest = urlparse(urljoin(base_url, uri))
+    except ValueError:
+        raise Error()
+
+    if any(rest) or (scheme and scheme != get_url_scheme()) or (netloc and netloc != get_server_name()):
+        raise Error()
+
+    try:
+        endpoint, params = current_app.url_map.bind('localhost').match(path)
+    except (NotFound, RequestRedirect, MethodNotAllowed):
+        raise Error()
+
+    if endpoint != 'accounts.AccountEndpoint' or params['creditorId'] != creditor_id:
+        raise Error()
+
+    return params['debtorId']
 
 
 class path_builder:
@@ -410,14 +434,17 @@ class AccountEndpoint(MethodView):
 
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='deleteAccount',
-                      responses={403: specs.UNSAFE_ACCOUNT_DELETION,
-                                 409: specs.PEG_ACCOUNT_DELETION})
+                      responses={403: specs.FORBIDDEN_ACCOUNT_DELETION})
     def delete(self, creditorId, debtorId):
         """Delete an account.
 
-        **Important note:** This operation will succeed only if the
-        account is marked as safe for deletion, or unsafe deletion is
-        allowed for the account.
+        This operation will succeed only if all of the following
+        conditions are true:
+
+        1. There are no other accounts pegged to this account.
+
+        2. The account is marked as safe for deletion, or unsafe
+           deletion is allowed for the account.
 
         """
 
@@ -428,7 +455,7 @@ class AccountEndpoint(MethodView):
         except procedures.UnsafeAccountDeletionError:
             abort(403)
         except procedures.PegAccountDeletionError:
-            abort(409)
+            abort(403)
         except procedures.AccountDoesNotExistError:
             pass
 
@@ -501,14 +528,8 @@ class AccountDisplayEndpoint(MethodView):
     def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings."""
 
-        optional_peg = account_display.get('optional_peg')
         optional_debtor_name = account_display.get('optional_debtor_name')
         optional_unit = account_display.get('optional_unit')
-
-        try:
-            peg_currency_debtor_id = optional_peg and parse_debtor_uri(optional_peg['debtor']['uri'])
-        except ValueError:
-            abort(422, errors={'json': {'peg': {'debtor': {'uri': ['The URI can not be recognized.']}}}})
 
         try:
             display = procedures.update_account_display(
@@ -519,18 +540,14 @@ class AccountDisplayEndpoint(MethodView):
                 decimal_places=account_display['decimal_places'],
                 unit=optional_unit,
                 hide=account_display['hide'],
-                peg_currency_debtor_id=peg_currency_debtor_id,
-                peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
-                peg_debtor_home_url=optional_peg and optional_peg.get('optional_debtor_home_url'),
-                peg_use_for_display=optional_peg and optional_peg['use_for_display'],
                 latest_update_id=account_display['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
-        except procedures.AccountDebtorNameConflictError:
-            abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
         except procedures.UpdateConflictError:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
+        except procedures.AccountDebtorNameConflictError:
+            abort(422, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
 
         return display
 
@@ -555,14 +572,21 @@ class AccountExchangeEndpoint(MethodView):
         """Update account's exchange settings."""
 
         optional_policy = account_exchange.get('optional_policy')
+        optional_peg = account_exchange.get('optional_peg')
 
         try:
             exchange = procedures.update_account_exchange(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
+                policy=optional_policy,
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
-                policy=optional_policy,
+                peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
+                peg_debtor_id=optional_peg and _parse_peg_account_uri(
+                    creditor_id=creditorId,
+                    base_url=request.full_path,
+                    uri=optional_peg['account']['uri'],
+                ),
                 latest_update_id=account_exchange['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
@@ -571,6 +595,8 @@ class AccountExchangeEndpoint(MethodView):
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
         except procedures.InvalidExchangePolicyError:
             abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
+        except procedures.PegAccountDoesNotExistError:
+            abort(422, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})
 
         return exchange
 

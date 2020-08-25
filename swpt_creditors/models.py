@@ -323,6 +323,8 @@ class AccountExchange(db.Model):
     policy = db.Column(db.String)
     min_principal = db.Column(db.BigInteger, nullable=False, default=MIN_INT64)
     max_principal = db.Column(db.BigInteger, nullable=False, default=MAX_INT64)
+    peg_exchange_rate = db.Column(db.FLOAT)
+    peg_debtor_id = db.Column(db.BigInteger)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
@@ -331,8 +333,18 @@ class AccountExchange(db.Model):
             ['account.creditor_id', 'account.debtor_id'],
             ondelete='CASCADE',
         ),
+        db.ForeignKeyConstraint(
+            ['creditor_id', 'peg_debtor_id'],
+            ['account_exchange.creditor_id', 'account_exchange.debtor_id'],
+        ),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(min_principal <= max_principal),
+        db.CheckConstraint(peg_exchange_rate >= 0.0),
+        db.CheckConstraint(or_(
+            and_(peg_debtor_id == null(), peg_exchange_rate == null()),
+            and_(peg_debtor_id != null(), peg_exchange_rate != null()),
+        )),
+        db.Index('idx_peg_debtor_id', creditor_id, peg_debtor_id, postgresql_where=peg_debtor_id != null()),
     )
 
 
@@ -344,11 +356,6 @@ class AccountDisplay(db.Model):
     decimal_places = db.Column(db.Integer, nullable=False, default=0)
     unit = db.Column(db.String)
     hide = db.Column(db.BOOLEAN, nullable=False, default=False)
-    peg_exchange_rate = db.Column(db.FLOAT)
-    peg_currency_debtor_id = db.Column(db.BigInteger)
-    peg_account_debtor_id = db.Column(db.BigInteger)
-    peg_debtor_home_url = db.Column(db.String)
-    peg_use_for_display = db.Column(db.BOOLEAN)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
@@ -357,35 +364,9 @@ class AccountDisplay(db.Model):
             ['account.creditor_id', 'account.debtor_id'],
             ondelete='CASCADE',
         ),
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'peg_account_debtor_id'],
-            ['account_display.creditor_id', 'account_display.debtor_id'],
-        ),
         db.CheckConstraint(amount_divisor > 0.0),
         db.CheckConstraint(latest_update_id > 0),
-        db.CheckConstraint(peg_exchange_rate >= 0.0),
-        db.CheckConstraint(or_(
-            and_(debtor_name == null(), unit == null()),
-            and_(debtor_name != null(), unit != null())
-        )),
-        db.CheckConstraint(or_(debtor_name != null(), peg_exchange_rate == null())),
-        db.CheckConstraint(or_(peg_exchange_rate != null(), peg_account_debtor_id == null())),
-        db.CheckConstraint(or_(peg_currency_debtor_id != null(), peg_exchange_rate == null())),
-        db.CheckConstraint(or_(peg_use_for_display != null(), peg_exchange_rate == null())),
-        db.CheckConstraint(or_(peg_account_debtor_id == peg_currency_debtor_id, peg_account_debtor_id == null())),
         db.Index('idx_debtor_name', creditor_id, debtor_name, unique=True, postgresql_where=debtor_name != null()),
-        db.Index(
-            'idx_account_peg_debtor_id',
-            creditor_id,
-            peg_account_debtor_id,
-            postgresql_where=peg_account_debtor_id != null(),
-        ),
-        db.Index(
-            'idx_peg_currency_debtor_id',
-            creditor_id,
-            peg_currency_debtor_id,
-            postgresql_where=peg_currency_debtor_id != null(),
-        ),
     )
 
 

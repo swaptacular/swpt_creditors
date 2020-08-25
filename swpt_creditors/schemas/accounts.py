@@ -89,21 +89,6 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
         description='The type of this object.',
         example='CurrencyPeg',
     )
-    debtor = fields.Nested(
-        DebtorIdentitySchema,
-        required=True,
-        description="The peg currency's `DebtorIdentity`.",
-        example={'type': 'DebtorIdentity', 'uri': 'swpt:111'},
-    )
-    optional_debtor_home_url = fields.Url(
-        validate=validate.Length(max=200),
-        format='uri',
-        data_key='debtorHomeUrl',
-        description="An optional URL where the creditor can find sufficient information so as to "
-                    "reliably identify the peg currency's debtor, and correctly configure an "
-                    "account with it.",
-        example='https://example.com/debtor-home-url',
-    )
     exchange_rate = fields.Float(
         required=True,
         validate=validate.Range(min=0.0),
@@ -113,25 +98,17 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
                     "valuable as peg currency's tokens.",
         example=1.0,
     )
-    use_for_display = fields.Boolean(
-        required=True,
-        data_key='useForDisplay',
-        description="Whether the peg dictates how the balance on the pegged account is displayed.",
-    )
-    display = fields.Nested(
+    account = fields.Nested(
         ObjectReferenceSchema,
-        dump_only=True,
-        description="The URI of the peg currency's `AccountDisplay` settings. When this field "
-                    "is not present, this means that the creditor does not have an account in "
-                    "the peg currency.",
-        example={'uri': '/creditors/2/accounts/11/display'},
+        required=True,
+        description="The URI of the peg currency's `Account`.",
+        example={'uri': '/creditors/2/accounts/11/'},
     )
 
     @post_dump
     def assert_required_fields(self, obj, many):
-        assert 'debtor' in obj
+        assert 'account' in obj
         assert 'exchangeRate' in obj
-        assert 'useForDisplay' in obj
         return obj
 
 
@@ -561,7 +538,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'this may also require making outgoing transfers, so as to reduce the '
                     'balance on the account to a negligible amount.'
                     '\n\n'
-                    '**Note:** For new accounts, the value of this field will be `False`.',
+                    '**Note:** For new accounts the value of this field will be `False`.',
         example=False,
     )
     negligible_amount = fields.Float(
@@ -573,8 +550,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'incoming transfer should be considered as insignificant. Must be '
                     'non-negative.'
                     '\n\n'
-                    '**Note:** For new accounts, the value of this field will be some '
-                    'huge number (`1e30` for example).',
+                    '**Note:** For new accounts the value of this field will be `1e30`.',
         example=0.0,
     )
     allow_unsafe_deletion = fields.Boolean(
@@ -584,7 +560,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'that the deletion of an account which allows unsafe deletion may result in '
                     'losing a non-negligible amount of money on the account.'
                     '\n\n'
-                    '**Note:** For new accounts, the value of this field will be `False`.',
+                    '**Note:** For new accounts the value of this field will be `False`.',
         example=False,
     )
 
@@ -612,9 +588,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
     type = fields.String(
         missing='AccountExchange',
         default='AccountExchange',
-        description='The type of this object. Different implementations may use different '
-                    '**additional fields**, providing more exchange settings for the '
-                    'account. This field contains the name of the used schema.',
+        description='The type of this object.',
         example='AccountExchange',
     )
     account = fields.Nested(
@@ -624,13 +598,21 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         description="The URI of the corresponding `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
+    optional_peg = fields.Nested(
+        CurrencyPegSchema,
+        data_key='peg',
+        description="Optional `CurrencyPeg`. A currency peg is an exchange strategy in which "
+                    "the creditor sets a specific fixed exchange rate between the tokens "
+                    "of two of his accounts (the pegged currency, and the peg currency). "
+                    "Sometimes the peg currency is itself pegged to another currency. This is "
+                    "called a \"peg-chain\".",
+    )
     optional_policy = fields.String(
         validate=validate.Length(min=1, max=40),
         data_key='policy',
-        description='The name of the active automatic exchange policy. Different '
-                    'implementations may define different exchange policies. This field is '
-                    'optional. If it not present, this means that the account will not '
-                    'participate in automatic exchanges.',
+        description='The name of the automatic exchange policy. Different implementations '
+                    'may define different exchange policies. If this field is not present,  '
+                    'this means that the account will not participate in automatic exchanges.',
         example='conservative',
     )
     min_principal = fields.Integer(
@@ -667,8 +649,15 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         obj = copy(obj)
         obj.uri = paths.account_exchange(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
+
         if obj.policy is not None:
             obj.optional_policy = obj.policy
+
+        if obj.peg_exchange_rate is not None:
+            obj.optional_peg = {
+                'exchange_rate': obj.peg_exchange_rate,
+                'account': {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.peg_debtor_id)},
+            }
 
         return obj
 
@@ -701,10 +690,9 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         description="Before displaying the amount, it should be divided by this number. For "
                     "new accounts the value of this field will be `1`."
                     "\n\n"
-                    "**Important note:** This value should be used for display purposes "
-                    "only. Notably, the value of this field must be ignored when the "
-                    "exchange rate between pegged accounts is calculated.",
-
+                    "**Note:** This value should be used for display purposes only. Notably, "
+                    "the value of this field must be ignored when the exchange rate  between "
+                    "pegged accounts is calculated.",
         example=100.0,
     )
     decimal_places = fields.Integer(
@@ -722,48 +710,24 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     'must have different `debtorName`s. The creditor may choose any name '
                     'that is convenient, or easy to remember.'
                     '\n\n'
-                    "**Important note:** For new accounts this field will not be present, "
-                    "and it must be set as soon as possible, otherwise the real identity "
+                    "**Note:** For new accounts this field will not be present, and it "
+                    "should be set as soon as possible, otherwise the real identity "
                     "of the debtor may remain unknown to the creditor, which may lead "
-                    "to confusion and financial loses. Also, `peg` and `unit` fields can "
-                    "be set only when this field is set too.",
+                    "to confusion and financial loses.",
         example='United States of America',
     )
-    optional_peg = fields.Nested(
-        CurrencyPegSchema,
-        data_key='peg',
-        description="Optional `CurrencyPeg`, announced by the owner of the account. A "
-                    "currency peg is a policy, in which the creditor sets a specific fixed "
-                    "exchange rate between the tokens of two of his accounts (the pegged "
-                    "currency, and the peg currency). Sometimes the peg currency is itself "
-                    "pegged to another currency. This is called a \"peg-chain\".",
-    )
     optional_unit = fields.String(
-        validate=validate.Length(min=1, max=20),
+        validate=validate.Length(min=1, max=40),
         data_key='unit',
         description="The value measurement unit specified by the debtor. It should be "
                     "shown right after the displayed amount, \"500.00 USD\" for example. If "
                     "the account does not have its `unit` field set, the generic currency "
                     "sign (\u00a4), or the \"XXX\" ISO 4217 currency code should be shown."
                     "\n\n"
-                    "To determine the value measurement unit in which to show the balance "
-                    "on a given account, the account's \"peg-chain\" should be followed "
-                    "until an account is found for which at least one of the following "
-                    "conditions is true:"
-                    "\n * The account is not pegged to another currency."
-                    "\n * The account is pegged to another currency, but the "
-                    "`CurrencyPeg` has its `useForDisplay` field set to `False`."
-                    "\n * The account is pegged to another currency, but the "
-                    "creditor does not have an account in this currency."
-                    "\n * The account is pegged to another currency, the "
-                    "creditor has an account in this currency, but the peg  "
-                    "currency's account does not have its `unit` field set."
-                    "\n\n"
-                    "**Important note:** For new accounts this field will not be present, "
-                    "and it must be set as soon as possible, otherwise the value measurement "
+                    "**Note:** For new accounts this field will not be present, and it "
+                    "should be set as soon as possible, otherwise the value measurement "
                     "unit may remain unknown to the creditor, which may lead to confusion "
-                    "and financial loses. Also, the `debtorName` field can be set only "
-                    "when this field is set too.",
+                    "and financial loses.",
         example='USD',
     )
     hide = fields.Boolean(
@@ -773,17 +737,6 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
                     "will be `False`.",
         example=False,
     )
-
-    @validates_schema
-    def validate_debtor_name(self, data, **kwargs):
-        if 'optional_debtor_name' in data:
-            if 'optional_unit' not in data:
-                raise ValidationError("Can not set debtorName without unit.")
-        else:
-            if 'optional_unit' in data:
-                raise ValidationError("Can not set unit without debtorName.")
-            if 'optional_peg' in data:
-                raise ValidationError("Can not set peg without debtorName.")
 
     @pre_dump
     def process_account_display_instance(self, obj, many):
@@ -798,19 +751,6 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
 
         if obj.debtor_name is not None:
             obj.optional_debtor_name = obj.debtor_name
-
-        if obj.peg_exchange_rate is not None:
-            peg = {
-                'exchange_rate': obj.peg_exchange_rate,
-                'debtor': {'uri': make_debtor_uri(obj.peg_currency_debtor_id)},
-                'use_for_display': obj.peg_use_for_display,
-            }
-            if obj.peg_account_debtor_id is not None:
-                display_path = paths.account_display(creditorId=obj.creditor_id, debtorId=obj.peg_account_debtor_id)
-                peg['display'] = {'uri': display_path}
-            if obj.peg_debtor_home_url is not None:
-                peg['optional_debtor_home_url'] = obj.peg_debtor_home_url
-            obj.optional_peg = peg
 
         return obj
 

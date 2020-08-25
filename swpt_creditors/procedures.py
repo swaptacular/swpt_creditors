@@ -96,6 +96,10 @@ class AccountDoesNotExistError(Exception):
     """The account does not exist."""
 
 
+class PegAccountDoesNotExistError(Exception):
+    """The peg account does not exist."""
+
+
 class TransferDoesNotExistError(Exception):
     """The transfer does not exist."""
 
@@ -293,10 +297,7 @@ def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) 
 
 
 @atomic
-def has_account(creditor_id: int, debtor_id: Optional[int]) -> bool:
-    if debtor_id is None:
-        return False
-
+def has_account(creditor_id: int, debtor_id: int) -> bool:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
@@ -443,23 +444,12 @@ def update_account_display(
         decimal_places: int,
         unit: Optional[str],
         hide: bool,
-        peg_exchange_rate: Optional[float],
-        peg_currency_debtor_id: Optional[int],
-        peg_debtor_home_url: Optional[str],
-        peg_use_for_display: Optional[bool],
         latest_update_id: int) -> AccountDisplay:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert amount_divisor > 0.0
     assert MIN_INT32 <= decimal_places <= MAX_INT32
-    assert peg_currency_debtor_id is None or MIN_INT64 <= peg_currency_debtor_id <= MAX_INT64
-    assert peg_exchange_rate is None or peg_exchange_rate >= 0.0
-    assert (peg_exchange_rate is None and peg_currency_debtor_id is None and peg_use_for_display is None) or \
-           (peg_exchange_rate is not None and peg_currency_debtor_id is not None and peg_use_for_display is not None)
-    assert (debtor_name is None and unit is None) or \
-           (debtor_name is not None and unit is not None)
-    assert debtor_name is not None or peg_exchange_rate is None
     assert 1 <= latest_update_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -477,22 +467,12 @@ def update_account_display(
         if debtor_name_confilict:
             raise AccountDebtorNameConflictError()
 
-    # NOTE: When a currency peg is specified, and the creditor already
-    # has an account in the specified peg currency, then we must set a
-    # reference to it.
-    peg_account_debtor_id = peg_currency_debtor_id if has_account(creditor_id, peg_currency_debtor_id) else None
-
     with db.retry_on_integrity_error():
         display.debtor_name = debtor_name
         display.amount_divisor = amount_divisor
         display.decimal_places = decimal_places
         display.unit = unit
         display.hide = hide
-        display.peg_exchange_rate = peg_exchange_rate
-        display.peg_currency_debtor_id = peg_currency_debtor_id
-        display.peg_account_debtor_id = peg_account_debtor_id
-        display.peg_debtor_home_url = peg_debtor_home_url
-        display.peg_use_for_display = peg_use_for_display
         display.latest_update_id = latest_update_id
         display.latest_update_ts = current_ts
 
@@ -565,6 +545,8 @@ def update_account_exchange(
         policy: Optional[str],
         min_principal: int,
         max_principal: int,
+        peg_exchange_rate: Optional[float],
+        peg_debtor_id: Optional[int],
         latest_update_id: int) -> AccountKnowledge:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -583,9 +565,14 @@ def update_account_exchange(
     if latest_update_id != exchange.latest_update_id + 1:
         raise UpdateConflictError()
 
+    if peg_debtor_id is not None and not has_account(creditor_id, peg_debtor_id):
+        raise PegAccountDoesNotExistError()
+
     exchange.policy = policy
     exchange.min_principal = min_principal
     exchange.max_principal = max_principal
+    exchange.peg_exchange_rate = peg_exchange_rate
+    exchange.peg_debtor_id = peg_debtor_id
     exchange.latest_update_id = latest_update_id
     exchange.latest_update_ts = current_ts
 
@@ -621,7 +608,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     if not (data.is_deletion_safe or data.allow_unsafe_deletion):
         raise UnsafeAccountDeletionError()
 
-    pegged_accounts_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_account_debtor_id=debtor_id)
+    pegged_accounts_query = AccountExchange.query.filter_by(creditor_id=creditor_id, peg_debtor_id=debtor_id)
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise PegAccountDeletionError()
 
@@ -1107,22 +1094,6 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         config_flags=DEFAULT_CONFIG_FLAGS,
         config='',
     ))
-
-    # NOTE: We must update the way accounts that are pegged to the
-    # newly created account are displayed. (And do not forget to write
-    # events to the log to inform the client about the changes.)
-    account_displays_query = AccountDisplay.query.filter_by(creditor_id=creditor_id, peg_currency_debtor_id=debtor_id)
-    for account_display in account_displays_query.all():
-        account_display.peg_account_debtor_id = debtor_id
-        account_display.latest_update_id += 1
-        account_display.latest_update_ts = current_ts
-        _add_log_entry(
-            creditor,
-            object_type=types.account_display,
-            object_uri=paths.account_display(creditorId=creditor_id, debtorId=account_display.debtor_id),
-            object_update_id=account_display.latest_update_id,
-            current_ts=current_ts,
-        )
 
     return account
 

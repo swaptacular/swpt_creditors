@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d25f0cd72477
+Revision ID: 6025d137ea98
 Revises: 8d8c816257ce
-Create Date: 2020-08-23 14:49:28.902379
+Create Date: 2020-08-25 19:30:44.085494
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'd25f0cd72477'
+revision = '6025d137ea98'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -171,42 +171,33 @@ def upgrade():
     sa.Column('decimal_places', sa.Integer(), nullable=False),
     sa.Column('unit', sa.String(), nullable=True),
     sa.Column('hide', sa.BOOLEAN(), nullable=False),
-    sa.Column('peg_exchange_rate', sa.FLOAT(), nullable=True),
-    sa.Column('peg_currency_debtor_id', sa.BigInteger(), nullable=True),
-    sa.Column('peg_account_debtor_id', sa.BigInteger(), nullable=True),
-    sa.Column('peg_debtor_home_url', sa.String(), nullable=True),
-    sa.Column('peg_use_for_display', sa.BOOLEAN(), nullable=True),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount_divisor > 0.0'),
-    sa.CheckConstraint('debtor_name IS NOT NULL OR peg_exchange_rate IS NULL'),
-    sa.CheckConstraint('debtor_name IS NULL AND unit IS NULL OR debtor_name IS NOT NULL AND unit IS NOT NULL'),
     sa.CheckConstraint('latest_update_id > 0'),
-    sa.CheckConstraint('peg_account_debtor_id = peg_currency_debtor_id OR peg_account_debtor_id IS NULL'),
-    sa.CheckConstraint('peg_currency_debtor_id IS NOT NULL OR peg_exchange_rate IS NULL'),
-    sa.CheckConstraint('peg_exchange_rate >= 0.0'),
-    sa.CheckConstraint('peg_exchange_rate IS NOT NULL OR peg_account_debtor_id IS NULL'),
-    sa.CheckConstraint('peg_use_for_display IS NOT NULL OR peg_exchange_rate IS NULL'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['creditor_id', 'peg_account_debtor_id'], ['account_display.creditor_id', 'account_display.debtor_id'], ),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
-    op.create_index('idx_account_peg_debtor_id', 'account_display', ['creditor_id', 'peg_account_debtor_id'], unique=False, postgresql_where=sa.text('peg_account_debtor_id IS NOT NULL'))
     op.create_index('idx_debtor_name', 'account_display', ['creditor_id', 'debtor_name'], unique=True, postgresql_where=sa.text('debtor_name IS NOT NULL'))
-    op.create_index('idx_peg_currency_debtor_id', 'account_display', ['creditor_id', 'peg_currency_debtor_id'], unique=False, postgresql_where=sa.text('peg_currency_debtor_id IS NOT NULL'))
     op.create_table('account_exchange',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('policy', sa.String(), nullable=True),
     sa.Column('min_principal', sa.BigInteger(), nullable=False),
     sa.Column('max_principal', sa.BigInteger(), nullable=False),
+    sa.Column('peg_exchange_rate', sa.FLOAT(), nullable=True),
+    sa.Column('peg_debtor_id', sa.BigInteger(), nullable=True),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('min_principal <= max_principal'),
+    sa.CheckConstraint('peg_debtor_id IS NULL AND peg_exchange_rate IS NULL OR peg_debtor_id IS NOT NULL AND peg_exchange_rate IS NOT NULL'),
+    sa.CheckConstraint('peg_exchange_rate >= 0.0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['creditor_id', 'peg_debtor_id'], ['account_exchange.creditor_id', 'account_exchange.debtor_id'], ),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
+    op.create_index('idx_peg_debtor_id', 'account_exchange', ['creditor_id', 'peg_debtor_id'], unique=False, postgresql_where=sa.text('peg_debtor_id IS NOT NULL'))
     op.create_table('account_knowledge',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -269,10 +260,9 @@ def downgrade():
     op.drop_index('idx_committed_transfer_pk', table_name='committed_transfer')
     op.drop_table('committed_transfer')
     op.drop_table('account_knowledge')
+    op.drop_index('idx_peg_debtor_id', table_name='account_exchange')
     op.drop_table('account_exchange')
-    op.drop_index('idx_peg_currency_debtor_id', table_name='account_display')
     op.drop_index('idx_debtor_name', table_name='account_display')
-    op.drop_index('idx_account_peg_debtor_id', table_name='account_display')
     op.drop_table('account_display')
     op.drop_table('account_data')
     op.drop_table('pending_log_entry')
