@@ -661,6 +661,20 @@ def test_account_exchange(client, account):
     data = r.get_json()
     assert data['errors']['json']['peg']['account']['uri'] == ['Account does not exist.']
 
+    wrong_uris = [
+        '/creditors/2/accounts/1111/',
+        '/creditors/2/accounts/1111',
+        '/creditors/2/accounts/',
+        '/creditors/2/account-lookup',
+        'awt4ao8t4o',
+    ]
+    for uri in wrong_uris:
+        request_data['peg']['account']['uri'] = uri
+        r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+        assert r.status_code == 422
+        data = r.get_json()
+        assert data['errors']['json']['peg']['account']['uri'] == ['Account does not exist.']
+
     request_data['peg']['account']['uri'] = '/creditors/2/accounts/11/'
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 200

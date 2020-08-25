@@ -59,13 +59,15 @@ def _url_for(name):
 
 
 def _parse_account_path(creditor_id: int, path: str):
+    Error = procedures.PegAccountDoesNotExistError
+
     try:
         endpoint, params = current_app.url_map.bind('localhost').match(path)
     except (NotFound, RequestRedirect, MethodNotAllowed):
-        raise ValueError
+        raise Error()
 
     if endpoint != 'accounts.AccountEndpoint' or params['creditorId'] != creditor_id:
-        raise ValueError
+        raise Error()
 
     return params['debtorId']
 
@@ -559,14 +561,6 @@ class AccountExchangeEndpoint(MethodView):
         optional_policy = account_exchange.get('optional_policy')
         optional_peg = account_exchange.get('optional_peg')
 
-        if optional_peg:
-            try:
-                peg_debtor_id = _parse_account_path(creditorId, optional_peg['account']['uri'])
-            except ValueError:
-                abort(409, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})
-        else:
-            peg_debtor_id = None
-
         try:
             exchange = procedures.update_account_exchange(
                 creditor_id=creditorId,
@@ -575,7 +569,7 @@ class AccountExchangeEndpoint(MethodView):
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
-                peg_debtor_id=peg_debtor_id,
+                peg_debtor_id=optional_peg and _parse_account_path(creditorId, optional_peg['account']['uri']),
                 latest_update_id=account_exchange['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
