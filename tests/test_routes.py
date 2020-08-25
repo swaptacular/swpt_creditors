@@ -667,6 +667,14 @@ def test_account_exchange(client, account):
         '/creditors/2/accounts/',
         '/creditors/2/account-lookup',
         'awt4ao8t4o',
+        'http://wrongname.com/creditors/2/accounts/11/',
+        'https://example.com/creditors/2/accounts/11/',
+        'http://example.com/creditors/2/accounts/11',
+        '/creditors/2/accounts/11/?x=y',
+        '/creditors/2/accounts/11/#xyz',
+        'http://user:pass@example.com/creditors/2/accounts/11/',
+        'http://[',
+        '../1111/',
     ]
     for uri in wrong_uris:
         request_data['peg']['account']['uri'] = uri
@@ -681,6 +689,15 @@ def test_account_exchange(client, account):
     data = r.get_json()
     assert data['latestUpdateId'] == 3
     p.process_pending_log_entries(2)
+
+    ok_uris = [
+        'http://example.com/creditors/2/accounts/11/',
+        '../11/',
+    ]
+    for uri in ok_uris:
+        request_data['peg']['account']['uri'] = uri
+        r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+        assert r.status_code == 409
 
     r = client.delete('/creditors/2/accounts/11/')
     assert r.status_code == 409

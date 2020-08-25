@@ -1,10 +1,12 @@
 from functools import partial
 from typing import Tuple
+from urllib.parse import urlparse, urljoin
 from datetime import date, timedelta
 from werkzeug.routing import NotFound, RequestRedirect, MethodNotAllowed
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+from swpt_lib.endpoints import get_server_name, get_url_scheme
 from swpt_lib.utils import i64_to_u64, u64_to_i64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.models import MAX_INT64, DATE0
@@ -58,8 +60,16 @@ def _url_for(name):
     return staticmethod(partial(url_for, name, _external=False))
 
 
-def _parse_account_path(creditor_id: int, path: str):
+def _parse_account_uri(creditor_id: int, base_url: str, uri: str) -> int:
     Error = procedures.PegAccountDoesNotExistError
+
+    try:
+        scheme, netloc, path, *rest = urlparse(urljoin(base_url, uri))
+    except ValueError:
+        raise Error()
+
+    if any(rest) or (scheme and scheme != get_url_scheme()) or (netloc and netloc != get_server_name()):
+        raise Error()
 
     try:
         endpoint, params = current_app.url_map.bind('localhost').match(path)
@@ -569,7 +579,11 @@ class AccountExchangeEndpoint(MethodView):
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
-                peg_debtor_id=optional_peg and _parse_account_path(creditorId, optional_peg['account']['uri']),
+                peg_debtor_id=optional_peg and _parse_account_uri(
+                    creditor_id=creditorId,
+                    base_url=request.full_path,
+                    uri=optional_peg['account']['uri'],
+                ),
                 latest_update_id=account_exchange['latest_update_id'],
             )
         except procedures.AccountDoesNotExistError:
