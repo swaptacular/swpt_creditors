@@ -502,31 +502,9 @@ def test_account_display(client, account):
     assert data['hide'] is False
     assert data['decimalPlaces'] == 0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
-    assert 'peg' not in data
     assert 'unit' not in data
     assert 'debtorName' not in data
-
     p.process_pending_log_entries(2)
-    r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:11'})
-    assert r.status_code == 201
-
-    r = client.patch('/creditors/2/accounts/11/config', json={
-        'scheduledForDeletion': True,
-        'negligibleAmount': m.DEFAULT_NEGLIGIBLE_AMOUNT,
-        'allowUnsafeDeletion': True,
-        'latestUpdateId': 2,
-    })
-    assert r.status_code == 200
-
-    r = client.patch('/creditors/2/accounts/11/display', json={
-        'debtorName': 'existing debtor',
-        'unit': 'EUR',
-        'amountDivisor': 100.0,
-        'decimalPlaces': 2,
-        'hide': True,
-        'latestUpdateId': 2,
-    })
-    assert r.status_code == 200
 
     request_data = {
         'type': 'AccountDisplay',
@@ -535,18 +513,9 @@ def test_account_display(client, account):
         'decimalPlaces': 2,
         'unit': 'USD',
         'hide': True,
-        'peg': {
-            'type': 'CurrencyPeg',
-            'exchangeRate': 10.0,
-            'useForDisplay': True,
-            'debtor': {
-                'type': 'DebtorIdentity',
-                'uri': 'swpt:11',
-            },
-            'debtorHomeUrl': 'https://example.com/debtor-home-url',
-        },
         'latestUpdateId': 2,
     }
+    orig_request_data = request_data.copy()
 
     r = client.patch('/creditors/2/accounts/1111/display', json=request_data)
     assert r.status_code == 404
@@ -564,97 +533,59 @@ def test_account_display(client, account):
     assert data['unit'] == 'USD'
     assert data['hide'] is True
     assert data['latestUpdateId'] == 2
-    assert data['peg'] == {
-        'type': 'CurrencyPeg',
-        'exchangeRate': 10.0,
-        'useForDisplay': True,
-        'debtor': {
-            'type': 'DebtorIdentity',
-            'uri': 'swpt:11',
-        },
-        'display': {'uri': '/creditors/2/accounts/11/display'},
-        'debtorHomeUrl': 'https://example.com/debtor-home-url',
-    }
+    assert 'peg' not in data
+    p.process_pending_log_entries(2)
 
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
 
-    request_data['peg']['debtor']['uri'] = 'INVALID'
-    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:11'})
+    assert r.status_code == 201
+    p.process_pending_log_entries(2)
+
+    r = client.patch('/creditors/2/accounts/11/display', json=orig_request_data)
     assert r.status_code == 422
     data = r.get_json()
-    assert data['errors']['json']['peg']['debtor']['uri'] == ['The URI can not be recognized.']
+    assert 'debtorName' in data['errors']['json']
+    p.process_pending_log_entries(2)
 
-    r = client.delete('/creditors/2/accounts/11/')
-    assert r.status_code == 409
-
-    request_data['peg']['debtor']['uri'] = 'swpt:1111'
-    request_data['peg']['debtorHomeUrl'] = 'https://example.com/another-debtor-home-url'
-    request_data['peg']['useForDisplay'] = False
+    del request_data['debtorName']
+    del request_data['unit']
+    request_data['hide'] = True
     request_data['latestUpdateId'] = 3
+    request_data['decimalPlaces'] = 3
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 200
     data = r.get_json()
-    assert data['type'] == 'AccountDisplay'
-    assert data['uri'] == '/creditors/2/accounts/1/display'
-    assert data['debtorName'] == 'United States of America'
-    assert data['amountDivisor'] == 100.0
-    assert data['decimalPlaces'] == 2
-    assert data['unit'] == 'USD'
-    assert data['hide'] is True
     assert data['latestUpdateId'] == 3
-    assert data['peg'] == {
-        'type': 'CurrencyPeg',
-        'exchangeRate': 10.0,
-        'useForDisplay': False,
-        'debtor': {
-            'type': 'DebtorIdentity',
-            'uri': 'swpt:1111',
-        },
-        'debtorHomeUrl': 'https://example.com/another-debtor-home-url',
-    }
-
-    request_data['debtorName'] = 'existing debtor'
-    request_data['unit'] = 'USD'
-    request_data['latestUpdateId'] = 4
-    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
-    assert r.status_code == 409
-    data = r.get_json()
-    assert data['errors']['json']['debtorName'] == ['Another account with the same debtorName already exist.']
-
+    assert data['amountDivisor'] == 100.0
+    assert data['hide'] is True
+    assert data['decimalPlaces'] == 3
+    assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
+    assert 'unit' not in data
+    assert 'debtorName' not in data
     p.process_pending_log_entries(2)
-    r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:1111'})
-    assert r.status_code == 201
 
+    r = client.patch('/creditors/2/accounts/11/display', json=orig_request_data)
+    assert r.status_code == 200
     p.process_pending_log_entries(2)
+
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 11
+    assert len(entries) == 7
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', 1),
         ('AccountList', '/creditors/2/account-list', 2),
+        ('AccountDisplay', '/creditors/2/accounts/1/display', 2),
         ('Account', '/creditors/2/accounts/11/', 1),
         ('AccountList', '/creditors/2/account-list', 3),
-        ('AccountConfig', '/creditors/2/accounts/11/config', 2),
-        ('AccountDisplay', '/creditors/2/accounts/11/display', 2),
-        ('AccountDisplay', '/creditors/2/accounts/1/display', 2),
         ('AccountDisplay', '/creditors/2/accounts/1/display', 3),
-        ('Account', '/creditors/2/accounts/1111/', 1),
-        ('AccountList', '/creditors/2/account-list', 4),
-        ('AccountDisplay', '/creditors/2/accounts/1/display', 4),
+        ('AccountDisplay', '/creditors/2/accounts/11/display', 2),
     ]
     assert all([entries[i]['entryId'] - entries[i - 1]['entryId'] == 1 for i in range(1, len(entries))])
 
-    r = client.delete('/creditors/2/accounts/11/')
-    assert r.status_code == 204
-
-    request_data['debtorName'] = 'existing debtor'
-    request_data['unit'] = 'EUR'
-    request_data['latestUpdateId'] = 5
-    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
-    assert r.status_code == 200
-
 
 def test_account_exchange(client, account):
+    p.process_pending_log_entries(2)
     r = client.get('/creditors/2/accounts/1111/exchange')
     assert r.status_code == 404
 
@@ -669,6 +600,19 @@ def test_account_exchange(client, account):
     assert data['maxPrincipal'] == p.MAX_INT64
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
     assert 'policy' not in data
+
+    # Create another account, which is ready to be deleted.
+    r = client.post('/creditors/2/accounts/', json={'uri': 'swpt:11'})
+    assert r.status_code == 201
+    p.process_pending_log_entries(2)
+    r = client.patch('/creditors/2/accounts/11/config', json={
+        'scheduledForDeletion': True,
+        'negligibleAmount': m.DEFAULT_NEGLIGIBLE_AMOUNT,
+        'allowUnsafeDeletion': True,
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+    p.process_pending_log_entries(2)
 
     request_data = {
         'minPrincipal': 1000,
@@ -689,6 +633,7 @@ def test_account_exchange(client, account):
     assert data['minPrincipal'] == 1000
     assert data['maxPrincipal'] == 2000
     assert 'policy' not in data
+    p.process_pending_log_entries(2)
 
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 409
@@ -710,18 +655,51 @@ def test_account_exchange(client, account):
     assert data['errors']['json']['policy'] == ['Invalid policy name.']
 
     del request_data['policy']
-    request_data['peg'] = {'exchangeRate': 1.5, 'account': {'uri': '/creditors/2/accounts/11/'}}
+    request_data['peg'] = {'exchangeRate': 1.5, 'account': {'uri': '/creditors/2/accounts/1111/'}}
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
-    assert r.status_code == 409
-    assert data['errors']['json']['peg']['account']['uri'] == 'Account does not exist.'
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json']['peg']['account']['uri'] == ['Account does not exist.']
 
+    request_data['peg']['account']['uri'] = '/creditors/2/accounts/1/'
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json']['peg']['account']['uri'] == ['Account does not exist.']
+
+    request_data['peg']['account']['uri'] = '/creditors/2/accounts/11/'
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['latestUpdateId'] == 3
     p.process_pending_log_entries(2)
+
+    r = client.delete('/creditors/2/accounts/11/')
+    assert r.status_code == 409
+
+    del request_data['peg']
+    request_data['latestUpdateId'] = 4
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+    data = r.get_json()
+    assert data['latestUpdateId'] == 4
+    assert 'peg' not in data
+    p.process_pending_log_entries(2)
+
+    r = client.delete('/creditors/2/accounts/11/')
+    assert r.status_code == 204
+    p.process_pending_log_entries(2)
+
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 3
-    assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [
+    assert len(entries) > 8
+    assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries[:8]] == [
         ('Account', '/creditors/2/accounts/1/', 1),
         ('AccountList', '/creditors/2/account-list', 2),
+        ('Account', '/creditors/2/accounts/11/', 1),
+        ('AccountList', '/creditors/2/account-list', 3),
+        ('AccountConfig', '/creditors/2/accounts/11/config', 2),
         ('AccountExchange', '/creditors/2/accounts/1/exchange', 2),
+        ('AccountExchange', '/creditors/2/accounts/1/exchange', 3),
+        ('AccountExchange', '/creditors/2/accounts/1/exchange', 4),
     ]
 
 

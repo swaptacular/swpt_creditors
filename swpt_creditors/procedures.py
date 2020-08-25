@@ -565,7 +565,8 @@ def update_account_exchange(
     if latest_update_id != exchange.latest_update_id + 1:
         raise UpdateConflictError()
 
-    if peg_debtor_id is not None and not has_account(creditor_id, peg_debtor_id):
+    # TODO: this is ugly!
+    if peg_debtor_id is not None and (peg_debtor_id == debtor_id or not has_account(creditor_id, peg_debtor_id)):
         raise PegAccountDoesNotExistError()
 
     # TODO: should we expect integrity error here?

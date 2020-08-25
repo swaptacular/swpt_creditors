@@ -529,10 +529,10 @@ class AccountDisplayEndpoint(MethodView):
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
-        except procedures.AccountDebtorNameConflictError:
-            abort(409, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
         except procedures.UpdateConflictError:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
+        except procedures.AccountDebtorNameConflictError:
+            abort(422, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
 
         return display
 
@@ -580,12 +580,12 @@ class AccountExchangeEndpoint(MethodView):
             )
         except procedures.AccountDoesNotExistError:
             abort(404)
-        except procedures.PegAccountDoesNotExistError:
-            abort(409, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})
         except procedures.UpdateConflictError:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
         except procedures.InvalidExchangePolicyError:
             abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
+        except procedures.PegAccountDoesNotExistError:
+            abort(422, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})
 
         return exchange
 
