@@ -538,7 +538,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'this may also require making outgoing transfers, so as to reduce the '
                     'balance on the account to a negligible amount.'
                     '\n\n'
-                    '**Note:** For new accounts, the value of this field will be `False`.',
+                    '**Note:** For new accounts the value of this field will be `False`.',
         example=False,
     )
     negligible_amount = fields.Float(
@@ -550,7 +550,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'incoming transfer should be considered as insignificant. Must be '
                     'non-negative.'
                     '\n\n'
-                    '**Note:** For new accounts, the value of this field will be some '
+                    '**Note:** For new accounts the value of this field will be some '
                     'huge number (`1e30` for example).',
         example=0.0,
     )
@@ -561,7 +561,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'that the deletion of an account which allows unsafe deletion may result in '
                     'losing a non-negligible amount of money on the account.'
                     '\n\n'
-                    '**Note:** For new accounts, the value of this field will be `False`.',
+                    '**Note:** For new accounts the value of this field will be `False`.',
         example=False,
     )
 
