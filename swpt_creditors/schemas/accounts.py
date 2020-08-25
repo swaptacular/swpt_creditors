@@ -550,8 +550,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
                     'incoming transfer should be considered as insignificant. Must be '
                     'non-negative.'
                     '\n\n'
-                    '**Note:** For new accounts the value of this field will be some '
-                    'huge number (`1e30` for example).',
+                    '**Note:** For new accounts the value of this field will be `1e30`.',
         example=0.0,
     )
     allow_unsafe_deletion = fields.Boolean(
