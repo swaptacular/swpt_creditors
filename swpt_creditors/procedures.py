@@ -297,7 +297,7 @@ def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) 
 
 
 @atomic
-def has_account(creditor_id: int, debtor_id: Optional[int]) -> bool:
+def has_account(creditor_id: int, debtor_id: int) -> bool:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
