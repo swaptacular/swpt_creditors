@@ -121,8 +121,8 @@ ACCOUNT_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-UNSAFE_ACCOUNT_DELETION = {
-    'description': 'Forbidden unsafe deletion.',
+FORBIDDEN_ACCOUNT_DELETION = {
+    'description': 'Forbidden account deletion.',
     'content': ERROR_CONTENT,
 }
 

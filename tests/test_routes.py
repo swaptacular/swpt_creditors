@@ -700,7 +700,7 @@ def test_account_exchange(client, account):
         assert r.status_code == 409
 
     r = client.delete('/creditors/2/accounts/11/')
-    assert r.status_code == 409
+    assert r.status_code == 403
 
     del request_data['peg']
     request_data['latestUpdateId'] = 4

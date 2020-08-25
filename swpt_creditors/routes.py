@@ -60,7 +60,7 @@ def _url_for(name):
     return staticmethod(partial(url_for, name, _external=False))
 
 
-def _parse_account_uri(creditor_id: int, base_url: str, uri: str) -> int:
+def _parse_peg_account_uri(creditor_id: int, base_url: str, uri: str) -> int:
     Error = procedures.PegAccountDoesNotExistError
 
     try:
@@ -434,14 +434,17 @@ class AccountEndpoint(MethodView):
 
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='deleteAccount',
-                      responses={403: specs.UNSAFE_ACCOUNT_DELETION,
-                                 409: specs.PEG_ACCOUNT_DELETION})
+                      responses={403: specs.FORBIDDEN_ACCOUNT_DELETION})
     def delete(self, creditorId, debtorId):
         """Delete an account.
 
-        **Important note:** This operation will succeed only if the
-        account is marked as safe for deletion, or unsafe deletion is
-        allowed for the account.
+        This operation will succeed only if all of the following
+        conditions are true:
+
+        1. There are no other accounts pegged to this account.
+
+        2. The account is marked as safe for deletion, or unsafe
+           deletion is allowed for the account.
 
         """
 
@@ -452,7 +455,7 @@ class AccountEndpoint(MethodView):
         except procedures.UnsafeAccountDeletionError:
             abort(403)
         except procedures.PegAccountDeletionError:
-            abort(409)
+            abort(403)
         except procedures.AccountDoesNotExistError:
             pass
 
@@ -579,7 +582,7 @@ class AccountExchangeEndpoint(MethodView):
                 min_principal=account_exchange['min_principal'],
                 max_principal=account_exchange['max_principal'],
                 peg_exchange_rate=optional_peg and optional_peg['exchange_rate'],
-                peg_debtor_id=optional_peg and _parse_account_uri(
+                peg_debtor_id=optional_peg and _parse_peg_account_uri(
                     creditor_id=creditorId,
                     base_url=request.full_path,
                     uri=optional_peg['account']['uri'],

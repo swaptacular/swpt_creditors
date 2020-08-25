@@ -589,9 +589,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
     type = fields.String(
         missing='AccountExchange',
         default='AccountExchange',
-        description='The type of this object. Different implementations may use different '
-                    '**additional fields**, providing more exchange settings for the '
-                    'account. This field contains the name of the used schema.',
+        description='The type of this object.',
         example='AccountExchange',
     )
     account = fields.Nested(
@@ -604,19 +602,18 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
     optional_peg = fields.Nested(
         CurrencyPegSchema,
         data_key='peg',
-        description="Optional `CurrencyPeg`, announced by the owner of the account. A "
-                    "currency peg is a policy, in which the creditor sets a specific fixed "
-                    "exchange rate between the tokens of two of his accounts (the pegged "
-                    "currency, and the peg currency). Sometimes the peg currency is itself "
-                    "pegged to another currency. This is called a \"peg-chain\".",
+        description="Optional `CurrencyPeg`. A currency peg is an exchange strategy in which "
+                    "the creditor sets a specific fixed exchange rate between the tokens "
+                    "of two of his accounts (the pegged currency, and the peg currency). "
+                    "Sometimes the peg currency is itself pegged to another currency. This is "
+                    "called a \"peg-chain\".",
     )
     optional_policy = fields.String(
         validate=validate.Length(min=1, max=40),
         data_key='policy',
-        description='The name of the active automatic exchange policy. Different '
-                    'implementations may define different exchange policies. This field is '
-                    'optional. If it not present, this means that the account will not '
-                    'participate in automatic exchanges.',
+        description='The name of the automatic exchange policy. Different implementations '
+                    'may define different exchange policies. If this field is not present,  '
+                    'this means that the account will not participate in automatic exchanges.',
         example='conservative',
     )
     min_principal = fields.Integer(
