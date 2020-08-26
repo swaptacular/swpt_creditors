@@ -552,12 +552,10 @@ def update_account_exchange(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    current_ts = datetime.now(tz=timezone.utc)
-
-    # NOTE: There are no defined valid policy names yet.
-    if policy is not None:
+    if policy not in [None, 'conservative']:
         raise InvalidExchangePolicyError()
 
+    current_ts = datetime.now(tz=timezone.utc)
     exchange = AccountExchange.lock_instance((creditor_id, debtor_id))
     if exchange is None:
         raise AccountDoesNotExistError()

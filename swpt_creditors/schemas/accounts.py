@@ -610,9 +610,15 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
     optional_policy = fields.String(
         validate=validate.Length(min=1, max=40),
         data_key='policy',
-        description='The name of the automatic exchange policy. Different implementations '
-                    'may define different exchange policies. If this field is not present,  '
-                    'this means that the account will not participate in automatic exchanges.',
+        description='The name of the automatic exchange policy. If this field is not present, '
+                    'this means that the account will not participate in automatic '
+                    'exchanges. Different implementations may define different exchange '
+                    'policies.'
+                    '\n\n'
+                    'The most straightforward policy is `"conservative"`, which tries '
+                    'to make the *mimimal* exchange that would bring the account principal '
+                    'between `minPrincipal` and `maxPrincipal`, or if this is not possible, '
+                    'it tries to bring the account principal closer to that interval.',
         example='conservative',
     )
     min_principal = fields.Integer(

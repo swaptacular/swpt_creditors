@@ -654,7 +654,7 @@ def test_account_exchange(client, account):
     data = r.get_json()
     assert data['errors']['json']['policy'] == ['Invalid policy name.']
 
-    del request_data['policy']
+    request_data['policy'] = 'conservative'
     request_data['peg'] = {'exchangeRate': 1.5, 'account': {'uri': '/creditors/2/accounts/1111/'}}
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 422
@@ -687,6 +687,7 @@ def test_account_exchange(client, account):
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 200
     data = r.get_json()
+    assert data['policy'] == 'conservative'
     assert data['latestUpdateId'] == 3
     p.process_pending_log_entries(2)
 
