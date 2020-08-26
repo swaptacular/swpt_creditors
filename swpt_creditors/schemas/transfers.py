@@ -282,7 +282,7 @@ class CommittedTransferSchema(Schema):
         data_key='acquiredAmount',
         description="The amount that this transfer has added to the account's principal. This "
                     "can be a positive number (an incoming transfer), a negative number (an "
-                    "outgoing transfer), or zero (a dummy transfer).",
+                    "outgoing transfer), but can not be zero.",
         example=1000,
     )
     note = fields.Dict(
