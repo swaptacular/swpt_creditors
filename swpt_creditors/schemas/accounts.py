@@ -6,7 +6,7 @@ from marshmallow import (
     post_load, INCLUDE,
 )
 from swpt_lib.utils import i64_to_u64
-from swpt_lib.swpt_uris import make_debtor_uri, make_account_uri
+from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT64, MAX_INT64
 from .common import (
