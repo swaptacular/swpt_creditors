@@ -378,7 +378,11 @@ class AccountsEndpoint(MethodView):
                       responses={303: specs.ACCOUNT_EXISTS,
                                  403: specs.FORBIDDEN_ACCOUNT_OPERATION})
     def post(self, debtor_identity, creditorId):
-        """Create a new account belonging to a given creditor."""
+        """Create account.
+
+        **Note:** This is an idempotent operation.
+
+        """
 
         try:
             debtorId = parse_debtor_uri(debtor_identity['uri'])
@@ -405,7 +409,7 @@ class AccountEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=CONTEXT))
     @accounts_api.doc(operationId='getAccount')
     def get(self, creditorId, debtorId):
-        """Return an account.
+        """Return account.
 
         The returned `Account` object encompasses all the avilable
         information for a particular account. This includes the
@@ -421,8 +425,7 @@ class AccountEndpoint(MethodView):
         Note that when one of those sub-objects gets changed, a
         `LogEntry` for the change in the particular sub-object will be
         added to the log, but a `LogEntry` for the change in the
-        encompassing `Account` object **will not be added to the
-        log**.
+        encompassing `Account` object *will not be added to the log*.
 
         """
 
@@ -435,7 +438,7 @@ class AccountEndpoint(MethodView):
     @accounts_api.doc(operationId='deleteAccount',
                       responses={403: specs.FORBIDDEN_ACCOUNT_DELETION})
     def delete(self, creditorId, debtorId):
-        """Delete an account.
+        """Delete account.
 
         This operation will succeed only if all of the following
         conditions are true:
@@ -769,7 +772,11 @@ class TransfersEndpoint(MethodView):
                                   403: specs.DENIED_TRANSFER,
                                   409: specs.TRANSFER_CONFLICT})
     def post(self, transfer_creation_request, creditorId):
-        """Initiate a transfer."""
+        """Initiate a transfer.
+
+        **Note:** This is an idempotent operation.
+
+        """
 
         uuid = transfer_creation_request['transfer_uuid']
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
@@ -814,7 +821,7 @@ class TransferEndpoint(MethodView):
     def post(self, cancel_transfer_request, creditorId, transferUuid):
         """Try to cancel a transfer.
 
-        This operation will fail if the transfer can not be canceled.
+        **Note:** This is an idempotent operation.
 
         """
 
