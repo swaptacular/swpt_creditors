@@ -166,8 +166,7 @@ class CreditorEndpoint(MethodView):
     def patch(self, creditor, creditorId):
         """Update a creditor.
 
-        **Note:** Currently there are no fields that can be updated,
-        but they may be added in the future.
+        **Note:** This is an idempotent operation.
 
         """
 
@@ -486,7 +485,11 @@ class AccountConfigEndpoint(MethodView):
                       responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION,
                                  409: specs.UPDATE_CONFLICT})
     def patch(self, account_config, creditorId, debtorId):
-        """Update account's configuration."""
+        """Update account's configuration.
+
+        **Note:** This is an idempotent operation.
+
+        """
 
         try:
             inspect_ops.allow_account_reconfig(creditorId, debtorId)
@@ -526,7 +529,11 @@ class AccountDisplayEndpoint(MethodView):
     @accounts_api.doc(operationId='updateAccountDisplay',
                       responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_display, creditorId, debtorId):
-        """Update account's display settings."""
+        """Update account's display settings.
+
+        **Note:** This is an idempotent operation.
+
+        """
 
         optional_debtor_name = account_display.get('optional_debtor_name')
         optional_unit = account_display.get('optional_unit')
@@ -569,7 +576,11 @@ class AccountExchangeEndpoint(MethodView):
     @accounts_api.doc(operationId='updateAccountExchange',
                       responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_exchange, creditorId, debtorId):
-        """Update account's exchange settings."""
+        """Update account's exchange settings.
+
+        **Note:** This is an idempotent operation.
+
+        """
 
         optional_policy = account_exchange.get('optional_policy')
         optional_peg = account_exchange.get('optional_peg')
@@ -633,6 +644,8 @@ class AccountKnowledgeEndpoint(MethodView):
         stored as well. The total length of the stored data can not
         exceed 2000 bytes (JSON, UTF-8 encoded, excluding `type` and
         `latestUpdateId` properties).
+
+        **Note:** This is an idempotent operation.
 
         """
 

@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
-from typing import TypeVar, Callable, Tuple, List, Optional, Iterable
+from typing import TypeVar, Callable, Tuple, List, Optional, Iterable, Dict, Any
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import joinedload, exc, load_only, Load
@@ -82,6 +82,10 @@ def init(path_builder, schema_types):
 
 class UpdateConflictError(Exception):
     """A conflict occurred while trying to update a resource."""
+
+
+class AlreadyUpToDateError(Exception):
+    """Trying to update a resource which is already up-to-date."""
 
 
 class CreditorDoesNotExistError(Exception):
@@ -213,11 +217,14 @@ def update_creditor(creditor_id: int, *, latest_update_id: int) -> Creditor:
     if creditor is None:
         raise CreditorDoesNotExistError()
 
-    if latest_update_id != creditor.creditor_latest_update_id + 1:
-        raise UpdateConflictError()
+    try:
+        perform_update = _allow_update(creditor, 'creditor_latest_update_id', latest_update_id, {})
+    except AlreadyUpToDateError:
+        return creditor
 
-    creditor.creditor_latest_update_id = latest_update_id
     creditor.creditor_latest_update_ts = current_ts
+    perform_update()
+
     _add_log_entry(
         creditor,
         object_type=types.creditor,
@@ -388,8 +395,14 @@ def update_account_config(
     if data is None:
         raise AccountDoesNotExistError()
 
-    if latest_update_id != data.config_latest_update_id + 1:
-        raise UpdateConflictError()
+    try:
+        perform_update = _allow_update(data, 'config_latest_update_id', latest_update_id, {
+            'is_scheduled_for_deletion': is_scheduled_for_deletion,
+            'negligible_amount': negligible_amount,
+            'allow_unsafe_deletion': allow_unsafe_deletion,
+        })
+    except AlreadyUpToDateError:
+        return data
 
     # NOTE: The account will not be safe to delete once the config is
     # updated. Therefore, if the account is safe to delete now, we
@@ -400,11 +413,8 @@ def update_account_config(
     data.last_config_ts = current_ts
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     data.is_config_effectual = False
-    data.is_scheduled_for_deletion = is_scheduled_for_deletion
-    data.negligible_amount = negligible_amount
-    data.allow_unsafe_deletion = allow_unsafe_deletion
-    data.config_latest_update_id = latest_update_id
     data.config_latest_update_ts = current_ts
+    perform_update()
 
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
@@ -457,8 +467,16 @@ def update_account_display(
     if display is None:
         raise AccountDoesNotExistError()
 
-    if latest_update_id != display.latest_update_id + 1:
-        raise UpdateConflictError()
+    try:
+        perform_update = _allow_update(display, 'latest_update_id', latest_update_id, {
+            'debtor_name': debtor_name,
+            'amount_divisor': amount_divisor,
+            'decimal_places': decimal_places,
+            'unit': unit,
+            'hide': hide,
+        })
+    except AlreadyUpToDateError:
+        return display
 
     # NOTE: We must ensure that the debtor name is unique.
     if debtor_name not in [display.debtor_name, None]:
@@ -468,13 +486,8 @@ def update_account_display(
             raise AccountDebtorNameConflictError()
 
     with db.retry_on_integrity_error():
-        display.debtor_name = debtor_name
-        display.amount_divisor = amount_divisor
-        display.decimal_places = decimal_places
-        display.unit = unit
-        display.hide = hide
-        display.latest_update_id = latest_update_id
         display.latest_update_ts = current_ts
+        perform_update()
 
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
@@ -511,12 +524,13 @@ def update_account_knowledge(
     if knowledge is None:
         raise AccountDoesNotExistError()
 
-    if latest_update_id != knowledge.latest_update_id + 1:
-        raise UpdateConflictError()
+    try:
+        perform_update = _allow_update(knowledge, 'latest_update_id', latest_update_id, {'data': data})
+    except AlreadyUpToDateError:
+        return knowledge
 
-    knowledge.data = data
-    knowledge.latest_update_id = latest_update_id
     knowledge.latest_update_ts = current_ts
+    perform_update()
 
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
@@ -560,19 +574,22 @@ def update_account_exchange(
     if exchange is None:
         raise AccountDoesNotExistError()
 
-    if latest_update_id != exchange.latest_update_id + 1:
-        raise UpdateConflictError()
+    try:
+        perform_update = _allow_update(exchange, 'latest_update_id', latest_update_id, {
+            'policy': policy,
+            'min_principal': min_principal,
+            'max_principal': max_principal,
+            'peg_exchange_rate': peg_exchange_rate,
+            'peg_debtor_id': peg_debtor_id,
+        })
+    except AlreadyUpToDateError:
+        return exchange
 
     if peg_debtor_id is not None and not has_account(creditor_id, peg_debtor_id):
         raise PegAccountDoesNotExistError()
 
-    exchange.policy = policy
-    exchange.min_principal = min_principal
-    exchange.max_principal = max_principal
-    exchange.peg_exchange_rate = peg_exchange_rate
-    exchange.peg_debtor_id = peg_debtor_id
-    exchange.latest_update_id = latest_update_id
     exchange.latest_update_ts = current_ts
+    perform_update()
 
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
@@ -1197,3 +1214,30 @@ def _insert_ledger_entry(
             object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
             object_update_id=data.ledger_latest_update_id,
         ))
+
+
+def _allow_update(obj, update_id_field_name: str, update_id: int, update: Dict[str, Any]) -> Callable[[], None]:
+    """Return a function that performs the update on `obj`.
+
+    Raises `UpdateConflictError` if the update is not allowed. Raises
+    `AlreadyUpToDateError` when the object is already up-to-date.
+
+    """
+
+    def has_changes():
+        return any([getattr(obj, field_name) != value for field_name, value in update.items()])
+
+    def set_values():
+        setattr(obj, update_id_field_name, update_id)
+        for field_name, value in update.items():
+            setattr(obj, field_name, value)
+        return True
+
+    latest_update_id = getattr(obj, update_id_field_name)
+    if update_id == latest_update_id and not has_changes():
+        raise AlreadyUpToDateError()
+
+    if update_id != latest_update_id + 1:
+        raise UpdateConflictError()
+
+    return set_values

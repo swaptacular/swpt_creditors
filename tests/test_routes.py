@@ -101,6 +101,8 @@ def test_update_creditor(client, creditor):
 
     r = client.patch('/creditors/2/', json={'latestUpdateId': 2})
     assert r.status_code == 200
+    r = client.patch('/creditors/2/', json={'latestUpdateId': 2})
+    assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
@@ -108,7 +110,7 @@ def test_update_creditor(client, creditor):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert data['createdAt']
 
-    r = client.patch('/creditors/2/', json={'latestUpdateId': 2})
+    r = client.patch('/creditors/2/', json={'latestUpdateId': 1})
     assert r.status_code == 409
 
     p.process_pending_log_entries(2)
@@ -464,6 +466,8 @@ def test_account_config(client, account):
 
     r = client.patch('/creditors/2/accounts/1/config', json=request_data)
     assert r.status_code == 200
+    r = client.patch('/creditors/2/accounts/1/config', json=request_data)
+    assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'AccountConfig'
     assert data['uri'] == '/creditors/2/accounts/1/config'
@@ -474,6 +478,7 @@ def test_account_config(client, account):
     assert data['negligibleAmount'] == 100.0
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
 
+    request_data['negligibleAmount'] = 1.0
     r = client.patch('/creditors/2/accounts/1/config', json=request_data)
     assert r.status_code == 409
 
@@ -522,6 +527,8 @@ def test_account_display(client, account):
 
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 200
+    r = client.patch('/creditors/2/accounts/1/display', json=request_data)
+    assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'AccountDisplay'
     assert data['uri'] == '/creditors/2/accounts/1/display'
@@ -536,6 +543,7 @@ def test_account_display(client, account):
     assert 'peg' not in data
     p.process_pending_log_entries(2)
 
+    request_data['decimalPlaces'] = 1
     r = client.patch('/creditors/2/accounts/1/display', json=request_data)
     assert r.status_code == 409
 
@@ -625,6 +633,8 @@ def test_account_exchange(client, account):
 
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 200
+    r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
+    assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'AccountExchange'
     assert data['uri'] == '/creditors/2/accounts/1/exchange'
@@ -635,6 +645,7 @@ def test_account_exchange(client, account):
     assert 'policy' not in data
     p.process_pending_log_entries(2)
 
+    request_data['maxPrincipal'] = 3000
     r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
     assert r.status_code == 409
     data = r.get_json()
@@ -698,7 +709,7 @@ def test_account_exchange(client, account):
     for uri in ok_uris:
         request_data['peg']['account']['uri'] = uri
         r = client.patch('/creditors/2/accounts/1/exchange', json=request_data)
-        assert r.status_code == 409
+        assert r.status_code == 200
 
     r = client.delete('/creditors/2/accounts/11/')
     assert r.status_code == 403
@@ -772,6 +783,8 @@ def test_account_knowledge(client, account):
 
     r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
     assert r.status_code == 200
+    r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
+    assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'AccountKnowledge'
     assert data['uri'] == '/creditors/2/accounts/1/knowledge'
@@ -788,6 +801,7 @@ def test_account_knowledge(client, account):
     }
     assert data['nonStandardField'] is True
 
+    request_data['addedField'] = 'value'
     r = client.patch('/creditors/2/accounts/1/knowledge', json=request_data)
     assert r.status_code == 409
 
@@ -801,6 +815,7 @@ def test_account_knowledge(client, account):
     assert data['uri'] == '/creditors/2/accounts/1/knowledge'
     assert data['interestRate'] == 11.5
     assert data['latestUpdateId'] == 3
+    assert data['addedField'] == 'value'
     assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert 'debtorInfo' not in data
