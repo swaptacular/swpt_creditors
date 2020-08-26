@@ -614,10 +614,10 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
                     'this means that the account will not participate in automatic '
                     'exchanges.'
                     '\n\n'
-                    'The most straightforward exchange policy is `"conservative"`, which tries '
-                    'to make the *mimimal exchange* that would bring the account principal '
+                    '`"conservative"` is the most straightforward exchange policy. It tries '
+                    'to make the *mimimal exchange* that would bring account\'s principal '
                     'between `minPrincipal` and `maxPrincipal`, or if this is not possible, it '
-                    'tries to bring the principal closer to that interval.'
+                    'tries to bring the principal as close as possible to that interval.'
                     '\n\n'
                     '**Note:** Different implementations may define additional exchange policies.',
         example='conservative',
@@ -711,7 +711,9 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         validate=validate.Range(min=-20, max=20),
         data_key='decimalPlaces',
         description='The number of digits to show after the decimal point, when displaying '
-                    'the amount. For new accounts the value of this field will be `0`.',
+                    'the amount. A negative number signifies the number of insignificant '
+                    'digits at the end of the integer number. For new accounts the value of '
+                    'this field will be `0`.',
         example=2,
     )
     optional_debtor_name = fields.String(
