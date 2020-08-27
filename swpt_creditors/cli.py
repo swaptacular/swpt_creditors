@@ -56,11 +56,10 @@ def subscribe(queue_name):  # pragma: no cover
 def process_log_entries(threads):
     """Process all pending log entries."""
 
-    # TODO: Python with SQLAlchemy can process about 1000 accounts per
-    # second. (It is CPU bound!) This might be insufficient if we have
-    # a highly perfomant database server. In this case we should
-    # either distribute the processing to several machines, or improve
-    # on python's code performance.
+    # TODO: SQLAlchemy's performance (it is CPU bound!) might be
+    # insufficient if we have a highly perfomant database server. In
+    # this case we should either distribute the processing to several
+    # machines, or improve on python's code performance.
 
     threads = threads or int(environ.get('APP_PROCESS_LOG_ENTRIES_THREADS', '1'))
     app = current_app._get_current_object()
@@ -79,5 +78,44 @@ def process_log_entries(threads):
     pool = ThreadPool(threads, initializer=push_app_context)
     for creditor_id in procedures.get_creditors_with_pending_log_entries():
         pool.apply_async(procedures.process_pending_log_entries, (creditor_id,), error_callback=log_error)
+    pool.close()
+    pool.join()
+
+
+@swpt_creditors.command('process_ledger_updates')
+@with_appcontext
+@click.option('-t', '--threads', type=int, help='The number of worker threads.')
+def process_ledger_updates(threads):
+    """Process all pending ledger updates."""
+
+    # TODO: SQLAlchemy's performance (it is CPU bound!) might be
+    # insufficient if we have a highly perfomant database server. In
+    # this case we should either distribute the processing to several
+    # machines, or improve on python's code performance.
+
+    threads = threads or int(environ.get('APP_PROCESS_LOG_ENTRIES_THREADS', '1'))
+    app = current_app._get_current_object()
+
+    def push_app_context():
+        ctx = app.app_context()
+        ctx.push()
+
+    def log_error(e):  # pragma: no cover
+        try:
+            raise e
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception('Caught error while processing ledger updates.')
+
+    pool = ThreadPool(threads, initializer=push_app_context)
+    for creditor_id, debtor_id in procedures.get_pending_ledger_updates():
+        # TODO: This may be limiting unnecessary the number of
+        # transfers per second per account that we are able to
+        # process.
+        pool.apply_async(
+            procedures.process_pending_ledger_update,
+            (creditor_id, debtor_id, 1000),
+            error_callback=log_error,
+        )
     pool.close()
     pool.join()
