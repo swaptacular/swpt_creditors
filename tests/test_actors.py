@@ -44,3 +44,31 @@ def test_on_account_transfer_signal(db_session):
         ts='2000-01-01T00:00:00Z',
         previous_transfer_number=0,
     )
+
+
+def test_on_account_update_signal(db_session):
+    a.on_account_update_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        last_change_ts='2019-10-01T00:00:00Z',
+        last_change_seqnum=1,
+        principal=1000,
+        interest=123.0,
+        interest_rate=7.5,
+        demurrage_rate=-50.0,
+        commit_period=100000,
+        last_interest_rate_change_ts='2019-10-01T00:00:00Z',
+        last_transfer_number=5,
+        last_transfer_committed_at='2019-10-01T00:00:00Z',
+        last_config_ts='2019-10-01T00:00:00Z',
+        last_config_seqnum=1,
+        creation_date='2019-01-01',
+        negligible_amount=100.0,
+        config='',
+        config_flags=0,
+        status_flags=0,
+        ts='2019-10-01T00:00:00Z',
+        ttl=10000,
+        account_id=str(C_ID),
+        debtor_info_url='http://example.com',
+    )
