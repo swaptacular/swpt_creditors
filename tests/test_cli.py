@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, date, timedelta
+from datetime import date, timedelta
 from swpt_creditors import procedures as p
 
 D_ID = -1
