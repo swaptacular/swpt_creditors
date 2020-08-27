@@ -5,7 +5,6 @@ from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
 from . import procedures
-from .extensions import db
 
 
 @click.group('swpt_creditors')
@@ -85,7 +84,8 @@ def process_log_entries(threads):
 @swpt_creditors.command('process_ledger_updates')
 @with_appcontext
 @click.option('-t', '--threads', type=int, help='The number of worker threads.')
-def process_ledger_updates(threads):
+@click.option('-b', '--burst', type=int, help='The number of transfers to process in a single database transaction.')
+def process_ledger_updates(threads, burst):
     """Process all pending ledger updates."""
 
     # TODO: SQLAlchemy's performance (it is CPU bound!) might be
@@ -93,7 +93,8 @@ def process_ledger_updates(threads):
     # this case we should either distribute the processing to several
     # machines, or improve on python's code performance.
 
-    threads = threads or int(environ.get('APP_PROCESS_LOG_ENTRIES_THREADS', '1'))
+    threads = threads or int(environ.get('APP_PROCESS_LEDGER_UPDATES_THREADS', '1'))
+    burst = burst or int(environ.get('APP_PROCESS_LEDGER_UPDATES_BURST', '1000'))
     app = current_app._get_current_object()
 
     def push_app_context():
@@ -107,15 +108,13 @@ def process_ledger_updates(threads):
             logger = logging.getLogger(__name__)
             logger.exception('Caught error while processing ledger updates.')
 
+    def process_ledger_update(creditor_id, debtor_id):
+        while True:
+            if procedures.process_pending_ledger_update(creditor_id, debtor_id, max_count=burst):
+                return
+
     pool = ThreadPool(threads, initializer=push_app_context)
-    for creditor_id, debtor_id in procedures.get_pending_ledger_updates():
-        # TODO: This may be limiting unnecessary the number of
-        # transfers per second per account that we are able to
-        # process.
-        pool.apply_async(
-            procedures.process_pending_ledger_update,
-            (creditor_id, debtor_id, 1000),
-            error_callback=log_error,
-        )
+    for account_pk in procedures.get_pending_ledger_updates():
+        pool.apply_async(process_ledger_update, account_pk, error_callback=log_error)
     pool.close()
     pool.join()

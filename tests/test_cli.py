@@ -51,11 +51,16 @@ def test_process_ledger_entries(app, db_session, current_ts):
         'retention_interval': timedelta(days=5),
     }
     p.process_account_transfer_signal(**params)
+    params['transfer_number'] = 2
+    params['principal'] = 400
+    params['previous_transfer_number'] = 1
+    p.process_account_transfer_signal(**params)
+
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 0
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_creditors', 'process_ledger_updates'])
+    result = runner.invoke(args=['swpt_creditors', 'process_ledger_updates', '--burst=1'])
     assert not result.output
-    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 1
+    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 2
 
 
 def test_process_log_entries(app, db_session, current_ts):
