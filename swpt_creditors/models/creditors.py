@@ -55,7 +55,7 @@ class Creditor(db.Model):
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1
-        assert self.last_log_entry_id <= MAX_INT64
+        assert 1 <= self.last_log_entry_id <= MAX_INT64
         return self.last_log_entry_id
 
 
@@ -68,6 +68,22 @@ class BaseLogEntry(db.Model):
     object_update_id = db.Column(db.BigInteger)
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
     data = db.Column(pg.JSON)
+
+
+class PendingLogEntry(BaseLogEntry):
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    pending_entry_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+
+    __table_args__ = (
+        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
+        db.CheckConstraint('object_update_id > 0'),
+        {
+            'comment': 'Represents a log entry that should be added to the log. Log entries '
+                       'are queued to this table because this allows multiple log entries '
+                       'for one creditor to be added to the log in one database transaction, '
+                       'thus reducing the lock contention on `creditor` table rows.',
+        }
+    )
 
 
 class LogEntry(BaseLogEntry):
@@ -87,14 +103,4 @@ class LogEntry(BaseLogEntry):
         #       support this yet (2020-01-11), temporarily, there are
         #       no index-only scans.
         db.Index('idx_log_entry_pk', creditor_id, entry_id, unique=True),
-    )
-
-
-class PendingLogEntry(BaseLogEntry):
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    pending_entry_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-
-    __table_args__ = (
-        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
-        db.CheckConstraint('object_update_id > 0'),
     )

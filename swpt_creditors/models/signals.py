@@ -3,8 +3,6 @@ from marshmallow import Schema, fields
 from swpt_creditors.extensions import db
 from .common import Signal
 
-ROOT_CREDITOR_ID = 0
-
 
 class ConfigureAccountSignal(Signal):
     queue_name = 'swpt_accounts'
@@ -12,7 +10,7 @@ class ConfigureAccountSignal(Signal):
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
-        creditor_id = fields.Constant(ROOT_CREDITOR_ID)
+        creditor_id = fields.Integer()
         ts = fields.DateTime()
         seqnum = fields.Constant(0)
         negligible_amount = fields.Float()

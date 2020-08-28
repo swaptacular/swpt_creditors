@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 6025d137ea98
+Revision ID: 2b8e5a244909
 Revises: 8d8c816257ce
-Create Date: 2020-08-25 19:30:44.085494
+Create Date: 2020-08-28 11:28:19.457420
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '6025d137ea98'
+revision = '2b8e5a244909'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -116,7 +116,8 @@ def upgrade():
     sa.Column('pending_entry_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.CheckConstraint('object_update_id > 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id')
+    sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id'),
+    comment='Represents a log entry that should be added to the log. Log entries are queued to this table because this allows multiple log entries for one creditor to be added to the log in one database transaction, thus reducing the lock contention on `creditor` table rows.'
     )
     op.create_table('account_data',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
