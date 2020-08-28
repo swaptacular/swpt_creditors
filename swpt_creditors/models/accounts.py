@@ -30,7 +30,8 @@ class Account(db.Model):
 # TODO: Implement a daemon that periodically scan the `AccountData`
 #       table and makes sure that the `config_error` filed is set for
 #       each record that has an old `last_config_ts`, and is not
-#       effectual (`is_config_effectual is False`).
+#       effectual (`is_config_effectual is False`). The same daemon
+#       shoud repair ledgers "broken" by a missing transfers.
 class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
@@ -47,7 +48,7 @@ class AccountData(db.Model):
     last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     last_heartbeat_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
-    # AccountConfig data
+    # `AccountConfig` data
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     negligible_amount = db.Column(db.REAL, nullable=False, default=DEFAULT_NEGLIGIBLE_AMOUNT)
@@ -59,7 +60,7 @@ class AccountData(db.Model):
     config_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     config_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
-    # AccountInfo data
+    # `AccountInfo` data
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
@@ -68,7 +69,7 @@ class AccountData(db.Model):
     info_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     info_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
-    # AccountLedger data
+    # `AccountLedger` data
     ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
