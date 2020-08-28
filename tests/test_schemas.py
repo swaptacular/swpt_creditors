@@ -6,7 +6,7 @@ from swpt_lib.utils import i64_to_u64
 from swpt_creditors import schemas
 from swpt_creditors import models
 from swpt_creditors import procedures
-from swpt_creditors.routes import CONTEXT
+from swpt_creditors.routes import context
 
 D_ID = -1
 C_ID = 1
@@ -22,7 +22,7 @@ def test_serialize_creditor(app):
         creditor_latest_update_id=1,
         creditor_latest_update_ts=datetime(2020, 1, 1),
     )
-    cs = schemas.CreditorSchema(context=CONTEXT)
+    cs = schemas.CreditorSchema(context=context)
     assert cs.dump(c) == {
         'type': 'Creditor',
         'uri': '/creditors/1/',
@@ -33,7 +33,7 @@ def test_serialize_creditor(app):
 
 
 def test_deserialize_creditor(app):
-    cs = schemas.CreditorSchema(context=CONTEXT)
+    cs = schemas.CreditorSchema(context=context)
 
     data = cs.load({
         'latestUpdateId': 2,
@@ -67,7 +67,7 @@ def test_serialize_wallet(app):
         deactivated_at_date=None,
         last_log_entry_id=12345,
     )
-    ws = schemas.WalletSchema(context=CONTEXT)
+    ws = schemas.WalletSchema(context=context)
     assert ws.dump(c) == {
         'type': 'Wallet',
         'uri': '/creditors/1/wallet',
@@ -98,7 +98,7 @@ def test_serialize_log_entry(app):
         is_deleted=True,
         data=None,
     )
-    les = schemas.LogEntrySchema(context=CONTEXT)
+    les = schemas.LogEntrySchema(context=context)
     assert les.dump(le) == {
         'type': 'LogEntry',
         'entryId': 12345,
@@ -138,8 +138,8 @@ def test_serialize_log_entries_page(app):
         'items': [le],
         'next': '?prev=1',
     }
-    les = schemas.LogEntrySchema(context=CONTEXT)
-    leps = schemas.LogEntriesPageSchema(context=CONTEXT)
+    les = schemas.LogEntrySchema(context=context)
+    leps = schemas.LogEntriesPageSchema(context=context)
     assert leps.dump(lep) == {
         'type': 'LogEntriesPage',
         'uri': '/test',
@@ -168,7 +168,7 @@ def test_serialize_account_list(app):
         account_list_latest_update_id=1,
         account_list_latest_update_ts=datetime(2020, 1, 1),
     )
-    als = schemas.AccountListSchema(context=CONTEXT)
+    als = schemas.AccountListSchema(context=context)
     assert als.dump(c) == {
         'type': 'AccountList',
         'uri': '/creditors/1/account-list',
@@ -190,7 +190,7 @@ def test_serialize_transfer_list(app):
         transfer_list_latest_update_id=1,
         transfer_list_latest_update_ts=datetime(2020, 1, 1),
     )
-    tls = schemas.TransferListSchema(context=CONTEXT)
+    tls = schemas.TransferListSchema(context=context)
     assert tls.dump(c) == {
         'type': 'TransferList',
         'uri': '/creditors/1/transfer-list',
@@ -214,7 +214,7 @@ def test_serialize_account_display(app):
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
-    ads = schemas.AccountDisplaySchema(context=CONTEXT)
+    ads = schemas.AccountDisplaySchema(context=context)
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
         'uri': '/creditors/1/accounts/18446744073709551615/display',
@@ -243,7 +243,7 @@ def test_serialize_account_display(app):
 
 
 def test_deserialize_account_display(app):
-    ads = schemas.AccountDisplaySchema(context=CONTEXT)
+    ads = schemas.AccountDisplaySchema(context=context)
 
     base_data = {
         'amountDivisor': 1.0,
@@ -321,7 +321,7 @@ def test_serialize_account_exchange(app):
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
-    aes = schemas.AccountExchangeSchema(context=CONTEXT)
+    aes = schemas.AccountExchangeSchema(context=context)
     assert aes.dump(ae) == {
         'type': 'AccountExchange',
         'uri': '/creditors/1/accounts/18446744073709551615/exchange',
@@ -346,7 +346,7 @@ def test_serialize_account_exchange(app):
 
 
 def test_deserialize_account_exchange(app):
-    aes = schemas.AccountExchangeSchema(context=CONTEXT)
+    aes = schemas.AccountExchangeSchema(context=context)
 
     data = aes.load({
         'minPrincipal': -1000,
@@ -438,7 +438,7 @@ def test_serialize_account_knowledge(app):
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
-    aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
+    aks = schemas.AccountKnowledgeSchema(context=context)
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
         'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
@@ -481,7 +481,7 @@ def test_serialize_account_knowledge(app):
 
 def test_deserialize_account_knowledge(app):
     n = int(0.4 * schemas.AccountKnowledgeSchema.MAX_BYTES)
-    aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
+    aks = schemas.AccountKnowledgeSchema(context=context)
 
     data = aks.load({'latestUpdateId': 1})
     assert data == {
@@ -598,7 +598,7 @@ def test_serialize_account_config(app):
         config_latest_update_id=1,
         config_latest_update_ts=datetime(2020, 1, 1),
     )
-    acs = schemas.AccountConfigSchema(context=CONTEXT)
+    acs = schemas.AccountConfigSchema(context=context)
     assert acs.dump(ac) == {
         'type': 'AccountConfig',
         'uri': '/creditors/1/accounts/18446744073709551615/config',
@@ -626,7 +626,7 @@ def test_serialize_account_config(app):
 
 
 def test_deserialize_account_config(app):
-    acs = schemas.AccountConfigSchema(context=CONTEXT)
+    acs = schemas.AccountConfigSchema(context=context)
 
     data = acs.load({
         'negligibleAmount': 1.0,
@@ -713,7 +713,7 @@ def test_serialize_account_info(app):
         ledger_latest_update_id=2,
         ledger_latest_update_ts=datetime(2020, 1, 2),
     )
-    ais = schemas.AccountInfoSchema(context=CONTEXT)
+    ais = schemas.AccountInfoSchema(context=context)
     assert ais.dump(ad) == {
         'type': 'AccountInfo',
         'uri': '/creditors/1/accounts/18446744073709551615/info',
@@ -754,13 +754,13 @@ def test_serialize_account(db_session):
     procedures.activate_creditor(C_ID)
     procedures.create_new_account(C_ID, D_ID)
     account = models.Account.get_instance((C_ID, D_ID))
-    account_schema = schemas.AccountSchema(context=CONTEXT)
-    ads = schemas.AccountDisplaySchema(context=CONTEXT)
-    acs = schemas.AccountConfigSchema(context=CONTEXT)
-    ais = schemas.AccountInfoSchema(context=CONTEXT)
-    als = schemas.AccountLedgerSchema(context=CONTEXT)
-    aes = schemas.AccountExchangeSchema(context=CONTEXT)
-    aks = schemas.AccountKnowledgeSchema(context=CONTEXT)
+    account_schema = schemas.AccountSchema(context=context)
+    ads = schemas.AccountDisplaySchema(context=context)
+    acs = schemas.AccountConfigSchema(context=context)
+    ais = schemas.AccountInfoSchema(context=context)
+    als = schemas.AccountLedgerSchema(context=context)
+    aes = schemas.AccountExchangeSchema(context=context)
+    aks = schemas.AccountKnowledgeSchema(context=context)
     assert account_schema.dump(account) == {
         'type': 'Account',
         'uri': '/creditors/1/accounts/18446744073709551615/',
@@ -878,7 +878,7 @@ def test_serialize_account_ledger(app):
         ledger_latest_update_ts=datetime(2020, 1, 2),
         ledger_last_entry_id=0,
     )
-    als = schemas.AccountLedgerSchema(context=CONTEXT)
+    als = schemas.AccountLedgerSchema(context=context)
     assert als.dump(ad) == {
         'type': 'AccountLedger',
         'uri': '/creditors/1/accounts/18446744073709551615/ledger',
@@ -927,7 +927,7 @@ def test_serialize_ledger_entry(app):
         principal=3000,
         added_at_ts=datetime(2020, 1, 2),
     )
-    les = schemas.LedgerEntrySchema(context=CONTEXT)
+    les = schemas.LedgerEntrySchema(context=context)
     assert les.dump(le) == {
         'type': 'LedgerEntry',
         'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
@@ -965,7 +965,7 @@ def test_serialize_paginated_list(app):
         'items_type': 'String',
         'first': '/first',
     }
-    pls = schemas.PaginatedListSchema(context=CONTEXT)
+    pls = schemas.PaginatedListSchema(context=context)
     assert pls.dump(pl) == {
         'type': 'PaginatedList',
         'itemsType': 'String',
@@ -979,7 +979,7 @@ def test_serialize_paginated_stream(app):
         'first': '/first',
         'forthcoming': '/more',
     }
-    pss = schemas.PaginatedStreamSchema(context=CONTEXT)
+    pss = schemas.PaginatedStreamSchema(context=context)
     assert pss.dump(ps) == {
         'type': 'PaginatedStream',
         'itemsType': 'String',
@@ -1004,8 +1004,8 @@ def test_serialize_ledger_entries_page(app):
         'items': [le],
         'next': '?prev=1',
     }
-    les = schemas.LedgerEntrySchema(context=CONTEXT)
-    leps = schemas.LedgerEntriesPageSchema(context=CONTEXT)
+    les = schemas.LedgerEntrySchema(context=context)
+    leps = schemas.LedgerEntriesPageSchema(context=context)
     assert leps.dump(lep) == {
         'type': 'LedgerEntriesPage',
         'uri': '/test',
@@ -1028,7 +1028,7 @@ def test_serialize_object_references_page(app):
         'items': [{'uri': '/object1'}, {'uri': '/object2'}],
         'next': '?prev=1',
     }
-    orps = schemas.ObjectReferencesPageSchema(context=CONTEXT)
+    orps = schemas.ObjectReferencesPageSchema(context=context)
     assert orps.dump(orp) == {
         'type': 'ObjectReferencesPage',
         'uri': '/test',
@@ -1047,7 +1047,7 @@ def test_serialize_object_references_page(app):
 
 def test_serialize_debtor_identity(app):
     di = {'uri': 'swpt:1'}
-    dis = schemas.DebtorIdentitySchema(context=CONTEXT)
+    dis = schemas.DebtorIdentitySchema(context=context)
     assert dis.dump(di) == {
         'type': 'DebtorIdentity',
         'uri': 'swpt:1',
@@ -1055,7 +1055,7 @@ def test_serialize_debtor_identity(app):
 
 
 def test_deserialize_debtor_identity(app):
-    dis = schemas.DebtorIdentitySchema(context=CONTEXT)
+    dis = schemas.DebtorIdentitySchema(context=context)
 
     data = dis.load({'uri': 'swpt:1'})
     assert data == {
@@ -1075,7 +1075,7 @@ def test_deserialize_debtor_identity(app):
 
 def test_serialize_account_identity(app):
     ai = {'uri': 'swpt:1/2'}
-    ais = schemas.AccountIdentitySchema(context=CONTEXT)
+    ais = schemas.AccountIdentitySchema(context=context)
     assert ais.dump(ai) == {
         'type': 'AccountIdentity',
         'uri': 'swpt:1/2',
@@ -1083,7 +1083,7 @@ def test_serialize_account_identity(app):
 
 
 def test_deserialize_account_identity(app):
-    ais = schemas.AccountIdentitySchema(context=CONTEXT)
+    ais = schemas.AccountIdentitySchema(context=context)
 
     data = ais.load({'uri': 'swpt:1/2'})
     assert data == {
@@ -1102,7 +1102,7 @@ def test_deserialize_account_identity(app):
 
 
 def test_deserialize_pagination_parameters(app):
-    pps = schemas.PaginationParametersSchema(context=CONTEXT)
+    pps = schemas.PaginationParametersSchema(context=context)
 
     data = pps.load({})
     assert data == {}
@@ -1112,7 +1112,7 @@ def test_deserialize_pagination_parameters(app):
 
 
 def test_deserialize_creditor_creation_request(app):
-    ccr = schemas.CreditorCreationRequestSchema(context=CONTEXT)
+    ccr = schemas.CreditorCreationRequestSchema(context=context)
     assert ccr.load({}) == {'type': 'CreditorCreationRequest', 'activate': False}
     assert ccr.load({
         'type': 'CreditorCreationRequest',
@@ -1140,7 +1140,7 @@ def test_serialize_committed_transfer(app):
         sender_id='1',
         recipient_id='1111',
     )
-    cts = schemas.CommittedTransferSchema(context=CONTEXT)
+    cts = schemas.CommittedTransferSchema(context=context)
     assert cts.dump(ct) == {
         'type': 'CommittedTransfer',
         'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666',
