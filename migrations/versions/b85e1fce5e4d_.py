@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 2b8e5a244909
+Revision ID: b85e1fce5e4d
 Revises: 8d8c816257ce
-Create Date: 2020-08-28 11:28:19.457420
+Create Date: 2020-08-28 18:49:03.631373
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '2b8e5a244909'
+revision = 'b85e1fce5e4d'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -27,6 +27,7 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config', sa.String(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
+    sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'ts', 'seqnum')
     )
     op.create_table('creditor',
@@ -47,6 +48,34 @@ def upgrade():
     sa.CheckConstraint('last_log_entry_id >= 0'),
     sa.CheckConstraint('transfer_list_latest_update_id > 0'),
     sa.PrimaryKeyConstraint('creditor_id')
+    )
+    op.create_table('finalize_transfer_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
+    sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_note', sa.String(), nullable=False),
+    sa.CheckConstraint('committed_amount >= 0'),
+    sa.CheckConstraint('octet_length(transfer_note) <= 500'),
+    sa.PrimaryKeyConstraint('creditor_id', 'signal_id')
+    )
+    op.create_table('prepare_transfer_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('min_locked_amount', sa.BigInteger(), nullable=False),
+    sa.Column('max_locked_amount', sa.BigInteger(), nullable=False),
+    sa.Column('recipient', sa.String(), nullable=False),
+    sa.Column('min_interest_rate', sa.Float(), nullable=False),
+    sa.Column('max_commit_delay', sa.Integer(), nullable=False),
+    sa.CheckConstraint('max_locked_amount >= min_locked_amount'),
+    sa.CheckConstraint('min_locked_amount > 0'),
+    sa.PrimaryKeyConstraint('creditor_id', 'coordinator_request_id')
     )
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -273,6 +302,8 @@ def downgrade():
     op.drop_table('account')
     op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
+    op.drop_table('prepare_transfer_signal')
+    op.drop_table('finalize_transfer_signal')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
     # ### end Alembic commands ###

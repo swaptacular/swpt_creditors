@@ -1,7 +1,8 @@
 from __future__ import annotations
 from marshmallow import Schema, fields
+from sqlalchemy.sql.expression import func
 from swpt_creditors.extensions import db
-from .common import Signal
+from .common import Signal, TRANSFER_NOTE_MAX_BYTES
 
 
 class ConfigureAccountSignal(Signal):
@@ -87,4 +88,5 @@ class FinalizeTransferSignal(Signal):
     transfer_note = db.Column(db.String, nullable=False)
     __table_args__ = (
         db.CheckConstraint(committed_amount >= 0),
+        db.CheckConstraint(func.octet_length(transfer_note) <= TRANSFER_NOTE_MAX_BYTES),
     )

@@ -18,6 +18,7 @@ SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 TS0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
 DATE0 = TS0.date()
+TRANSFER_NOTE_MAX_BYTES = 500
 
 
 def get_now_utc():
