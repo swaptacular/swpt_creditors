@@ -233,5 +233,3 @@ class LedgerEntry(db.Model):
         #       no index-only scans.
         db.Index('idx_ledger_entry_pk', creditor_id, debtor_id, entry_id, unique=True),
     )
-
-    account_data = db.relationship('AccountData')
