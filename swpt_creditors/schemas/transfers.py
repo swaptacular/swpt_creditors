@@ -141,9 +141,11 @@ class TransferCreationRequestSchema(Schema):
     )
     amount = fields.Integer(
         required=True,
-        validate=validate.Range(min=1, max=MAX_INT64),
+        validate=validate.Range(min=0, max=MAX_INT64),
         format='int64',
-        description='The amount that has to be transferred. Must be a positive number.',
+        description="The amount that has to be transferred. Must be a non-negative "
+                    "number. Setting this value to zero can be useful when the sender wants to "
+                    "verify whether the recipient's account exists and accepts incoming transfers.",
         example=1000,
     )
     options = fields.Nested(
