@@ -45,7 +45,7 @@ class CreditorEndpoint(MethodView):
 
         try:
             creditor = procedures.create_new_creditor(creditorId, activate=creditor_creation_request['activate'])
-        except procedures.CreditorExistsError:
+        except procedures.CreditorExists:
             abort(409)
         return creditor
 
@@ -62,9 +62,9 @@ class CreditorEndpoint(MethodView):
 
         try:
             creditor = procedures.update_creditor(creditorId, latest_update_id=creditor['latest_update_id'])
-        except procedures.CreditorDoesNotExistError:
+        except procedures.CreditorDoesNotExist:
             abort(403)
-        except procedures.UpdateConflictError:
+        except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         return creditor
@@ -112,7 +112,7 @@ class LogEntriesEndpoint(MethodView):
                 count=n,
                 prev=params['prev'],
             )
-        except procedures.CreditorDoesNotExistError:
+        except procedures.CreditorDoesNotExist:
             abort(404)
 
         if len(log_entries) < n:

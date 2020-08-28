@@ -43,7 +43,7 @@ def test_create_new_creditor(db_session):
     creditor = p.create_new_creditor(C_ID)
     assert creditor.creditor_id == C_ID
     assert len(Creditor.query.all()) == 1
-    with pytest.raises(p.CreditorExistsError):
+    with pytest.raises(p.CreditorExists):
         p.create_new_creditor(C_ID)
     creditor = p.lock_or_create_creditor(C_ID)
     assert creditor.creditor_id == C_ID
@@ -80,7 +80,7 @@ def test_process_pending_account_commits_no_creditor(db_session):
 
 @pytest.mark.skip
 def test_create_account(db_session, creditor):
-    with pytest.raises(p.CreditorDoesNotExistError):
+    with pytest.raises(p.CreditorDoesNotExist):
         p.create_account(666, D_ID)
     created = p.create_account(C_ID, D_ID)
     assert created
@@ -91,7 +91,7 @@ def test_create_account(db_session, creditor):
 
 @pytest.mark.skip
 def test_change_account_config(db_session, setup_account):
-    with pytest.raises(p.AccountDoesNotExistError):
+    with pytest.raises(p.AccountDoesNotExist):
         p.change_account_config(C_ID, 1234, False, 0.0, False)
     p.change_account_config(C_ID, D_ID, False, 100.0, True)
     config = AccountConfig.query.one()
@@ -127,7 +127,7 @@ def test_delete_account(db_session, setup_account, current_ts):
     )
     account = Account.query.one()
     assert not account.config.is_scheduled_for_deletion
-    with pytest.raises(p.UnsafeAccountDeletionError):
+    with pytest.raises(p.UnsafeAccountDeletion):
         p.delete_account(C_ID, D_ID)
 
     assert AccountConfig.query.one()

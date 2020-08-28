@@ -21,7 +21,7 @@ from .common import context
 
 
 def _parse_peg_account_uri(creditor_id: int, base_url: str, uri: str) -> int:
-    Error = procedures.PegAccountDoesNotExistError
+    Error = procedures.PegDoesNotExist
 
     try:
         scheme, netloc, path, *rest = urlparse(urljoin(base_url, uri))
@@ -161,9 +161,9 @@ class AccountsEndpoint(MethodView):
             account = procedures.create_new_account(creditorId, debtorId)
         except inspect_ops.ForbiddenOperationError:  # pragma: no cover
             abort(403)
-        except procedures.CreditorDoesNotExistError:
+        except procedures.CreditorDoesNotExist:
             abort(404)
-        except procedures.AccountExistsError:
+        except procedures.AccountExists:
             return redirect(location, code=303)
 
         inspect_ops.register_account_creation(creditorId, debtorId)
@@ -220,11 +220,11 @@ class AccountEndpoint(MethodView):
         try:
             procedures.delete_account(creditorId, debtorId)
             return
-        except procedures.UnsafeAccountDeletionError:
+        except procedures.UnsafeAccountDeletion:
             abort(403)
-        except procedures.PegAccountDeletionError:
+        except procedures.ForbiddenPegDeletion:
             abort(403)
-        except procedures.AccountDoesNotExistError:
+        except procedures.AccountDoesNotExist:
             pass
 
         # NOTE: We decremented the account number before trying to
@@ -272,9 +272,9 @@ class AccountConfigEndpoint(MethodView):
             )
         except inspect_ops.ForbiddenOperationError:  # pragma: no cover
             abort(403)
-        except procedures.AccountDoesNotExistError:
+        except procedures.AccountDoesNotExist:
             abort(404)
-        except procedures.UpdateConflictError:
+        except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         inspect_ops.register_account_reconfig(creditorId, debtorId)
@@ -318,11 +318,11 @@ class AccountDisplayEndpoint(MethodView):
                 hide=account_display['hide'],
                 latest_update_id=account_display['latest_update_id'],
             )
-        except procedures.AccountDoesNotExistError:
+        except procedures.AccountDoesNotExist:
             abort(404)
-        except procedures.UpdateConflictError:
+        except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
-        except procedures.AccountDebtorNameConflictError:
+        except procedures.DebtorNameConflict:
             abort(422, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
 
         return display
@@ -369,13 +369,13 @@ class AccountExchangeEndpoint(MethodView):
                 ),
                 latest_update_id=account_exchange['latest_update_id'],
             )
-        except procedures.AccountDoesNotExistError:
+        except procedures.AccountDoesNotExist:
             abort(404)
-        except procedures.UpdateConflictError:
+        except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
-        except procedures.InvalidExchangePolicyError:
+        except procedures.InvalidExchangePolicy:
             abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
-        except procedures.PegAccountDoesNotExistError:
+        except procedures.PegDoesNotExist:
             abort(422, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})
 
         return exchange
@@ -425,9 +425,9 @@ class AccountKnowledgeEndpoint(MethodView):
                 latest_update_id=account_knowledge['latest_update_id'],
                 data=account_knowledge['data'],
             )
-        except procedures.AccountDoesNotExistError:
+        except procedures.AccountDoesNotExist:
             abort(404)
-        except procedures.UpdateConflictError:
+        except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
         return knowledge
@@ -484,7 +484,7 @@ class AccountLedgerEntriesEndpoint(MethodView):
                 prev=params['prev'],
                 stop=params['stop'],
             )
-        except procedures.AccountDoesNotExistError:  # pragma: no cover
+        except procedures.AccountDoesNotExist:  # pragma: no cover
             abort(404)
 
         if len(ledger_entries) < n:

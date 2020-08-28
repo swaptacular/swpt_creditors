@@ -103,9 +103,9 @@ class TransferEndpoint(MethodView):
 
         try:
             transfer = procedures.cancel_transfer(creditorId, transferUuid)
-        except procedures.TransferCancellationError:
+        except procedures.ForbiddenTransferCancellation:
             abort(403)
-        except procedures.TransferDoesNotExistError:
+        except procedures.TransferDoesNotExist:
             abort(404)
         return transfer
 
