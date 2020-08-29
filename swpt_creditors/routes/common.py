@@ -70,6 +70,8 @@ class schema_types:
     account_info = 'AccountInfo'
     account_ledger = 'AccountLedger'
     account_list = 'AccountList'
+    transfer = 'Transfer'
+    transfer_list = 'TransferList'
     committed_transfer = 'CommittedTransfer'
 
 

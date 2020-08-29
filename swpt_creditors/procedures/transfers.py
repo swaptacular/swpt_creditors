@@ -26,12 +26,12 @@ def initiate_transfer(
         recipient: str,
         note: dict,
         *,
-        deadline: Optional[datetime],
-        min_interest_rate: float) -> DirectTransfer:
+        deadline: datetime = None,
+        min_interest_rate: float = -100.0) -> DirectTransfer:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert isinstance(transfer_uuid, UUID)
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert 0 < amount <= MAX_INT64
     assert min_interest_rate >= -100.0
 
@@ -41,6 +41,8 @@ def initiate_transfer(
         raise errors.CreditorDoesNotExist()
 
     transfer_data = {
+        'creditor_id': creditor_id,
+        'transfer_uuid': transfer_uuid,
         'debtor_id': debtor_id,
         'amount': amount,
         'recipient': recipient,
@@ -48,18 +50,41 @@ def initiate_transfer(
         'deadline': deadline,
         'min_interest_rate': min_interest_rate,
     }
-    _raise_error_if_transfer_exists(creditor_id, transfer_uuid, transfer_data)
+    _raise_error_if_transfer_exists(**transfer_data)
 
-    direct_transfer = DirectTransfer(
+    running_transfer = RunningTransfer(
         creditor_id=creditor_id,
         transfer_uuid=transfer_uuid,
-        latest_update_ts=current_ts,
-        **transfer_data,
+        debtor_id=debtor_id,
+        recipient=recipient,
+        amount=amount,
+        transfer_note='note',  # TODO: this is wrong!
     )
-    _insert_running_transfer_or_raise_error(direct_transfer)
+    direct_transfer = DirectTransfer(latest_update_ts=current_ts, **transfer_data)
 
     with db.retry_on_integrity_error():
+        db.session.add(running_transfer)
         db.session.add(direct_transfer)
+
+    db.session.add(PrepareTransferSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        coordinator_request_id=running_transfer.coordinator_request_id,
+        min_locked_amount=amount,
+        max_locked_amount=amount,
+        recipient=recipient,
+        min_interest_rate=min_interest_rate,
+        max_commit_delay='max_commit_delay',  # TODO: this is wrong!
+    ))
+
+    paths, types = get_paths_and_types()
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
+        object_type=types.transfer,
+        object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
+        object_update_id=1,
+    ))
 
     return direct_transfer
 
@@ -330,39 +355,16 @@ def _finalize_direct_transfer(
         # TODO: Write to the log.
 
 
-def _raise_error_if_transfer_exists(creditor_id: int, transfer_uuid: UUID, attributes: Dict[str, Any]) -> None:
-    t = DirectTransfer.get_instance((creditor_id, transfer_uuid))
-    if t:
-        if all(getattr(t, name) == value for name, value in attributes.items()):
+def _raise_error_if_transfer_exists(**kw) -> None:
+    creditor_id = kw['creditor_id']
+    transfer_uuid = kw['transfer_uuid']
+
+    direct_transfer = DirectTransfer.get_instance((creditor_id, transfer_uuid))
+    if direct_transfer:
+        if all(getattr(direct_transfer, name) == value for name, value in kw.items()):
             raise errors.TransferExists()
         raise errors.UpdateConflict()
 
-
-def _insert_running_transfer_or_raise_error(t: DirectTransfer) -> None:
-    running_transfer = RunningTransfer(
-        creditor_id=t.creditor_id,
-        transfer_uuid=t.transfer_uuid,
-        debtor_id=t.debtor_id,
-        recipient=t.recipient,
-        amount=t.amount,
-        transfer_note=str(t.note),  # TODO: this is wrong!
-    )
-
-    db.session.add(running_transfer)
-    try:
-        db.session.flush()
-    except IntegrityError:
-        raise errors.TransferExists()
-
-    db.session.add(PrepareTransferSignal(
-        creditor_id=t.creditor_id,
-        debtor_id=t.debtor_id,
-        coordinator_request_id=running_transfer.coordinator_request_id,
-        min_locked_amount=t.amount,
-        max_locked_amount=t.amount,
-        recipient=t.recipient,
-        min_interest_rate=t.min_interest_rate,
-        max_commit_delay=t.max_commit_delay,
-    ))
-
-    return running_transfer
+    running_transfer_query = RunningTransfer.query.filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid)
+    if db.session.query(running_transfer_query.exists()).scalar():
+        raise errors.UpdateConflict()

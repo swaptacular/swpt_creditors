@@ -96,17 +96,34 @@ def process_pending_log_entries(creditor_id: int) -> None:
         all()
 
     if pending_log_entries:
+        paths, types = get_paths_and_types()
         for entry in pending_log_entries:
-            db.session.add(LogEntry(
-                creditor_id=creditor_id,
-                entry_id=creditor.generate_log_entry_id(),
+            _add_log_entry(
+                creditor,
                 object_type=entry.object_type,
                 object_uri=entry.object_uri,
                 object_update_id=entry.object_update_id,
-                added_at_ts=entry.added_at_ts,
+                current_ts=entry.added_at_ts,
                 is_deleted=entry.is_deleted,
                 data=entry.data,
-            ))
+            )
+
+            # NOTE: When a transfer has been initiated or deleted, the
+            # creditor's list of initiated transfers will be undated
+            # too, and the client should be informed about this. This
+            # is ugly but necessary, because this update requires the
+            # `creditor` to be locked.
+            if entry.object_type == types.transfer and (entry.object_update_id == 1 or entry.is_deleted):
+                creditor.transfer_list_latest_update_id += 1
+                creditor.transfer_list_latest_update_ts = entry.added_at_ts
+                _add_log_entry(
+                    creditor,
+                    object_type=types.transfer_list,
+                    object_uri=paths.transfer_list(creditorId=creditor_id),
+                    object_update_id=creditor.account_list_latest_update_id,
+                    current_ts=entry.added_at_ts,
+                )
+
             db.session.delete(entry)
 
 
