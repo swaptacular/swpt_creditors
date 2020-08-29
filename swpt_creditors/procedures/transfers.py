@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import datetime, timezone, date, timedelta
-from typing import TypeVar, Callable, Optional
+from typing import TypeVar, Callable, Optional, Dict, Any
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
@@ -25,38 +25,43 @@ def initiate_transfer(
         amount: int,
         recipient: str,
         note: dict,
-        min_interest_rate: float,
-        deadline: Optional[datetime]) -> DirectTransfer:
+        *,
+        deadline: Optional[datetime],
+        min_interest_rate: float) -> DirectTransfer:
 
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert isinstance(transfer_uuid, UUID)
     assert 0 < amount <= MAX_INT64
-    assert min_interest_rate >= 100.0
-    assert type(note) is dict
+    assert min_interest_rate >= -100.0
 
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_creditor(creditor_id)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
 
-    new_transfer = DirectTransfer(
+    transfer_data = {
+        'debtor_id': debtor_id,
+        'amount': amount,
+        'recipient': recipient,
+        'note': note,
+        'deadline': deadline,
+        'min_interest_rate': min_interest_rate,
+    }
+    _raise_error_if_transfer_exists(creditor_id, transfer_uuid, transfer_data)
+
+    direct_transfer = DirectTransfer(
         creditor_id=creditor_id,
         transfer_uuid=transfer_uuid,
-        debtor_id=debtor_id,
-        amount=amount,
-        recipient=recipient,
-        note=note,
-        deadline=deadline,
-        min_interest_rate=min_interest_rate,
         latest_update_ts=current_ts,
+        **transfer_data,
     )
-    _raise_error_if_transfer_exists(new_transfer)
-    _insert_running_transfer_or_raise_update_conflict(new_transfer)
+    _insert_running_transfer_or_raise_error(direct_transfer)
 
     with db.retry_on_integrity_error():
-        db.session.add(new_transfer)
+        db.session.add(direct_transfer)
 
-    return new_transfer
+    return direct_transfer
 
 
 @atomic
@@ -325,17 +330,15 @@ def _finalize_direct_transfer(
         # TODO: Write to the log.
 
 
-def _raise_error_if_transfer_exists(t1: DirectTransfer) -> None:
-    t2 = DirectTransfer.get_instance((t1.creditor_id, t1.transfer_uuid))
-    if t2:
-        attributes = ['debtor_id', 'amount', 'recipient', 'note', 'deadline', 'min_interest_rate']
-        if all(getattr(t1, name) == getattr(t2, name) for name in attributes):
+def _raise_error_if_transfer_exists(creditor_id: int, transfer_uuid: UUID, attributes: Dict[str, Any]) -> None:
+    t = DirectTransfer.get_instance((creditor_id, transfer_uuid))
+    if t:
+        if all(getattr(t, name) == value for name, value in attributes.items()):
             raise errors.TransferExists()
-
         raise errors.UpdateConflict()
 
 
-def _insert_running_transfer_or_raise_update_conflict(t: DirectTransfer) -> None:
+def _insert_running_transfer_or_raise_error(t: DirectTransfer) -> None:
     running_transfer = RunningTransfer(
         creditor_id=t.creditor_id,
         transfer_uuid=t.transfer_uuid,
@@ -349,7 +352,7 @@ def _insert_running_transfer_or_raise_update_conflict(t: DirectTransfer) -> None
     try:
         db.session.flush()
     except IntegrityError:
-        raise errors.UpdateConflict()
+        raise errors.TransferExists()
 
     db.session.add(PrepareTransferSignal(
         creditor_id=t.creditor_id,
