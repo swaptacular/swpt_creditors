@@ -69,6 +69,10 @@ class BaseLogEntry(db.Model):
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
     data = db.Column(pg.JSON)
 
+    @property
+    def is_created(self):
+        return not self.is_deleted and self.object_update_id in [1, None]
+
 
 class PendingLogEntry(BaseLogEntry):
     creditor_id = db.Column(db.BigInteger, primary_key=True)

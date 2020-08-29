@@ -109,19 +109,20 @@ def process_pending_log_entries(creditor_id: int) -> None:
             )
 
             # NOTE: When a transfer has been initiated or deleted, the
-            # creditor's list of initiated transfers will be undated
-            # too, and the client should be informed about this. This
-            # is ugly but necessary, because this update requires the
-            # `creditor` to be locked.
-            if entry.object_type == types.transfer and (entry.object_update_id == 1 or entry.is_deleted):
+            # creditor's list of transfers is undated too, and the
+            # client should be informed about this. This hack is
+            # necessary, because the update of the creditor's list of
+            # transfers requires the `Creditor` table row to be
+            # locked.
+            if entry.object_type == types.transfer and (entry.is_created or entry.is_deleted):
                 creditor.transfer_list_latest_update_id += 1
                 creditor.transfer_list_latest_update_ts = entry.added_at_ts
                 _add_log_entry(
                     creditor,
                     object_type=types.transfer_list,
                     object_uri=paths.transfer_list(creditorId=creditor_id),
-                    object_update_id=creditor.account_list_latest_update_id,
-                    added_at_ts=entry.added_at_ts,
+                    object_update_id=creditor.transfer_list_latest_update_id,
+                    added_at_ts=creditor.transfer_list_latest_update_ts,
                 )
 
             db.session.delete(entry)

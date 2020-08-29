@@ -25,3 +25,23 @@ def test_account_data(db_session):
     assert ad.ledger_interest == 10
     ad.interest_rate = 12.5
     assert abs(ad.ledger_interest - (1000 * 1.125 - 1000 + 10)) < 2
+
+
+def test_log_entry(db_session, current_ts):
+    le = m.LogEntry(
+        creditor_id=1,
+        entry_id=2,
+        added_at_ts=current_ts,
+        object_type='Object',
+        object_uri='/object/1',
+        object_update_id=1,
+        is_deleted=False,
+        data={},
+    )
+    assert le.is_created
+    le.object_update_id = 2
+    assert not le.is_created
+    le.object_update_id = None
+    assert le.is_created
+    le.is_deleted = True
+    assert not le.is_created
