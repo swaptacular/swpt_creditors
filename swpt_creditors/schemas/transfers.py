@@ -1,6 +1,6 @@
 import json
 from copy import copy
-from marshmallow import Schema, fields, validate, missing, pre_dump, validates, ValidationError
+from marshmallow import Schema, fields, validate, missing, pre_load, pre_dump, validates, ValidationError
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
@@ -155,14 +155,20 @@ class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
     )
     options = fields.Nested(
         TransferOptionsSchema,
-        missing={},
-        description="Transfer's `TransferOptions`.",
+        description="Optional `TransferOptions`.",
     )
     note = fields.Dict(
         required=True,
         description='A note from the sender. Can be any JSON object that contains information '
                     'which the sender wants the recipient to see. Can be an empty object.',
     )
+
+    @pre_load
+    def ensure_options(self, data, many, partial):
+        if 'options' not in data:
+            data = data.copy()
+            data['options'] = {}
+            return data
 
     @validates('note')
     def validate_note(self, value):
