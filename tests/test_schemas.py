@@ -1,5 +1,6 @@
 import pytest
 import math
+from uuid import UUID
 from marshmallow import ValidationError
 from datetime import date, datetime, timezone
 from swpt_lib.utils import i64_to_u64
@@ -1265,3 +1266,33 @@ def test_deserialize_debtor_info(app):
 
     with pytest.raises(ValidationError):
         dis.load({'url': 'http://example.com', 'sha256': 64 * 'f'})
+
+
+def test_deserialize_transfer_creation_request(app):
+    dis = schemas.TransferCreationRequestSchema()
+
+    base_data = {
+        'transferUuid': '123e4567-e89b-12d3-a456-426655440000',
+        'recipient': {'uri': 'swpt:1/2'},
+        'amount': 1000,
+        'note': {},
+    }
+
+    data = dis.load(base_data)
+    assert data == {
+        'type': 'TransferCreationRequest',
+        'transfer_uuid': UUID('123e4567-e89b-12d3-a456-426655440000'),
+        'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
+        'amount': 1000,
+        'note': {},
+        'options': {},
+    }
+
+    with pytest.raises(ValidationError):
+        dis.load({'type': 'WrongType', **base_data})
+
+    with pytest.raises(ValidationError, match='Not a valid mapping type'):
+        dis.load({**base_data, 'note': []})
+
+    with pytest.raises(ValidationError, match='The total length of the note exceeds'):
+        dis.load({**base_data, 'note': {'x': 10000 * 'x'}})

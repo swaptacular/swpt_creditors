@@ -1,11 +1,15 @@
 import json
 from copy import copy
-from marshmallow import Schema, fields, validate, missing, pre_dump
+from marshmallow import Schema, fields, validate, missing, pre_dump, validates, ValidationError
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64
-from .common import ObjectReferenceSchema, AccountIdentitySchema, MutableResourceSchema, URI_DESCRIPTION
+from swpt_creditors.models import MAX_INT64, TRANSFER_NOTE_MAX_BYTES
+from .common import (
+    ObjectReferenceSchema, AccountIdentitySchema, ValidateTypeMixin, MutableResourceSchema,
+    URI_DESCRIPTION,
+)
+
 
 _TRANSFER_AMOUNT_DESCRIPTION = '\
 The amount to be transferred. Must be positive.'
@@ -121,7 +125,7 @@ class TransferResultSchema(Schema):
     )
 
 
-class TransferCreationRequestSchema(Schema):
+class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing='TransferCreationRequest',
         default='TransferCreationRequest',
@@ -159,6 +163,16 @@ class TransferCreationRequestSchema(Schema):
         description='A note from the sender. Can be any JSON object that contains information '
                     'which the sender wants the recipient to see. Can be an empty object.',
     )
+
+    @validates('note')
+    def validate_note(self, value):
+        try:
+            s = json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+        except ValueError:
+            raise ValidationError('The message is not JSON compliant.')
+
+        if len(s.encode('utf8')) > TRANSFER_NOTE_MAX_BYTES:
+            raise ValidationError(f'The total length of the note exceeds {TRANSFER_NOTE_MAX_BYTES} bytes.')
 
 
 class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):

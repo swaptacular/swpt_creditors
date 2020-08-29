@@ -68,8 +68,8 @@ def initiate_transfer(
 
     db.session.add(PrepareTransferSignal(
         creditor_id=creditor_id,
-        debtor_id=debtor_id,
         coordinator_request_id=running_transfer.coordinator_request_id,
+        debtor_id=debtor_id,
         amount=amount,
         recipient=recipient,
         min_interest_rate=min_interest_rate,
