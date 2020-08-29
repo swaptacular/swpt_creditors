@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 578f231dec23
+Revision ID: e0f6e3976d2d
 Revises: 8d8c816257ce
-Create Date: 2020-08-29 16:54:24.954732
+Create Date: 2020-08-29 20:25:45.850752
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '578f231dec23'
+revision = 'e0f6e3976d2d'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -68,13 +68,11 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('min_locked_amount', sa.BigInteger(), nullable=False),
-    sa.Column('max_locked_amount', sa.BigInteger(), nullable=False),
+    sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
     sa.Column('min_interest_rate', sa.Float(), nullable=False),
     sa.Column('max_commit_delay', sa.Integer(), nullable=False),
-    sa.CheckConstraint('max_locked_amount >= min_locked_amount'),
-    sa.CheckConstraint('min_locked_amount > 0'),
+    sa.CheckConstraint('amount > 0'),
     sa.PrimaryKeyConstraint('creditor_id', 'coordinator_request_id')
     )
     op.create_table('running_transfer',
@@ -113,13 +111,13 @@ def upgrade():
     sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('error_code', sa.String(), nullable=True),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=True),
-    sa.Column('option_deadline', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.Column('option_min_interest_rate', sa.REAL(), nullable=False),
+    sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount >= 0'),
     sa.CheckConstraint('latest_update_id > 0'),
-    sa.CheckConstraint('option_min_interest_rate >= -100.0'),
+    sa.CheckConstraint('min_interest_rate >= -100.0'),
     sa.CheckConstraint('total_locked_amount >= 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
