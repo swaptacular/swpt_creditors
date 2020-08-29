@@ -1,12 +1,12 @@
 from uuid import UUID
+from math import floor
 from datetime import datetime, timezone, date, timedelta
-from typing import TypeVar, Callable, Optional, Dict, Any
-from sqlalchemy.exc import IntegrityError
+from typing import TypeVar, Callable, Optional
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
     AccountData, PendingLogEntry, DirectTransfer, RunningTransfer, CommittedTransfer,
-    PrepareTransferSignal, FinalizeTransferSignal, MIN_INT64, MAX_INT64,
+    PrepareTransferSignal, FinalizeTransferSignal, MAX_INT32, MIN_INT64, MAX_INT64,
 )
 from .common import get_paths_and_types
 from .accounts import ensure_pending_ledger_update
@@ -60,7 +60,7 @@ def initiate_transfer(
         amount=amount,
         transfer_note='note',  # TODO: this is wrong!
     )
-    direct_transfer = DirectTransfer(latest_update_ts=current_ts, **transfer_data)
+    direct_transfer = DirectTransfer(**transfer_data, latest_update_ts=current_ts)
 
     with db.retry_on_integrity_error():
         db.session.add(running_transfer)
@@ -74,7 +74,8 @@ def initiate_transfer(
         max_locked_amount=amount,
         recipient=recipient,
         min_interest_rate=min_interest_rate,
-        max_commit_delay='max_commit_delay',  # TODO: this is wrong!
+        max_commit_delay=_calc_max_commit_delay(current_ts, deadline),
+        inserted_at_ts=current_ts,
     ))
 
     paths, types = get_paths_and_types()
@@ -355,16 +356,18 @@ def _finalize_direct_transfer(
         # TODO: Write to the log.
 
 
-def _raise_error_if_transfer_exists(**kw) -> None:
-    creditor_id = kw['creditor_id']
-    transfer_uuid = kw['transfer_uuid']
-
+def _raise_error_if_transfer_exists(creditor_id, transfer_uuid, **kw) -> None:
     direct_transfer = DirectTransfer.get_instance((creditor_id, transfer_uuid))
     if direct_transfer:
-        if all(getattr(direct_transfer, name) == value for name, value in kw.items()):
+        if all(getattr(direct_transfer, attr_name) == attr_value for attr_name, attr_value in kw.items()):
             raise errors.TransferExists()
         raise errors.UpdateConflict()
 
     running_transfer_query = RunningTransfer.query.filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid)
     if db.session.query(running_transfer_query.exists()).scalar():
         raise errors.UpdateConflict()
+
+
+def _calc_max_commit_delay(current_ts: datetime, deadline: datetime = None) -> int:
+    seconds = floor((deadline - current_ts).total_seconds()) if deadline else MAX_INT32
+    return max(0, min(seconds, MAX_INT32))
