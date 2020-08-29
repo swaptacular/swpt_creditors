@@ -117,16 +117,18 @@ def process_rejected_direct_transfer_signal(
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
     if rt and not rt.is_finalized:
         if rt.debtor_id == debtor_id and rt.creditor_id == creditor_id:
-            error = {
-                'errorCode': status_code,
-                'totalLockedAmount': total_locked_amount,
-            }
+            error_code = status_code
+            total_locked_amount = total_locked_amount
         else:  # pragma:  no cover
-            error = {
-                'errorCode': 'UNEXPECTED_ERROR',
-                'totalLockedAmount': 0,
-            }
-        _finalize_direct_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
+            error_code = 'UNEXPECTED_ERROR'
+            total_locked_amount = None
+
+        _finalize_direct_transfer(
+            rt.debtor_id,
+            rt.transfer_uuid,
+            error_code=error_code,
+            total_locked_amount=total_locked_amount,
+        )
         db.session.delete(rt)
 
 
@@ -185,7 +187,7 @@ def process_prepared_direct_transfer_signal(
 @atomic
 def process_finalized_direct_transfer_signal(
         debtor_id: int,
-        sender_creditor_id: int,
+        creditor_id: int,
         transfer_id: int,
         coordinator_id: int,
         coordinator_request_id: int,
@@ -195,7 +197,7 @@ def process_finalized_direct_transfer_signal(
         total_locked_amount: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
     assert 0 <= committed_amount <= MAX_INT64
     assert 0 <= len(status_code.encode('ascii')) <= 30
@@ -204,18 +206,27 @@ def process_finalized_direct_transfer_signal(
     rt_matches_the_signal = (
         rt is not None
         and rt.debtor_id == debtor_id
-        and rt.creditor_id == sender_creditor_id
+        and rt.creditor_id == creditor_id
         and rt.transfer_id == transfer_id
     )
     if rt_matches_the_signal:
         assert rt is not None
         if committed_amount == rt.amount and recipient == rt.recipient:
-            error = None
+            error_code = None
+            total_locked_amount = None
         elif committed_amount == 0 and recipient == rt.recipient:
-            error = {'errorCode': status_code}
+            error_code = status_code
+            total_locked_amount = total_locked_amount
         else:
-            error = {'errorCode': 'UNEXPECTED_ERROR'}
-        _finalize_direct_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
+            error_code = 'UNEXPECTED_ERROR'
+            total_locked_amount = None
+
+        _finalize_direct_transfer(
+            rt.debtor_id,
+            rt.transfer_uuid,
+            error_code=error_code,
+            total_locked_amount=total_locked_amount,
+        )
         db.session.delete(rt)
 
 
@@ -240,6 +251,9 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
 
 
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
+    assert MIN_INT64 <= coordinator_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
+
     return RunningTransfer.query.\
         filter_by(creditor_id=coordinator_id, coordinator_request_id=coordinator_request_id).\
         with_for_update().\
@@ -249,12 +263,18 @@ def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> 
 def _finalize_direct_transfer(
         debtor_id: int,
         transfer_uuid: int,
+        *,
         finalized_at_ts: datetime = None,
-        error: dict = None) -> None:
+        error_code: str = None,
+        total_locked_amount: int = None) -> None:
 
+    assert total_locked_amount is None or error_code is not None
     direct_transfer = DirectTransfer.lock_instance((debtor_id, transfer_uuid))
     if direct_transfer and direct_transfer.finalized_at_ts is None:
         direct_transfer.finalized_at_ts = finalized_at_ts or datetime.now(tz=timezone.utc)
-        direct_transfer.is_successful = error is None
-        if error is not None:
-            direct_transfer.error = error
+        direct_transfer.error_code = error_code
+        direct_transfer.total_locked_amount = total_locked_amount
+        direct_transfer.latest_update_id += 1
+        direct_transfer.latest_update_ts = direct_transfer.finalized_at_ts
+
+        # TODO: Write to the log.
