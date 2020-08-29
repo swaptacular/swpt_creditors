@@ -61,7 +61,7 @@ def update_creditor(creditor_id: int, *, latest_update_id: int) -> Creditor:
         object_type=types.creditor,
         object_uri=paths.creditor(creditorId=creditor_id),
         object_update_id=creditor.creditor_latest_update_id,
-        current_ts=current_ts,
+        added_at_ts=current_ts,
     )
 
     return creditor
@@ -103,7 +103,7 @@ def process_pending_log_entries(creditor_id: int) -> None:
                 object_type=entry.object_type,
                 object_uri=entry.object_uri,
                 object_update_id=entry.object_update_id,
-                current_ts=entry.added_at_ts,
+                added_at_ts=entry.added_at_ts,
                 is_deleted=entry.is_deleted,
                 data=entry.data,
             )
@@ -121,7 +121,7 @@ def process_pending_log_entries(creditor_id: int) -> None:
                     object_type=types.transfer_list,
                     object_uri=paths.transfer_list(creditorId=creditor_id),
                     object_update_id=creditor.account_list_latest_update_id,
-                    current_ts=entry.added_at_ts,
+                    added_at_ts=entry.added_at_ts,
                 )
 
             db.session.delete(entry)
@@ -208,7 +208,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
         object_type=types.account_list,
         object_uri=paths.account_list(creditorId=creditor_id),
         object_update_id=creditor.account_list_latest_update_id,
-        current_ts=current_ts,
+        added_at_ts=current_ts,
     )
     deletion_events = [
         (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
@@ -224,8 +224,8 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
             creditor,
             object_type=object_type,
             object_uri=object_uri,
+            added_at_ts=current_ts,
             is_deleted=True,
-            current_ts=current_ts,
         )
 
 
@@ -253,7 +253,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         object_type=types.account,
         object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=1,
-        current_ts=current_ts,
+        added_at_ts=current_ts,
     )
 
     # NOTE: The new account will appear in the creditor's list of accounts.
@@ -264,7 +264,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         object_type=types.account_list,
         object_uri=paths.account_list(creditorId=creditor_id),
         object_update_id=creditor.account_list_latest_update_id,
-        current_ts=current_ts,
+        added_at_ts=current_ts,
     )
 
     account = Account(
@@ -301,7 +301,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
 def _add_log_entry(
         creditor: Creditor,
         *,
-        current_ts: datetime,
+        added_at_ts: datetime,
         object_type: str,
         object_uri: str,
         object_update_id: int = None,
@@ -314,7 +314,7 @@ def _add_log_entry(
         object_type=object_type,
         object_uri=object_uri,
         object_update_id=object_update_id,
-        added_at_ts=current_ts,
+        added_at_ts=added_at_ts,
         is_deleted=is_deleted,
         data=data,
     ))
