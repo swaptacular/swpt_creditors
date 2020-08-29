@@ -72,3 +72,51 @@ def test_on_account_update_signal(db_session):
         account_id=str(C_ID),
         debtor_info_url='http://example.com',
     )
+
+
+def test_on_rejected_direct_transfer_signal(db_session):
+    a.on_rejected_direct_transfer_signal(
+        coordinator_type='direct',
+        coordinator_id=C_ID,
+        coordinator_request_id=1,
+        status_code='TEST',
+        total_locked_amount=0,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient='1111',
+        ts='2019-10-01T00:00:00Z',
+    )
+
+
+def test_on_prepared_direct_transfer_signal(db_session):
+    a.on_prepared_direct_transfer_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=1,
+        coordinator_type='direct',
+        coordinator_id=C_ID,
+        coordinator_request_id=1,
+        locked_amount=1000,
+        recipient='1111',
+        prepared_at='2019-10-01T00:00:00Z',
+        demurrage_rate=-50.0,
+        deadline='2019-10-01T00:00:00Z',
+        ts='2019-10-01T00:00:00Z',
+    )
+
+
+def test_on_finalized_direct_transfer_signal(db_session):
+    a.on_finalized_direct_transfer_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_type='direct',
+        coordinator_id=C_ID,
+        coordinator_request_id=1,
+        committed_amount=100,
+        recipient='1111',
+        status_code='OK',
+        total_locked_amount=0,
+        prepared_at='2019-10-01T00:00:00Z',
+        ts='2019-10-01T00:00:00Z',
+    )

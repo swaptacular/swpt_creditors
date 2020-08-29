@@ -5,7 +5,7 @@ from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
     AccountData, PendingLogEntry, DirectTransfer, RunningTransfer, CommittedTransfer,
-    MIN_INT64, MAX_INT64,
+    FinalizeTransferSignal, MIN_INT64, MAX_INT64,
 )
 from .common import get_paths_and_types
 from .accounts import ensure_pending_ledger_update
@@ -101,15 +101,98 @@ def process_account_transfer_signal(
 
 
 @atomic
+def process_rejected_direct_transfer_signal(
+        coordinator_id: int,
+        coordinator_request_id: int,
+        status_code: str,
+        total_locked_amount: int,
+        debtor_id: int,
+        creditor_id: int) -> None:
+
+    assert status_code == '' or len(status_code) <= 30 and status_code.encode('ascii')
+    assert 0 <= total_locked_amount <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+
+    rt = _find_running_transfer(coordinator_id, coordinator_request_id)
+    if rt and not rt.is_finalized:
+        if rt.debtor_id == debtor_id and rt.creditor_id == creditor_id:
+            error = {
+                'errorCode': status_code,
+                'totalLockedAmount': total_locked_amount,
+            }
+        else:  # pragma:  no cover
+            error = {
+                'errorCode': 'UNEXPECTED_ERROR',
+                'totalLockedAmount': 0,
+            }
+        _finalize_direct_transfer(rt.debtor_id, rt.transfer_uuid, error=error)
+        db.session.delete(rt)
+
+
+@atomic
+def process_prepared_direct_transfer_signal(
+        debtor_id: int,
+        creditor_id: int,
+        transfer_id: int,
+        coordinator_id: int,
+        coordinator_request_id: int,
+        locked_amount: int,
+        recipient: str) -> None:
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert 0 < locked_amount <= MAX_INT64
+
+    rt = _find_running_transfer(coordinator_id, coordinator_request_id)
+    rt_matches_the_signal = (
+        rt is not None
+        and rt.debtor_id == debtor_id
+        and rt.creditor_id == creditor_id
+        and rt.recipient == recipient
+        and rt.amount <= locked_amount
+    )
+    if rt_matches_the_signal:
+        assert rt is not None
+        if not rt.is_finalized:
+            rt.transfer_id = transfer_id
+
+        if rt.transfer_id == transfer_id:
+            db.session.add(FinalizeTransferSignal(
+                creditor_id=creditor_id,
+                debtor_id=rt.debtor_id,
+                transfer_id=transfer_id,
+                coordinator_id=coordinator_id,
+                coordinator_request_id=coordinator_request_id,
+                committed_amount=rt.amount,
+                transfer_note=rt.transfer_note,
+            ))
+            return
+
+    # The newly prepared transfer is dismissed.
+    db.session.add(FinalizeTransferSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        transfer_id=transfer_id,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+        committed_amount=0,
+        transfer_note='',
+    ))
+
+
+@atomic
 def process_finalized_direct_transfer_signal(
         debtor_id: int,
         sender_creditor_id: int,
         transfer_id: int,
         coordinator_id: int,
         coordinator_request_id: int,
-        recipient: str,
         committed_amount: int,
-        status_code: str) -> None:
+        recipient: str,
+        status_code: str,
+        total_locked_amount: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
@@ -157,9 +240,6 @@ def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
 
 
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
-    assert MIN_INT64 <= coordinator_id <= MAX_INT64
-    assert MIN_INT64 < coordinator_request_id <= MAX_INT64
-
     return RunningTransfer.query.\
         filter_by(creditor_id=coordinator_id, coordinator_request_id=coordinator_request_id).\
         with_for_update().\

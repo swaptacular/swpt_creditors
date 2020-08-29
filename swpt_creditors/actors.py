@@ -130,3 +130,85 @@ def on_account_transfer_signal(
         previous_transfer_number,
         timedelta(days=current_app.config['APP_TRANSFERS_MIN_RETENTION_DAYS']),
     )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+def on_rejected_direct_transfer_signal(
+        debtor_id: int,
+        creditor_id: int,
+        coordinator_type: str,
+        coordinator_id: int,
+        coordinator_request_id: int,
+        status_code: str,
+        total_locked_amount: int,
+        recipient: str,
+        ts: str,
+        *args, **kwargs) -> None:
+
+    assert coordinator_type == 'direct'
+    procedures.process_rejected_direct_transfer_signal(
+        coordinator_id,
+        coordinator_request_id,
+        status_code,
+        total_locked_amount,
+        debtor_id,
+        creditor_id,
+    )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+def on_prepared_direct_transfer_signal(
+        debtor_id: int,
+        creditor_id: int,
+        transfer_id: int,
+        coordinator_type: str,
+        coordinator_id: int,
+        coordinator_request_id: int,
+        locked_amount: int,
+        recipient: str,
+        prepared_at: str,
+        demurrage_rate: float,
+        deadline: str,
+        ts: str,
+        *args, **kwargs) -> None:
+
+    assert coordinator_type == 'direct'
+    procedures.process_prepared_direct_transfer_signal(
+        debtor_id,
+        creditor_id,
+        transfer_id,
+        coordinator_id,
+        coordinator_request_id,
+        locked_amount,
+        recipient,
+    )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+def on_finalized_direct_transfer_signal(
+        debtor_id: int,
+        creditor_id: int,
+        transfer_id: int,
+        coordinator_type: str,
+        coordinator_id: int,
+        coordinator_request_id: int,
+        committed_amount: int,
+        recipient: str,
+        status_code: str,
+        total_locked_amount: int,
+        prepared_at: str,
+        ts: str,
+        *args, **kwargs) -> None:
+
+    assert coordinator_type == 'direct'
+    procedures.process_finalized_direct_transfer_signal(
+        debtor_id,
+        creditor_id,
+        transfer_id,
+        coordinator_id,
+        coordinator_request_id,
+        committed_amount,
+        recipient,
+        status_code,
+        total_locked_amount,
+    )
