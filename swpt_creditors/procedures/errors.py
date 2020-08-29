@@ -22,6 +22,10 @@ class PegDoesNotExist(Exception):
     """The peg account does not exist."""
 
 
+class TransferExists(Exception):
+    """The same transfer record already exists."""
+
+
 class TransferDoesNotExist(Exception):
     """The transfer does not exist."""
 

@@ -80,7 +80,8 @@ class TransferOptionsSchema(Schema):
                     'to be decreased if the interest rate on the account has decreased.',
         example=-100.0,
     )
-    deadline = fields.DateTime(
+    optional_deadline = fields.DateTime(
+        data_key='deadline',
         description='The transfer will be successful only if it is committed before this moment. '
                     'This can be useful, for example, when the transferred amount may need to be '
                     'decreased if the transfer can not be committed in time. When this field is '

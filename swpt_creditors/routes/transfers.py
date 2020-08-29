@@ -1,6 +1,7 @@
 from flask import redirect, url_for
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+from swpt_lib.swpt_uris import parse_account_uri
 from swpt_creditors.schemas import (
     TransferCreationRequestSchema, TransferSchema, CommittedTransferSchema,
     TransferCancelationRequestSchema, ObjectReferencesPageSchema, PaginationParametersSchema,
@@ -8,6 +9,7 @@ from swpt_creditors.schemas import (
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
 from swpt_creditors import procedures
+from swpt_creditors import inspect_ops
 from .common import context, parse_transfer_slug
 
 
@@ -54,30 +56,35 @@ class TransfersEndpoint(MethodView):
 
         """
 
+        try:
+            debtorId, recipient = parse_account_uri(transfer_creation_request['recipient']['uri'])
+        except ValueError:
+            abort(422, errors={'json': {'recipient': {'uri': ['The URI can not be recognized.']}}})
+
         uuid = transfer_creation_request['transfer_uuid']
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
         try:
-            # TODO: parse `transfer_creation_request['recipient']`.
-            debtor_id, recipient = 1, 'xxx'
-        except ValueError:
-            abort(422, errors={'json': {'recipient': {'uri': ['The URI can not be recognized.']}}})
-        try:
+            inspect_ops.allow_direct_transfer_creation(creditorId, debtorId)
             transfer = procedures.initiate_transfer(
                 creditor_id=creditorId,
                 transfer_uuid=uuid,
-                debtor_id=debtor_id,
-                recipient=recipient,
+                debtor_id=debtorId,
                 amount=transfer_creation_request['amount'],
-                transfer_note=transfer_creation_request['note'],
+                recipient=recipient,
+                note=transfer_creation_request['note'],
+                min_interest_rate=transfer_creation_request['options']['min_interest_rate'],
+                deadline=transfer_creation_request['options'].get('optional_deadline'),
             )
-        except procedures.TooManyManagementActionsError:
+        except inspect_ops.ForbiddenOperation:  # pragma: no cover
             abort(403)
-        except procedures.DebtorDoesNotExistError:
+        except procedures.CreditorDoesNotExist:
             abort(404)
-        except procedures.TransfersConflictError:
+        except procedures.UpdateConflict:
             abort(409)
-        except procedures.TransferExistsError:
+        except procedures.TransferExists:
             return redirect(location, code=303)
+
+        inspect_ops.register_direct_transfer_creation(creditorId, debtorId)
         return transfer, {'Location': location}
 
 

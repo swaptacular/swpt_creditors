@@ -159,7 +159,7 @@ class AccountsEndpoint(MethodView):
         try:
             inspect_ops.allow_account_creation(creditorId, debtorId)
             account = procedures.create_new_account(creditorId, debtorId)
-        except inspect_ops.ForbiddenOperationError:  # pragma: no cover
+        except inspect_ops.ForbiddenOperation:  # pragma: no cover
             abort(403)
         except procedures.CreditorDoesNotExist:
             abort(404)
@@ -270,7 +270,7 @@ class AccountConfigEndpoint(MethodView):
                 allow_unsafe_deletion=account_config['allow_unsafe_deletion'],
                 latest_update_id=account_config['latest_update_id'],
             )
-        except inspect_ops.ForbiddenOperationError:  # pragma: no cover
+        except inspect_ops.ForbiddenOperation:  # pragma: no cover
             abort(403)
         except procedures.AccountDoesNotExist:
             abort(404)
