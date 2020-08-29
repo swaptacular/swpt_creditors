@@ -58,7 +58,7 @@ class TransferErrorSchema(Schema):
         format="int64",
         description='The total amount secured (locked) for transfers on the account. When this '
                     'field is not present, this means that the locked amount is irrelevant '
-                    'for this type of error (error code).',
+                    'for this type of error (`errorCode`).',
         example=0,
     )
 

@@ -18,8 +18,8 @@ depends_on = None
 
 
 def upgrade():
-    op.execute(CreateSequence(Sequence('direct_coordinator_request_id_seq')))
+    op.execute(CreateSequence(Sequence('coordinator_request_id_seq')))
 
 
 def downgrade():
-    op.execute(DropSequence(Sequence('direct_coordinator_request_id_seq')))
+    op.execute(DropSequence(Sequence('coordinator_request_id_seq')))

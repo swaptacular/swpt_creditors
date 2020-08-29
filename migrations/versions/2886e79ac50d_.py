@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b85e1fce5e4d
+Revision ID: 2886e79ac50d
 Revises: 8d8c816257ce
-Create Date: 2020-08-28 18:49:03.631373
+Create Date: 2020-08-29 15:29:10.240866
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b85e1fce5e4d'
+revision = '2886e79ac50d'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -80,18 +80,18 @@ def upgrade():
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False, comment='The debtor through which the transfer should go.'),
-    sa.Column('recipient', sa.String(), nullable=False, comment='The recipient of the transfer.'),
-    sa.Column('amount', sa.BigInteger(), nullable=False, comment='The amount to be transferred. Must be positive.'),
-    sa.Column('transfer_note', postgresql.JSON(astext_type=sa.Text()), nullable=False, comment='A note from the debtor. Can be any JSON object that the debtor wants the recipient to see.'),
-    sa.Column('started_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was started.'),
-    sa.Column('direct_coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('direct_coordinator_request_id_seq')"), nullable=False, comment='This is the value of the `coordinator_request_id` parameter, which has been sent with the `prepare_transfer` message for the transfer. The value of `creditor_id` is sent as the `coordinator_id` parameter. `coordinator_type` is "direct".'),
-    sa.Column('direct_transfer_id', sa.BigInteger(), nullable=True, comment='This value, along with `debtor_id` and `creditor_id` uniquely identifies the successfully prepared transfer.'),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('recipient', sa.String(), nullable=False),
+    sa.Column('amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_note', sa.String(), nullable=False),
+    sa.Column('started_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('coordinator_request_id_seq')"), nullable=False),
+    sa.Column('transfer_id', sa.BigInteger(), nullable=True),
     sa.CheckConstraint('amount > 0'),
-    sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
-    comment='Represents a running direct transfer. Important note: The records for the successfully finalized direct transfers (those for which `direct_transfer_id` is not `null`), must not be deleted right away. Instead, after they have been finalized, they should stay in the database for at least few days. This is necessary in order to prevent problems caused by message re-delivery.'
+    sa.CheckConstraint('octet_length(transfer_note) <= 500'),
+    sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid')
     )
-    op.create_index('idx_direct_coordinator_request_id', 'running_transfer', ['creditor_id', 'direct_coordinator_request_id'], unique=True)
+    op.create_index('idx_coordinator_request_id', 'running_transfer', ['creditor_id', 'coordinator_request_id'], unique=True)
     op.create_table('account',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -105,20 +105,24 @@ def upgrade():
     op.create_table('direct_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
-    sa.Column('debtor_uri', sa.String(), nullable=False, comment="The debtor's URI."),
-    sa.Column('recipient_uri', sa.String(), nullable=False, comment="The recipient's URI."),
-    sa.Column('amount', sa.BigInteger(), nullable=False, comment='The amount to be transferred. Must be positive.'),
-    sa.Column('transfer_note', postgresql.JSON(astext_type=sa.Text()), nullable=False, comment='A note from the sender. Can be any JSON object that the sender wants the recipient to see.'),
-    sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was initiated.'),
-    sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the transfer was finalized. A `null` means that the transfer has not been finalized yet.'),
-    sa.Column('is_successful', sa.BOOLEAN(), nullable=False, comment='Whether the transfer has been successful or not.'),
-    sa.Column('json_error', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Describes the reason of the failure, in case the transfer has not been successful.'),
-    sa.CheckConstraint('amount > 0'),
-    sa.CheckConstraint('finalized_at_ts IS NULL OR is_successful = true OR json_error IS NOT NULL'),
-    sa.CheckConstraint('is_successful = false OR finalized_at_ts IS NOT NULL'),
+    sa.Column('recipient_uri', sa.String(), nullable=False),
+    sa.Column('amount', sa.BigInteger(), nullable=False),
+    sa.Column('note', postgresql.JSON(astext_type=sa.Text()), nullable=False),
+    sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('error_code', sa.String(), nullable=True),
+    sa.Column('total_locked_amount', sa.BigInteger(), nullable=True),
+    sa.Column('option_deadline', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('option_min_interest_rate', sa.REAL(), nullable=False),
+    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('amount >= 0'),
+    sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('option_min_interest_rate >= -100.0'),
+    sa.CheckConstraint('total_locked_amount >= 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
-    comment='Represents an initiated direct transfer. A new row is inserted when a creditor creates a new direct transfer. The row is deleted when the creditor acknowledges (purges) the transfer.'
+    comment='Represents an initiated direct transfer. A new row is inserted when a creditor initiates a new direct transfer. The row is deleted when the creditor deletes the initiated transfer.'
     )
     op.create_table('log_entry',
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -300,7 +304,7 @@ def downgrade():
     op.drop_table('log_entry')
     op.drop_table('direct_transfer')
     op.drop_table('account')
-    op.drop_index('idx_direct_coordinator_request_id', table_name='running_transfer')
+    op.drop_index('idx_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
     op.drop_table('prepare_transfer_signal')
     op.drop_table('finalize_transfer_signal')

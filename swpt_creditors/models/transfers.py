@@ -1,8 +1,8 @@
 from __future__ import annotations
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, false, or_
+from sqlalchemy.sql.expression import func
 from swpt_creditors.extensions import db
-from .common import get_now_utc
+from .common import get_now_utc, TRANSFER_NOTE_MAX_BYTES
 
 
 # TODO: Implement a daemon that periodically scan the
@@ -70,64 +70,28 @@ class PendingLedgerUpdate(db.Model):
 class DirectTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
-    debtor_uri = db.Column(
-        db.String,
-        nullable=False,
-        comment="The debtor's URI.",
-    )
-    recipient_uri = db.Column(
-        db.String,
-        nullable=False,
-        comment="The recipient's URI.",
-    )
-    amount = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The amount to be transferred. Must be positive.',
-    )
-    transfer_note = db.Column(
-        pg.JSON,
-        nullable=False,
-        default={},
-        comment='A note from the sender. Can be any JSON object that the sender wants the '
-                'recipient to see.',
-    )
-    initiated_at_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-        comment='The moment at which the transfer was initiated.',
-    )
-    finalized_at_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        comment='The moment at which the transfer was finalized. A `null` means that the '
-                'transfer has not been finalized yet.',
-    )
-    is_successful = db.Column(
-        db.BOOLEAN,
-        nullable=False,
-        default=False,
-        comment='Whether the transfer has been successful or not.',
-    )
-    json_error = db.Column(
-        pg.JSON,
-        comment='Describes the reason of the failure, in case the transfer has not been successful.',
-    )
+    recipient_uri = db.Column(db.String, nullable=False)
+    amount = db.Column(db.BigInteger, nullable=False)
+    note = db.Column(pg.JSON, nullable=False)
+    initiated_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True))
+    error_code = db.Column(db.String)
+    total_locked_amount = db.Column(db.BigInteger)
+    option_deadline = db.Column(db.TIMESTAMP(timezone=True))
+    option_min_interest_rate = db.Column(db.REAL, nullable=False, default=-100.0)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
-        db.CheckConstraint(amount > 0),
-        db.CheckConstraint(or_(is_successful == false(), finalized_at_ts != null())),
-        db.CheckConstraint(or_(finalized_at_ts == null(), is_successful == true(), json_error != null())),
+        db.CheckConstraint(amount >= 0),
+        db.CheckConstraint(total_locked_amount >= 0),
+        db.CheckConstraint(option_min_interest_rate >= -100.0),
+        db.CheckConstraint(latest_update_id > 0),
         {
             'comment': 'Represents an initiated direct transfer. A new row is inserted when '
-                       'a creditor creates a new direct transfer. The row is deleted when the '
-                       'creditor acknowledges (purges) the transfer.',
+                       'a creditor initiates a new direct transfer. The row is deleted when the '
+                       'creditor deletes the initiated transfer.',
         }
-    )
-
-    creditor = db.relationship(
-        'Creditor',
-        backref=db.backref('direct_transfers', cascade="all, delete-orphan", passive_deletes=True),
     )
 
     @property
@@ -135,71 +99,29 @@ class DirectTransfer(db.Model):
         return bool(self.finalized_at_ts)
 
     @property
-    def error(self):
-        if self.is_finalized and not self.is_successful:
-            return self.json_error
-        return None  # TODO: is this correct?
+    def is_successful(self):
+        return bool(self.finalized_at_ts and self.error_code is None)
 
 
 class RunningTransfer(db.Model):
-    _dcr_seq = db.Sequence('direct_coordinator_request_id_seq', metadata=db.Model.metadata)
+    _cr_seq = db.Sequence('coordinator_request_id_seq', metadata=db.Model.metadata)
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
-    debtor_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The debtor through which the transfer should go.',
-    )
-    recipient = db.Column(
-        db.String,
-        nullable=False,
-        comment='The recipient of the transfer.',
-    )
-    amount = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The amount to be transferred. Must be positive.',
-    )
-    transfer_note = db.Column(
-        pg.JSON,
-        nullable=False,
-        comment='A note from the debtor. Can be any JSON object that the debtor wants the recipient '
-                'to see.',
-    )
-    started_at_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-        comment='The moment at which the transfer was started.',
-    )
-    direct_coordinator_request_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        server_default=_dcr_seq.next_value(),
-        comment='This is the value of the `coordinator_request_id` parameter, which has been '
-                'sent with the `prepare_transfer` message for the transfer. The value of '
-                '`creditor_id` is sent as the `coordinator_id` parameter. `coordinator_type` '
-                'is "direct".',
-    )
-    direct_transfer_id = db.Column(
-        db.BigInteger,
-        comment="This value, along with `debtor_id` and `creditor_id` uniquely identifies the "
-                "successfully prepared transfer.",
-    )
+    debtor_id = db.Column(db.BigInteger, nullable=False)
+    recipient = db.Column(db.String, nullable=False)
+    amount = db.Column(db.BigInteger, nullable=False)
+    transfer_note = db.Column(db.String, nullable=False)
+    started_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False, server_default=_cr_seq.next_value())
+    transfer_id = db.Column(db.BigInteger)
     __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.CheckConstraint(amount > 0),
-        db.Index('idx_direct_coordinator_request_id', creditor_id, direct_coordinator_request_id, unique=True),
-        {
-            'comment': 'Represents a running direct transfer. Important note: The records for the '
-                       'successfully finalized direct transfers (those for which `direct_transfer_id` '
-                       'is not `null`), must not be deleted right away. Instead, after they have been '
-                       'finalized, they should stay in the database for at least few days. This is '
-                       'necessary in order to prevent problems caused by message re-delivery.',
-        }
+        db.CheckConstraint(func.octet_length(transfer_note) <= TRANSFER_NOTE_MAX_BYTES),
+        db.Index('idx_coordinator_request_id', creditor_id, coordinator_request_id, unique=True),
     )
 
     @property
     def is_finalized(self):
-        return self.direct_transfer_id is not None
+        return self.transfer_id is not None

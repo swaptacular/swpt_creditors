@@ -122,7 +122,7 @@ def process_finalized_direct_transfer_signal(
         rt is not None
         and rt.debtor_id == debtor_id
         and rt.creditor_id == sender_creditor_id
-        and rt.direct_transfer_id == transfer_id
+        and rt.transfer_id == transfer_id
     )
     if rt_matches_the_signal:
         assert rt is not None
@@ -161,7 +161,7 @@ def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> 
     assert MIN_INT64 < coordinator_request_id <= MAX_INT64
 
     return RunningTransfer.query.\
-        filter_by(creditor_id=coordinator_id, direct_coordinator_request_id=coordinator_request_id).\
+        filter_by(creditor_id=coordinator_id, coordinator_request_id=coordinator_request_id).\
         with_for_update().\
         one_or_none()
 
