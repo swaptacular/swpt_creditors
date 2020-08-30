@@ -407,13 +407,11 @@ def process_account_update_signal(
     config_error = None if is_config_effectual else data.config_error
     new_server_account = creation_date > data.creation_date
     info_update = (
-        not data.has_server_account
-        or data.status_flags != status_flags
+        data.is_deletion_safe
         or data.account_id != account_id
         or abs(data.interest_rate - interest_rate) > EPS * interest_rate
         or data.last_interest_rate_change_ts != last_interest_rate_change_ts
         or data.debtor_info_url != debtor_info_url
-        or data.is_config_effectual != is_config_effectual
         or data.config_error != config_error
     )
     if info_update:
