@@ -1,4 +1,3 @@
-import json
 from copy import copy
 from marshmallow import Schema, fields, validate, missing, pre_load, pre_dump, validates, ValidationError
 from swpt_lib.utils import i64_to_u64
@@ -11,15 +10,12 @@ from .common import (
 )
 
 
-_TRANSFER_AMOUNT_DESCRIPTION = '\
-The amount to be transferred. Must be positive.'
+_TRANSFER_NOTE_DESCRIPTION = '\
+A note from the sender. Can be any string that contains information which the sender \
+wants the recipient to see, including an empty string.'
 
-_TRANSFER_INITIATED_AT_TS_DESCRIPTION = '\
-The moment at which the transfer was initiated.'
-
-_TRANSFER_DEBTOR_URI_DESCRIPTION = '\
-The URI of the debtor through which the transfer should go. This is analogous to \
-the currency code in "normal" bank transfers.'
+_TRANSFER_NOTE_FORMAT_DESCRIPTION = '\
+The format used for the `note` field. An empty string signifies unstructured text.'
 
 
 def _make_invalid_account_uri(debtor_id: int) -> str:
@@ -71,7 +67,7 @@ class TransferOptionsSchema(Schema):
         data_key='deadline',
         description='The transfer will be successful only if it is committed before this moment. '
                     'This can be useful, for example, when the transferred amount may need to be '
-                    'decreased if the transfer can not be committed in time. When this field is '
+                    'changed if the transfer can not be committed in time. When this field is '
                     'not present, this means that the deadline for the transfer will not be '
                     'earlier than normal.',
     )
@@ -137,18 +133,18 @@ class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
         example=1000,
     )
     transfer_note_format = fields.String(
-        required=True,
+        missing='',
         validate=validate.Regexp(TRANSFER_NOTE_FORMAT_REGEX),
         data_key='noteFormat',
-        description='The format used for the `note` field. An empty string signifies '
-                    'unstructured text format.',
+        description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
+        example='',
     )
     transfer_note = fields.String(
-        required=True,
+        missing='',
         validate=validate.Length(max=TRANSFER_NOTE_MAX_BYTES),
         data_key='note',
-        description='A note from the sender. Can be any string that contains information which '
-                    'the sender wants the recipient to see. Can be an empty string.',
+        description=_TRANSFER_NOTE_DESCRIPTION,
+        example='Hello, World!',
     )
     options = fields.Nested(
         TransferOptionsSchema,
@@ -191,6 +187,20 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description="The URI of creditor's `TransferList`.",
         example={'uri': '/creditors/2/transfer-list'},
     )
+    transfer_note_format = fields.String(
+        required=True,
+        dump_only=True,
+        data_key='noteFormat',
+        description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
+        example='',
+    )
+    transfer_note = fields.String(
+        required=True,
+        dump_only=True,
+        data_key='note',
+        description=_TRANSFER_NOTE_DESCRIPTION,
+        example='Hello, World!',
+    )
     options = fields.Nested(
         TransferOptionsSchema,
         required=True,
@@ -201,7 +211,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         required=True,
         dump_only=True,
         data_key='initiatedAt',
-        description=_TRANSFER_INITIATED_AT_TS_DESCRIPTION,
+        description='The moment at which the transfer was initiated.',
     )
     checkup_at_ts = fields.Method(
         'get_checkup_at_ts',
@@ -291,8 +301,7 @@ class CommittedTransferSchema(Schema):
         required=True,
         dump_only=True,
         data_key='noteFormat',
-        description='The format used for the `note` field. An empty string signifies '
-                    'unstructured text format.',
+        description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
         example='',
     )
     transfer_note = fields.String(
