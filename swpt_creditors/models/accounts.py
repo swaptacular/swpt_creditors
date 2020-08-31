@@ -65,7 +65,7 @@ class AccountData(db.Model):
     last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
     account_id = db.Column(db.String, nullable=False, default='')
-    debtor_info_url = db.Column(db.String)
+    debtor_info_iri = db.Column(db.String)
     info_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     info_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 

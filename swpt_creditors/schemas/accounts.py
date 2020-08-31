@@ -54,10 +54,10 @@ class DebtorInfoSchema(ValidateTypeMixin, Schema):
         description='The type of this object.',
         example='DebtorInfo',
     )
-    url = fields.String(
+    iri = fields.String(
         required=True,
         validate=validate.Length(max=200),
-        format='uri',
+        format='iri',
         description='A link (Internationalized Resource Identifier) referring to a document '
                     'containing information about the debtor.',
         example='https://example.com/debtors/1/',
@@ -65,20 +65,20 @@ class DebtorInfoSchema(ValidateTypeMixin, Schema):
     optional_content_type = fields.String(
         data_key='contentType',
         validate=validate.Length(max=100),
-        description='Optional MIME type of the document that the `url` field refers to.',
+        description='Optional MIME type of the document that the `iri` field refers to.',
         example='text/html',
     )
     optional_sha256 = fields.String(
         validate=validate.Regexp('^[0-9A-F]{64}$'),
         data_key='sha256',
         description='Optional SHA-256 cryptographic hash (Base16 encoded) of content of the '
-                    'document that the `url` field refers to.',
+                    'document that the `iri` field refers to.',
         example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
     )
 
     @post_dump
     def assert_required_fields(self, obj, many):
-        assert 'url' in obj
+        assert 'iri' in obj
         return obj
 
 
@@ -400,8 +400,8 @@ class AccountInfoSchema(MutableResourceSchema):
         if obj.config_error is not None:
             obj.optional_config_error = obj.config_error
 
-        if obj.debtor_info_url is not None:
-            obj.optional_debtor_info = {'url': obj.debtor_info_url}
+        if obj.debtor_info_iri is not None:
+            obj.optional_debtor_info = {'iri': obj.debtor_info_iri}
 
         try:
             obj.optional_identity = {'uri': make_account_uri(obj.debtor_id, obj.account_id)}

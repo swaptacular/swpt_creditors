@@ -422,7 +422,7 @@ def test_serialize_account_knowledge(app):
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
             'debtorInfo': {
                 'type': 'DebtorInfo',
-                'url': 'http://example.com',
+                'iri': 'http://example.com',
                 'contentType': 'text/html',
                 'sha256': 32 * '01',
             },
@@ -447,7 +447,7 @@ def test_serialize_account_knowledge(app):
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
         'debtorInfo': {
             'type': 'DebtorInfo',
-            'url': 'http://example.com',
+            'iri': 'http://example.com',
             'contentType': 'text/html',
             'sha256': 32 * '01',
         },
@@ -462,7 +462,7 @@ def test_serialize_account_knowledge(app):
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'debtorInfo': {
             'type': 'DebtorInfo',
-            'url': 'http://example.com',
+            'iri': 'http://example.com',
         },
     }
     assert aks.dump(ak) == {
@@ -475,7 +475,7 @@ def test_serialize_account_knowledge(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
         'debtorInfo': {
             'type': 'DebtorInfo',
-            'url': 'http://example.com',
+            'iri': 'http://example.com',
         },
     }
 
@@ -512,7 +512,7 @@ def test_deserialize_account_knowledge(app):
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
         'debtorInfo': {
             'type': 'DebtorInfo',
-            'url': 'http://example.com',
+            'iri': 'http://example.com',
             'contentType': 'text/html',
             'sha256': 16 * 'BA01',
         },
@@ -526,7 +526,7 @@ def test_deserialize_account_knowledge(app):
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
             'debtorInfo': {
                 'type': 'DebtorInfo',
-                'url': 'http://example.com',
+                'iri': 'http://example.com',
                 'contentType': 'text/html',
                 'sha256': 16 * 'BA01',
             },
@@ -540,7 +540,7 @@ def test_deserialize_account_knowledge(app):
         'latestUpdateId': 1,
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
         'debtorInfo': {
-            'url': 'http://example.com',
+            'iri': 'http://example.com',
         },
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
@@ -551,7 +551,7 @@ def test_deserialize_account_knowledge(app):
         'data': {
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
             'debtorInfo': {
-                'url': 'http://example.com',
+                'iri': 'http://example.com',
             },
             'interestRate': 11.0,
             'interestRateChangedAt': '2020-01-02T00:00:00',
@@ -702,7 +702,7 @@ def test_serialize_account_info(app):
         last_interest_rate_change_ts=datetime(2000, 1, 1),
         status_flags=0,
         account_id='',
-        debtor_info_url=None,
+        debtor_info_iri=None,
         config_error=None,
         is_config_effectual=True,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
@@ -730,7 +730,7 @@ def test_serialize_account_info(app):
     ad.interest_rate = 0.0
     ad.status_flags = 0
     ad.account_id = 'not URL safe'
-    ad.debtor_info_url = 'https://example.com/debtor'
+    ad.debtor_info_iri = 'https://example.com/debtor'
     ad.config_error = 'TEST_ERROR'
     ad.is_scheduled_for_deletion = True
     ad.is_config_effectual = True
@@ -746,7 +746,7 @@ def test_serialize_account_info(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
         'identity': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!bm90IFVSTCBzYWZl'},
         'configError': 'TEST_ERROR',
-        'debtorInfo': {'type': 'DebtorInfo', 'url': 'https://example.com/debtor'},
+        'debtorInfo': {'type': 'DebtorInfo', 'iri': 'https://example.com/debtor'},
     }
 
 
@@ -866,7 +866,7 @@ def test_serialize_account_ledger(app):
         last_interest_rate_change_ts=datetime(2000, 1, 1),
         status_flags=0,
         account_id='',
-        debtor_info_url=None,
+        debtor_info_iri=None,
         config_error=None,
         is_config_effectual=True,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
@@ -1207,19 +1207,19 @@ def test_serialize_debtor_info(app):
     dis = schemas.DebtorInfoSchema()
 
     assert dis.dump({
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
     }) == {
         'type': 'DebtorInfo',
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
     }
 
     assert dis.dump({
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
         'optional_content_type': 'text/html',
         'optional_sha256': 16 * 'BA01',
     }) == {
         'type': 'DebtorInfo',
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
         'contentType': 'text/html',
         'sha256': 16 * 'BA01',
     }
@@ -1229,22 +1229,22 @@ def test_deserialize_debtor_info(app):
     dis = schemas.DebtorInfoSchema()
 
     data = dis.load({
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
     })
     assert data == {
         'type': 'DebtorInfo',
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
     }
 
     data = dis.load({
         'type': 'DebtorInfo',
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
         'contentType': 'text/html',
         'sha256': 16 * 'BA01',
     })
     assert data == {
         'type': 'DebtorInfo',
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
         'optional_content_type': 'text/html',
         'optional_sha256': 16 * 'BA01',
     }
@@ -1253,16 +1253,16 @@ def test_deserialize_debtor_info(app):
         dis.load({'type': 'WrongType'})
 
     with pytest.raises(ValidationError):
-        dis.load({'url': 1000 * 'x'})
+        dis.load({'iri': 1000 * 'x'})
 
     with pytest.raises(ValidationError):
-        dis.load({'url': 'http://example.com', 'content_type': 1000 * 'x'})
+        dis.load({'iri': 'http://example.com', 'content_type': 1000 * 'x'})
 
     with pytest.raises(ValidationError):
-        dis.load({'url': 'http://example.com', 'sha256': 64 * 'G'})
+        dis.load({'iri': 'http://example.com', 'sha256': 64 * 'G'})
 
     with pytest.raises(ValidationError):
-        dis.load({'url': 'http://example.com', 'sha256': 64 * 'f'})
+        dis.load({'iri': 'http://example.com', 'sha256': 64 * 'f'})
 
 
 def test_deserialize_transfer_creation_request(app):

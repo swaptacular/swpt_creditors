@@ -54,7 +54,7 @@ def on_account_update_signal(
         ts: str,
         ttl: int,
         account_id: str,
-        debtor_info_url: str,
+        debtor_info_iri: str,
         *args, **kwargs) -> None:
 
     procedures.process_account_update_signal(
@@ -74,7 +74,7 @@ def on_account_update_signal(
         config_flags,
         config,
         account_id,
-        debtor_info_url,
+        debtor_info_iri,
         last_transfer_number,
         iso8601.parse_date(last_transfer_committed_at),
         iso8601.parse_date(ts),

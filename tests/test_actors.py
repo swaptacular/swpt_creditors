@@ -70,7 +70,7 @@ def test_on_account_update_signal(db_session):
         ts='2019-10-01T00:00:00Z',
         ttl=10000,
         account_id=str(C_ID),
-        debtor_info_url='http://example.com',
+        debtor_info_iri='http://example.com',
     )
 
 

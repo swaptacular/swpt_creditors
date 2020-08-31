@@ -123,7 +123,7 @@ def test_delete_account(db_session, setup_account, current_ts):
         account_id=str(C_ID),
         config='',
         config_flags=0,
-        debtor_info_url='',
+        debtor_info_iri='',
     )
     account = Account.query.one()
     assert not account.config.is_scheduled_for_deletion
@@ -182,7 +182,7 @@ def test_process_account_update_signal(db_session, setup_account):
         'config_flags': config_flags,
         'config': '',
         'account_id': str(C_ID),
-        'debtor_info_url': 'http://example.com',
+        'debtor_info_iri': 'http://example.com',
         'last_transfer_number': 22,
         'last_transfer_committed_at': current_ts - timedelta(days=2),
         'ts': current_ts,
@@ -212,7 +212,7 @@ def test_process_account_update_signal(db_session, setup_account):
     assert ad.last_config_ts == last_ts
     assert ad.last_config_seqnum == last_seqnum
     assert ad.account_id == str(C_ID)
-    assert ad.debtor_info_url == 'http://example.com'
+    assert ad.debtor_info_iri == 'http://example.com'
     assert ad.last_transfer_number == 22
     assert ad.last_transfer_committed_at_ts == current_ts - timedelta(days=2)
     assert ad.config_error is None
@@ -418,7 +418,7 @@ def test_update_account_config(setup_account, current_ts):
         'config_flags': data.config_flags,
         'config': '',
         'account_id': str(C_ID),
-        'debtor_info_url': 'http://example.com',
+        'debtor_info_iri': 'http://example.com',
         'last_transfer_number': 0,
         'last_transfer_committed_at': models.TS0,
         'ts': current_ts,
@@ -480,7 +480,7 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
         config_flags=models.DEFAULT_CONFIG_FLAGS,
         config='',
         account_id=str(C_ID),
-        debtor_info_url='http://example.com',
+        debtor_info_iri='http://example.com',
         last_transfer_number=123,
         last_transfer_committed_at=current_ts - timedelta(days=2),
         ts=current_ts,
@@ -604,7 +604,7 @@ def test_process_pending_ledger_update(setup_account, max_count, current_ts):
         config_flags=models.DEFAULT_CONFIG_FLAGS,
         config='',
         account_id=str(C_ID),
-        debtor_info_url='http://example.com',
+        debtor_info_iri='http://example.com',
         last_transfer_number=0,
         last_transfer_committed_at=models.TS0,
         ts=current_ts,

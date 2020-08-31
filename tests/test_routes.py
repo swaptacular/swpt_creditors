@@ -765,7 +765,7 @@ def test_account_knowledge(client, account):
         },
         'debtorInfo': {
             'type': 'DebtorInfo',
-            'url': 'http://example.com',
+            'iri': 'http://example.com',
             'contentType': 'text/html',
             'sha256': 64 * '0',
         },
@@ -795,7 +795,7 @@ def test_account_knowledge(client, account):
     assert data['identity'] == {'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
     assert data['debtorInfo'] == {
         'type': 'DebtorInfo',
-        'url': 'http://example.com',
+        'iri': 'http://example.com',
         'contentType': 'text/html',
         'sha256': 64 * '0',
     }

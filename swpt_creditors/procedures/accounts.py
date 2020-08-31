@@ -368,7 +368,7 @@ def process_account_update_signal(
         config_flags: int,
         config: str,
         account_id: str,
-        debtor_info_url: str,
+        debtor_info_iri: str,
         last_transfer_number: int,
         last_transfer_committed_at: datetime,
         ts: datetime,
@@ -411,7 +411,7 @@ def process_account_update_signal(
         or data.account_id != account_id
         or abs(data.interest_rate - interest_rate) > EPS * interest_rate
         or data.last_interest_rate_change_ts != last_interest_rate_change_ts
-        or data.debtor_info_url != debtor_info_url
+        or data.debtor_info_iri != debtor_info_iri
         or data.config_error != config_error
     )
     if info_update:
@@ -427,7 +427,7 @@ def process_account_update_signal(
     data.last_interest_rate_change_ts = last_interest_rate_change_ts
     data.status_flags = status_flags
     data.account_id = account_id
-    data.debtor_info_url = debtor_info_url
+    data.debtor_info_iri = debtor_info_iri
     data.last_transfer_number = last_transfer_number,
     data.last_transfer_committed_at_ts = last_transfer_committed_at
     data.is_config_effectual = is_config_effectual
