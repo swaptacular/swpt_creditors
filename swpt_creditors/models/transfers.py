@@ -1,8 +1,7 @@
 from __future__ import annotations
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import func
 from swpt_creditors.extensions import db
-from .common import get_now_utc, TRANSFER_NOTE_MAX_BYTES
+from .common import get_now_utc
 
 
 # TODO: Implement a daemon that periodically scan the
@@ -118,7 +117,6 @@ class RunningTransfer(db.Model):
     __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.CheckConstraint(amount > 0),
-        db.CheckConstraint(func.octet_length(transfer_note) <= TRANSFER_NOTE_MAX_BYTES),
         db.Index('idx_coordinator_request_id', creditor_id, coordinator_request_id, unique=True),
     )
 

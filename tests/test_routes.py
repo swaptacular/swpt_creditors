@@ -319,6 +319,7 @@ def test_create_account(client, creditor):
             'account': {'uri': '/creditors/2/accounts/1/'},
             'interestRate': 0.0,
             'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
+            'noteMaxBytes': 0,
             'safeToDelete': False,
             'latestUpdateAt': latestUpdateAt,
             'latestUpdateId': latestUpdateId,

@@ -124,6 +124,7 @@ def test_delete_account(db_session, setup_account, current_ts):
         config='',
         config_flags=0,
         debtor_info_iri='',
+        transfer_note_max_bytes=500,
     )
     account = Account.query.one()
     assert not account.config.is_scheduled_for_deletion
@@ -175,6 +176,7 @@ def test_process_account_update_signal(db_session, setup_account):
         'interest': 12.0,
         'interest_rate': 5.0,
         'last_interest_rate_change_ts': current_ts - timedelta(days=1),
+        'transfer_note_max_bytes': 500,
         'status_flags': 5,
         'last_config_ts': last_ts,
         'last_config_seqnum': last_seqnum,
@@ -208,6 +210,7 @@ def test_process_account_update_signal(db_session, setup_account):
     assert ad.interest == 12.0
     assert ad.interest_rate == 5.0
     assert ad.last_interest_rate_change_ts == current_ts - timedelta(days=1)
+    assert ad.transfer_note_max_bytes == 500
     assert ad.status_flags == 5
     assert ad.last_config_ts == last_ts
     assert ad.last_config_seqnum == last_seqnum
@@ -411,6 +414,7 @@ def test_update_account_config(setup_account, current_ts):
         'interest': 0.0,
         'interest_rate': 0.0,
         'last_interest_rate_change_ts': models.TS0,
+        'transfer_note_max_bytes': 500,
         'status_flags': 0,
         'last_config_ts': data.last_config_ts,
         'last_config_seqnum': data.last_config_seqnum,
@@ -473,6 +477,7 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
         interest=12.0,
         interest_rate=5.0,
         last_interest_rate_change_ts=current_ts - timedelta(days=1),
+        transfer_note_max_bytes=500,
         status_flags=5,
         last_config_ts=current_ts,
         last_config_seqnum=0,
@@ -597,6 +602,7 @@ def test_process_pending_ledger_update(setup_account, max_count, current_ts):
         interest=0.0,
         interest_rate=0.0,
         last_interest_rate_change_ts=models.TS0,
+        transfer_note_max_bytes=500,
         status_flags=0,
         last_config_ts=current_ts,
         last_config_seqnum=0,

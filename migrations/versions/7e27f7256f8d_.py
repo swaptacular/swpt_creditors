@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: a83fefaf0a1a
+Revision ID: 7e27f7256f8d
 Revises: 8d8c816257ce
-Create Date: 2020-08-31 14:10:39.960044
+Create Date: 2020-08-31 16:36:53.574569
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'a83fefaf0a1a'
+revision = '7e27f7256f8d'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -85,7 +85,6 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('coordinator_request_id_seq')"), nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=True),
     sa.CheckConstraint('amount > 0'),
-    sa.CheckConstraint('octet_length(transfer_note) <= 500'),
     sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid')
     )
     op.create_index('idx_coordinator_request_id', 'running_transfer', ['creditor_id', 'coordinator_request_id'], unique=True)
@@ -173,6 +172,7 @@ def upgrade():
     sa.Column('config_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('transfer_note_max_bytes', sa.Integer(), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.Column('account_id', sa.String(), nullable=False),
     sa.Column('debtor_info_iri', sa.String(), nullable=True),
@@ -192,6 +192,7 @@ def upgrade():
     sa.CheckConstraint('ledger_last_transfer_number >= 0'),
     sa.CheckConstraint('ledger_latest_update_id > 0'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
+    sa.CheckConstraint('transfer_note_max_bytes >= 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )

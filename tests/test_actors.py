@@ -57,6 +57,7 @@ def test_on_account_update_signal(db_session):
         interest_rate=7.5,
         demurrage_rate=-50.0,
         commit_period=100000,
+        transfer_note_max_bytes=500,
         last_interest_rate_change_ts='2019-10-01T00:00:00Z',
         last_transfer_number=5,
         last_transfer_committed_at='2019-10-01T00:00:00Z',

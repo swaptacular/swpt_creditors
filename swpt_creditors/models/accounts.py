@@ -63,6 +63,7 @@ class AccountData(db.Model):
     # `AccountInfo` data
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
+    transfer_note_max_bytes = db.Column(db.Integer, nullable=False, default=0)
     status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
     account_id = db.Column(db.String, nullable=False, default='')
     debtor_info_iri = db.Column(db.String)
@@ -84,6 +85,7 @@ class AccountData(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(interest_rate >= -100.0),
+        db.CheckConstraint(transfer_note_max_bytes >= 0),
         db.CheckConstraint(negligible_amount >= 0.0),
         db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(ledger_last_entry_id >= 0),

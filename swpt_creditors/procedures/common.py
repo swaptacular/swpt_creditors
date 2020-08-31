@@ -47,6 +47,7 @@ ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
     'has_server_account',
     'interest_rate',
     'last_interest_rate_change_ts',
+    'transfer_note_max_bytes',
     'debtor_info_iri',
     'principal',
     'interest',

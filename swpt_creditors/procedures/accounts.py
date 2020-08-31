@@ -8,7 +8,8 @@ from swpt_creditors.models import (
     Account, AccountData,
     ConfigureAccountSignal, AccountDisplay, AccountExchange, AccountKnowledge,
     PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer,
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES,
+    DEFAULT_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS,
 )
 from .common import (
     allow_update, get_paths_and_types,
@@ -327,6 +328,8 @@ def process_rejected_config_signal(
         config_flags: int,
         rejection_code: str) -> None:
 
+    assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
+
     if config != '':
         return
 
@@ -361,6 +364,7 @@ def process_account_update_signal(
         interest: float,
         interest_rate: float,
         last_interest_rate_change_ts: datetime,
+        transfer_note_max_bytes: int,
         status_flags: int,
         last_config_ts: datetime,
         last_config_seqnum: int,
@@ -373,6 +377,10 @@ def process_account_update_signal(
         last_transfer_committed_at: datetime,
         ts: datetime,
         ttl: int) -> None:
+
+    assert 0 <= transfer_note_max_bytes <= TRANSFER_NOTE_MAX_BYTES
+    assert account_id == '' or len(account_id) <= 100 and account_id.encode('ascii')
+    assert len(debtor_info_iri) <= 200
 
     # TODO: Think about limiting the maximum rate at which this
     #       procedure can be called. Calling it too often may lead to
@@ -411,6 +419,7 @@ def process_account_update_signal(
         or data.account_id != account_id
         or abs(data.interest_rate - interest_rate) > EPS * interest_rate
         or data.last_interest_rate_change_ts != last_interest_rate_change_ts
+        or data.transfer_note_max_bytes != transfer_note_max_bytes
         or data.debtor_info_iri != debtor_info_iri
         or data.config_error != config_error
     )
@@ -425,6 +434,7 @@ def process_account_update_signal(
     data.interest = interest
     data.interest_rate = interest_rate
     data.last_interest_rate_change_ts = last_interest_rate_change_ts
+    data.transfer_note_max_bytes = transfer_note_max_bytes
     data.status_flags = status_flags
     data.account_id = account_id
     data.debtor_info_iri = debtor_info_iri

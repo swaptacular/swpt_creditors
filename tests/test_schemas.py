@@ -428,6 +428,7 @@ def test_serialize_account_knowledge(app):
             },
             'interestRate': 11.0,
             'interestRateChangedAt': '2020-01-02T00:00:00',
+            'noteMaxBytes': 500,
 
             # ignored
             'latestUpdateId': 1000,
@@ -453,6 +454,7 @@ def test_serialize_account_knowledge(app):
         },
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
+        'noteMaxBytes': 500,
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
@@ -572,6 +574,9 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError, match='Not a valid number.'):
         aks.load({'latestUpdateId': 1, 'interestRate': 'not a number'})
+
+    with pytest.raises(ValidationError, match='Not a valid integer.'):
+        aks.load({'latestUpdateId': 1, 'noteMaxBytes': 'not an integer'})
 
     with pytest.raises(ValidationError, match=r'The total length of the stored data exceeds \d'):
         aks.load({'latestUpdateId': 1, 'tooLong': 3 * n * 'x'})
@@ -700,6 +705,7 @@ def test_serialize_account_info(app):
         last_heartbeat_ts=datetime(2020, 1, 3),
         interest_rate=7.0,
         last_interest_rate_change_ts=datetime(2000, 1, 1),
+        transfer_note_max_bytes=500,
         status_flags=0,
         account_id='',
         debtor_info_iri=None,
@@ -721,6 +727,7 @@ def test_serialize_account_info(app):
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'interestRate': 7.0,
         'interestRateChangedAt': '2000-01-01T00:00:00',
+        'noteMaxBytes': 500,
         'safeToDelete': False,
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
@@ -741,6 +748,7 @@ def test_serialize_account_info(app):
         'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
         'interestRate': 0.0,
         'interestRateChangedAt': '2000-01-01T00:00:00',
+        'noteMaxBytes': 500,
         'safeToDelete': True,
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',

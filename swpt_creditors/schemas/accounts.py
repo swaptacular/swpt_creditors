@@ -371,6 +371,14 @@ class AccountInfoSchema(MutableResourceSchema):
         data_key='interestRateChangedAt',
         description='The moment at which the latest change in the interest rate happened.',
     )
+    transfer_note_max_bytes = fields.Integer(
+        required=True,
+        dump_only=True,
+        data_key='noteMaxBytes',
+        description='The maximal number of bytes that transfer notes are allowed to contain when '
+                    'UTF-8 encoded. This will be a non-negative number.',
+        example=500,
+    )
     optional_config_error = fields.String(
         dump_only=True,
         data_key='configError',
@@ -445,6 +453,11 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     interestRateChangedAt = fields.DateTime(
         description='Optional moment at which the latest change in the interest rate has '
                     'happened, which is known to the creditor.',
+    )
+    noteMaxBytes = fields.Integer(
+        description='Optional maximal number of bytes that transfer notes are allowed to '
+                    'contain when UTF-8 encoded, which is known to the creditor.',
+        example=500,
     )
     identity = fields.Nested(
         AccountIdentitySchema,

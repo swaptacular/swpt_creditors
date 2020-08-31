@@ -7,6 +7,7 @@ from swpt_creditors.extensions import db
 from swpt_creditors.models import (
     AccountData, PendingLogEntry, DirectTransfer, RunningTransfer, CommittedTransfer,
     PrepareTransferSignal, FinalizeTransferSignal, MAX_INT32, MIN_INT64, MAX_INT64,
+    TRANSFER_NOTE_MAX_BYTES,
 )
 from .common import get_paths_and_types
 from .accounts import ensure_pending_ledger_update
@@ -110,6 +111,8 @@ def process_account_transfer_signal(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_number <= MAX_INT64
     assert acquired_amount != 0
+    assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
+    assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
     assert MIN_INT64 <= acquired_amount <= MAX_INT64
     assert MIN_INT64 <= principal <= MAX_INT64
     assert 0 <= previous_transfer_number <= MAX_INT64
