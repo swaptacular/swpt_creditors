@@ -73,7 +73,7 @@ class DirectTransfer(db.Model):
     amount = db.Column(db.BigInteger, nullable=False)
     recipient = db.Column(db.String, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
-    note = db.Column(pg.JSON, nullable=False)
+    transfer_note = db.Column(db.String, nullable=False)
     initiated_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True))
     error_code = db.Column(db.String)

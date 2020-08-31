@@ -1136,6 +1136,8 @@ def test_deserialize_creditor_creation_request(app):
 
 
 def test_serialize_committed_transfer(app):
+    NOTE = '{"test": "test", "list": [1, 2, 3]}'
+
     ct = models.CommittedTransfer(
         creditor_id=C_ID,
         debtor_id=D_ID,
@@ -1144,7 +1146,7 @@ def test_serialize_committed_transfer(app):
         committed_at_ts=datetime(2020, 1, 1),
         acquired_amount=1000,
         transfer_note_format='json',
-        transfer_note='{"test": "test", "list": [1, 2, 3]}',
+        transfer_note=NOTE,
         principal=1500,
         sender_id='1',
         recipient_id='1111',
@@ -1159,18 +1161,18 @@ def test_serialize_committed_transfer(app):
         'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1111'},
         'acquiredAmount': 1000,
         'noteFormat': 'json',
-        'note': {"test": "test", "list": [1, 2, 3]},
+        'note': NOTE,
     }
 
     ct.transfer_note = ''
     data = cts.dump(ct)
-    assert data['note'] == {}
+    assert data['note'] == ''
 
     ct.transfer_note = 'test'
-    assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': 'test'}
+    assert cts.dump(ct)['note'] == 'test'
 
     ct.transfer_note = '[]'
-    assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': '[]'}
+    assert cts.dump(ct)['note'] == '[]'
 
     # invalid identity
     ct.sender_id = 1000 * '1'
@@ -1282,7 +1284,8 @@ def test_deserialize_transfer_creation_request(app):
         'transferUuid': '123e4567-e89b-12d3-a456-426655440000',
         'recipient': {'uri': 'swpt:1/2'},
         'amount': 1000,
-        'note': {},
+        'noteFormat': 'json',
+        'note': models.TRANSFER_NOTE_MAX_BYTES * 'x',
     }
 
     data = dis.load(base_data)
@@ -1291,15 +1294,37 @@ def test_deserialize_transfer_creation_request(app):
         'transfer_uuid': UUID('123e4567-e89b-12d3-a456-426655440000'),
         'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
         'amount': 1000,
-        'note': {},
-        'options': {},
+        'transfer_note_format': 'json',
+        'transfer_note': models.TRANSFER_NOTE_MAX_BYTES * 'x',
+        'options': {
+            'type': 'TransferOptions',
+            'min_interest_rate': -100,
+        },
     }
+
+    data = dis.load({**base_data, 'options': {'deadline': '1970-01-01T00:00:00Z'}})
+    assert data['options']['optional_deadline'] == models.TS0
 
     with pytest.raises(ValidationError):
         dis.load({'type': 'WrongType', **base_data})
 
-    with pytest.raises(ValidationError, match='Not a valid mapping type'):
-        dis.load({**base_data, 'note': []})
+    with pytest.raises(ValidationError, match='Not a valid UUID'):
+        dis.load({**base_data, 'transferUuid': 'invalid uuid'})
 
-    with pytest.raises(ValidationError, match='The total length of the note exceeds'):
-        dis.load({**base_data, 'note': {'x': 10000 * 'x'}})
+    with pytest.raises(ValidationError, match='Must be greater than or equal to 0'):
+        dis.load({**base_data, 'amount': -1})
+
+    with pytest.raises(ValidationError, match='and less than or equal to 9223372036854775807'):
+        dis.load({**base_data, 'amount': models.MAX_INT64 + 1})
+
+    with pytest.raises(ValidationError, match='Missing data for required field'):
+        dis.load({**base_data, 'recipient': {}})
+
+    with pytest.raises(ValidationError, match='String does not match expected pattern'):
+        dis.load({**base_data, 'noteFormat': '123456789'})
+
+    with pytest.raises(ValidationError, match='Longer than maximum length'):
+        dis.load({**base_data, 'note': (models.TRANSFER_NOTE_MAX_BYTES + 1) * 'x'})
+
+    with pytest.raises(ValidationError, match='The total byte-length of the note exceeds'):
+        dis.load({**base_data, 'note': models.TRANSFER_NOTE_MAX_BYTES * 'Щ'})

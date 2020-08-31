@@ -71,7 +71,8 @@ class TransfersEndpoint(MethodView):
                 debtor_id=debtorId,
                 amount=transfer_creation_request['amount'],
                 recipient=recipient,
-                note=transfer_creation_request['note'],
+                transfer_note_format=transfer_creation_request['transfer_note_format'],
+                transfer_note=transfer_creation_request['transfer_note'],
                 min_interest_rate=transfer_creation_request['options']['min_interest_rate'],
                 deadline=transfer_creation_request['options'].get('optional_deadline'),
             )

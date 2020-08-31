@@ -4,7 +4,7 @@ from marshmallow import Schema, fields, validate, missing, pre_load, pre_dump, v
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64, TRANSFER_NOTE_MAX_BYTES
+from swpt_creditors.models import MAX_INT64, TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, ValidateTypeMixin, MutableResourceSchema,
     URI_DESCRIPTION,
@@ -24,23 +24,6 @@ the currency code in "normal" bank transfers.'
 
 def _make_invalid_account_uri(debtor_id: int) -> str:
     return f'swpt:{i64_to_u64(debtor_id)}/!'
-
-
-def _parse_transfer_note(transfer_note):
-    # TODO: Move this function to `swpt_lib.utils`.
-
-    if transfer_note == '':
-        return {}
-
-    try:
-        note = json.loads(transfer_note)
-    except json.JSONDecodeError:
-        note = None
-
-    if not isinstance(note, dict):
-        note = {'type': 'TextMessage', 'content': transfer_note}
-
-    return note
 
 
 class TransferErrorSchema(Schema):
@@ -153,14 +136,23 @@ class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
                     "verify whether the recipient's account exists and accepts incoming transfers.",
         example=1000,
     )
+    transfer_note_format = fields.String(
+        required=True,
+        validate=validate.Regexp(TRANSFER_NOTE_FORMAT_REGEX),
+        data_key='noteFormat',
+        description='The format used for the `note` field. An empty string signifies '
+                    'unstructured text format.',
+    )
+    transfer_note = fields.String(
+        required=True,
+        validate=validate.Length(max=TRANSFER_NOTE_MAX_BYTES),
+        data_key='note',
+        description='A note from the sender. Can be any string that contains information which '
+                    'the sender wants the recipient to see. Can be an empty string.',
+    )
     options = fields.Nested(
         TransferOptionsSchema,
         description="Optional `TransferOptions`.",
-    )
-    note = fields.Dict(
-        required=True,
-        description='A note from the sender. Can be any JSON object that contains information '
-                    'which the sender wants the recipient to see. Can be an empty object.',
     )
 
     @pre_load
@@ -168,17 +160,12 @@ class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
         if 'options' not in data:
             data = data.copy()
             data['options'] = {}
-            return data
+        return data
 
-    @validates('note')
-    def validate_note(self, value):
-        try:
-            s = json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
-        except ValueError:
-            raise ValidationError('The message is not JSON compliant.')
-
-        if len(s.encode('utf8')) > TRANSFER_NOTE_MAX_BYTES:
-            raise ValidationError(f'The total length of the note exceeds {TRANSFER_NOTE_MAX_BYTES} bytes.')
+    @validates('transfer_note')
+    def validate_transfer_note(self, value):
+        if len(value.encode('utf8')) > TRANSFER_NOTE_MAX_BYTES:
+            raise ValidationError(f'The total byte-length of the note exceeds {TRANSFER_NOTE_MAX_BYTES} bytes.')
 
 
 class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
@@ -304,15 +291,18 @@ class CommittedTransferSchema(Schema):
         required=True,
         dump_only=True,
         data_key='noteFormat',
-        description='The format used for the `note` field.',
+        description='The format used for the `note` field. An empty string signifies '
+                    'unstructured text format.',
+        example='',
     )
-    note = fields.Dict(
+    transfer_note = fields.String(
         required=True,
         dump_only=True,
         data_key='note',
-        description='A note from the committer of the transfer. Can be any JSON object that '
+        description='A note from the committer of the transfer. Can be any string that '
                     'contains information which whoever committed the transfer wants the '
-                    'recipient (and the sender) to see. Can be an empty object.',
+                    'recipient (and the sender) to see. Can be an empty string.',
+        example='',
     )
     committed_at_ts = fields.DateTime(
         required=True,
@@ -345,7 +335,5 @@ class CommittedTransferSchema(Schema):
         except ValueError:
             recipient_uri = _make_invalid_account_uri(obj.debtor_id)
         obj.recipient = {'uri': recipient_uri}
-
-        obj.note = _parse_transfer_note(obj.transfer_note)
 
         return obj
