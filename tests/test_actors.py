@@ -38,6 +38,7 @@ def test_on_account_transfer_signal(db_session):
         sender='666',
         recipient=str(C_ID),
         acquired_amount=1000,
+        transfer_note_format='json',
         transfer_note='{"message": "test"}',
         committed_at='2019-10-01T00:00:00Z',
         principal=1000,

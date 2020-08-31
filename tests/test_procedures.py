@@ -63,6 +63,7 @@ def test_process_pending_account_commits(db_session, setup_account, current_ts):
         coordinator_type='direct',
         committed_at_ts=current_ts,
         acquired_amount=1000,
+        transfer_note_format='',
         transfer_note='',
         creation_date=ny2019,
         principal=1000,
@@ -503,6 +504,7 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
         'sender': '666',
         'recipient': str(C_ID),
         'acquired_amount': 100,
+        'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
         'committed_at_ts': current_ts,
         'principal': 1000,
@@ -525,6 +527,7 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
     assert ct.sender_id == '666'
     assert ct.recipient_id == str(C_ID)
     assert ct.acquired_amount == 100
+    assert ct.transfer_note_format == params['transfer_note_format']
     assert ct.transfer_note == params['transfer_note']
     assert ct.committed_at_ts == current_ts
     assert ct.principal == 1000
@@ -570,6 +573,7 @@ def test_process_pending_ledger_update(setup_account, max_count, current_ts):
         'sender': '666',
         'recipient': str(C_ID),
         'acquired_amount': 1000,
+        'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
         'committed_at_ts': current_ts,
         'principal': 1100,

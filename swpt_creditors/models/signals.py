@@ -71,6 +71,7 @@ class FinalizeTransferSignal(Signal):
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
         committed_amount = fields.Integer()
+        transfer_note_format = fields.String()
         transfer_note = fields.String()
         finalization_flags = fields.Constant(0)
         inserted_at_ts = fields.DateTime(data_key='ts')
@@ -82,6 +83,7 @@ class FinalizeTransferSignal(Signal):
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
     __table_args__ = (
         db.CheckConstraint(committed_amount >= 0),

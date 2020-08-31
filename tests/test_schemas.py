@@ -1143,6 +1143,7 @@ def test_serialize_committed_transfer(app):
         transfer_number=666,
         committed_at_ts=datetime(2020, 1, 1),
         acquired_amount=1000,
+        transfer_note_format='json',
         transfer_note='{"test": "test", "list": [1, 2, 3]}',
         principal=1500,
         sender_id='1',
@@ -1157,6 +1158,7 @@ def test_serialize_committed_transfer(app):
         'sender': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1'},
         'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1111'},
         'acquiredAmount': 1000,
+        'noteFormat': 'json',
         'note': {"test": "test", "list": [1, 2, 3]},
     }
 

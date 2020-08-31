@@ -1,3 +1,4 @@
+import re
 from uuid import UUID
 from math import floor
 from datetime import datetime, timezone, date, timedelta
@@ -17,6 +18,8 @@ from . import errors
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
+RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
+
 
 @atomic
 def initiate_transfer(
@@ -25,6 +28,7 @@ def initiate_transfer(
         debtor_id: int,
         amount: int,
         recipient: str,
+        transfer_note_format: str,
         note: dict,
         *,
         deadline: datetime = None,
@@ -47,6 +51,7 @@ def initiate_transfer(
         'debtor_id': debtor_id,
         'amount': amount,
         'recipient': recipient,
+        'transfer_note_format': transfer_note_format,
         'note': note,
         'deadline': deadline,
         'min_interest_rate': min_interest_rate,
@@ -59,6 +64,7 @@ def initiate_transfer(
         debtor_id=debtor_id,
         recipient=recipient,
         amount=amount,
+        transfer_note_format=transfer_note_format,
         transfer_note='note',  # TODO: this is wrong!
     )
     direct_transfer = DirectTransfer(**transfer_data, latest_update_ts=current_ts)
@@ -100,6 +106,7 @@ def process_account_transfer_signal(
         sender: str,
         recipient: str,
         acquired_amount: int,
+        transfer_note_format: str,
         transfer_note: str,
         committed_at_ts: datetime,
         principal: int,
@@ -111,6 +118,7 @@ def process_account_transfer_signal(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_number <= MAX_INT64
     assert acquired_amount != 0
+    assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
     assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
     assert MIN_INT64 <= acquired_amount <= MAX_INT64
@@ -154,6 +162,7 @@ def process_account_transfer_signal(
             sender_id=sender,
             recipient_id=recipient,
             acquired_amount=acquired_amount,
+            transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             committed_at_ts=committed_at_ts,
             principal=principal,
@@ -245,6 +254,7 @@ def process_prepared_direct_transfer_signal(
                 coordinator_id=coordinator_id,
                 coordinator_request_id=coordinator_request_id,
                 committed_amount=rt.amount,
+                transfer_note_format=rt.transfer_note_format,
                 transfer_note=rt.transfer_note,
             ))
             return
@@ -257,6 +267,7 @@ def process_prepared_direct_transfer_signal(
         coordinator_id=coordinator_id,
         coordinator_request_id=coordinator_request_id,
         committed_amount=0,
+        transfer_note_format='',
         transfer_note='',
     ))
 

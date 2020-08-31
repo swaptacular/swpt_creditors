@@ -44,6 +44,7 @@ def test_process_ledger_entries(app, db_session, current_ts):
         'sender': '666',
         'recipient': str(C_ID),
         'acquired_amount': 200,
+        'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
         'committed_at_ts': current_ts,
         'principal': 200,

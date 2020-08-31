@@ -300,9 +300,16 @@ class CommittedTransferSchema(Schema):
                     "outgoing transfer), but can not be zero.",
         example=1000,
     )
+    transfer_note_format = fields.String(
+        required=True,
+        dump_only=True,
+        data_key='noteFormat',
+        description='The format used for the `note` field.',
+    )
     note = fields.Dict(
         required=True,
         dump_only=True,
+        data_key='note',
         description='A note from the committer of the transfer. Can be any JSON object that '
                     'contains information which whoever committed the transfer wants the '
                     'recipient (and the sender) to see. Can be an empty object.',

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7e27f7256f8d
+Revision ID: 0503260296b5
 Revises: 8d8c816257ce
-Create Date: 2020-08-31 16:36:53.574569
+Create Date: 2020-08-31 18:30:15.104884
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7e27f7256f8d'
+revision = '0503260296b5'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -58,6 +58,7 @@ def upgrade():
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
     sa.CheckConstraint('committed_amount >= 0'),
     sa.PrimaryKeyConstraint('creditor_id', 'signal_id')
@@ -80,6 +81,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
     sa.Column('started_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('coordinator_request_id_seq')"), nullable=False),
@@ -104,6 +106,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
+    sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('note', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
@@ -249,6 +252,7 @@ def upgrade():
     sa.Column('sender_id', sa.String(), nullable=False),
     sa.Column('recipient_id', sa.String(), nullable=False),
     sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
