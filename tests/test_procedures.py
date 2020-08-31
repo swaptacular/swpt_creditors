@@ -284,7 +284,7 @@ def test_process_account_update_signal(db_session, setup_account):
     assert list(p.get_creditors_with_pending_log_entries()) == [C_ID]
     p.process_pending_log_entries(1235)
     p.process_pending_log_entries(C_ID)
-    assert len(models.LogEntry.query.filter_by(object_type='AccountInfo').all()) == 4
+    assert len(models.LogEntry.query.filter_by(object_type='AccountInfo').all()) == 3
     assert len(models.LogEntry.query.filter_by(object_type='AccountLedger').all()) == 1
 
 
@@ -517,7 +517,6 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
     assert ct.creditor_id == C_ID
     assert ct.creation_date == params['creation_date']
     assert ct.transfer_number == 1
-    assert ct.coordinator_type == 'direct'
     assert ct.sender_id == '666'
     assert ct.recipient_id == str(C_ID)
     assert ct.acquired_amount == 100

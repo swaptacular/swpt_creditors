@@ -78,7 +78,7 @@ class TransferOptionsSchema(Schema):
         missing=-100.0,
         validate=validate.Range(min=-100.0),
         data_key='minInterestRate',
-        description='The minimal acceptable interest rate. If the interest rate on the '
+        description='The minimal approved interest rate. If the interest rate on the '
                     'account becomes lower than this value, the transfer will not be '
                     'successful. This can be useful when the transferred amount may need '
                     'to be decreased if the interest rate on the account has decreased.',
@@ -276,14 +276,6 @@ class CommittedTransferSchema(Schema):
         description="The URI of the affected `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    coordinator = fields.String(
-        dump_only=True,
-        description="When the transfer was not initiated by the owner of the sender's "
-                    "account directly, this field indicates the subsystem which initiated "
-                    "the transfer. For interest payments the value of this field will be "
-                    "`\"interest\"`.",
-        example='interest',
-    )
     sender = fields.Nested(
         AccountIdentitySchema,
         required=True,
@@ -346,10 +338,6 @@ class CommittedTransferSchema(Schema):
         except ValueError:
             recipient_uri = _make_invalid_account_uri(obj.debtor_id)
         obj.recipient = {'uri': recipient_uri}
-
-        coordinator = obj.coordinator_type
-        if coordinator != 'direct':
-            obj.coordinator = coordinator
 
         obj.note = _parse_transfer_note(obj.transfer_note)
 

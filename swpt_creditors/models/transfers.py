@@ -14,7 +14,6 @@ class CommittedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     transfer_number = db.Column(db.BigInteger, nullable=False)
-    coordinator_type = db.Column(db.String, nullable=False)
     sender_id = db.Column(db.String, nullable=False)
     recipient_id = db.Column(db.String, nullable=False)
     acquired_amount = db.Column(db.BigInteger, nullable=False)

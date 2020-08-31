@@ -1133,7 +1133,6 @@ def test_serialize_committed_transfer(app):
         debtor_id=D_ID,
         creation_date=date(1970, 1, 5),
         transfer_number=666,
-        coordinator_type='direct',
         committed_at_ts=datetime(2020, 1, 1),
         acquired_amount=1000,
         transfer_note='{"test": "test", "list": [1, 2, 3]}',
@@ -1154,10 +1153,8 @@ def test_serialize_committed_transfer(app):
     }
 
     ct.transfer_note = ''
-    ct.coordinator_type = 'interest'
     data = cts.dump(ct)
     assert data['note'] == {}
-    assert data['coordinator'] == 'interest'
 
     ct.transfer_note = 'test'
     assert cts.dump(ct)['note'] == {'type': 'TextMessage', 'content': 'test'}
