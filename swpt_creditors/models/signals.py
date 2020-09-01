@@ -39,8 +39,8 @@ class PrepareTransferSignal(Signal):
         coordinator_type = fields.Constant('direct')
         coordinator_id = fields.Integer(attribute='creditor_id', dump_only=True)
         coordinator_request_id = fields.Integer()
-        min_locked_amount = fields.Integer(attribute='amount', dump_only=True)
-        max_locked_amount = fields.Integer(attribute='amount', dump_only=True)
+        min_locked_amount = fields.Constant(0)
+        max_locked_amount = fields.Constant(0)
         recipient = fields.String()
         min_account_balance = fields.Constant(0)
         min_interest_rate = fields.Float()
@@ -50,13 +50,9 @@ class PrepareTransferSignal(Signal):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, nullable=False)
-    amount = db.Column(db.BigInteger, nullable=False)
     recipient = db.Column(db.String, nullable=False)
     min_interest_rate = db.Column(db.Float, nullable=False)
     max_commit_delay = db.Column(db.Integer, nullable=False)
-    __table_args__ = (
-        db.CheckConstraint(amount > 0),
-    )
 
 
 class FinalizeTransferSignal(Signal):

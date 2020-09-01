@@ -77,7 +77,6 @@ def initiate_transfer(
         creditor_id=creditor_id,
         coordinator_request_id=running_transfer.coordinator_request_id,
         debtor_id=debtor_id,
-        amount=amount,
         recipient=recipient,
         min_interest_rate=min_interest_rate,
         max_commit_delay=_calc_max_commit_delay(current_ts, deadline),
