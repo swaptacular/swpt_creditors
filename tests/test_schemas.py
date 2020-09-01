@@ -497,7 +497,7 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({
         'type': 'AccountKnowledge',
         'latestUpdateId': 1,
-        'interest_rate_changed_at_ts': '1970-01-01T00:00:00',
+        'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
         'unknownField': {'innerField': n * 'Ш'},
     })
     assert data == {
