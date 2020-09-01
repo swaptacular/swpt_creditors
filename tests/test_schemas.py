@@ -1284,6 +1284,23 @@ def test_deserialize_debtor_info(app):
 def test_deserialize_transfer_creation_request(app):
     dis = schemas.TransferCreationRequestSchema()
 
+    assert dis.load({
+        'transferUuid': '123e4567-e89b-12d3-a456-426655440000',
+        'recipient': {'uri': 'swpt:1/2'},
+        'amount': 1000,
+    }) == {
+        'type': 'TransferCreationRequest',
+        'transfer_uuid': UUID('123e4567-e89b-12d3-a456-426655440000'),
+        'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
+        'amount': 1000,
+        'transfer_note_format': '',
+        'transfer_note': '',
+        'options': {
+            'type': 'TransferOptions',
+            'min_interest_rate': -100.0,
+        },
+    }
+
     base_data = {
         'transferUuid': '123e4567-e89b-12d3-a456-426655440000',
         'recipient': {'uri': 'swpt:1/2'},
@@ -1302,12 +1319,16 @@ def test_deserialize_transfer_creation_request(app):
         'transfer_note': models.TRANSFER_NOTE_MAX_BYTES * 'x',
         'options': {
             'type': 'TransferOptions',
-            'min_interest_rate': -100,
+            'min_interest_rate': -100.0,
         },
     }
 
-    data = dis.load({**base_data, 'options': {'deadline': '1970-01-01T00:00:00Z'}})
+    data = dis.load({**base_data, 'options': {
+        'deadline': '1970-01-01T00:00:00Z',
+        'minInterestRate': -5,
+    }})
     assert data['options']['optional_deadline'] == models.TS0
+    assert data['options']['min_interest_rate'] == -5.0
 
     with pytest.raises(ValidationError):
         dis.load({'type': 'WrongType', **base_data})
