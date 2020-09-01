@@ -40,7 +40,7 @@ class TransferErrorSchema(Schema):
                     '* `"TERMINATED"` signifies that the transfer has been rejected '
                     '  due to expired deadline, unapproved interest rate change, or '
                     '  some other legible condition.\n'
-                    '* `"TRANSFER_NOTE_TOO_LONG"` signifies that the transfer has been '
+                    '* `"TRANSFER_NOTE_IS_TOO_LONG"` signifies that the transfer has been '
                     '  rejected because the transfer note\'s byte-length is too big.\n'
                     '* `"INSUFFICIENT_AVAILABLE_AMOUNT"` signifies that the transfer '
                     '  has been rejected due to insufficient amount available on the '
