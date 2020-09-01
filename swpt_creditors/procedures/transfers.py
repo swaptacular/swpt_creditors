@@ -159,6 +159,7 @@ def process_account_transfer_signal(
             creditor_id=creditor_id,
             creation_date=creation_date,
             transfer_number=transfer_number,
+            coordinator_type=coordinator_type,
             sender_id=sender,
             recipient_id=recipient,
             acquired_amount=acquired_amount,

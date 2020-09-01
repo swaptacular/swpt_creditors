@@ -524,6 +524,7 @@ def test_process_account_transfer_signal(db_session, setup_account, current_ts):
     assert ct.creditor_id == C_ID
     assert ct.creation_date == params['creation_date']
     assert ct.transfer_number == 1
+    assert ct.coordinator_type == 'direct'
     assert ct.sender_id == '666'
     assert ct.recipient_id == str(C_ID)
     assert ct.acquired_amount == 100

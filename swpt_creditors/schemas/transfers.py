@@ -273,6 +273,14 @@ class CommittedTransferSchema(Schema):
         description="The URI of the affected `Account`.",
         example={'uri': '/creditors/2/accounts/1/'},
     )
+    rationale = fields.String(
+        dump_only=True,
+        description='This field will be present only for system transfers. Its value '
+                    'indicates the subsystem which originated the transfer. For interest '
+                    'payments the value will be `"interest"`. For transfers that create '
+                    'new money into existence, the value will be `"issuing"`.',
+        example='interest',
+    )
     sender = fields.Nested(
         AccountIdentitySchema,
         required=True,
@@ -344,5 +352,9 @@ class CommittedTransferSchema(Schema):
         except ValueError:
             recipient_uri = _make_invalid_account_uri(obj.debtor_id)
         obj.recipient = {'uri': recipient_uri}
+
+        coordinator_type = obj.coordinator_type
+        if coordinator_type != 'direct':
+            obj.rationale = coordinator_type
 
         return obj
