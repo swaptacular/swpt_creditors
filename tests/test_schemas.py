@@ -575,8 +575,8 @@ def test_deserialize_account_knowledge(app):
     with pytest.raises(ValidationError, match='Not a valid number.'):
         aks.load({'latestUpdateId': 1, 'interestRate': 'not a number'})
 
-    with pytest.raises(ValidationError, match='Not a valid integer.'):
-        aks.load({'latestUpdateId': 1, 'noteMaxBytes': 'not an integer'})
+    with pytest.raises(ValidationError, match='Must be greater than or equal to 0 and less than or equal to 500.'):
+        aks.load({'latestUpdateId': 1, 'noteMaxBytes': -1})
 
     with pytest.raises(ValidationError, match=r'The total length of the stored data exceeds \d'):
         aks.load({'latestUpdateId': 1, 'tooLong': 3 * n * 'x'})

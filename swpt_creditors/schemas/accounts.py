@@ -8,7 +8,7 @@ from marshmallow import (
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MIN_INT64, MAX_INT64
+from swpt_creditors.models import MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema,
     MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
@@ -455,6 +455,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
                     'happened, which is known to the creditor.',
     )
     noteMaxBytes = fields.Integer(
+        validate=validate.Range(min=0, max=TRANSFER_NOTE_MAX_BYTES),
         description='Optional maximal number of bytes that transfer notes are allowed to '
                     'contain when UTF-8 encoded, which is known to the creditor.',
         example=500,
