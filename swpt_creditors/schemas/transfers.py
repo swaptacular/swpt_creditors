@@ -35,16 +35,20 @@ class TransferErrorSchema(Schema):
         dump_only=True,
         description='The error code.'
                     '\n\n'
+                    '* `"SENDER_DOES_NOT_EXIST"` signifies that the sender\'s account '
+                    '  does not exist.\n'
                     '* `"RECIPIENT_IS_UNREACHABLE"` signifies that the recipient\'s'
                     '  account does not exist, or does not accept incoming transfers.\n'
-                    '* `"TERMINATED"` signifies that the transfer has been rejected '
+                    '* `"TERMINATED"` signifies that the transfer has been terminated '
                     '  due to expired deadline, unapproved interest rate change, or '
-                    '  some other legible condition.\n'
+                    '  some other *legible condition*. If the client verifies the transer '
+                    '  options and retries the transfer, chances are that it will be '
+                    '  committed successfully.\n'
                     '* `"TRANSFER_NOTE_IS_TOO_LONG"` signifies that the transfer has been '
-                    '  rejected because the transfer note\'s byte-length is too big.\n'
+                    '  rejected because the byte-length of the transfer note is too big.\n'
                     '* `"INSUFFICIENT_AVAILABLE_AMOUNT"` signifies that the transfer '
                     '  has been rejected due to insufficient amount available on the '
-                    '  account.\n',
+                    '  sender\'s account.\n',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
     totalLockedAmount = fields.Integer(
