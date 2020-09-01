@@ -33,15 +33,27 @@ class TransferErrorSchema(Schema):
     errorCode = fields.String(
         required=True,
         dump_only=True,
-        description='The error code.',
+        description='The error code.'
+                    '\n\n'
+                    '* `"RECIPIENT_IS_UNREACHABLE"` signifies that the recipient\'s'
+                    '  account does not exist, or does not accept incoming transfers.\n'
+                    '* `"TERMINATED"` signifies that the transfer has been rejected '
+                    '  due to expired deadline, unapproved interest rate change, or '
+                    '  some other legible condition.\n'
+                    '* `"TRANSFER_NOTE_TOO_LONG"` signifies that the transfer has been '
+                    '  rejected because the transfer note\'s byte-length is too big.\n'
+                    '* `"INSUFFICIENT_AVAILABLE_AMOUNT"` signifies that the transfer '
+                    '  has been rejected due to insufficient amount available on the '
+                    '  account.\n',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
     totalLockedAmount = fields.Integer(
         dump_only=True,
         format="int64",
-        description='The total amount secured (locked) for transfers on the account. When this '
-                    'field is not present, this means that the locked amount is irrelevant '
-                    'for this type of error (`errorCode`).',
+        description='This field will be present only when the transfer has been rejected '
+                    'due to insufficient available amount. In this case, it will contain '
+                    'the total sum secured (locked) for transfers on the account, '
+                    '*after* this transfer has been finalized.',
         example=0,
     )
 
