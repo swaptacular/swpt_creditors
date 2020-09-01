@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Tuple
 from datetime import date, timedelta
-from flask import url_for
+from flask import url_for, current_app
 from swpt_creditors.models import MAX_INT64, DATE0
 
 
@@ -75,4 +75,7 @@ class schema_types:
     committed_transfer = 'CommittedTransfer'
 
 
-context = {'paths': path_builder}
+context = {
+    'paths': path_builder,
+    'get_finalization_avg_seconds': lambda: current_app.config['APP_TRANSFERS_FINALIZATION_AVG_SECONDS'],
+}

@@ -1,6 +1,7 @@
 import pytest
 import math
 from uuid import UUID
+import iso8601
 from marshmallow import ValidationError
 from datetime import date, datetime, timezone
 from swpt_lib.utils import i64_to_u64
@@ -496,7 +497,7 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({
         'type': 'AccountKnowledge',
         'latestUpdateId': 1,
-        'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
+        'interest_rate_changed_at_ts': '1970-01-01T00:00:00',
         'unknownField': {'innerField': n * 'Ш'},
     })
     assert data == {
@@ -1331,3 +1332,167 @@ def test_deserialize_transfer_creation_request(app):
 
     with pytest.raises(ValidationError, match='The total byte-length of the note exceeds'):
         dis.load({**base_data, 'note': models.TRANSFER_NOTE_MAX_BYTES * 'Щ'})
+
+
+def test_serialize_transfer_error(app):
+    tes = schemas.TransferErrorSchema()
+
+    te = {
+        'type': 'TransferError',
+        'error_code': 'TEST',
+        'total_locked_amount': 100,
+    }
+    assert tes.dump(te) == {
+        'type': 'TransferError',
+        'errorCode': 'TEST',
+        'totalLockedAmount': 100,
+    }
+
+    del te['type']
+    del te['total_locked_amount']
+    assert tes.dump(te) == {
+        'type': 'TransferError',
+        'errorCode': 'TEST',
+    }
+
+
+def test_serialize_transfer_result(app):
+    trs = schemas.TransferResultSchema()
+
+    tr = {
+        'type': 'TransferResult',
+        'finalized_at_ts': datetime(2020, 1, 1),
+        'committed_amount': 1000,
+        'error': {
+            'type': 'TransferError',
+            'error_code': 'INSUFFICIENT_AVAILABLE_AMOUNT',
+            'total_locked_amount': 100,
+        }
+    }
+    assert trs.dump(tr) == {
+        'type': 'TransferResult',
+        'finalizedAt': '2020-01-01T00:00:00',
+        'committedAmount': 1000,
+        'error': {
+            'type': 'TransferError',
+            'errorCode': 'INSUFFICIENT_AVAILABLE_AMOUNT',
+            'totalLockedAmount': 100,
+        }
+    }
+
+    del tr['type']
+    del tr['error']
+    assert trs.dump(tr) == {
+        'type': 'TransferResult',
+        'finalizedAt': '2020-01-01T00:00:00',
+        'committedAmount': 1000,
+    }
+
+
+def test_serialize_transfer(app):
+    ts = schemas.TransferSchema(context=context)
+
+    transfer_data = {
+        'creditor_id': 2,
+        'transfer_uuid': '123e4567-e89b-12d3-a456-426655440000',
+        'debtor_id': -1,
+        'amount': 1000,
+        'recipient_uri': 'swpt:18446744073709551615/1111',
+        'transfer_note_format': 'json',
+        'transfer_note': '{"note": "test"}',
+        'deadline': datetime(2020, 1, 1),
+        'min_interest_rate': -50.0,
+        'latest_update_id': 2,
+        'latest_update_ts': datetime(2020, 1, 2),
+        'initiated_at_ts': models.TS0,
+        'finalized_at_ts': datetime(2020, 1, 4),
+        'error_code': 'TEST',
+        'total_locked_amount': 5,
+    }
+    dt = models.DirectTransfer(**transfer_data)
+
+    data = ts.dump(dt)
+    assert data == {
+        "type": "Transfer",
+        "uri": "/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000",
+        "transferUuid": "123e4567-e89b-12d3-a456-426655440000",
+        "transferList": {"uri": "/creditors/2/transfer-list"},
+        "initiatedAt": "1970-01-01T00:00:00+00:00",
+        "recipient": {
+            "type": "AccountIdentity",
+            "uri": "swpt:18446744073709551615/1111",
+        },
+        "amount": 1000,
+        "noteFormat": "json",
+        "note": '{"note": "test"}',
+        "options": {
+            "type": "TransferOptions",
+            "minInterestRate": -50.0,
+            "deadline": "2020-01-01T00:00:00",
+        },
+        "result": {
+            "type": "TransferResult",
+            "finalizedAt": "2020-01-04T00:00:00",
+            "committedAmount": 0,
+            "error": {
+                "type": "TransferError",
+                "errorCode": 'TEST',
+                "totalLockedAmount": 5,
+            },
+        },
+        "latestUpdateAt": "2020-01-02T00:00:00",
+        "latestUpdateId": 2,
+    }
+
+    dt.error_code = None
+    dt.deadline = None
+    data = ts.dump(dt)
+    assert data == {
+        "type": "Transfer",
+        "uri": "/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000",
+        "transferUuid": "123e4567-e89b-12d3-a456-426655440000",
+        "transferList": {"uri": "/creditors/2/transfer-list"},
+        "initiatedAt": "1970-01-01T00:00:00+00:00",
+        "recipient": {
+            "type": "AccountIdentity",
+            "uri": "swpt:18446744073709551615/1111",
+        },
+        "amount": 1000,
+        "noteFormat": "json",
+        "note": '{"note": "test"}',
+        "options": {
+            "type": "TransferOptions",
+            "minInterestRate": -50.0,
+        },
+        "result": {
+            "type": "TransferResult",
+            "finalizedAt": "2020-01-04T00:00:00",
+            "committedAmount": 1000,
+        },
+        "latestUpdateAt": "2020-01-02T00:00:00",
+        "latestUpdateId": 2,
+    }
+
+    dt.finalized_at_ts = None
+    data = ts.dump(dt)
+    assert iso8601.parse_date(data.pop('checkupAt'))
+    assert data == {
+        "type": "Transfer",
+        "uri": "/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000",
+        "transferUuid": "123e4567-e89b-12d3-a456-426655440000",
+        "transferList": {"uri": "/creditors/2/transfer-list"},
+        "initiatedAt": "1970-01-01T00:00:00+00:00",
+        "recipient": {
+            "type": "AccountIdentity",
+            "uri": "swpt:18446744073709551615/1111",
+        },
+        "amount": 1000,
+        "noteFormat": "json",
+        "note": '{"note": "test"}',
+        "options": {
+            "type": "TransferOptions",
+            "minInterestRate": -50.0,
+        },
+        "latestUpdateAt": "2020-01-02T00:00:00",
+        "latestUpdateId": 2,
+    }

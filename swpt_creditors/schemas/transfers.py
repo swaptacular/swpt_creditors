@@ -1,5 +1,8 @@
+from datetime import datetime, timezone, timedelta
 from copy import copy
-from marshmallow import Schema, fields, validate, missing, pre_load, pre_dump, validates, ValidationError
+from marshmallow import (
+    Schema, fields, validate, missing, pre_load, post_dump, pre_dump, validates, ValidationError,
+)
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
@@ -30,9 +33,10 @@ class TransferErrorSchema(Schema):
         description='The type of this object.',
         example='TransferError',
     )
-    errorCode = fields.String(
+    error_code = fields.String(
         required=True,
         dump_only=True,
+        data_key='errorCode',
         description='The error code.'
                     '\n\n'
                     '* `"SENDER_DOES_NOT_EXIST"` signifies that the sender\'s account '
@@ -51,15 +55,21 @@ class TransferErrorSchema(Schema):
                     '  are that it will be committed successfully.\n',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
-    totalLockedAmount = fields.Integer(
+    total_locked_amount = fields.Integer(
         dump_only=True,
         format="int64",
+        data_key='totalLockedAmount',
         description='This field will be present only when the transfer has been rejected '
                     'due to insufficient available amount. In this case, it will contain '
                     'the total sum secured (locked) for transfers on the account, '
                     '*after* this transfer has been finalized.',
         example=0,
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'errorCode' in obj
+        return obj
 
 
 class TransferOptionsSchema(Schema):
@@ -103,10 +113,11 @@ class TransferResultSchema(Schema):
         data_key='finalizedAt',
         description='The moment at which the transfer was finalized.',
     )
-    committedAmount = fields.Integer(
+    committed_amount = fields.Integer(
         required=True,
         dump_only=True,
         format='int64',
+        data_key='committedAmount',
         description='The transferred amount. If the transfer has been successful, the value will '
                     'be equal to the requested transfer amount (always a positive number). If '
                     'the transfer has been unsuccessful, the value will be zero.',
@@ -118,6 +129,12 @@ class TransferResultSchema(Schema):
         description='An error that has occurred during the execution of the transfer. This field '
                     'will be present if, and only if, the transfer has been unsuccessful.',
     )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'finalizedAt' in obj
+        assert 'committedAmount' in obj
+        return obj
 
 
 class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
@@ -181,10 +198,9 @@ class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
 
 
 class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
-    uri = fields.Method(
-        'get_uri',
+    uri = fields.String(
         required=True,
-        type='string',
+        dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
         example='/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000',
@@ -196,10 +212,11 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description='The type of this object.',
         example='Transfer',
     )
-    transferList = fields.Nested(
+    transfer_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
+        data_key='transferList',
         description="The URI of creditor's `TransferList`.",
         example={'uri': '/creditors/2/transfer-list'},
     )
@@ -230,7 +247,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description='The moment at which the transfer was initiated.',
     )
     checkup_at_ts = fields.Method(
-        'get_checkup_at_ts',
+        'get_checkup_at_string',
         type='string',
         format='date-time',
         data_key='checkupAt',
@@ -251,11 +268,42 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
                     'finalized transfer can be either successful, or unsuccessful.',
     )
 
-    def get_uri(self, obj):
-        return self.context['path'].get_transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
+    @pre_dump
+    def process_direct_transfer_instance(self, obj, many):
+        assert isinstance(obj, models.DirectTransfer)
+        paths = self.context['paths']
+        obj = copy(obj)
+        obj.uri = paths.transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
+        obj.transfer_list = {'uri': paths.transfer_list(creditorId=obj.creditor_id)}
+        obj.recipient = {'uri': obj.recipient_uri}
+        obj.options = {'min_interest_rate': obj.min_interest_rate}
 
-    def get_checkup_at_ts(self, obj):
-        return missing
+        if obj.deadline is not None:
+            obj.options['optional_deadline'] = obj.deadline
+
+        if obj.is_finalized:
+            result = {'finalized_at_ts': obj.finalized_at_ts}
+            if obj.error_code is None:
+                result['committed_amount'] = obj.amount
+            else:
+                result['committed_amount'] = 0
+                result['error'] = {'error_code': obj.error_code}
+                if obj.total_locked_amount is not None:
+                    result['error']['total_locked_amount'] = obj.total_locked_amount
+            obj.result = result
+
+        return obj
+
+    def get_checkup_at_string(self, obj):
+        if obj.is_finalized:
+            return missing
+
+        current_ts = datetime.now(tz=timezone.utc)
+        current_delay = current_ts - obj.initiated_at_ts
+        get_finalization_avg_seconds = self.context['get_finalization_avg_seconds']
+        average_delay = timedelta(seconds=get_finalization_avg_seconds())
+        checkup_at_ts = current_ts + max(current_delay, average_delay)
+        return checkup_at_ts.isoformat()
 
 
 class TransferCancelationRequestSchema(Schema):

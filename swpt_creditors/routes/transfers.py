@@ -56,8 +56,9 @@ class TransfersEndpoint(MethodView):
 
         """
 
+        recipient_uri = transfer_creation_request['recipient']['uri']
         try:
-            debtorId, recipient = parse_account_uri(transfer_creation_request['recipient']['uri'])
+            debtorId, recipient_id = parse_account_uri(recipient_uri)
         except ValueError:
             abort(422, errors={'json': {'recipient': {'uri': ['The URI can not be recognized.']}}})
 
@@ -70,7 +71,8 @@ class TransfersEndpoint(MethodView):
                 transfer_uuid=uuid,
                 debtor_id=debtorId,
                 amount=transfer_creation_request['amount'],
-                recipient=recipient,
+                recipient_uri=recipient_uri,
+                recipient_id=recipient_id,
                 transfer_note_format=transfer_creation_request['transfer_note_format'],
                 transfer_note=transfer_creation_request['transfer_note'],
                 min_interest_rate=transfer_creation_request['options']['min_interest_rate'],

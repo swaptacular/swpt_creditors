@@ -72,7 +72,7 @@ class DirectTransfer(db.Model):
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
     debtor_id = db.Column(db.BigInteger, nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
-    recipient = db.Column(db.String, nullable=False)
+    recipient_uri = db.Column(db.String, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
     initiated_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
@@ -100,10 +100,6 @@ class DirectTransfer(db.Model):
     def is_finalized(self):
         return bool(self.finalized_at_ts)
 
-    @property
-    def is_successful(self):
-        return bool(self.finalized_at_ts and self.error_code is None)
-
 
 class RunningTransfer(db.Model):
     _cr_seq = db.Sequence('coordinator_request_id_seq', metadata=db.Model.metadata)
@@ -111,7 +107,7 @@ class RunningTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True), primary_key=True)
     debtor_id = db.Column(db.BigInteger, nullable=False)
-    recipient = db.Column(db.String, nullable=False)
+    recipient_id = db.Column(db.String, nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)

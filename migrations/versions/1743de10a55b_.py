@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d553a4967fac
+Revision ID: 1743de10a55b
 Revises: 8d8c816257ce
-Create Date: 2020-09-01 12:55:02.702005
+Create Date: 2020-09-01 18:52:56.216619
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'd553a4967fac'
+revision = '1743de10a55b'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -77,7 +77,7 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('recipient', sa.String(), nullable=False),
+    sa.Column('recipient_id', sa.String(), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
@@ -103,7 +103,7 @@ def upgrade():
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
-    sa.Column('recipient', sa.String(), nullable=False),
+    sa.Column('recipient_uri', sa.String(), nullable=False),
     sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
     sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
