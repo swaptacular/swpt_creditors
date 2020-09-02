@@ -2,7 +2,7 @@ import re
 from uuid import UUID
 from math import floor
 from datetime import datetime, timezone, date, timedelta
-from typing import TypeVar, Callable, Optional
+from typing import TypeVar, Callable, Optional, List
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -104,6 +104,22 @@ def initiate_transfer(
     ))
 
     return direct_transfer
+
+
+@atomic
+def get_creditor_transfer_uuids(creditor_id: int, count: int = 1, prev: UUID = None) -> List[UUID]:
+    assert count >= 1
+    assert prev is None or isinstance(prev, UUID)
+
+    query = db.session.\
+        query(DirectTransfer.transfer_uuid).\
+        filter(DirectTransfer.creditor_id == creditor_id).\
+        order_by(DirectTransfer.transfer_uuid)
+
+    if prev is not None:
+        query = query.filter(DirectTransfer.transfer_uuid > prev)
+
+    return [t[0] for t in query.limit(count).all()]
 
 
 @atomic

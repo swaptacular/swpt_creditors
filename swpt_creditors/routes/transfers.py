@@ -1,10 +1,10 @@
-from flask import redirect, url_for
+from flask import redirect, url_for, request, current_app
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib.swpt_uris import parse_account_uri
 from swpt_creditors.schemas import (
     TransferCreationRequestSchema, TransferSchema, CommittedTransferSchema,
-    TransferCancelationRequestSchema, ObjectReferencesPageSchema, PaginationParametersSchema,
+    TransferCancelationRequestSchema, ObjectReferencesPageSchema, TransfersPaginationParamsSchema,
 )
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
 from swpt_creditors import specs
@@ -23,10 +23,10 @@ transfers_api = Blueprint(
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
 class TransfersEndpoint(MethodView):
-    @transfers_api.arguments(PaginationParametersSchema, location='query')
+    @transfers_api.arguments(TransfersPaginationParamsSchema, location='query')
     @transfers_api.response(ObjectReferencesPageSchema(context=context), example=specs.TRANSFER_LINKS_EXAMPLE)
     @transfers_api.doc(operationId='getTransfersPage')
-    def get(self, pagination_parameters, creditorId):
+    def get(self, params, creditorId):
         """Return a collection of transfers, initiated by a given creditor.
 
         The returned object will be a fragment (a page) of a paginated
@@ -37,11 +37,22 @@ class TransfersEndpoint(MethodView):
 
         """
 
-        try:
-            transfer_uuids = procedures.get_creditor_transfer_uuids(creditorId)
-        except procedures.DebtorDoesNotExistError:
-            abort(404)
-        return transfer_uuids
+        n = current_app.config['APP_TRANSFERS_PER_PAGE']
+        transfer_uuids = procedures.get_creditor_transfer_uuids(creditorId, count=n, prev=params.get('prev'))
+        items = [{'uri': f'{uuid}'} for uuid in transfer_uuids]
+
+        if len(transfer_uuids) < n:
+            # The last page does not have a 'next' link.
+            return {
+                'uri': request.full_path,
+                'items': items,
+            }
+
+        return {
+            'uri': request.full_path,
+            'items': items,
+            'next': f'?prev={transfer_uuids[-1]}',
+        }
 
     @transfers_api.arguments(TransferCreationRequestSchema)
     @transfers_api.response(TransferSchema(context=context), code=201, headers=specs.LOCATION_HEADER)

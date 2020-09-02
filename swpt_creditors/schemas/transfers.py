@@ -1,4 +1,3 @@
-from datetime import datetime, timezone, timedelta
 from copy import copy
 from marshmallow import (
     Schema, fields, validate, missing, pre_load, post_dump, pre_dump, validates, ValidationError,
@@ -418,3 +417,12 @@ class CommittedTransferSchema(Schema):
             obj.rationale = coordinator_type
 
         return obj
+
+
+class TransfersPaginationParamsSchema(Schema):
+    prev = fields.UUID(
+        load_only=True,
+        description='The returned fragment will begin with the first transfer that follows the '
+                    'transfer whose transfer UUID is equal to value of this parameter.',
+        example='123e4567-e89b-12d3-a456-426655440000',
+    )

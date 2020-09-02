@@ -212,7 +212,7 @@ def test_account_list_page(client, account):
     assert all([iso8601.parse_date(e['addedAt']) not in e for e in entries])
 
 
-def test_transfer_list_page(client, creditor):
+def test_transfer_list_page(client, account, creditor):
     r = client.get('/creditors/2222/transfer-list')
     assert r.status_code == 404
 
@@ -226,6 +226,51 @@ def test_transfer_list_page(client, creditor):
     assert data['itemsType'] == 'ObjectReference'
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
+
+    r = client.get('/creditors/2/transfers/?prev=%#^')
+    assert r.status_code == 422
+
+    # no transfers
+    assert _get_all_pages(client, '/creditors/2/transfers/', page_type='ObjectReferencesPage') == []
+
+    request_data = {
+        'type': 'TransferCreationRequest',
+        'recipient': {'uri': 'swpt:1/2222'},
+        'amount': 1000,
+    }
+    uuid_pattern = '123e4567-e89b-12d3-a456-426655440{}'
+
+    # one transfer (one page)
+    client.post('/creditors/2/transfers/', json={**request_data, "transferUuid": uuid_pattern.format('000')})
+    items = _get_all_pages(client, '/creditors/2/transfers/', page_type='ObjectReferencesPage')
+    assert [item['uri'] for item in items] == ['123e4567-e89b-12d3-a456-426655440000']
+    p.process_pending_log_entries(2)
+
+    # three transfers (two pages)
+    client.post('/creditors/2/transfers/', json={**request_data, "transferUuid": uuid_pattern.format('002')})
+    p.process_pending_log_entries(2)
+    client.post('/creditors/2/transfers/', json={**request_data, "transferUuid": uuid_pattern.format('001')})
+    p.process_pending_log_entries(2)
+    items = _get_all_pages(client, '/creditors/2/transfers/', page_type='ObjectReferencesPage')
+    assert [item['uri'] for item in items] == [
+        '123e4567-e89b-12d3-a456-426655440000',
+        '123e4567-e89b-12d3-a456-426655440001',
+        '123e4567-e89b-12d3-a456-426655440002',
+    ]
+
+    # check log entires
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 8
+    assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId')) for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', 1),
+        ('AccountList', '/creditors/2/account-list', 2),
+        ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', 1),
+        ('TransferList', '/creditors/2/transfer-list', 2),
+        ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440002', 1),
+        ('TransferList', '/creditors/2/transfer-list', 3),
+        ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440001', 1),
+        ('TransferList', '/creditors/2/transfer-list', 4),
+    ]
 
 
 def test_account_lookup(client, creditor):
