@@ -1446,7 +1446,7 @@ def test_serialize_transfer(app):
         'error_code': 'TEST',
         'total_locked_amount': 5,
     }
-    dt = models.DirectTransfer(**transfer_data)
+    dt = models.RunningTransfer(**transfer_data)
 
     data = ts.dump(dt)
     assert data == {

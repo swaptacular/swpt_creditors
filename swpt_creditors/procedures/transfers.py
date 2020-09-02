@@ -6,9 +6,10 @@ from typing import TypeVar, Callable, Optional, List
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
-    AccountData, PendingLogEntry, DirectTransfer, RunningTransfer, CommittedTransfer,
+    AccountData, PendingLogEntry, RunningTransfer, CommittedTransfer,
     PrepareTransferSignal, FinalizeTransferSignal, MAX_INT32, MIN_INT64, MAX_INT64,
-    TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX,
+    TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX, SC_CANCELED_BY_THE_SENDER,
+    SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_UNEXPECTED_ERROR
 )
 from .common import get_paths_and_types
 from .accounts import ensure_pending_ledger_update
@@ -43,7 +44,7 @@ def initiate_transfer(
         transfer_note: str,
         *,
         deadline: datetime = None,
-        min_interest_rate: float = -100.0) -> DirectTransfer:
+        min_interest_rate: float = -100.0) -> RunningTransfer:
 
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert isinstance(transfer_uuid, UUID)
@@ -62,6 +63,7 @@ def initiate_transfer(
         'debtor_id': debtor_id,
         'amount': amount,
         'recipient_uri': recipient_uri,
+        'recipient_id': recipient_id,
         'transfer_note_format': transfer_note_format,
         'transfer_note': transfer_note,
         'deadline': deadline,
@@ -69,24 +71,13 @@ def initiate_transfer(
     }
     _raise_error_if_transfer_exists(**transfer_data)
 
-    running_transfer = RunningTransfer(
-        creditor_id=creditor_id,
-        transfer_uuid=transfer_uuid,
-        debtor_id=debtor_id,
-        recipient_id=recipient_id,
-        amount=amount,
-        transfer_note_format=transfer_note_format,
-        transfer_note=transfer_note,
-    )
-    direct_transfer = DirectTransfer(**transfer_data, latest_update_ts=current_ts)
-
+    rt = RunningTransfer(**transfer_data, latest_update_ts=current_ts)
     with db.retry_on_integrity_error():
-        db.session.add(running_transfer)
-        db.session.add(direct_transfer)
+        db.session.add(rt)
 
     db.session.add(PrepareTransferSignal(
         creditor_id=creditor_id,
-        coordinator_request_id=running_transfer.coordinator_request_id,
+        coordinator_request_id=rt.coordinator_request_id,
         debtor_id=debtor_id,
         recipient=recipient_id,
         min_interest_rate=min_interest_rate,
@@ -103,82 +94,45 @@ def initiate_transfer(
         object_update_id=1,
     ))
 
-    return direct_transfer
+    return rt
 
 
 @atomic
-def get_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> Optional[DirectTransfer]:
-    return DirectTransfer.get_instance((creditor_id, transfer_uuid))
+def get_running_transfer(creditor_id: int, transfer_uuid: UUID) -> Optional[RunningTransfer]:
+    return RunningTransfer.get_instance((creditor_id, transfer_uuid))
 
 
 @atomic
-def cancel_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> DirectTransfer:
-    current_ts = datetime.now(tz=timezone.utc)
-    direct_transfer = DirectTransfer.lock_instance((creditor_id, transfer_uuid))
-
-    if not direct_transfer:
+def cancel_running_transfer(creditor_id: int, transfer_uuid: UUID) -> RunningTransfer:
+    rt = RunningTransfer.lock_instance((creditor_id, transfer_uuid))
+    if rt is None:
         raise errors.TransferDoesNotExist()
 
-    if direct_transfer.is_successful:
+    if rt.transfer_id is not None:
         raise errors.ForbiddenTransferCancellation()
 
-    if not direct_transfer.is_finalized:
-        rt = RunningTransfer.lock_instance((creditor_id, transfer_uuid))
-
-        # The `InitiatedTransfer` and `RunningTransfer` records are
-        # created together, and whenever the `RunningTransfer` gets
-        # removed, the `InitiatedTransfer` gets finalizad.
-        assert rt
-
-        if rt.is_finalized:
-            raise errors.ForbiddenTransferCancellation()
-
-        direct_transfer.finalized_at_ts = datetime.now(tz=timezone.utc)
-        direct_transfer.error_code = 'CANCELED'
-        direct_transfer.latest_update_id += 1
-        direct_transfer.latest_update_ts = current_ts
-        paths, types = get_paths_and_types()
-        db.session.add(PendingLogEntry(
-            creditor_id=creditor_id,
-            added_at_ts=current_ts,
-            object_type=types.transfer,
-            object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
-            object_update_id=direct_transfer.latest_update_id,
-        ))
-        db.session.delete(rt)
-
-    assert direct_transfer.is_finalized and not direct_transfer.is_successful
-    return direct_transfer
+    _finalize_running_transfer(rt, error_code=SC_CANCELED_BY_THE_SENDER)
+    return rt
 
 
 @atomic
-def delete_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
-    current_ts = datetime.now(tz=timezone.utc)
-    number_of_deleted_rows = DirectTransfer.query.\
+def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
+    number_of_deleted_rows = RunningTransfer.query.\
         filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid).\
         delete(synchronize_session=False)
 
-    assert number_of_deleted_rows in [0, 1]
     if number_of_deleted_rows == 0:
         raise errors.TransferDoesNotExist()
+    assert number_of_deleted_rows == 1
 
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=current_ts,
+        added_at_ts=datetime.now(tz=timezone.utc),
         object_type=types.transfer,
         object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
         is_deleted=True,
     ))
-
-    # NOTE: Deleting the `RunningTransfer` record here, may result
-    # in dismissing an already committed transfer. This is not a
-    # problem in this case, however, because the user has ordered
-    # the deletion of the `DirectTransfer` record, and therefore
-    # is not interested in its outcome.
-    RunningTransfer.query.\
-        filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid).\
-        delete(synchronize_session=False)
 
 
 @atomic
@@ -187,12 +141,12 @@ def get_creditor_transfer_uuids(creditor_id: int, count: int = 1, prev: UUID = N
     assert prev is None or isinstance(prev, UUID)
 
     query = db.session.\
-        query(DirectTransfer.transfer_uuid).\
-        filter(DirectTransfer.creditor_id == creditor_id).\
-        order_by(DirectTransfer.transfer_uuid)
+        query(RunningTransfer.transfer_uuid).\
+        filter(RunningTransfer.creditor_id == creditor_id).\
+        order_by(RunningTransfer.transfer_uuid)
 
     if prev is not None:
-        query = query.filter(DirectTransfer.transfer_uuid > prev)
+        query = query.filter(RunningTransfer.transfer_uuid > prev)
 
     return [t[0] for t in query.limit(count).all()]
 
@@ -303,21 +257,11 @@ def process_rejected_direct_transfer_signal(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
-    if rt and not rt.is_finalized:
+    if rt and not rt.finalized_at_ts:
         if rt.debtor_id == debtor_id and rt.creditor_id == creditor_id:
-            error_code = status_code
-            total_locked_amount = total_locked_amount
+            _finalize_running_transfer(rt, error_code=status_code, total_locked_amount=total_locked_amount)
         else:  # pragma:  no cover
-            error_code = 'UNEXPECTED_ERROR'
-            total_locked_amount = None
-
-        _finalize_direct_transfer(
-            rt.debtor_id,
-            rt.transfer_uuid,
-            error_code=error_code,
-            total_locked_amount=total_locked_amount,
-        )
-        db.session.delete(rt)
+            _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)
 
 
 @atomic
@@ -345,7 +289,7 @@ def process_prepared_direct_transfer_signal(
     )
     if rt_matches_the_signal:
         assert rt is not None
-        if not rt.is_finalized:
+        if not rt.finalized_at_ts:
             rt.transfer_id = transfer_id
 
         if rt.transfer_id == transfer_id:
@@ -402,22 +346,11 @@ def process_finalized_direct_transfer_signal(
     if rt_matches_the_signal:
         assert rt is not None
         if committed_amount == rt.amount and recipient == rt.recipient:
-            error_code = None
-            total_locked_amount = None
+            _finalize_running_transfer(rt)
         elif committed_amount == 0 and recipient == rt.recipient:
-            error_code = status_code
-            total_locked_amount = total_locked_amount
+            _finalize_running_transfer(rt, error_code=status_code, total_locked_amount=total_locked_amount)
         else:
-            error_code = 'UNEXPECTED_ERROR'
-            total_locked_amount = None
-
-        _finalize_direct_transfer(
-            rt.debtor_id,
-            rt.transfer_uuid,
-            error_code=error_code,
-            total_locked_amount=total_locked_amount,
-        )
-        db.session.delete(rt)
+            _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)
 
 
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
@@ -430,35 +363,31 @@ def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> 
         one_or_none()
 
 
-def _finalize_direct_transfer(
-        debtor_id: int,
-        transfer_uuid: int,
-        *,
-        finalized_at_ts: datetime = None,
-        error_code: str = None,
-        total_locked_amount: int = None) -> None:
+def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, total_locked_amount: int = None) -> None:
+    if not rt.finalized_at_ts:
+        current_ts = datetime.now(tz=timezone.utc)
+        rt.latest_update_id += 1
+        rt.latest_update_ts = current_ts
+        rt.finalized_at_ts = current_ts
+        rt.error_code = error_code
+        if error_code == SC_INSUFFICIENT_AVAILABLE_AMOUNT:
+            rt.total_locked_amount = total_locked_amount
 
-    assert total_locked_amount is None or error_code is not None
-    direct_transfer = DirectTransfer.lock_instance((debtor_id, transfer_uuid))
-    if direct_transfer and direct_transfer.finalized_at_ts is None:
-        direct_transfer.finalized_at_ts = finalized_at_ts or datetime.now(tz=timezone.utc)
-        direct_transfer.error_code = error_code
-        direct_transfer.total_locked_amount = total_locked_amount
-        direct_transfer.latest_update_id += 1
-        direct_transfer.latest_update_ts = direct_transfer.finalized_at_ts
-
-        # TODO: Write to the log.
+        paths, types = get_paths_and_types()
+        db.session.add(PendingLogEntry(
+            creditor_id=rt.creditor_id,
+            added_at_ts=current_ts,
+            object_type=types.transfer,
+            object_uri=paths.transfer(creditorId=rt.creditor_id, transferUuid=rt.transfer_uuid),
+            object_update_id=rt.latest_update_id,
+        ))
 
 
 def _raise_error_if_transfer_exists(creditor_id, transfer_uuid, **kw) -> None:
-    direct_transfer = DirectTransfer.get_instance((creditor_id, transfer_uuid))
-    if direct_transfer:
-        if all(getattr(direct_transfer, attr_name) == attr_value for attr_name, attr_value in kw.items()):
+    rt = RunningTransfer.get_instance((creditor_id, transfer_uuid))
+    if rt:
+        if all(getattr(rt, attr_name) == attr_value for attr_name, attr_value in kw.items()):
             raise errors.TransferExists()
-        raise errors.UpdateConflict()
-
-    running_transfer_query = RunningTransfer.query.filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid)
-    if db.session.query(running_transfer_query.exists()).scalar():
         raise errors.UpdateConflict()
 
 

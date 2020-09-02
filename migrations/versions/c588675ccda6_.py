@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1743de10a55b
+Revision ID: c588675ccda6
 Revises: 8d8c816257ce
-Create Date: 2020-09-01 18:52:56.216619
+Create Date: 2020-09-02 21:59:26.144219
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1743de10a55b'
+revision = 'c588675ccda6'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -73,21 +73,6 @@ def upgrade():
     sa.Column('max_commit_delay', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('creditor_id', 'coordinator_request_id')
     )
-    op.create_table('running_transfer',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('recipient_id', sa.String(), nullable=False),
-    sa.Column('amount', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_note_format', sa.String(), nullable=False),
-    sa.Column('transfer_note', sa.String(), nullable=False),
-    sa.Column('started_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('coordinator_request_id_seq')"), nullable=False),
-    sa.Column('transfer_id', sa.BigInteger(), nullable=True),
-    sa.CheckConstraint('amount > 0'),
-    sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid')
-    )
-    op.create_index('idx_coordinator_request_id', 'running_transfer', ['creditor_id', 'coordinator_request_id'], unique=True)
     op.create_table('account',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -97,30 +82,6 @@ def upgrade():
     sa.CheckConstraint('latest_update_id > 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
-    )
-    op.create_table('direct_transfer',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('amount', sa.BigInteger(), nullable=False),
-    sa.Column('recipient_uri', sa.String(), nullable=False),
-    sa.Column('transfer_note_format', sa.String(), nullable=False),
-    sa.Column('transfer_note', sa.String(), nullable=False),
-    sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.Column('error_code', sa.String(), nullable=True),
-    sa.Column('total_locked_amount', sa.BigInteger(), nullable=True),
-    sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
-    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
-    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('amount >= 0'),
-    sa.CheckConstraint('latest_update_id > 0'),
-    sa.CheckConstraint('min_interest_rate >= -100.0'),
-    sa.CheckConstraint('total_locked_amount >= 0'),
-    sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
-    comment='Represents an initiated direct transfer. A new row is inserted when a creditor initiates a new direct transfer. The row is deleted when the creditor deletes the initiated transfer.'
     )
     op.create_table('log_entry',
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -150,6 +111,35 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id'),
     comment='Represents a log entry that should be added to the log. Log entries are queued to this table because this allows multiple log entries for one creditor to be added to the log in one database transaction, thus reducing the lock contention on `creditor` table rows.'
     )
+    op.create_table('running_transfer',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('amount', sa.BigInteger(), nullable=False),
+    sa.Column('recipient_uri', sa.String(), nullable=False),
+    sa.Column('recipient_id', sa.String(), nullable=False),
+    sa.Column('transfer_note_format', sa.String(), nullable=False),
+    sa.Column('transfer_note', sa.String(), nullable=False),
+    sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('error_code', sa.String(), nullable=True),
+    sa.Column('total_locked_amount', sa.BigInteger(), nullable=True),
+    sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('coordinator_request_id_seq')"), nullable=False),
+    sa.Column('transfer_id', sa.BigInteger(), nullable=True),
+    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('amount >= 0'),
+    sa.CheckConstraint('amount >= 0'),
+    sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('min_interest_rate >= -100.0'),
+    sa.CheckConstraint('total_locked_amount >= 0'),
+    sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('creditor_id', 'transfer_uuid'),
+    comment='Represents an initiated direct transfer. A new row is inserted when a creditor initiates a new direct transfer. The row is deleted when the creditor deletes the initiated transfer.'
+    )
+    op.create_index('idx_coordinator_request_id', 'running_transfer', ['creditor_id', 'coordinator_request_id'], unique=True)
     op.create_table('account_data',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -300,13 +290,12 @@ def downgrade():
     op.drop_index('idx_debtor_name', table_name='account_display')
     op.drop_table('account_display')
     op.drop_table('account_data')
+    op.drop_index('idx_coordinator_request_id', table_name='running_transfer')
+    op.drop_table('running_transfer')
     op.drop_table('pending_log_entry')
     op.drop_index('idx_log_entry_pk', table_name='log_entry')
     op.drop_table('log_entry')
-    op.drop_table('direct_transfer')
     op.drop_table('account')
-    op.drop_index('idx_coordinator_request_id', table_name='running_transfer')
-    op.drop_table('running_transfer')
     op.drop_table('prepare_transfer_signal')
     op.drop_table('finalize_transfer_signal')
     op.drop_table('creditor')

@@ -109,7 +109,7 @@ class TransferEndpoint(MethodView):
     def get(self, creditorId, transferUuid):
         """Return a transfer."""
 
-        return procedures.get_direct_transfer(creditorId, transferUuid) or abort(404)
+        return procedures.get_running_transfer(creditorId, transferUuid) or abort(404)
 
     @transfers_api.arguments(TransferCancelationRequestSchema)
     @transfers_api.response(TransferSchema(context=context))
@@ -123,7 +123,7 @@ class TransferEndpoint(MethodView):
         """
 
         try:
-            transfer = procedures.cancel_direct_transfer(creditorId, transferUuid)
+            transfer = procedures.cancel_running_transfer(creditorId, transferUuid)
         except procedures.ForbiddenTransferCancellation:  # pragma: no cover
             abort(403)
         except procedures.TransferDoesNotExist:
@@ -145,15 +145,15 @@ class TransferEndpoint(MethodView):
         inspect_ops.decrement_transfer_number(creditorId, transferUuid)
 
         try:
-            procedures.delete_direct_transfer(creditorId, transferUuid)
+            procedures.delete_running_transfer(creditorId, transferUuid)
         except procedures.TransferDoesNotExist:
-            # NOTE: We decremented the direct transfer number before
-            # trying to delete the direct transfer, and now when we
-            # know that the transfer did not exist, we increment the
-            # direct transfer number again. This guarantees that in
-            # case of a crash, the difference between the recorded
-            # number of direct transfers and the real number of direct
-            # transfers will always be in users' favor.
+            # NOTE: We decremented the transfer number before trying
+            # to delete the running transfer, and now when we know
+            # that the transfer did not exist, we increment the
+            # transfer number again. This guarantees that in case of a
+            # crash, the difference between the recorded number of
+            # transfers and the real number of transfers will always
+            # be in users' favor.
             inspect_ops.increment_transfer_number(creditorId, transferUuid)
 
 

@@ -1086,7 +1086,7 @@ def test_create_transfer(client, account):
     r = client.post('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', json={})
     assert r.status_code == 200
     data = r.get_json()
-    assert data['result']['error']['errorCode'] == 'CANCELED'
+    assert data['result']['error']['errorCode'] == m.SC_CANCELED_BY_THE_SENDER
     assert data['latestUpdateId'] == 2
     p.process_pending_log_entries(2)
 

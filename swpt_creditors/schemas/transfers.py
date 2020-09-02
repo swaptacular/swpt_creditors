@@ -268,8 +268,8 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     )
 
     @pre_dump
-    def process_direct_transfer_instance(self, obj, many):
-        assert isinstance(obj, models.DirectTransfer)
+    def process_running_transfer_instance(self, obj, many):
+        assert isinstance(obj, models.RunningTransfer)
         paths = self.context['paths']
         obj = copy(obj)
         obj.uri = paths.transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
@@ -280,7 +280,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         if obj.deadline is not None:
             obj.options['optional_deadline'] = obj.deadline
 
-        if obj.is_finalized:
+        if obj.finalized_at_ts:
             result = {'finalized_at_ts': obj.finalized_at_ts}
             if obj.error_code is None:
                 result['committed_amount'] = obj.amount
@@ -294,7 +294,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         return obj
 
     def get_checkup_at_string(self, obj):
-        if obj.is_finalized:
+        if obj.finalized_at_ts:
             return missing
 
         calc_checkup_datetime = self.context['calc_checkup_datetime']
