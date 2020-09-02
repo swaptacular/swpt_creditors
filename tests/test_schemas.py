@@ -689,6 +689,22 @@ def test_deserialize_account_config(app):
             'latestUpdateId': models.MAX_INT64 + 1,
         })
 
+    with pytest.raises(ValidationError, match='Must be greater than or equal to 0.0'):
+        acs.load({
+            'negligibleAmount': -1.0,
+            'allowUnsafeDeletion': True,
+            'scheduledForDeletion': False,
+            'latestUpdateId': 1,
+        })
+
+    with pytest.raises(ValidationError, match='Special numeric values (nan or infinity) are not permitted'):
+        acs.loads('''{
+            "negligibleAmount": 1e1000,
+            "allowUnsafeDeletion": true,
+            "scheduledForDeletion": false,
+            "latestUpdateId": 1
+        }''')
+
 
 def test_serialize_account_info(app):
     ad = models.AccountData(
