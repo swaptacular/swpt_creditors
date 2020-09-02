@@ -370,9 +370,7 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
         rt.latest_update_ts = current_ts
         rt.finalized_at_ts = current_ts
         rt.error_code = error_code
-        if error_code == SC_INSUFFICIENT_AVAILABLE_AMOUNT:
-            rt.total_locked_amount = total_locked_amount
-
+        rt.total_locked_amount = total_locked_amount
         paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
             creditor_id=rt.creditor_id,

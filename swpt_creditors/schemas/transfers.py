@@ -5,7 +5,9 @@ from marshmallow import (
 from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64, TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX
+from swpt_creditors.models import (
+    MAX_INT64, TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
+)
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, ValidateTypeMixin, MutableResourceSchema,
     URI_DESCRIPTION,
@@ -54,8 +56,8 @@ class TransferErrorSchema(Schema):
                     '  are that it will be committed successfully.\n',
         example='INSUFFICIENT_AVAILABLE_AMOUNT',
     )
-    total_locked_amount = fields.Integer(
-        dump_only=True,
+    total_locked_amount = fields.Method(
+        'get_total_locked_amount',
         format="int64",
         data_key='totalLockedAmount',
         description='This field will be present only when the transfer has been rejected '
@@ -69,6 +71,11 @@ class TransferErrorSchema(Schema):
     def assert_required_fields(self, obj, many):
         assert 'errorCode' in obj
         return obj
+
+    def get_total_locked_amount(self, obj):
+        if obj['error_code'] != SC_INSUFFICIENT_AVAILABLE_AMOUNT:
+            return missing
+        return obj.get('total_locked_amount', 0)
 
 
 class TransferOptionsSchema(Schema):
@@ -282,13 +289,14 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
 
         if obj.finalized_at_ts:
             result = {'finalized_at_ts': obj.finalized_at_ts}
-            if obj.error_code is None:
+
+            error_code = obj.error_code
+            if error_code is None:
                 result['committed_amount'] = obj.amount
             else:
                 result['committed_amount'] = 0
-                result['error'] = {'error_code': obj.error_code}
-                if obj.total_locked_amount is not None:
-                    result['error']['total_locked_amount'] = obj.total_locked_amount
+                result['error'] = {'error_code': error_code, 'total_locked_amount': obj.total_locked_amount}
+
             obj.result = result
 
         return obj

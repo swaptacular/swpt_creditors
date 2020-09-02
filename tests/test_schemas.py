@@ -1376,13 +1376,19 @@ def test_serialize_transfer_error(app):
 
     te = {
         'type': 'TransferError',
-        'error_code': 'TEST',
+        'error_code': models.SC_INSUFFICIENT_AVAILABLE_AMOUNT,
         'total_locked_amount': 100,
     }
     assert tes.dump(te) == {
         'type': 'TransferError',
-        'errorCode': 'TEST',
+        'errorCode': models.SC_INSUFFICIENT_AVAILABLE_AMOUNT,
         'totalLockedAmount': 100,
+    }
+
+    te['error_code'] = 'TEST'
+    assert tes.dump(te) == {
+        'type': 'TransferError',
+        'errorCode': 'TEST',
     }
 
     del te['type']
@@ -1390,6 +1396,13 @@ def test_serialize_transfer_error(app):
     assert tes.dump(te) == {
         'type': 'TransferError',
         'errorCode': 'TEST',
+    }
+
+    te['error_code'] = models.SC_INSUFFICIENT_AVAILABLE_AMOUNT
+    assert tes.dump(te) == {
+        'type': 'TransferError',
+        'errorCode': models.SC_INSUFFICIENT_AVAILABLE_AMOUNT,
+        'totalLockedAmount': 0,
     }
 
 
@@ -1443,7 +1456,7 @@ def test_serialize_transfer(app):
         'latest_update_ts': datetime(2020, 1, 2),
         'initiated_at_ts': models.TS0,
         'finalized_at_ts': datetime(2020, 1, 4),
-        'error_code': 'TEST',
+        'error_code': models.SC_INSUFFICIENT_AVAILABLE_AMOUNT,
         'total_locked_amount': 5,
     }
     dt = models.RunningTransfer(**transfer_data)
@@ -1473,7 +1486,7 @@ def test_serialize_transfer(app):
             "committedAmount": 0,
             "error": {
                 "type": "TransferError",
-                "errorCode": 'TEST',
+                "errorCode": models.SC_INSUFFICIENT_AVAILABLE_AMOUNT,
                 "totalLockedAmount": 5,
             },
         },
