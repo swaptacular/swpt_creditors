@@ -1097,6 +1097,9 @@ def test_create_transfer(client, account):
     assert r.status_code == 204
     p.process_pending_log_entries(2)
 
+    r = client.get('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000')
+    assert r.status_code == 404
+
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 7
     assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
