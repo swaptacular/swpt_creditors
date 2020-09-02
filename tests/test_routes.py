@@ -964,3 +964,12 @@ def test_get_committed_transfer(client, account, current_ts):
 
     r = client.get('/creditors/2/accounts/1/transfers/1-1')
     assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/transfers/11111111111111111111111111111-1')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/transfers/INVALID')
+    assert r.status_code == 404
+
+    r = client.get('/creditors/2/accounts/1/transfers/1-0')
+    assert r.status_code == 404

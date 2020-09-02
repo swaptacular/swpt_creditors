@@ -697,7 +697,7 @@ def test_deserialize_account_config(app):
             'latestUpdateId': 1,
         })
 
-    with pytest.raises(ValidationError, match='Special numeric values (nan or infinity) are not permitted'):
+    with pytest.raises(ValidationError, match='nan or infinity'):
         acs.loads('''{
             "negligibleAmount": 1e1000,
             "allowUnsafeDeletion": true,
