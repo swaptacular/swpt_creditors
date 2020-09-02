@@ -152,33 +152,33 @@ def cancel_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> DirectTrans
 
 
 @atomic
-def delete_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> bool:
+def delete_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     number_of_deleted_rows = DirectTransfer.query.\
         filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid).\
         delete(synchronize_session=False)
 
     assert number_of_deleted_rows in [0, 1]
-    if number_of_deleted_rows == 1:
-        paths, types = get_paths_and_types()
-        db.session.add(PendingLogEntry(
-            creditor_id=creditor_id,
-            added_at_ts=current_ts,
-            object_type=types.transfer,
-            object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
-            is_deleted=True,
-        ))
+    if number_of_deleted_rows == 0:
+        raise errors.TransferDoesNotExist()
 
-        # NOTE: Deleting the `RunningTransfer` record here, may result
-        # in dismissing an already committed transfer. This is not a
-        # problem in this case, however, because the user has ordered
-        # the deletion of the `DirectTransfer` record, and therefore
-        # is not interested in its outcome.
-        RunningTransfer.query.\
-            filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid).\
-            delete(synchronize_session=False)
+    paths, types = get_paths_and_types()
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
+        object_type=types.transfer,
+        object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
+        is_deleted=True,
+    ))
 
-    return number_of_deleted_rows == 1
+    # NOTE: Deleting the `RunningTransfer` record here, may result
+    # in dismissing an already committed transfer. This is not a
+    # problem in this case, however, because the user has ordered
+    # the deletion of the `DirectTransfer` record, and therefore
+    # is not interested in its outcome.
+    RunningTransfer.query.\
+        filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid).\
+        delete(synchronize_session=False)
 
 
 @atomic

@@ -144,7 +144,9 @@ class TransferEndpoint(MethodView):
 
         inspect_ops.decrement_transfer_number(creditorId, transferUuid)
 
-        if not procedures.delete_direct_transfer(creditorId, transferUuid):
+        try:
+            procedures.delete_direct_transfer(creditorId, transferUuid)
+        except procedures.TransferDoesNotExist:
             # NOTE: We decremented the direct transfer number before
             # trying to delete the direct transfer, and now when we
             # know that the transfer did not exist, we increment the
