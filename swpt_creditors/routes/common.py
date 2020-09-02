@@ -1,6 +1,6 @@
 from functools import partial
 from typing import Tuple
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from flask import url_for, current_app
 from swpt_creditors.models import MAX_INT64, DATE0
 
@@ -24,6 +24,13 @@ def parse_transfer_slug(slug) -> Tuple[date, int]:
         raise ValueError
 
     return creation_date, transfer_number
+
+
+def calc_checkup_datetime(debtor_id: int, initiated_at_ts: datetime) -> datetime:
+    current_ts = datetime.now(tz=timezone.utc)
+    current_delay = current_ts - initiated_at_ts
+    average_delay = timedelta(seconds=current_app.config['APP_TRANSFERS_FINALIZATION_AVG_SECONDS'])
+    return current_ts + max(current_delay, average_delay)
 
 
 class path_builder:
@@ -77,5 +84,5 @@ class schema_types:
 
 context = {
     'paths': path_builder,
-    'get_finalization_avg_seconds': lambda: current_app.config['APP_TRANSFERS_FINALIZATION_AVG_SECONDS'],
+    'calc_checkup_datetime': calc_checkup_datetime,
 }

@@ -298,12 +298,8 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         if obj.is_finalized:
             return missing
 
-        current_ts = datetime.now(tz=timezone.utc)
-        current_delay = current_ts - obj.initiated_at_ts
-        get_finalization_avg_seconds = self.context['get_finalization_avg_seconds']
-        average_delay = timedelta(seconds=get_finalization_avg_seconds())
-        checkup_at_ts = current_ts + max(current_delay, average_delay)
-        return checkup_at_ts.isoformat()
+        calc_checkup_datetime = self.context['calc_checkup_datetime']
+        return calc_checkup_datetime(obj.debtor_id, obj.initiated_at_ts).isoformat()
 
 
 class TransferCancelationRequestSchema(Schema):
