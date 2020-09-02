@@ -1,5 +1,5 @@
 from urllib.parse import urljoin, urlparse
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 import pytest
 import iso8601
 from swpt_lib.utils import u64_to_i64
@@ -926,3 +926,41 @@ def test_ledger_entries_list(ledger_entries, client, current_ts):
 
     items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=2&stop=2', page_type='LedgerEntriesPage')
     assert len(items) == 0
+
+
+def test_get_committed_transfer(client, account, current_ts):
+    params = {
+        'debtor_id': 1,
+        'creditor_id': 2,
+        'creation_date': date(1970, 1, 1),
+        'transfer_number': 1,
+        'coordinator_type': 'interest',
+        'sender': '666',
+        'recipient': '2',
+        'acquired_amount': 100,
+        'transfer_note_format': 'json',
+        'transfer_note': '{"message": "test"}',
+        'committed_at_ts': current_ts,
+        'principal': 1000,
+        'ts': current_ts,
+        'previous_transfer_number': 0,
+        'retention_interval': timedelta(days=5),
+    }
+    p.process_account_transfer_signal(**params)
+
+    r = client.get('/creditors/2/accounts/1/transfers/0-1')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'CommittedTransfer'
+    assert data['uri'] == '/creditors/2/accounts/1/transfers/0-1'
+    assert data['committedAt'] == current_ts.isoformat()
+    assert data['rationale'] == 'interest'
+    assert data['noteFormat'] == 'json'
+    assert data['note'] == '{"message": "test"}'
+    assert data['account']['uri'] == '/creditors/2/accounts/1/'
+    assert data['acquiredAmount'] == 100
+    assert data['sender']['uri'] == 'swpt:1/666'
+    assert data['recipient']['uri'] == 'swpt:1/2'
+
+    r = client.get('/creditors/2/accounts/1/transfers/1-1')
+    assert r.status_code == 404

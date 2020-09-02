@@ -22,6 +22,16 @@ RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
 
 
 @atomic
+def get_committed_transfer(
+        creditor_id: int,
+        debtor_id: int,
+        creation_date: date,
+        transfer_number: int) -> Optional[CommittedTransfer]:
+
+    return CommittedTransfer.get_instance((creditor_id, debtor_id, creation_date, transfer_number))
+
+
+@atomic
 def initiate_transfer(
         creditor_id: int,
         transfer_uuid: UUID,

@@ -145,4 +145,8 @@ class CommittedTransferEndpoint(MethodView):
         except ValueError:
             abort(404)
 
-        abort(500)
+        committed_transfer = procedures.get_committed_transfer(creditorId, debtorId, creation_date, transfer_number)
+        if committed_transfer is None:
+            abort(404)
+
+        return committed_transfer
