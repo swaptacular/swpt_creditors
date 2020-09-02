@@ -100,6 +100,10 @@ class DirectTransfer(db.Model):
     def is_finalized(self):
         return bool(self.finalized_at_ts)
 
+    @property
+    def is_successful(self):
+        return self.is_finalized and self.error_code is None
+
 
 class RunningTransfer(db.Model):
     _cr_seq = db.Sequence('coordinator_request_id_seq', metadata=db.Model.metadata)

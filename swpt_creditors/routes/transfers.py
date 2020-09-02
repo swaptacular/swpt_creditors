@@ -76,7 +76,7 @@ class TransfersEndpoint(MethodView):
         uuid = transfer_creation_request['transfer_uuid']
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
         try:
-            inspect_ops.allow_direct_transfer_creation(creditorId, debtorId)
+            inspect_ops.allow_transfer_creation(creditorId, debtorId)
             transfer = procedures.initiate_transfer(
                 creditor_id=creditorId,
                 transfer_uuid=uuid,
@@ -98,7 +98,7 @@ class TransfersEndpoint(MethodView):
         except procedures.TransferExists:
             return redirect(location, code=303)
 
-        inspect_ops.register_direct_transfer_creation(creditorId, debtorId)
+        inspect_ops.register_transfer_creation(creditorId, debtorId)
         return transfer, {'Location': location}
 
 
@@ -123,11 +123,12 @@ class TransferEndpoint(MethodView):
         """
 
         try:
-            transfer = procedures.cancel_transfer(creditorId, transferUuid)
-        except procedures.ForbiddenTransferCancellation:
+            transfer = procedures.cancel_direct_transfer(creditorId, transferUuid)
+        except procedures.ForbiddenTransferCancellation:  # pragma: no cover
             abort(403)
         except procedures.TransferDoesNotExist:
             abort(404)
+
         return transfer
 
     @transfers_api.response(code=204)
@@ -141,7 +142,17 @@ class TransferEndpoint(MethodView):
 
         """
 
-        procedures.delete_direct_transfer(creditorId, transferUuid)
+        inspect_ops.decrement_transfer_number(creditorId, transferUuid)
+
+        if not procedures.delete_direct_transfer(creditorId, transferUuid):
+            # NOTE: We decremented the direct transfer number before
+            # trying to delete the direct transfer, and now when we
+            # know that the transfer did not exist, we increment the
+            # direct transfer number again. This guarantees that in
+            # case of a crash, the difference between the recorded
+            # number of direct transfers and the real number of direct
+            # transfers will always be in users' favor.
+            inspect_ops.increment_transfer_number(creditorId, transferUuid)
 
 
 @transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<transferId>', parameters=[CID, DID, TID])
@@ -156,8 +167,4 @@ class CommittedTransferEndpoint(MethodView):
         except ValueError:
             abort(404)
 
-        committed_transfer = procedures.get_committed_transfer(creditorId, debtorId, creation_date, transfer_number)
-        if committed_transfer is None:
-            abort(404)
-
-        return committed_transfer
+        return procedures.get_committed_transfer(creditorId, debtorId, creation_date, transfer_number) or abort(404)

@@ -107,6 +107,81 @@ def initiate_transfer(
 
 
 @atomic
+def get_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> Optional[DirectTransfer]:
+    return DirectTransfer.get_instance((creditor_id, transfer_uuid))
+
+
+@atomic
+def cancel_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> DirectTransfer:
+    current_ts = datetime.now(tz=timezone.utc)
+    direct_transfer = DirectTransfer.lock_instance((creditor_id, transfer_uuid))
+
+    if not direct_transfer:
+        raise errors.TransferDoesNotExist()
+
+    if direct_transfer.is_successful:
+        raise errors.ForbiddenTransferCancellation()
+
+    if not direct_transfer.is_finalized:
+        rt = RunningTransfer.lock_instance((creditor_id, transfer_uuid))
+
+        # The `InitiatedTransfer` and `RunningTransfer` records are
+        # created together, and whenever the `RunningTransfer` gets
+        # removed, the `InitiatedTransfer` gets finalizad.
+        assert rt
+
+        if rt.is_finalized:
+            raise errors.ForbiddenTransferCancellation()
+
+        direct_transfer.finalized_at_ts = datetime.now(tz=timezone.utc)
+        direct_transfer.error_code = 'CANCELED'
+        direct_transfer.latest_update_id += 1
+        direct_transfer.latest_update_ts = current_ts
+        paths, types = get_paths_and_types()
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at_ts=current_ts,
+            object_type=types.transfer,
+            object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
+            object_update_id=direct_transfer.latest_update_id,
+        ))
+        db.session.delete(rt)
+
+    assert direct_transfer.is_finalized and not direct_transfer.is_successful
+    return direct_transfer
+
+
+@atomic
+def delete_direct_transfer(creditor_id: int, transfer_uuid: UUID) -> bool:
+    current_ts = datetime.now(tz=timezone.utc)
+    number_of_deleted_rows = DirectTransfer.query.\
+        filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid).\
+        delete(synchronize_session=False)
+
+    assert number_of_deleted_rows in [0, 1]
+    if number_of_deleted_rows == 1:
+        paths, types = get_paths_and_types()
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at_ts=current_ts,
+            object_type=types.transfer,
+            object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
+            is_deleted=True,
+        ))
+
+        # NOTE: Deleting the `RunningTransfer` record here, may result
+        # in dismissing an already committed transfer. This is not a
+        # problem in this case, however, because the user has ordered
+        # the deletion of the `DirectTransfer` record, and therefore
+        # is not interested in its outcome.
+        RunningTransfer.query.\
+            filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid).\
+            delete(synchronize_session=False)
+
+    return number_of_deleted_rows == 1
+
+
+@atomic
 def get_creditor_transfer_uuids(creditor_id: int, count: int = 1, prev: UUID = None) -> List[UUID]:
     assert count >= 1
     assert prev is None or isinstance(prev, UUID)
@@ -343,26 +418,6 @@ def process_finalized_direct_transfer_signal(
             total_locked_amount=total_locked_amount,
         )
         db.session.delete(rt)
-
-
-@atomic
-def delete_direct_transfer(debtor_id: int, transfer_uuid: UUID) -> bool:
-    number_of_deleted_rows = DirectTransfer.query.\
-        filter_by(debtor_id=debtor_id, transfer_uuid=transfer_uuid).\
-        delete(synchronize_session=False)
-
-    assert number_of_deleted_rows in [0, 1]
-    if number_of_deleted_rows == 1:
-        # Note that deleting the `RunningTransfer` record may result
-        # in dismissing an already committed transfer. This is not a
-        # problem in this case, however, because the user has ordered
-        # the deletion of the `DirectTransfer` record, and therefore
-        # is not interested in the its outcome.
-        RunningTransfer.query.\
-            filter_by(debtor_id=debtor_id, transfer_uuid=transfer_uuid).\
-            delete(synchronize_session=False)
-
-    return number_of_deleted_rows == 1
 
 
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:

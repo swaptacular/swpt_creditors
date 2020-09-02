@@ -1020,3 +1020,92 @@ def test_get_committed_transfer(client, account, current_ts):
 
     r = client.get('/creditors/2/accounts/1/transfers/1-0')
     assert r.status_code == 404
+
+
+def test_create_transfer(client, account):
+    p.process_pending_log_entries(2)
+
+    request_data = {
+        'type': 'TransferCreationRequest',
+        'transferUuid': '123e4567-e89b-12d3-a456-426655440000',
+        'recipient': {'uri': 'swpt:1/2222'},
+        'amount': 1000,
+        'noteFormat': 'json',
+        'note': '{"message": "test"}',
+        'options': {
+            'type': 'TransferOptions',
+            'minInterestRate': -10,
+            'deadline': '2009-08-24T14:15:22+00:00',
+        },
+    }
+
+    r = client.post('/creditors/2222/transfers/', json=request_data)
+    assert r.status_code == 404
+
+    r = client.post('/creditors/2/transfers/', json=request_data)
+    assert r.status_code == 201
+    assert r.headers['location'] == 'http://example.com/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'
+    p.process_pending_log_entries(2)
+
+    r = client.get('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'Transfer'
+    assert data['recipient']['uri'] == 'swpt:1/2222'
+    assert data['amount'] == 1000
+    assert data['note'] == '{"message": "test"}'
+    assert data['noteFormat'] == 'json'
+    assert iso8601.parse_date(data['initiatedAt'])
+    assert data['transferUuid'] == '123e4567-e89b-12d3-a456-426655440000'
+    assert data['latestUpdateId'] == 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert 'result' not in data
+    assert data['transferList']['uri'] == '/creditors/2/transfer-list'
+    assert iso8601.parse_date(data['checkupAt'])
+    assert data['options'] == {
+        'type': 'TransferOptions',
+        'minInterestRate': -10.0,
+        'deadline': '2009-08-24T14:15:22+00:00',
+    }
+
+    r = client.post('/creditors/2/transfers/', json=request_data)
+    assert r.status_code == 303
+
+    r = client.post('/creditors/2/transfers/', json={**request_data, 'amount': 999})
+    assert r.status_code == 409
+
+    r = client.post('/creditors/2/transfers/', json={**request_data, 'recipient': {'uri': 'INVALID'}})
+    assert r.status_code == 422
+    assert r.get_json()['errors']['json']['recipient']['uri'] == ['The URI can not be recognized.']
+
+    r = client.post('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440001', json={})
+    assert r.status_code == 404
+
+    r = client.post('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', json={})
+    assert r.status_code == 200
+    r = client.post('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', json={})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['result']['error']['errorCode'] == 'CANCELED'
+    assert data['latestUpdateId'] == 2
+    p.process_pending_log_entries(2)
+
+    r = client.delete('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440001')
+    assert r.status_code == 204
+
+    r = client.delete('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000')
+    assert r.status_code == 204
+    p.process_pending_log_entries(2)
+
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 7
+    assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
+            for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', 1, False),
+        ('AccountList', '/creditors/2/account-list', 2, False),
+        ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', 1, False),
+        ('TransferList', '/creditors/2/transfer-list', 2, False),
+        ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', 2, False),
+        ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', None, True),
+        ('TransferList', '/creditors/2/transfer-list', 3, False),
+    ]
