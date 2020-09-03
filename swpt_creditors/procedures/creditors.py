@@ -80,7 +80,7 @@ def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
 
 @atomic
 def get_creditors_with_pending_log_entries() -> Iterable[int]:
-    return set(t[0] for t in db.session.query(PendingLogEntry.creditor_id).all())
+    return [t[0] for t in db.session.query(PendingLogEntry.creditor_id).distinct().all()]
 
 
 @atomic
