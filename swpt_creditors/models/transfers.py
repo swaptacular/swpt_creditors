@@ -1,6 +1,6 @@
 from __future__ import annotations
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, or_, and_
+from sqlalchemy.sql.expression import null, or_
 from swpt_creditors.extensions import db
 from .common import get_now_utc
 

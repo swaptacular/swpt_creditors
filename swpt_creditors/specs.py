@@ -189,20 +189,20 @@ DEBTOR_IDENTITY_EXAMPLE = {
     'uri': 'swpt:1',
 }
 
-ACCOUNT_LIST_EXAMPLE = {
+ACCOUNTS_LIST_EXAMPLE = {
     'wallet': {'uri': '/creditors/2/wallet'},
-    'type': 'AccountList',
-    'uri': '/creditors/2/account-list',
+    'type': 'AccountsList',
+    'uri': '/creditors/2/accounts-list',
     'first': '/creditors/2/accounts/',
     'itemsType': 'ObjectReference',
     'latestUpdateId': 777,
     'latestUpdateAt': '2020-06-20T18:53:43Z',
 }
 
-TRANSFER_LIST_EXAMPLE = {
+TRANSFERS_LIST_EXAMPLE = {
     'wallet': {'uri': '/creditors/2/wallet'},
-    'type': 'TransferList',
-    'uri': '/creditors/2/transfer-list',
+    'type': 'TransfersList',
+    'uri': '/creditors/2/transfers-list',
     'first': '/creditors/2/transfers/',
     'itemsType': 'ObjectReference',
     'latestUpdateId': 778,

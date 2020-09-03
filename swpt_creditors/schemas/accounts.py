@@ -760,7 +760,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
     hide = fields.Boolean(
         required=True,
         description="Whether the account should be hidden. That is: not shown when the user "
-                    "views his account list. For new accounts the value of this field "
+                    "views his accounts list. For new accounts the value of this field "
                     "will be `False`.",
         example=False,
     )
@@ -797,13 +797,13 @@ class AccountSchema(MutableResourceSchema):
         description='The type of this object.',
         example='Account',
     )
-    account_list = fields.Nested(
+    accounts_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        data_key='accountList',
-        description="The URI of creditor's `AccountList`.",
-        example={'uri': '/creditors/2/account-list'},
+        data_key='accountsList',
+        description="The URI of creditor's `AccountsList`.",
+        example={'uri': '/creditors/2/accounts-list'},
     )
     debtor = fields.Nested(
         DebtorIdentitySchema,
@@ -863,7 +863,7 @@ class AccountSchema(MutableResourceSchema):
         obj = copy(obj)
         obj.uri = paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.debtor = {'uri': f'swpt:{i64_to_u64(obj.debtor_id)}'}
-        obj.account_list = {'uri': paths.account_list(creditorId=obj.creditor_id)}
+        obj.accounts_list = {'uri': paths.accounts_list(creditorId=obj.creditor_id)}
         obj.config = obj.data
         obj.info = obj.data
         obj.ledger = obj.data

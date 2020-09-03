@@ -49,8 +49,8 @@ class path_builder:
     creditor = _url_for('creditors.CreditorEndpoint')
     wallet = _url_for('creditors.WalletEndpoint')
     log_entries = _url_for('creditors.LogEntriesEndpoint')
-    account_list = _url_for('creditors.AccountListEndpoint')
-    transfer_list = _url_for('creditors.TransferListEndpoint')
+    accounts_list = _url_for('creditors.AccountsListEndpoint')
+    transfers_list = _url_for('creditors.TransfersListEndpoint')
     account = _url_for('accounts.AccountEndpoint')
     account_info = _url_for('accounts.AccountInfoEndpoint')
     account_ledger = _url_for('accounts.AccountLedgerEndpoint')
@@ -76,9 +76,9 @@ class schema_types:
     account_config = 'AccountConfig'
     account_info = 'AccountInfo'
     account_ledger = 'AccountLedger'
-    account_list = 'AccountList'
+    accounts_list = 'AccountsList'
     transfer = 'Transfer'
-    transfer_list = 'TransferList'
+    transfers_list = 'TransfersList'
     committed_transfer = 'CommittedTransfer'
 
 

@@ -54,26 +54,26 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
 
-class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
+class AccountsListSchema(PaginatedListSchema, MutableResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
-        example='/creditors/2/account-list',
+        example='/creditors/2/accounts-list',
     )
     type = fields.Function(
-        lambda obj: 'AccountList',
+        lambda obj: 'AccountsList',
         required=True,
         type='string',
         description='The type of this object.',
-        example='AccountList',
+        example='AccountsList',
     )
     wallet = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Wallet` that contains the account list.",
+        description="The URI of the creditor's `Wallet` that contains the accounts list.",
         example={'uri': '/creditors/2/wallet'},
     )
 
@@ -82,36 +82,36 @@ class AccountListSchema(PaginatedListSchema, MutableResourceSchema):
         assert isinstance(obj, models.Creditor)
         paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = paths.account_list(creditorId=obj.creditor_id)
+        obj.uri = paths.accounts_list(creditorId=obj.creditor_id)
         obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.first = paths.accounts(creditorId=obj.creditor_id)
         obj.items_type = 'ObjectReference'
-        obj.latest_update_id = obj.account_list_latest_update_id
-        obj.latest_update_ts = obj.account_list_latest_update_ts
+        obj.latest_update_id = obj.accounts_list_latest_update_id
+        obj.latest_update_ts = obj.accounts_list_latest_update_ts
 
         return obj
 
 
-class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
+class TransfersListSchema(PaginatedListSchema, MutableResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
-        example='/creditors/2/transfer-list',
+        example='/creditors/2/transfers-list',
     )
     type = fields.Function(
-        lambda obj: 'TransferList',
+        lambda obj: 'TransfersList',
         required=True,
         type='string',
         description='The type of this object.',
-        example='TransferList',
+        example='TransfersList',
     )
     wallet = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Wallet` that contains the transfer list.",
+        description="The URI of the creditor's `Wallet` that contains the transfers list.",
         example={'uri': '/creditors/2/wallet'},
     )
 
@@ -120,12 +120,12 @@ class TransferListSchema(PaginatedListSchema, MutableResourceSchema):
         assert isinstance(obj, models.Creditor)
         paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = paths.transfer_list(creditorId=obj.creditor_id)
+        obj.uri = paths.transfers_list(creditorId=obj.creditor_id)
         obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.first = paths.transfers(creditorId=obj.creditor_id)
         obj.items_type = 'ObjectReference'
-        obj.latest_update_id = obj.transfer_list_latest_update_id
-        obj.latest_update_ts = obj.transfer_list_latest_update_ts
+        obj.latest_update_id = obj.transfers_list_latest_update_id
+        obj.latest_update_ts = obj.transfers_list_latest_update_ts
 
         return obj
 
@@ -152,15 +152,15 @@ class WalletSchema(Schema):
         description="The URI of the `Creditor`.",
         example={'uri': '/creditors/2/'},
     )
-    account_list = fields.Nested(
+    accounts_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        data_key='accountList',
-        description="The URI of creditor's `AccountList`. That is: an URI of a `PaginatedList` of "
+        data_key='accountsList',
+        description="The URI of creditor's `AccountsList`. That is: an URI of a `PaginatedList` of "
                     "`ObjectReference`s to all `Account`s belonging to the creditor. The paginated "
                     "list will not be sorted in any particular order.",
-        example={'uri': '/creditors/2/account-list'},
+        example={'uri': '/creditors/2/accounts-list'},
     )
     log = fields.Nested(
         PaginatedStreamSchema,
@@ -177,15 +177,15 @@ class WalletSchema(Schema):
             'type': 'PaginatedStream',
         },
     )
-    transfer_list = fields.Nested(
+    transfers_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        data_key='transferList',
-        description="The URI of creditor's `TransferList`. That is: an URI of a `PaginatedList` of "
+        data_key='transfersList',
+        description="The URI of creditor's `TransfersList`. That is: an URI of a `PaginatedList` of "
                     "`ObjectReference`s to all `Transfer`s initiated by the creditor, which have not "
                     "been deleted yet. The paginated list will not be sorted in any particular order.",
-        example={'uri': '/creditors/2/transfer-list'},
+        example={'uri': '/creditors/2/transfers-list'},
     )
     create_account = fields.Nested(
         ObjectReferenceSchema,
@@ -234,8 +234,8 @@ class WalletSchema(Schema):
         obj = copy(obj)
         obj.uri = paths.wallet(creditorId=obj.creditor_id)
         obj.creditor = {'uri': paths.creditor(creditorId=obj.creditor_id)}
-        obj.account_list = {'uri': paths.account_list(creditorId=obj.creditor_id)}
-        obj.transfer_list = {'uri': paths.transfer_list(creditorId=obj.creditor_id)}
+        obj.accounts_list = {'uri': paths.accounts_list(creditorId=obj.creditor_id)}
+        obj.transfers_list = {'uri': paths.transfers_list(creditorId=obj.creditor_id)}
         obj.account_lookup = {'uri': paths.account_lookup(creditorId=obj.creditor_id)}
         obj.debtor_lookup = {'uri': paths.debtor_lookup(creditorId=obj.creditor_id)}
         obj.create_account = {'uri': paths.accounts(creditorId=obj.creditor_id)}

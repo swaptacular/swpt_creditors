@@ -22,10 +22,10 @@ class Creditor(db.Model):
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    account_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
-    account_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    transfer_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
-    transfer_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    accounts_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    accounts_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    transfers_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    transfers_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     deactivated_at_date = db.Column(
         db.DATE,
         comment='The date on which the creditor was deactivated. When a creditor gets '
@@ -37,8 +37,8 @@ class Creditor(db.Model):
     __table_args__ = (
         db.CheckConstraint(last_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
-        db.CheckConstraint(account_list_latest_update_id > 0),
-        db.CheckConstraint(transfer_list_latest_update_id > 0),
+        db.CheckConstraint(accounts_list_latest_update_id > 0),
+        db.CheckConstraint(transfers_list_latest_update_id > 0),
         db.CheckConstraint(or_(deactivated_at_date == null(), status.op('&')(STATUS_IS_ACTIVE_FLAG) != 0)),
     )
 

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: a70d09392992
+Revision ID: e5a2639b6ffc
 Revises: 8d8c816257ce
-Create Date: 2020-09-03 15:53:01.071731
+Create Date: 2020-09-03 16:13:29.702555
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'a70d09392992'
+revision = 'e5a2639b6ffc'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -37,16 +37,16 @@ def upgrade():
     sa.Column('last_log_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('account_list_latest_update_id', sa.BigInteger(), nullable=False),
-    sa.Column('account_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('transfer_list_latest_update_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('accounts_list_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('accounts_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('transfers_list_latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfers_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. A `NULL` value for this column means that the creditor has not been deactivated yet. Once deactivated, a creditor stays deactivated until it is deleted.'),
-    sa.CheckConstraint('account_list_latest_update_id > 0'),
+    sa.CheckConstraint('accounts_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
     sa.CheckConstraint('deactivated_at_date IS NULL OR (status & 1) != 0'),
     sa.CheckConstraint('last_log_entry_id >= 0'),
-    sa.CheckConstraint('transfer_list_latest_update_id > 0'),
+    sa.CheckConstraint('transfers_list_latest_update_id > 0'),
     sa.PrimaryKeyConstraint('creditor_id')
     )
     op.create_table('finalize_transfer_signal',

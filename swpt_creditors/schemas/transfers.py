@@ -218,13 +218,13 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         description='The type of this object.',
         example='Transfer',
     )
-    transfer_list = fields.Nested(
+    transfers_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        data_key='transferList',
-        description="The URI of creditor's `TransferList`.",
-        example={'uri': '/creditors/2/transfer-list'},
+        data_key='transfersList',
+        description="The URI of creditor's `TransfersList`.",
+        example={'uri': '/creditors/2/transfers-list'},
     )
     transfer_note_format = fields.String(
         required=True,
@@ -280,7 +280,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         paths = self.context['paths']
         obj = copy(obj)
         obj.uri = paths.transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
-        obj.transfer_list = {'uri': paths.transfer_list(creditorId=obj.creditor_id)}
+        obj.transfers_list = {'uri': paths.transfers_list(creditorId=obj.creditor_id)}
         obj.recipient = {'uri': obj.recipient_uri}
         obj.options = {'min_interest_rate': obj.min_interest_rate}
 

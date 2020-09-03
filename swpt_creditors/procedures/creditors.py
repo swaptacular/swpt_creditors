@@ -115,14 +115,14 @@ def process_pending_log_entries(creditor_id: int) -> None:
             # transfers requires the `Creditor` table row to be
             # locked.
             if entry.object_type == types.transfer and (entry.is_created or entry.is_deleted):
-                creditor.transfer_list_latest_update_id += 1
-                creditor.transfer_list_latest_update_ts = entry.added_at_ts
+                creditor.transfers_list_latest_update_id += 1
+                creditor.transfers_list_latest_update_ts = entry.added_at_ts
                 _add_log_entry(
                     creditor,
-                    object_type=types.transfer_list,
-                    object_uri=paths.transfer_list(creditorId=creditor_id),
-                    object_update_id=creditor.transfer_list_latest_update_id,
-                    added_at_ts=creditor.transfer_list_latest_update_ts,
+                    object_type=types.transfers_list,
+                    object_uri=paths.transfers_list(creditorId=creditor_id),
+                    object_update_id=creditor.transfers_list_latest_update_id,
+                    added_at_ts=creditor.transfers_list_latest_update_ts,
                 )
 
             db.session.delete(entry)
@@ -201,14 +201,14 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     # will be deleted too. Also, the deleted account will disappear
     # from the list of accounts. Therefore, we need to write a bunch
     # of events to the log, so as to inform the client.
-    creditor.account_list_latest_update_id += 1
-    creditor.account_list_latest_update_ts = current_ts
+    creditor.accounts_list_latest_update_id += 1
+    creditor.accounts_list_latest_update_ts = current_ts
     paths, types = get_paths_and_types()
     _add_log_entry(
         creditor,
-        object_type=types.account_list,
-        object_uri=paths.account_list(creditorId=creditor_id),
-        object_update_id=creditor.account_list_latest_update_id,
+        object_type=types.accounts_list,
+        object_uri=paths.accounts_list(creditorId=creditor_id),
+        object_update_id=creditor.accounts_list_latest_update_id,
         added_at_ts=current_ts,
     )
     deletion_events = [
@@ -258,13 +258,13 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
     )
 
     # NOTE: The new account will appear in the creditor's list of accounts.
-    creditor.account_list_latest_update_id += 1
-    creditor.account_list_latest_update_ts = current_ts
+    creditor.accounts_list_latest_update_id += 1
+    creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(
         creditor,
-        object_type=types.account_list,
-        object_uri=paths.account_list(creditorId=creditor_id),
-        object_update_id=creditor.account_list_latest_update_id,
+        object_type=types.accounts_list,
+        object_uri=paths.accounts_list(creditorId=creditor_id),
+        object_update_id=creditor.accounts_list_latest_update_id,
         added_at_ts=current_ts,
     )
 

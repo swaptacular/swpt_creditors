@@ -142,10 +142,10 @@ def test_get_wallet(client, creditor):
     assert log['first'] == '/creditors/2/log'
     assert log['forthcoming'] == '/creditors/2/log?prev=0'
     assert log['itemsType'] == 'LogEntry'
-    dt = data['transferList']
-    assert dt['uri'] == '/creditors/2/transfer-list'
-    ar = data['accountList']
-    assert ar['uri'] == '/creditors/2/account-list'
+    dt = data['transfersList']
+    assert dt['uri'] == '/creditors/2/transfers-list'
+    ar = data['accountsList']
+    assert ar['uri'] == '/creditors/2/accounts-list'
 
 
 def test_get_log_page(client, creditor):
@@ -161,15 +161,15 @@ def test_get_log_page(client, creditor):
     assert 'next' not in data
 
 
-def test_account_list_page(client, account):
-    r = client.get('/creditors/2222/account-list')
+def test_accounts_list_page(client, account):
+    r = client.get('/creditors/2222/accounts-list')
     assert r.status_code == 404
 
-    r = client.get('/creditors/2/account-list')
+    r = client.get('/creditors/2/accounts-list')
     assert r.status_code == 200
     data = r.get_json()
-    assert data['type'] == 'AccountList'
-    assert data['uri'] == '/creditors/2/account-list'
+    assert data['type'] == 'AccountsList'
+    assert data['uri'] == '/creditors/2/accounts-list'
     assert data['wallet'] == {'uri': '/creditors/2/wallet'}
     assert data['first'] == '/creditors/2/accounts/'
     assert data['itemsType'] == 'ObjectReference'
@@ -200,11 +200,11 @@ def test_account_list_page(client, account):
     assert len(entries) == 6
     assert [(e['objectType'], e['object']['uri']) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/'),
-        ('AccountList', '/creditors/2/account-list'),
+        ('AccountsList', '/creditors/2/accounts-list'),
         ('Account', '/creditors/2/accounts/9223372036854775809/'),
-        ('AccountList', '/creditors/2/account-list'),
+        ('AccountsList', '/creditors/2/accounts-list'),
         ('Account', '/creditors/2/accounts/9223372036854775808/'),
-        ('AccountList', '/creditors/2/account-list'),
+        ('AccountsList', '/creditors/2/accounts-list'),
     ]
     assert all([e['deleted'] is False for e in entries])
     assert all(['data' not in e for e in entries])
@@ -212,15 +212,15 @@ def test_account_list_page(client, account):
     assert all([iso8601.parse_date(e['addedAt']) not in e for e in entries])
 
 
-def test_transfer_list_page(client, account, creditor):
-    r = client.get('/creditors/2222/transfer-list')
+def test_transfers_list_page(client, account, creditor):
+    r = client.get('/creditors/2222/transfers-list')
     assert r.status_code == 404
 
-    r = client.get('/creditors/2/transfer-list')
+    r = client.get('/creditors/2/transfers-list')
     assert r.status_code == 200
     data = r.get_json()
-    assert data['type'] == 'TransferList'
-    assert data['uri'] == '/creditors/2/transfer-list'
+    assert data['type'] == 'TransfersList'
+    assert data['uri'] == '/creditors/2/transfers-list'
     assert data['wallet'] == {'uri': '/creditors/2/wallet'}
     assert data['first'] == '/creditors/2/transfers/'
     assert data['itemsType'] == 'ObjectReference'
@@ -263,13 +263,13 @@ def test_transfer_list_page(client, account, creditor):
     assert len(entries) == 8
     assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId')) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', 1),
-        ('AccountList', '/creditors/2/account-list', 2),
+        ('AccountsList', '/creditors/2/accounts-list', 2),
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', 1),
-        ('TransferList', '/creditors/2/transfer-list', 2),
+        ('TransfersList', '/creditors/2/transfers-list', 2),
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440002', 1),
-        ('TransferList', '/creditors/2/transfer-list', 3),
+        ('TransfersList', '/creditors/2/transfers-list', 3),
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440001', 1),
-        ('TransferList', '/creditors/2/transfer-list', 4),
+        ('TransfersList', '/creditors/2/transfers-list', 4),
     ]
 
 
@@ -325,7 +325,7 @@ def test_create_account(client, creditor):
     assert data1 == {
         'type': 'Account',
         'uri': '/creditors/2/accounts/1/',
-        'accountList': {'uri': '/creditors/2/account-list'},
+        'accountsList': {'uri': '/creditors/2/accounts-list'},
         'createdAt': createdAt,
         'debtor': {
             'type': 'DebtorIdentity',
@@ -407,7 +407,7 @@ def test_create_account(client, creditor):
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 2
-    assert entries[1]['objectType'] == 'AccountList'
+    assert entries[1]['objectType'] == 'AccountsList'
     e = entries[0]
     assert e['type'] == 'LogEntry'
     assert e['entryId'] == 1
@@ -451,7 +451,7 @@ def test_delete_account(client, account):
     })
     assert r.status_code == 200
 
-    r = client.get('/creditors/2/account-list')
+    r = client.get('/creditors/2/accounts-list')
     assert r.status_code == 200
     data = r.get_json()
     latest_update_id = data['latestUpdateId']
@@ -467,9 +467,9 @@ def test_delete_account(client, account):
     assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
             for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', 1, False),
-        ('AccountList', '/creditors/2/account-list', 2, False),
+        ('AccountsList', '/creditors/2/accounts-list', 2, False),
         ('AccountConfig', '/creditors/2/accounts/1/config', 2, False),
-        ('AccountList', '/creditors/2/account-list', 3, False),
+        ('AccountsList', '/creditors/2/accounts-list', 3, False),
         ('Account', '/creditors/2/accounts/1/', None, True),
         ('AccountConfig', '/creditors/2/accounts/1/config', None, True),
         ('AccountInfo', '/creditors/2/accounts/1/info', None, True),
@@ -479,7 +479,7 @@ def test_delete_account(client, account):
         ('AccountKnowledge', '/creditors/2/accounts/1/knowledge', None, True),
     ]
 
-    r = client.get('/creditors/2/account-list')
+    r = client.get('/creditors/2/accounts-list')
     assert r.status_code == 200
     data = r.get_json()
     assert data['latestUpdateId'] == latest_update_id + 1
@@ -535,7 +535,7 @@ def test_account_config(client, account):
     assert len(entries) == 3
     assert [(e['objectType'], e['object']['uri']) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/'),
-        ('AccountList', '/creditors/2/account-list'),
+        ('AccountsList', '/creditors/2/accounts-list'),
         ('AccountConfig', '/creditors/2/accounts/1/config'),
     ]
 
@@ -630,10 +630,10 @@ def test_account_display(client, account):
     assert len(entries) == 7
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', 1),
-        ('AccountList', '/creditors/2/account-list', 2),
+        ('AccountsList', '/creditors/2/accounts-list', 2),
         ('AccountDisplay', '/creditors/2/accounts/1/display', 2),
         ('Account', '/creditors/2/accounts/11/', 1),
-        ('AccountList', '/creditors/2/account-list', 3),
+        ('AccountsList', '/creditors/2/accounts-list', 3),
         ('AccountDisplay', '/creditors/2/accounts/1/display', 3),
         ('AccountDisplay', '/creditors/2/accounts/11/display', 2),
     ]
@@ -778,9 +778,9 @@ def test_account_exchange(client, account):
     assert len(entries) > 8
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries[:8]] == [
         ('Account', '/creditors/2/accounts/1/', 1),
-        ('AccountList', '/creditors/2/account-list', 2),
+        ('AccountsList', '/creditors/2/accounts-list', 2),
         ('Account', '/creditors/2/accounts/11/', 1),
-        ('AccountList', '/creditors/2/account-list', 3),
+        ('AccountsList', '/creditors/2/accounts-list', 3),
         ('AccountConfig', '/creditors/2/accounts/11/config', 2),
         ('AccountExchange', '/creditors/2/accounts/1/exchange', 2),
         ('AccountExchange', '/creditors/2/accounts/1/exchange', 3),
@@ -874,7 +874,7 @@ def test_account_knowledge(client, account):
     assert len(entries) == 4
     assert [(e['objectType'], e['object']['uri'], e['objectUpdateId']) for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', 1),
-        ('AccountList', '/creditors/2/account-list', 2),
+        ('AccountsList', '/creditors/2/accounts-list', 2),
         ('AccountKnowledge', '/creditors/2/accounts/1/knowledge', 2),
         ('AccountKnowledge', '/creditors/2/accounts/1/knowledge', 3),
     ]
@@ -1060,7 +1060,7 @@ def test_create_transfer(client, account):
     assert data['latestUpdateId'] == 1
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert 'result' not in data
-    assert data['transferList']['uri'] == '/creditors/2/transfer-list'
+    assert data['transfersList']['uri'] == '/creditors/2/transfers-list'
     assert iso8601.parse_date(data['checkupAt'])
     assert data['options'] == {
         'type': 'TransferOptions',
@@ -1105,10 +1105,10 @@ def test_create_transfer(client, account):
     assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
             for e in entries] == [
         ('Account', '/creditors/2/accounts/1/', 1, False),
-        ('AccountList', '/creditors/2/account-list', 2, False),
+        ('AccountsList', '/creditors/2/accounts-list', 2, False),
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', 1, False),
-        ('TransferList', '/creditors/2/transfer-list', 2, False),
+        ('TransfersList', '/creditors/2/transfers-list', 2, False),
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', 2, False),
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', None, True),
-        ('TransferList', '/creditors/2/transfer-list', 3, False),
+        ('TransfersList', '/creditors/2/transfers-list', 3, False),
     ]

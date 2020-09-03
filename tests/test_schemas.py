@@ -74,8 +74,8 @@ def test_serialize_wallet(app):
         'type': 'Wallet',
         'uri': '/creditors/1/wallet',
         'creditor': {'uri': '/creditors/1/'},
-        'accountList': {'uri': '/creditors/1/account-list'},
-        'transferList': {'uri': '/creditors/1/transfer-list'},
+        'accountsList': {'uri': '/creditors/1/accounts-list'},
+        'transfersList': {'uri': '/creditors/1/transfers-list'},
         'accountLookup': {'uri': '/creditors/1/account-lookup'},
         'debtorLookup': {'uri': '/creditors/1/debtor-lookup'},
         'createAccount': {'uri': '/creditors/1/accounts/'},
@@ -160,20 +160,20 @@ def test_serialize_log_entries_page(app):
     }
 
 
-def test_serialize_account_list(app):
+def test_serialize_accounts_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
         last_log_entry_id=1,
-        account_list_latest_update_id=1,
-        account_list_latest_update_ts=datetime(2020, 1, 1),
+        accounts_list_latest_update_id=1,
+        accounts_list_latest_update_ts=datetime(2020, 1, 1),
     )
-    als = schemas.AccountListSchema(context=context)
+    als = schemas.AccountsListSchema(context=context)
     assert als.dump(c) == {
-        'type': 'AccountList',
-        'uri': '/creditors/1/account-list',
+        'type': 'AccountsList',
+        'uri': '/creditors/1/accounts-list',
         'wallet': {'uri': '/creditors/1/wallet'},
         'itemsType': 'ObjectReference',
         'first': '/creditors/1/accounts/',
@@ -182,20 +182,20 @@ def test_serialize_account_list(app):
     }
 
 
-def test_serialize_transfer_list(app):
+def test_serialize_transfers_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at_ts=datetime(2019, 11, 30),
         status=0,
         deactivated_at_date=None,
         last_log_entry_id=1,
-        transfer_list_latest_update_id=1,
-        transfer_list_latest_update_ts=datetime(2020, 1, 1),
+        transfers_list_latest_update_id=1,
+        transfers_list_latest_update_ts=datetime(2020, 1, 1),
     )
-    tls = schemas.TransferListSchema(context=context)
+    tls = schemas.TransfersListSchema(context=context)
     assert tls.dump(c) == {
-        'type': 'TransferList',
-        'uri': '/creditors/1/transfer-list',
+        'type': 'TransfersList',
+        'uri': '/creditors/1/transfers-list',
         'wallet': {'uri': '/creditors/1/wallet'},
         'itemsType': 'ObjectReference',
         'first': '/creditors/1/transfers/',
@@ -790,7 +790,7 @@ def test_serialize_account(db_session):
     assert account_schema.dump(account) == {
         'type': 'Account',
         'uri': '/creditors/1/accounts/18446744073709551615/',
-        'accountList': {'uri': '/creditors/1/account-list'},
+        'accountsList': {'uri': '/creditors/1/accounts-list'},
         'createdAt': account.created_at_ts.isoformat(),
         'latestUpdateId': account.latest_update_id,
         'latestUpdateAt': account.latest_update_ts.isoformat(),
@@ -1466,7 +1466,7 @@ def test_serialize_transfer(app):
         "type": "Transfer",
         "uri": "/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000",
         "transferUuid": "123e4567-e89b-12d3-a456-426655440000",
-        "transferList": {"uri": "/creditors/2/transfer-list"},
+        "transfersList": {"uri": "/creditors/2/transfers-list"},
         "initiatedAt": "1970-01-01T00:00:00+00:00",
         "recipient": {
             "type": "AccountIdentity",
@@ -1501,7 +1501,7 @@ def test_serialize_transfer(app):
         "type": "Transfer",
         "uri": "/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000",
         "transferUuid": "123e4567-e89b-12d3-a456-426655440000",
-        "transferList": {"uri": "/creditors/2/transfer-list"},
+        "transfersList": {"uri": "/creditors/2/transfers-list"},
         "initiatedAt": "1970-01-01T00:00:00+00:00",
         "recipient": {
             "type": "AccountIdentity",
@@ -1530,7 +1530,7 @@ def test_serialize_transfer(app):
         "type": "Transfer",
         "uri": "/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000",
         "transferUuid": "123e4567-e89b-12d3-a456-426655440000",
-        "transferList": {"uri": "/creditors/2/transfer-list"},
+        "transfersList": {"uri": "/creditors/2/transfers-list"},
         "initiatedAt": "1970-01-01T00:00:00+00:00",
         "recipient": {
             "type": "AccountIdentity",
