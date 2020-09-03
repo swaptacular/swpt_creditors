@@ -46,23 +46,23 @@ class path_builder:
     def _url_for(name):
         return staticmethod(partial(url_for, name, _external=False))
 
-    creditor = _url_for('creditors.CreditorEndpoint')
     wallet = _url_for('creditors.WalletEndpoint')
+    creditor = _url_for('creditors.CreditorEndpoint')
     log_entries = _url_for('creditors.LogEntriesEndpoint')
-    accounts_list = _url_for('creditors.AccountsListEndpoint')
-    transfers_list = _url_for('creditors.TransfersListEndpoint')
+    debtor_lookup = _url_for('accounts.DebtorLookupEndpoint')
+    account_lookup = _url_for('accounts.AccountLookupEndpoint')
     account = _url_for('accounts.AccountEndpoint')
     account_info = _url_for('accounts.AccountInfoEndpoint')
-    account_ledger = _url_for('accounts.AccountLedgerEndpoint')
+    account_config = _url_for('accounts.AccountConfigEndpoint')
     account_display = _url_for('accounts.AccountDisplayEndpoint')
     account_exchange = _url_for('accounts.AccountExchangeEndpoint')
     account_knowledge = _url_for('accounts.AccountKnowledgeEndpoint')
-    account_config = _url_for('accounts.AccountConfigEndpoint')
+    account_ledger = _url_for('accounts.AccountLedgerEndpoint')
     account_ledger_entries = _url_for('accounts.AccountLedgerEntriesEndpoint')
+    accounts_list = _url_for('creditors.AccountsListEndpoint')
     accounts = _url_for('accounts.AccountsEndpoint')
-    account_lookup = _url_for('accounts.AccountLookupEndpoint')
-    debtor_lookup = _url_for('accounts.DebtorLookupEndpoint')
     transfer = _url_for('transfers.TransferEndpoint')
+    transfers_list = _url_for('creditors.TransfersListEndpoint')
     transfers = _url_for('transfers.TransfersEndpoint')
     committed_transfer = _build_committed_transfer_path
 
@@ -70,11 +70,11 @@ class path_builder:
 class schema_types:
     creditor = 'Creditor'
     account = 'Account'
-    account_knowledge = 'AccountKnowledge'
-    account_exchange = 'AccountExchange'
-    account_display = 'AccountDisplay'
-    account_config = 'AccountConfig'
     account_info = 'AccountInfo'
+    account_config = 'AccountConfig'
+    account_display = 'AccountDisplay'
+    account_exchange = 'AccountExchange'
+    account_knowledge = 'AccountKnowledge'
     account_ledger = 'AccountLedger'
     accounts_list = 'AccountsList'
     transfer = 'Transfer'

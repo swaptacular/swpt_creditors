@@ -26,10 +26,7 @@ class CreditorEndpoint(MethodView):
     def get(self, creditorId):
         """Return a creditor."""
 
-        creditor = procedures.get_creditor(creditorId)
-        if creditor is None:
-            abort(403)
-        return creditor
+        return procedures.get_creditor(creditorId) or abort(403)
 
     @creditors_api.arguments(CreditorCreationRequestSchema)
     @creditors_api.response(CreditorSchema(context=context), code=202)
@@ -47,6 +44,7 @@ class CreditorEndpoint(MethodView):
             creditor = procedures.create_new_creditor(creditorId, activate=creditor_creation_request['activate'])
         except procedures.CreditorExists:
             abort(409)
+
         return creditor
 
     @creditors_api.arguments(CreditorSchema)
@@ -83,10 +81,7 @@ class WalletEndpoint(MethodView):
 
         """
 
-        creditor = procedures.get_creditor(creditorId)
-        if creditor is None:
-            abort(404)
-        return creditor
+        return procedures.get_creditor(creditorId) or abort(404)
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
@@ -142,10 +137,7 @@ class AccountsListEndpoint(MethodView):
 
         """
 
-        creditor = procedures.get_creditor(creditorId)
-        if creditor is None:
-            abort(404)
-        return creditor
+        return procedures.get_creditor(creditorId) or abort(404)
 
 
 @creditors_api.route('/<i64:creditorId>/transfers-list', parameters=[CID])
@@ -160,7 +152,4 @@ class TransfersListEndpoint(MethodView):
 
         """
 
-        creditor = procedures.get_creditor(creditorId)
-        if creditor is None:
-            abort(404)
-        return creditor
+        return procedures.get_creditor(creditorId) or abort(404)
