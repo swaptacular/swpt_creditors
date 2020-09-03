@@ -22,7 +22,7 @@ class ConfigureAccountSignal(Signal):
     ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
     seqnum = db.Column(db.Integer, primary_key=True)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    config = db.Column(db.String, nullable=False)
+    config = db.Column(db.String, nullable=False, default='')
     config_flags = db.Column(db.Integer, nullable=False)
     __table_args__ = (
         db.CheckConstraint(negligible_amount >= 0.0),

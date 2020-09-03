@@ -293,7 +293,6 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         seqnum=0,
         negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
         config_flags=DEFAULT_CONFIG_FLAGS,
-        config='',
     ))
 
     return account

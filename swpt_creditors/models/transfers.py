@@ -1,5 +1,6 @@
 from __future__ import annotations
 from sqlalchemy.dialects import postgresql as pg
+from sqlalchemy.sql.expression import null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc
 
@@ -49,8 +50,6 @@ class CommittedTransfer(db.Model):
         db.Index('idx_committed_transfer_pk', creditor_id, debtor_id, creation_date, transfer_number, unique=True),
     )
 
-    account_data = db.relationship('AccountData')
-
 
 class PendingLedgerUpdate(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -99,7 +98,7 @@ class RunningTransfer(db.Model):
         db.CheckConstraint(total_locked_amount >= 0),
         db.CheckConstraint(min_interest_rate >= -100.0),
         db.CheckConstraint(latest_update_id > 0),
-        db.CheckConstraint(amount >= 0),
+        db.CheckConstraint(or_(error_code == null(), finalized_at_ts != null())),
         db.Index('idx_coordinator_request_id', creditor_id, coordinator_request_id, unique=True),
         {
             'comment': 'Represents an initiated direct transfer. A new row is inserted when '

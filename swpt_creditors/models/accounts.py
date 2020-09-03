@@ -6,6 +6,7 @@ from sqlalchemy.sql.expression import null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, MAX_INT64, MIN_INT64, TS0, DATE0, SECONDS_IN_YEAR
 
+DEFAULT_STATUS_FLAGS = 0
 DEFAULT_CONFIG_FLAGS = 0
 DEFAULT_NEGLIGIBLE_AMOUNT = 1e30
 
@@ -64,7 +65,7 @@ class AccountData(db.Model):
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     transfer_note_max_bytes = db.Column(db.Integer, nullable=False, default=0)
-    status_flags = db.Column(db.Integer, nullable=False, default=STATUS_UNREACHABLE_FLAG)
+    status_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_STATUS_FLAGS | STATUS_UNREACHABLE_FLAG)
     account_id = db.Column(db.String, nullable=False, default='')
     debtor_info_iri = db.Column(db.String)
     info_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
@@ -216,7 +217,7 @@ class LedgerEntry(db.Model):
     transfer_number = db.Column(db.BigInteger)
     aquired_amount = db.Column(db.BigInteger, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
-    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __mapper_args__ = {
         'primary_key': [creditor_id, debtor_id, entry_id],
     }
@@ -228,6 +229,10 @@ class LedgerEntry(db.Model):
         ),
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(entry_id > 0),
+        db.CheckConstraint(or_(
+            and_(creation_date == null(), transfer_number == null()),
+            and_(creation_date != null(), transfer_number != null()),
+        )),
 
         # TODO: The rest of the columns are not be part of the primary
         #       key, but should be included in the primary key index

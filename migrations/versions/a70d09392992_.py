@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c588675ccda6
+Revision ID: a70d09392992
 Revises: 8d8c816257ce
-Create Date: 2020-09-02 21:59:26.144219
+Create Date: 2020-09-03 15:53:01.071731
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c588675ccda6'
+revision = 'a70d09392992'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -131,7 +131,7 @@ def upgrade():
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount >= 0'),
-    sa.CheckConstraint('amount >= 0'),
+    sa.CheckConstraint('error_code IS NULL OR finalized_at_ts IS NOT NULL'),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('min_interest_rate >= -100.0'),
     sa.CheckConstraint('total_locked_amount >= 0'),
@@ -262,6 +262,7 @@ def upgrade():
     sa.Column('aquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('creation_date IS NULL AND transfer_number IS NULL OR creation_date IS NOT NULL AND transfer_number IS NOT NULL'),
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE')

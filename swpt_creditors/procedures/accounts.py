@@ -137,7 +137,6 @@ def update_account_config(
         seqnum=data.last_config_seqnum,
         negligible_amount=data.negligible_amount,
         config_flags=data.config_flags,
-        config='',
     ))
 
     return data
@@ -551,7 +550,6 @@ def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: in
             seqnum=0,
             negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
             config_flags=DEFAULT_CONFIG_FLAGS | scheduled_for_deletion_flag,
-            config='',
         ))
 
 
