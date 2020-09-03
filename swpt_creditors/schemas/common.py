@@ -11,6 +11,40 @@ is present, there might be remaining items, even when the `items` array is \
 empty. This can be a relative URI.'
 
 
+class schema_types:
+    paginated_list = 'PaginatedList'
+    paginated_stream = 'PaginatedStream'
+    object_references_page = 'ObjectReferencesPage'
+    object_reference = 'ObjectReference'
+    account_identity = 'AccountIdentity'
+    debtor_identity = 'DebtorIdentity'
+    debtor_info = 'DebtorInfo'
+    currency_peg = 'CurrencyPeg'
+    wallet = 'Wallet'
+    creditor_creation_request = 'CreditorCreationRequest'
+    creditor = 'Creditor'
+    log_entries_page = 'LogEntriesPage'
+    log_entry = 'LogEntry'
+    accounts_list = 'AccountsList'
+    account = 'Account'
+    account_info = 'AccountInfo'
+    account_config = 'AccountConfig'
+    account_display = 'AccountDisplay'
+    account_exchange = 'AccountExchange'
+    account_knowledge = 'AccountKnowledge'
+    account_ledger = 'AccountLedger'
+    ledger_entries_page = 'LedgerEntriesPage'
+    ledger_entry = 'LedgerEntry'
+    transfers_list = 'TransfersList'
+    transfer_creation_request = 'TransferCreationRequest'
+    transfer_cancelation_request = 'TransferCancelationRequest'
+    transfer = 'Transfer'
+    transfer_options = 'TransferOptions'
+    transfer_result = 'TransferResult'
+    transfer_error = 'TransferError'
+    committed_transfer = 'CommittedTransfer'
+
+
 class ValidateTypeMixin:
     @validates('type')
     def validate_type(self, value):
@@ -33,7 +67,7 @@ class PaginationParametersSchema(Schema):
 
 class PaginatedListSchema(Schema):
     type = fields.Function(
-        lambda obj: 'PaginatedList',
+        lambda obj: schema_types.paginated_list,
         required=True,
         type='string',
         description='The type of this object.',
@@ -67,7 +101,7 @@ class PaginatedListSchema(Schema):
 
 class PaginatedStreamSchema(Schema):
     type = fields.Function(
-        lambda obj: 'PaginatedStream',
+        lambda obj: schema_types.paginated_stream,
         required=True,
         type='string',
         description='The type of this object.',
@@ -136,7 +170,7 @@ class ObjectReferencesPageSchema(Schema):
         example='/creditors/2/accounts/',
     )
     type = fields.Function(
-        lambda obj: 'ObjectReferencesPage',
+        lambda obj: schema_types.object_references_page,
         required=True,
         type='string',
         description='The type of this object.',
@@ -165,8 +199,8 @@ class ObjectReferencesPageSchema(Schema):
 
 class AccountIdentitySchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing='AccountIdentity',
-        default='AccountIdentity',
+        missing=schema_types.account_identity,
+        default=schema_types.account_identity,
         description='The type of this object.',
         example='AccountIdentity',
     )

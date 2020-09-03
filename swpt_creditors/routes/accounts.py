@@ -7,7 +7,7 @@ from swpt_lib.endpoints import get_server_name, get_url_scheme
 from swpt_lib.utils import i64_to_u64, u64_to_i64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.schemas import (
-    DebtorIdentitySchema, AccountIdentitySchema, AccountSchema,
+    examples, DebtorIdentitySchema, AccountIdentitySchema, AccountSchema,
     AccountConfigSchema, AccountDisplaySchema, AccountExchangeSchema,
     AccountKnowledgeSchema, AccountInfoSchema, AccountLedgerSchema,
     ObjectReferencesPageSchema, AccountsPaginationParamsSchema,
@@ -52,7 +52,7 @@ accounts_api = Blueprint(
 
 @accounts_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])
 class AccountLookupEndpoint(MethodView):
-    @accounts_api.arguments(AccountIdentitySchema, example=specs.ACCOUNT_IDENTITY_EXAMPLE)
+    @accounts_api.arguments(AccountIdentitySchema, example=examples.ACCOUNT_IDENTITY_EXAMPLE)
     @accounts_api.response(DebtorIdentitySchema)
     @accounts_api.doc(operationId='accountLookup')
     def post(self, account_identity, creditorId):
@@ -75,7 +75,7 @@ class AccountLookupEndpoint(MethodView):
 
 @accounts_api.route('/<i64:creditorId>/debtor-lookup', parameters=[CID])
 class DebtorLookupEndpoint(MethodView):
-    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
+    @accounts_api.arguments(DebtorIdentitySchema, example=examples.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='debtorLookup',
                       responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
@@ -138,7 +138,7 @@ class AccountsEndpoint(MethodView):
             'next': f'?prev={i64_to_u64(debtor_ids[-1])}',
         }
 
-    @accounts_api.arguments(DebtorIdentitySchema, example=specs.DEBTOR_IDENTITY_EXAMPLE)
+    @accounts_api.arguments(DebtorIdentitySchema, example=examples.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(AccountSchema(context=context), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
@@ -434,7 +434,7 @@ class AccountLedgerEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/entries', parameters=[CID, DID])
 class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(LedgerEntriesPaginationParamsSchema, location='query')
-    @accounts_api.response(LedgerEntriesPageSchema(context=context), example=specs.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
+    @accounts_api.response(LedgerEntriesPageSchema(context=context), example=examples.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
     @accounts_api.doc(operationId='getAccountLedgerEntriesPage')
     def get(self, params, creditorId, debtorId):
         """Return a collection of ledger entries for a given account.

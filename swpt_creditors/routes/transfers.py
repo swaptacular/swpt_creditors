@@ -3,7 +3,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib.swpt_uris import parse_account_uri
 from swpt_creditors.schemas import (
-    TransferCreationRequestSchema, TransferSchema, CommittedTransferSchema,
+    examples, TransferCreationRequestSchema, TransferSchema, CommittedTransferSchema,
     TransferCancelationRequestSchema, ObjectReferencesPageSchema, TransfersPaginationParamsSchema,
 )
 from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
@@ -24,7 +24,7 @@ transfers_api = Blueprint(
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
 class TransfersEndpoint(MethodView):
     @transfers_api.arguments(TransfersPaginationParamsSchema, location='query')
-    @transfers_api.response(ObjectReferencesPageSchema(context=context), example=specs.TRANSFER_LINKS_EXAMPLE)
+    @transfers_api.response(ObjectReferencesPageSchema(context=context), example=examples.TRANSFER_LINKS_EXAMPLE)
     @transfers_api.doc(operationId='getTransfersPage')
     def get(self, params, creditorId):
         """Return a collection of transfers, initiated by a given creditor.

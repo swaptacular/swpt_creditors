@@ -67,21 +67,6 @@ class path_builder:
     committed_transfer = _build_committed_transfer_path
 
 
-class schema_types:
-    creditor = 'Creditor'
-    account = 'Account'
-    account_info = 'AccountInfo'
-    account_config = 'AccountConfig'
-    account_display = 'AccountDisplay'
-    account_exchange = 'AccountExchange'
-    account_knowledge = 'AccountKnowledge'
-    account_ledger = 'AccountLedger'
-    accounts_list = 'AccountsList'
-    transfer = 'Transfer'
-    transfers_list = 'TransfersList'
-    committed_transfer = 'CommittedTransfer'
-
-
 context = {
     'paths': path_builder,
     'calc_checkup_datetime': calc_checkup_datetime,

@@ -4,13 +4,13 @@ from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64
 from .common import (
     ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, MutableResourceSchema,
-    ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
+    schema_types, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
 
 
 class CreditorCreationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing='CreditorCreationRequest',
+        missing=schema_types.creditor_creation_request,
         load_only=True,
         description='The type of this object.',
         example='CreditorCreationRequest',
@@ -31,8 +31,8 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         example='/creditors/2/',
     )
     type = fields.String(
-        missing='Creditor',
-        default='Creditor',
+        missing=schema_types.creditor,
+        default=schema_types.creditor,
         description='The type of this object.',
         example='Creditor',
     )
@@ -63,7 +63,7 @@ class AccountsListSchema(PaginatedListSchema, MutableResourceSchema):
         example='/creditors/2/accounts-list',
     )
     type = fields.Function(
-        lambda obj: 'AccountsList',
+        lambda obj: schema_types.accounts_list,
         required=True,
         type='string',
         description='The type of this object.',
@@ -85,7 +85,7 @@ class AccountsListSchema(PaginatedListSchema, MutableResourceSchema):
         obj.uri = paths.accounts_list(creditorId=obj.creditor_id)
         obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.first = paths.accounts(creditorId=obj.creditor_id)
-        obj.items_type = 'ObjectReference'
+        obj.items_type = schema_types.object_reference
         obj.latest_update_id = obj.accounts_list_latest_update_id
         obj.latest_update_ts = obj.accounts_list_latest_update_ts
 
@@ -101,7 +101,7 @@ class TransfersListSchema(PaginatedListSchema, MutableResourceSchema):
         example='/creditors/2/transfers-list',
     )
     type = fields.Function(
-        lambda obj: 'TransfersList',
+        lambda obj: schema_types.transfers_list,
         required=True,
         type='string',
         description='The type of this object.',
@@ -123,7 +123,7 @@ class TransfersListSchema(PaginatedListSchema, MutableResourceSchema):
         obj.uri = paths.transfers_list(creditorId=obj.creditor_id)
         obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.first = paths.transfers(creditorId=obj.creditor_id)
-        obj.items_type = 'ObjectReference'
+        obj.items_type = schema_types.object_reference
         obj.latest_update_id = obj.transfers_list_latest_update_id
         obj.latest_update_ts = obj.transfers_list_latest_update_ts
 
@@ -139,7 +139,7 @@ class WalletSchema(Schema):
         example='/creditors/2/wallet',
     )
     type = fields.Function(
-        lambda obj: 'Wallet',
+        lambda obj: schema_types.wallet,
         required=True,
         type='string',
         description='The type of this object.',
@@ -242,7 +242,7 @@ class WalletSchema(Schema):
         obj.create_transfer = {'uri': paths.transfers(creditorId=obj.creditor_id)}
         log_path = paths.log_entries(creditorId=obj.creditor_id)
         obj.log = {
-            'items_type': 'LogEntry',
+            'items_type': schema_types.log_entry,
             'first': log_path,
             'forthcoming': f'{log_path}?prev={obj.last_log_entry_id}',
         }
@@ -252,7 +252,7 @@ class WalletSchema(Schema):
 
 class LogEntrySchema(Schema):
     type = fields.Function(
-        lambda obj: 'LogEntry',
+        lambda obj: schema_types.log_entry,
         required=True,
         type='string',
         description='The type of this object.',
@@ -349,7 +349,7 @@ class LogEntriesPageSchema(Schema):
         example='/creditors/2/log',
     )
     type = fields.Function(
-        lambda obj: 'LogEntriesPage',
+        lambda obj: schema_types.log_entries_page,
         required=True,
         type='string',
         description='The type of this object.',

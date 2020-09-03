@@ -2,7 +2,7 @@ from flask import current_app, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import (
-    CreditorSchema, CreditorCreationRequestSchema, WalletSchema,
+    examples, CreditorSchema, CreditorCreationRequestSchema, WalletSchema,
     LogEntriesPageSchema, LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema,
 )
 from swpt_creditors.specs import CID
@@ -87,7 +87,7 @@ class WalletEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
 class LogEntriesEndpoint(MethodView):
     @creditors_api.arguments(LogPaginationParamsSchema, location='query')
-    @creditors_api.response(LogEntriesPageSchema(context=context), example=specs.LOG_ENTRIES_EXAMPLE)
+    @creditors_api.response(LogEntriesPageSchema(context=context), example=examples.LOG_ENTRIES_EXAMPLE)
     @creditors_api.doc(operationId='getLogPage')
     def get(self, params, creditorId):
         """Return a collection of creditor's recent log entries.
@@ -127,7 +127,7 @@ class LogEntriesEndpoint(MethodView):
 
 @creditors_api.route('/<i64:creditorId>/accounts-list', parameters=[CID])
 class AccountsListEndpoint(MethodView):
-    @creditors_api.response(AccountsListSchema(context=context), example=specs.ACCOUNTS_LIST_EXAMPLE)
+    @creditors_api.response(AccountsListSchema(context=context), example=examples.ACCOUNTS_LIST_EXAMPLE)
     @creditors_api.doc(operationId='getAccountsList')
     def get(self, creditorId):
         """Return a paginated list of links to all accounts belonging to a
@@ -142,7 +142,7 @@ class AccountsListEndpoint(MethodView):
 
 @creditors_api.route('/<i64:creditorId>/transfers-list', parameters=[CID])
 class TransfersListEndpoint(MethodView):
-    @creditors_api.response(TransfersListSchema(context=context), example=specs.TRANSFERS_LIST_EXAMPLE)
+    @creditors_api.response(TransfersListSchema(context=context), example=examples.TRANSFERS_LIST_EXAMPLE)
     @creditors_api.doc(operationId='getTransfersList')
     def get(self, creditorId):
         """Return a paginated list of links to all transfers belonging to a
