@@ -9,7 +9,7 @@ from swpt_creditors.models import (
     AccountData, PendingLogEntry, RunningTransfer, CommittedTransfer,
     PrepareTransferSignal, FinalizeTransferSignal, MAX_INT32, MIN_INT64, MAX_INT64,
     TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX, SC_CANCELED_BY_THE_SENDER,
-    SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_UNEXPECTED_ERROR
+    SC_UNEXPECTED_ERROR
 )
 from .common import get_paths_and_types
 from .accounts import ensure_pending_ledger_update
