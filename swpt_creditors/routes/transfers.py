@@ -39,7 +39,7 @@ class TransfersEndpoint(MethodView):
 
         n = current_app.config['APP_TRANSFERS_PER_PAGE']
         transfer_uuids = procedures.get_creditor_transfer_uuids(creditorId, count=n, prev=params.get('prev'))
-        items = [{'uri': f'{uuid}'} for uuid in transfer_uuids]
+        items = [{'uri': str(uuid)} for uuid in transfer_uuids]
 
         if len(transfer_uuids) < n:
             # The last page does not have a 'next' link.
@@ -143,7 +143,6 @@ class TransferEndpoint(MethodView):
         """
 
         inspect_ops.decrement_transfer_number(creditorId, transferUuid)
-
         try:
             procedures.delete_running_transfer(creditorId, transferUuid)
         except procedures.TransferDoesNotExist:
