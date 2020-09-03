@@ -13,11 +13,11 @@ from swpt_creditors.schemas import (
     ObjectReferencesPageSchema, AccountsPaginationParamsSchema,
     LedgerEntriesPaginationParamsSchema, LedgerEntriesPageSchema,
 )
-from swpt_creditors.specs import DID, CID
-from swpt_creditors import specs
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
 from .common import context
+from .specs import DID, CID
+from . import specs
 
 
 def _parse_peg_account_uri(creditor_id: int, base_url: str, uri: str) -> int:

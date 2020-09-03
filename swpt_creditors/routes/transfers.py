@@ -6,11 +6,11 @@ from swpt_creditors.schemas import (
     examples, TransferCreationRequestSchema, TransferSchema, CommittedTransferSchema,
     TransferCancelationRequestSchema, ObjectReferencesPageSchema, TransfersPaginationParamsSchema,
 )
-from swpt_creditors.specs import DID, CID, TID, TRANSFER_UUID
-from swpt_creditors import specs
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
 from .common import context, parse_transfer_slug
+from .specs import DID, CID, TID, TRANSFER_UUID
+from . import specs
 
 
 transfers_api = Blueprint(

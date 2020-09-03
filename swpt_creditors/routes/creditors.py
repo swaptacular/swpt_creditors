@@ -5,10 +5,10 @@ from swpt_creditors.schemas import (
     examples, CreditorSchema, CreditorCreationRequestSchema, WalletSchema,
     LogEntriesPageSchema, LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema,
 )
-from swpt_creditors.specs import CID
-from swpt_creditors import specs
 from swpt_creditors import procedures
 from .common import context
+from .specs import CID
+from . import specs
 
 
 creditors_api = Blueprint(
