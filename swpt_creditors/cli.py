@@ -55,11 +55,6 @@ def subscribe(queue_name):  # pragma: no cover
 def process_log_entries(threads):
     """Process all pending log entries."""
 
-    # TODO: SQLAlchemy's performance (it is CPU bound!) might be
-    # insufficient if we have a highly perfomant database server. In
-    # this case we should either distribute the processing to several
-    # machines, or improve on python's code performance.
-
     threads = threads or int(environ.get('APP_PROCESS_LOG_ENTRIES_THREADS', '1'))
     app = current_app._get_current_object()
 
@@ -87,11 +82,6 @@ def process_log_entries(threads):
 @click.option('-b', '--burst', type=int, help='The number of transfers to process in a single database transaction.')
 def process_ledger_updates(threads, burst):
     """Process all pending ledger updates."""
-
-    # TODO: SQLAlchemy's performance (it is CPU bound!) might be
-    # insufficient if we have a highly perfomant database server. In
-    # this case we should either distribute the processing to several
-    # machines, or improve on python's code performance.
 
     threads = threads or int(environ.get('APP_PROCESS_LEDGER_UPDATES_THREADS', '1'))
     burst = burst or int(environ.get('APP_PROCESS_LEDGER_UPDATES_BURST', '1000'))
