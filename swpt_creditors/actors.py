@@ -1,8 +1,9 @@
 import iso8601
 from datetime import date, timedelta
+from flask import current_app
 from swpt_creditors.extensions import broker, APP_QUEUE_NAME
 from swpt_creditors import procedures
-from flask import current_app
+from swpt_creditors.models import CT_DIRECT
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
@@ -149,7 +150,7 @@ def on_rejected_direct_transfer_signal(
         ts: str,
         *args, **kwargs) -> None:
 
-    assert coordinator_type == 'direct'
+    assert coordinator_type == CT_DIRECT
     procedures.process_rejected_direct_transfer_signal(
         coordinator_id,
         coordinator_request_id,
@@ -176,7 +177,7 @@ def on_prepared_direct_transfer_signal(
         ts: str,
         *args, **kwargs) -> None:
 
-    assert coordinator_type == 'direct'
+    assert coordinator_type == CT_DIRECT
     procedures.process_prepared_direct_transfer_signal(
         debtor_id,
         creditor_id,
@@ -204,7 +205,7 @@ def on_finalized_direct_transfer_signal(
         ts: str,
         *args, **kwargs) -> None:
 
-    assert coordinator_type == 'direct'
+    assert coordinator_type == CT_DIRECT
     procedures.process_finalized_direct_transfer_signal(
         debtor_id,
         creditor_id,

@@ -56,12 +56,12 @@ ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
 ]
 
 
-def init(path_builder, schema_types):
+def init(path_builder, type_registry):
     """"Must be called before using any of the functions in the package."""
 
     global paths, types
     paths = path_builder
-    types = schema_types
+    types = type_registry
 
 
 def get_paths_and_types():

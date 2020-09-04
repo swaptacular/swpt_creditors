@@ -1,7 +1,7 @@
 from __future__ import annotations
 from marshmallow import Schema, fields
 from swpt_creditors.extensions import db
-from .common import Signal
+from .common import Signal, CT_DIRECT
 
 
 class ConfigureAccountSignal(Signal):
@@ -36,7 +36,7 @@ class PrepareTransferSignal(Signal):
     class __marshmallow__(Schema):
         creditor_id = fields.Integer()
         debtor_id = fields.Integer()
-        coordinator_type = fields.Constant('direct')
+        coordinator_type = fields.Constant(CT_DIRECT)
         coordinator_id = fields.Integer(attribute='creditor_id', dump_only=True)
         coordinator_request_id = fields.Integer()
         min_locked_amount = fields.Constant(0)
@@ -63,7 +63,7 @@ class FinalizeTransferSignal(Signal):
         creditor_id = fields.Integer()
         debtor_id = fields.Integer()
         transfer_id = fields.Integer()
-        coordinator_type = fields.Constant('direct')
+        coordinator_type = fields.Constant(CT_DIRECT)
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
         committed_amount = fields.Integer()

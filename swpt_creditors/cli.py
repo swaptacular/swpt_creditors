@@ -109,9 +109,8 @@ def process_ledger_updates(threads, burst):
             logger.exception('Caught error while processing ledger updates.')
 
     def process_ledger_update(creditor_id, debtor_id):
-        while True:
-            if procedures.process_pending_ledger_update(creditor_id, debtor_id, max_count=burst):
-                return
+        while not procedures.process_pending_ledger_update(creditor_id, debtor_id, max_count=burst):
+            pass
 
     pool = ThreadPool(threads, initializer=push_app_context)
     for account_pk in procedures.get_pending_ledger_updates():

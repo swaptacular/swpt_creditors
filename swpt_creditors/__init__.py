@@ -71,7 +71,7 @@ def create_app(config_dict={}):
     from swpt_lib.utils import Int64Converter
     from .extensions import db, migrate, broker, api
     from .routes import creditors_api, accounts_api, transfers_api, path_builder
-    from .schemas import schema_types
+    from .schemas import type_registry
     from .cli import swpt_creditors
     from . import procedures
     from . import models  # noqa
@@ -92,5 +92,5 @@ def create_app(config_dict={}):
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)
     app.cli.add_command(swpt_creditors)
-    procedures.init(path_builder, schema_types)
+    procedures.init(path_builder, type_registry)
     return app

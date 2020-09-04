@@ -10,7 +10,7 @@ from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES
 from .common import (
-    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, schema_types,
+    ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, type_registry,
     MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
 )
 
@@ -19,8 +19,8 @@ URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing=schema_types.debtor_identity,
-        default=schema_types.debtor_identity,
+        missing=type_registry.debtor_identity,
+        default=type_registry.debtor_identity,
         description='The type of this object.',
         example='DebtorIdentity',
     )
@@ -49,8 +49,8 @@ class DebtorIdentitySchema(ValidateTypeMixin, Schema):
 
 class DebtorInfoSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing=schema_types.debtor_info,
-        default=schema_types.debtor_info,
+        missing=type_registry.debtor_info,
+        default=type_registry.debtor_info,
         description='The type of this object.',
         example='DebtorInfo',
     )
@@ -84,8 +84,8 @@ class DebtorInfoSchema(ValidateTypeMixin, Schema):
 
 class CurrencyPegSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing=schema_types.currency_peg,
-        default=schema_types.currency_peg,
+        missing=type_registry.currency_peg,
+        default=type_registry.currency_peg,
         description='The type of this object.',
         example='CurrencyPeg',
     )
@@ -114,7 +114,7 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
 
 class LedgerEntrySchema(Schema):
     type = fields.Function(
-        lambda obj: schema_types.ledger_entry,
+        lambda obj: type_registry.ledger_entry,
         required=True,
         type='string',
         description='The type of this object.',
@@ -197,7 +197,7 @@ class LedgerEntriesPageSchema(Schema):
         example='/creditors/2/accounts/1/entries?prev=124',
     )
     type = fields.Function(
-        lambda obj: schema_types.ledger_entries_page,
+        lambda obj: type_registry.ledger_entries_page,
         required=True,
         type='string',
         description='The type of this object.',
@@ -231,7 +231,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         example='/creditors/2/accounts/1/ledger',
     )
     type = fields.Function(
-        lambda obj: schema_types.account_ledger,
+        lambda obj: type_registry.account_ledger,
         required=True,
         type='string',
         description='The type of this object.',
@@ -305,7 +305,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         entries_path = paths.account_ledger_entries(creditorId=obj.creditor_id, debtorId=obj.debtor_id)
         obj.next_entry_id = obj.ledger_last_entry_id + 1
         obj.entries = {
-            'items_type': schema_types.ledger_entry,
+            'items_type': type_registry.ledger_entry,
             'first': f'{entries_path}?prev={obj.next_entry_id}'
         }
 
@@ -321,7 +321,7 @@ class AccountInfoSchema(MutableResourceSchema):
         example='/creditors/2/accounts/1/info',
     )
     type = fields.Function(
-        lambda obj: schema_types.account_info,
+        lambda obj: type_registry.account_info,
         required=True,
         type='string',
         description='The type of this object.',
@@ -433,8 +433,8 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         example='/creditors/2/accounts/1/knowledge',
     )
     type = fields.String(
-        missing=schema_types.account_knowledge,
-        default=schema_types.account_knowledge,
+        missing=type_registry.account_knowledge,
+        default=type_registry.account_knowledge,
         description='The type of this object.',
         example='AccountKnowledge',
     )
@@ -515,7 +515,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         stored_data.pop('latestUpdateId', None)
 
         return {
-            'type': schema_types.account_knowledge,
+            'type': type_registry.account_knowledge,
             'latest_update_id': obj['latest_update_id'],
             'data': stored_data,
         }
@@ -530,8 +530,8 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
         example='/creditors/2/accounts/1/config',
     )
     type = fields.String(
-        missing=schema_types.account_config,
-        default=schema_types.account_config,
+        missing=type_registry.account_config,
+        default=type_registry.account_config,
         description='The type of this object.',
         example='AccountConfig',
     )
@@ -600,8 +600,8 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         example='/creditors/2/accounts/1/exchange',
     )
     type = fields.String(
-        missing=schema_types.account_exchange,
-        default=schema_types.account_exchange,
+        missing=type_registry.account_exchange,
+        default=type_registry.account_exchange,
         description='The type of this object.',
         example='AccountExchange',
     )
@@ -696,8 +696,8 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
         example='/creditors/2/accounts/1/display',
     )
     type = fields.String(
-        missing=schema_types.account_display,
-        default=schema_types.account_display,
+        missing=type_registry.account_display,
+        default=type_registry.account_display,
         description='The type of this object.',
         example='AccountDisplay',
     )
@@ -791,7 +791,7 @@ class AccountSchema(MutableResourceSchema):
         example='/creditors/2/accounts/1/',
     )
     type = fields.Function(
-        lambda obj: schema_types.account,
+        lambda obj: type_registry.account,
         required=True,
         type='string',
         description='The type of this object.',

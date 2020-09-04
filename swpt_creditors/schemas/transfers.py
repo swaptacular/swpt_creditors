@@ -6,11 +6,12 @@ from swpt_lib.utils import i64_to_u64
 from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import (
-    MAX_INT64, TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
+    MAX_INT64, CT_DIRECT, TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX,
+    SC_INSUFFICIENT_AVAILABLE_AMOUNT,
 )
 from .common import (
     ObjectReferenceSchema, AccountIdentitySchema, ValidateTypeMixin, MutableResourceSchema,
-    schema_types, URI_DESCRIPTION,
+    type_registry, URI_DESCRIPTION,
 )
 
 
@@ -28,7 +29,7 @@ def _make_invalid_account_uri(debtor_id: int) -> str:
 
 class TransferErrorSchema(Schema):
     type = fields.Function(
-        lambda obj: schema_types.transfer_error,
+        lambda obj: type_registry.transfer_error,
         required=True,
         type='string',
         description='The type of this object.',
@@ -80,8 +81,8 @@ class TransferErrorSchema(Schema):
 
 class TransferOptionsSchema(Schema):
     type = fields.String(
-        missing=schema_types.transfer_options,
-        default=schema_types.transfer_options,
+        missing=type_registry.transfer_options,
+        default=type_registry.transfer_options,
         description='The type of this object.',
         example='TransferOptions',
     )
@@ -107,7 +108,7 @@ class TransferOptionsSchema(Schema):
 
 class TransferResultSchema(Schema):
     type = fields.Function(
-        lambda obj: schema_types.transfer_result,
+        lambda obj: type_registry.transfer_result,
         required=True,
         type='string',
         description='The type of this object.',
@@ -145,8 +146,8 @@ class TransferResultSchema(Schema):
 
 class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing=schema_types.transfer_creation_request,
-        default=schema_types.transfer_creation_request,
+        missing=type_registry.transfer_creation_request,
+        default=type_registry.transfer_creation_request,
         description='The type of this object.',
         example='TransferCreationRequest',
     )
@@ -212,7 +213,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         example='/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000',
     )
     type = fields.Function(
-        lambda obj: schema_types.transfer,
+        lambda obj: type_registry.transfer,
         required=True,
         type='string',
         description='The type of this object.',
@@ -311,8 +312,8 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
 
 class TransferCancelationRequestSchema(Schema):
     type = fields.String(
-        missing=schema_types.transfer_cancelation_request,
-        default=schema_types.transfer_cancelation_request,
+        missing=type_registry.transfer_cancelation_request,
+        default=type_registry.transfer_cancelation_request,
         description='The type of this object.',
         example='TransferCancelationRequest',
     )
@@ -327,7 +328,7 @@ class CommittedTransferSchema(Schema):
         example='/creditors/2/accounts/1/transfers/18444-999',
     )
     type = fields.Function(
-        lambda obj: schema_types.committed_transfer,
+        lambda obj: type_registry.committed_transfer,
         required=True,
         type='string',
         description='The type of this object.',
@@ -421,7 +422,7 @@ class CommittedTransferSchema(Schema):
         obj.recipient = {'uri': recipient_uri}
 
         coordinator_type = obj.coordinator_type
-        if coordinator_type != 'direct':
+        if coordinator_type != CT_DIRECT:
             obj.rationale = coordinator_type
 
         return obj

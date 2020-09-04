@@ -11,7 +11,7 @@ is present, there might be remaining items, even when the `items` array is \
 empty. This can be a relative URI.'
 
 
-class schema_types:
+class type_registry:
     paginated_list = 'PaginatedList'
     paginated_stream = 'PaginatedStream'
     object_references_page = 'ObjectReferencesPage'
@@ -67,7 +67,7 @@ class PaginationParametersSchema(Schema):
 
 class PaginatedListSchema(Schema):
     type = fields.Function(
-        lambda obj: schema_types.paginated_list,
+        lambda obj: type_registry.paginated_list,
         required=True,
         type='string',
         description='The type of this object.',
@@ -101,7 +101,7 @@ class PaginatedListSchema(Schema):
 
 class PaginatedStreamSchema(Schema):
     type = fields.Function(
-        lambda obj: schema_types.paginated_stream,
+        lambda obj: type_registry.paginated_stream,
         required=True,
         type='string',
         description='The type of this object.',
@@ -170,7 +170,7 @@ class ObjectReferencesPageSchema(Schema):
         example='/creditors/2/accounts/',
     )
     type = fields.Function(
-        lambda obj: schema_types.object_references_page,
+        lambda obj: type_registry.object_references_page,
         required=True,
         type='string',
         description='The type of this object.',
@@ -199,8 +199,8 @@ class ObjectReferencesPageSchema(Schema):
 
 class AccountIdentitySchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing=schema_types.account_identity,
-        default=schema_types.account_identity,
+        missing=type_registry.account_identity,
+        default=type_registry.account_identity,
         description='The type of this object.',
         example='AccountIdentity',
     )
