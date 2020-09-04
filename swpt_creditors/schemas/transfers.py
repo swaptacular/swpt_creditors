@@ -76,7 +76,7 @@ class TransferErrorSchema(Schema):
     def get_total_locked_amount(self, obj):
         if obj['error_code'] != SC_INSUFFICIENT_AVAILABLE_AMOUNT:
             return missing
-        return obj.get('total_locked_amount', 0)
+        return obj.get('total_locked_amount') or 0
 
 
 class TransferOptionsSchema(Schema):
