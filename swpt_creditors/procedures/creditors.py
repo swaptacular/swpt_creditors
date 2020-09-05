@@ -17,6 +17,10 @@ from . import errors
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
+LOAD_ONLY_CONFIG_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)
+LOAD_ONLY_INFO_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)
+LOAD_ONLY_LEDGER_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)
+
 
 @atomic
 def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
@@ -188,32 +192,44 @@ def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
 
 @atomic
 @atomic
-def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDisplay]:
-    return AccountDisplay.get_instance((creditor_id, debtor_id))
+def get_account_display(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountDisplay]:
+    if lock:
+        return AccountDisplay.lock_instance((creditor_id, debtor_id))
+    else:
+        return AccountDisplay.get_instance((creditor_id, debtor_id))
 
 
 @atomic
-def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountKnowledge]:
-    return AccountKnowledge.get_instance((creditor_id, debtor_id))
+def get_account_knowledge(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountKnowledge]:
+    if lock:
+        return AccountKnowledge.lock_instance((creditor_id, debtor_id))
+    else:
+        return AccountKnowledge.get_instance((creditor_id, debtor_id))
 
 
 @atomic
-def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountExchange]:
-    return AccountExchange.get_instance((creditor_id, debtor_id))
+def get_account_exchange(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountExchange]:
+    if lock:
+        return AccountExchange.lock_instance((creditor_id, debtor_id))
+    else:
+        return AccountExchange.get_instance((creditor_id, debtor_id))
 
 
-def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.get_instance((creditor_id, debtor_id), load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+def get_account_config(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountData]:
+    if lock:
+        return AccountData.lock_instance((creditor_id, debtor_id), LOAD_ONLY_CONFIG_RELATED_COLUMNS)
+    else:
+        return AccountData.get_instance((creditor_id, debtor_id), LOAD_ONLY_CONFIG_RELATED_COLUMNS)
 
 
 @atomic
 def get_account_info(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.get_instance((creditor_id, debtor_id), load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS))
+    return AccountData.get_instance((creditor_id, debtor_id), LOAD_ONLY_INFO_RELATED_COLUMNS)
 
 
 @atomic
 def get_account_ledger(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.get_instance((creditor_id, debtor_id), load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+    return AccountData.get_instance((creditor_id, debtor_id), LOAD_ONLY_LEDGER_RELATED_COLUMNS)
 
 
 @atomic

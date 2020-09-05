@@ -5,7 +5,7 @@ from sqlalchemy.orm import exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
-    AccountData, ConfigureAccountSignal, AccountDisplay, AccountExchange, AccountKnowledge,
+    AccountData, ConfigureAccountSignal, AccountDisplay, AccountKnowledge,
     PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES,
     DEFAULT_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS,
@@ -15,7 +15,9 @@ from .common import (
     ACCOUNT_DATA_CONFIG_RELATED_COLUMNS, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS,
     ACCOUNT_DATA_INFO_RELATED_COLUMNS,
 )
-from .creditors import has_account
+from .creditors import (
+    has_account, get_account_config, get_account_display, get_account_knowledge, get_account_exchange,
+)
 from . import errors
 
 T = TypeVar('T')
@@ -35,8 +37,7 @@ def update_account_config(
         latest_update_id: int) -> AccountData:
 
     current_ts = datetime.now(tz=timezone.utc)
-    options = [load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)]
-    data = AccountData.lock_instance((creditor_id, debtor_id), *options)
+    data = get_account_config(creditor_id, debtor_id, lock=True)
     if data is None:
         raise errors.AccountDoesNotExist()
 
@@ -69,6 +70,7 @@ def update_account_config(
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
     ))
+
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
@@ -98,7 +100,7 @@ def update_account_display(
     assert 1 <= latest_update_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    display = AccountDisplay.lock_instance((creditor_id, debtor_id))
+    display = get_account_display(creditor_id, debtor_id, lock=True)
     if display is None:
         raise errors.AccountDoesNotExist()
 
@@ -143,7 +145,7 @@ def update_account_knowledge(
         data: dict) -> AccountKnowledge:
 
     current_ts = datetime.now(tz=timezone.utc)
-    knowledge = AccountKnowledge.lock_instance((creditor_id, debtor_id))
+    knowledge = get_account_knowledge(creditor_id, debtor_id, lock=True)
     if knowledge is None:
         raise errors.AccountDoesNotExist()
 
@@ -183,7 +185,7 @@ def update_account_exchange(
         raise errors.InvalidExchangePolicy()
 
     current_ts = datetime.now(tz=timezone.utc)
-    exchange = AccountExchange.lock_instance((creditor_id, debtor_id))
+    exchange = get_account_exchange(creditor_id, debtor_id, lock=True)
     if exchange is None:
         raise errors.AccountDoesNotExist()
 
@@ -444,17 +446,15 @@ def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> L
 
 
 def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
-    creditor_id = data.creditor_id
-    debtor_id = data.debtor_id
-
     data.info_latest_update_id += 1
     data.info_latest_update_ts = current_ts
+
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
-        creditor_id=creditor_id,
+        creditor_id=data.creditor_id,
         added_at_ts=current_ts,
         object_type=types.account_info,
-        object_uri=paths.account_info(creditorId=creditor_id, debtorId=debtor_id),
+        object_uri=paths.account_info(creditorId=data.creditor_id, debtorId=data.debtor_id),
         object_update_id=data.info_latest_update_id,
     ))
 
