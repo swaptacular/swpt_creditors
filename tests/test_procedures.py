@@ -731,3 +731,11 @@ def test_successful_transfer(db_session, account, current_ts):
     assert fts.committed_amount == 1000
     assert fts.transfer_note_format == 'json'
     assert fts.transfer_note == '{}'
+    rt = RunningTransfer.query.one()
+    assert rt.finalized_at_ts is None
+    assert rt.transfer_id == 123
+    assert rt.error_code is None
+    p.process_finalized_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 1000, '666', 'OK', 0)
+    assert rt.finalized_at_ts is not None
+    assert rt.transfer_id == 123
+    assert rt.error_code is None
