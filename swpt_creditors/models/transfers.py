@@ -4,6 +4,7 @@ from sqlalchemy.sql.expression import null, or_
 from swpt_creditors.extensions import db
 from .common import get_now_utc
 
+SC_OK = 'OK'
 SC_UNEXPECTED_ERROR = 'UNEXPECTED_ERROR'
 SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_CANCELED_BY_THE_SENDER = 'CANCELED_BY_THE_SENDER'

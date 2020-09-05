@@ -9,7 +9,7 @@ from swpt_creditors.models import (
     AccountData, PendingLogEntry, RunningTransfer, CommittedTransfer,
     PrepareTransferSignal, FinalizeTransferSignal, MAX_INT32, MIN_INT64, MAX_INT64,
     TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX, SC_CANCELED_BY_THE_SENDER,
-    SC_UNEXPECTED_ERROR
+    SC_OK, SC_UNEXPECTED_ERROR
 )
 from .common import get_paths_and_types
 from .accounts import ensure_pending_ledger_update
@@ -252,12 +252,10 @@ def process_rejected_direct_transfer_signal(
 
     assert status_code == '' or len(status_code) <= 30 and status_code.encode('ascii')
     assert 0 <= total_locked_amount <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
-    if rt and not rt.finalized_at_ts:
-        if rt.debtor_id == debtor_id and rt.creditor_id == creditor_id:
+    if rt and not rt.is_finalized:
+        if status_code != SC_OK and rt.debtor_id == debtor_id and rt.creditor_id == creditor_id:
             _finalize_running_transfer(rt, error_code=status_code, total_locked_amount=total_locked_amount)
         else:
             _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)
@@ -287,7 +285,7 @@ def process_prepared_direct_transfer_signal(
     )
     if rt_matches_the_signal:
         assert rt is not None
-        if not rt.finalized_at_ts:
+        if not rt.is_finalized and rt.transfer_id is None:
             rt.transfer_id = transfer_id
 
         if rt.transfer_id == transfer_id:
@@ -328,10 +326,6 @@ def process_finalized_direct_transfer_signal(
         status_code: str,
         total_locked_amount: int) -> None:
 
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= transfer_id <= MAX_INT64
-    assert 0 <= committed_amount <= MAX_INT64
     assert 0 <= len(status_code.encode('ascii')) <= 30
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
@@ -343,9 +337,9 @@ def process_finalized_direct_transfer_signal(
     )
     if rt_matches_the_signal:
         assert rt is not None
-        if committed_amount == rt.amount and recipient == rt.recipient_id:
+        if status_code == SC_OK and committed_amount == rt.amount and recipient == rt.recipient_id:
             _finalize_running_transfer(rt)
-        elif committed_amount == 0 and recipient == rt.recipient_id:
+        elif status_code != SC_OK and committed_amount == 0 and recipient == rt.recipient_id:
             _finalize_running_transfer(rt, error_code=status_code, total_locked_amount=total_locked_amount)
         else:
             _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)
@@ -354,7 +348,6 @@ def process_finalized_direct_transfer_signal(
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
     return RunningTransfer.query.\
         filter_by(creditor_id=coordinator_id, coordinator_request_id=coordinator_request_id).\
-        with_for_update().\
         one_or_none()
 
 
