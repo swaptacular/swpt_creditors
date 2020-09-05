@@ -6,7 +6,7 @@ from swpt_lib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
 from swpt_creditors.models import Creditor, AccountData, ConfigureAccountSignal, LogEntry, \
-    CommittedTransfer, PendingLedgerUpdate
+    CommittedTransfer, PendingLedgerUpdate, PrepareTransferSignal, RunningTransfer
 
 D_ID = -1
 C_ID = 1
@@ -636,3 +636,74 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     assert log_entry.object_uri == '/creditors/1/accounts/18446744073709551615/ledger'
     assert log_entry.object_update_id > 2
     assert not log_entry.is_deleted
+
+
+def test_process_rejected_direct_transfer_signal(db_session, account, current_ts):
+    uuid = UUID('123e4567-e89b-12d3-a456-426655440000')
+    rt = p.initiate_transfer(C_ID, uuid, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    assert rt.creditor_id == C_ID
+    assert rt.transfer_uuid == uuid
+    assert rt.debtor_id == D_ID
+    assert rt.amount == 1000
+    assert rt.recipient_uri == 'swpt:18446744073709551615/666'
+    assert rt.recipient_id == '666'
+    assert rt.transfer_note_format == 'json'
+    assert rt.transfer_note == '{}'
+    assert isinstance(rt.initiated_at_ts, datetime)
+    assert rt.finalized_at_ts is None
+    assert rt.error_code is None
+    assert rt.total_locked_amount is None
+    assert rt.deadline == current_ts + timedelta(seconds=1000)
+    assert rt.min_interest_rate == 10.0
+    assert rt.coordinator_request_id is not None
+    assert rt.transfer_id is None
+    assert rt.latest_update_id == 1
+    assert isinstance(rt.latest_update_ts, datetime)
+
+    pts = PrepareTransferSignal.query.one()
+    assert pts.creditor_id == C_ID
+    assert pts.debtor_id == D_ID
+    assert pts.coordinator_request_id == rt.coordinator_request_id
+    assert pts.recipient == rt.recipient_id
+    assert pts.min_interest_rate == rt.min_interest_rate
+    assert 500 <= pts.max_commit_delay <= 1500
+
+    p.process_rejected_direct_transfer_signal(C_ID, rt.coordinator_request_id, 'TEST_ERROR', 600, D_ID, C_ID)
+    rt = RunningTransfer.query.one()
+    assert rt.creditor_id == C_ID
+    assert rt.transfer_uuid == uuid
+    assert rt.debtor_id == D_ID
+    assert rt.amount == 1000
+    assert rt.recipient_uri == 'swpt:18446744073709551615/666'
+    assert rt.recipient_id == '666'
+    assert rt.transfer_note_format == 'json'
+    assert rt.transfer_note == '{}'
+    assert isinstance(rt.initiated_at_ts, datetime)
+    assert rt.finalized_at_ts is not None
+    assert rt.error_code == 'TEST_ERROR'
+    assert rt.total_locked_amount == 600
+    assert rt.deadline == current_ts + timedelta(seconds=1000)
+    assert rt.min_interest_rate == 10.0
+    assert rt.coordinator_request_id is not None
+    assert rt.transfer_id is None
+    assert rt.latest_update_id == 2
+    assert isinstance(rt.latest_update_ts, datetime)
+
+
+def test_process_rejected_direct_transfer_unexpected_error(db_session, account, current_ts):
+    uuid = UUID('123e4567-e89b-12d3-a456-426655440000')
+    rt = p.initiate_transfer(C_ID, uuid, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+
+    p.process_rejected_direct_transfer_signal(C_ID, rt.coordinator_request_id, 'TEST_ERROR', 600, D_ID, 666)
+    rt = RunningTransfer.query.one()
+    assert rt.creditor_id == C_ID
+    assert rt.transfer_uuid == uuid
+    assert rt.debtor_id == D_ID
+    assert rt.amount == 1000
+    assert rt.finalized_at_ts is not None
+    assert rt.error_code == models.SC_UNEXPECTED_ERROR
+    assert rt.total_locked_amount is None
+    assert rt.transfer_id is None
+    assert rt.latest_update_id == 2

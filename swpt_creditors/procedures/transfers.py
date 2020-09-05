@@ -260,7 +260,7 @@ def process_rejected_direct_transfer_signal(
     if rt and not rt.finalized_at_ts:
         if rt.debtor_id == debtor_id and rt.creditor_id == creditor_id:
             _finalize_running_transfer(rt, error_code=status_code, total_locked_amount=total_locked_amount)
-        else:  # pragma:  no cover
+        else:
             _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)
 
 
