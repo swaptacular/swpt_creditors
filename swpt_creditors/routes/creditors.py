@@ -26,7 +26,7 @@ class CreditorEndpoint(MethodView):
     def get(self, creditorId):
         """Return a creditor."""
 
-        return procedures.get_creditor(creditorId) or abort(403)
+        return procedures.get_active_creditor(creditorId) or abort(403)
 
     @creditors_api.arguments(CreditorCreationRequestSchema)
     @creditors_api.response(CreditorSchema(context=context), code=202)
@@ -81,7 +81,7 @@ class WalletEndpoint(MethodView):
 
         """
 
-        return procedures.get_creditor(creditorId) or abort(404)
+        return procedures.get_active_creditor(creditorId) or abort(404)
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
@@ -137,7 +137,7 @@ class AccountsListEndpoint(MethodView):
 
         """
 
-        return procedures.get_creditor(creditorId) or abort(404)
+        return procedures.get_active_creditor(creditorId) or abort(404)
 
 
 @creditors_api.route('/<i64:creditorId>/transfers-list', parameters=[CID])
@@ -152,4 +152,4 @@ class TransfersListEndpoint(MethodView):
 
         """
 
-        return procedures.get_creditor(creditorId) or abort(404)
+        return procedures.get_active_creditor(creditorId) or abort(404)

@@ -33,25 +33,21 @@ def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
     try:
         db.session.flush()
     except IntegrityError:
-        raise errors.CreditorExists()
+        raise errors.CreditorExists() from None
 
     return creditor
 
 
 @atomic
 def activate_creditor(creditor_id: int) -> None:
-    creditor = Creditor.lock_instance(creditor_id)
+    creditor = _get_creditor(creditor_id, lock=True)
     if creditor:
         creditor.is_active = True
 
 
 @atomic
-def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
-    if lock:
-        creditor = Creditor.lock_instance(creditor_id)
-    else:
-        creditor = Creditor.get_instance(creditor_id)
-
+def get_active_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
+    creditor = _get_creditor(creditor_id, lock=lock)
     if creditor and creditor.is_active and creditor.deactivated_at_date is None:
         return creditor
 
@@ -61,7 +57,7 @@ def update_creditor(creditor_id: int, *, latest_update_id: int) -> Creditor:
     assert 1 <= latest_update_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    creditor = get_creditor(creditor_id, lock=True)
+    creditor = get_active_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
 
@@ -169,7 +165,7 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
-    creditor = get_creditor(creditor_id, lock=True)
+    creditor = get_active_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
 
@@ -260,7 +256,7 @@ def get_account_ledger_entries(
 @atomic
 def delete_account(creditor_id: int, debtor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    creditor = get_creditor(creditor_id, lock=True)
+    creditor = get_active_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
 
@@ -320,6 +316,13 @@ def get_account_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -
         query = query.filter(Account.debtor_id > prev)
 
     return [t[0] for t in query.limit(count).all()]
+
+
+def _get_creditor(creditor_id: int, lock=False) -> Optional[Creditor]:
+    if lock:
+        return Creditor.lock_instance(creditor_id)
+    else:
+        return Creditor.get_instance(creditor_id)
 
 
 def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:

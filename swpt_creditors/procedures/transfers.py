@@ -6,14 +6,13 @@ from typing import TypeVar, Callable, Optional, List
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
-    AccountData, PendingLogEntry, RunningTransfer, CommittedTransfer,
-    PrepareTransferSignal, FinalizeTransferSignal, MAX_INT32, MIN_INT64, MAX_INT64,
-    TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX, SC_CANCELED_BY_THE_SENDER,
-    SC_OK, SC_UNEXPECTED_ERROR
+    AccountData, PendingLogEntry, RunningTransfer, CommittedTransfer, PrepareTransferSignal,
+    FinalizeTransferSignal, SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR,
+    MAX_INT32, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX,
 )
 from .common import get_paths_and_types
 from .accounts import ensure_pending_ledger_update
-from .creditors import get_creditor
+from .creditors import get_active_creditor
 from . import errors
 
 T = TypeVar('T')
@@ -30,6 +29,14 @@ def get_committed_transfer(
         transfer_number: int) -> Optional[CommittedTransfer]:
 
     return CommittedTransfer.get_instance((creditor_id, debtor_id, creation_date, transfer_number))
+
+
+@atomic
+def get_running_transfer(creditor_id: int, transfer_uuid: UUID, lock=False) -> Optional[RunningTransfer]:
+    if lock:
+        return RunningTransfer.lock_instance((creditor_id, transfer_uuid))
+    else:
+        return RunningTransfer.get_instance((creditor_id, transfer_uuid))
 
 
 @atomic
@@ -51,13 +58,11 @@ def initiate_transfer(
     assert min_interest_rate >= -100.0
 
     current_ts = datetime.now(tz=timezone.utc)
-    creditor = get_creditor(creditor_id)
+    creditor = get_active_creditor(creditor_id)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
 
     transfer_data = {
-        'creditor_id': creditor_id,
-        'transfer_uuid': transfer_uuid,
         'debtor_id': debtor_id,
         'amount': amount,
         'recipient_uri': recipient_uri,
@@ -67,15 +72,25 @@ def initiate_transfer(
         'deadline': deadline,
         'min_interest_rate': min_interest_rate,
     }
-    _raise_error_if_transfer_exists(**transfer_data)
 
-    rt = RunningTransfer(**transfer_data, latest_update_ts=current_ts)
+    rt = get_running_transfer(creditor_id, transfer_uuid)
+    if rt:
+        if any(getattr(rt, attr) != value for attr, value in transfer_data.items()):
+            raise errors.UpdateConflict()
+        raise errors.TransferExists()
+
+    new_running_transfer = RunningTransfer(
+        creditor_id=creditor_id,
+        transfer_uuid=transfer_uuid,
+        latest_update_ts=current_ts,
+        **transfer_data,
+    )
     with db.retry_on_integrity_error():
-        db.session.add(rt)
+        db.session.add(new_running_transfer)
 
     db.session.add(PrepareTransferSignal(
         creditor_id=creditor_id,
-        coordinator_request_id=rt.coordinator_request_id,
+        coordinator_request_id=new_running_transfer.coordinator_request_id,
         debtor_id=debtor_id,
         recipient=recipient_id,
         min_interest_rate=min_interest_rate,
@@ -92,17 +107,12 @@ def initiate_transfer(
         object_update_id=1,
     ))
 
-    return rt
-
-
-@atomic
-def get_running_transfer(creditor_id: int, transfer_uuid: UUID) -> Optional[RunningTransfer]:
-    return RunningTransfer.get_instance((creditor_id, transfer_uuid))
+    return new_running_transfer
 
 
 @atomic
 def cancel_running_transfer(creditor_id: int, transfer_uuid: UUID) -> RunningTransfer:
-    rt = RunningTransfer.lock_instance((creditor_id, transfer_uuid))
+    rt = get_running_transfer(creditor_id, transfer_uuid, lock=True)
     if rt is None:
         raise errors.TransferDoesNotExist()
 
@@ -371,14 +381,6 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
             object_uri=paths.transfer(creditorId=rt.creditor_id, transferUuid=rt.transfer_uuid),
             object_update_id=rt.latest_update_id,
         ))
-
-
-def _raise_error_if_transfer_exists(creditor_id, transfer_uuid, **kw) -> None:
-    rt = RunningTransfer.get_instance((creditor_id, transfer_uuid))
-    if rt:
-        if all(getattr(rt, attr_name) == attr_value for attr_name, attr_value in kw.items()):
-            raise errors.TransferExists()
-        raise errors.UpdateConflict()
 
 
 def _calc_max_commit_delay(current_ts: datetime, deadline: datetime = None) -> int:
