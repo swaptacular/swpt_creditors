@@ -274,6 +274,8 @@ def process_prepared_direct_transfer_signal(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 <= locked_amount <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
@@ -327,6 +329,7 @@ def process_finalized_direct_transfer_signal(
         total_locked_amount: int) -> None:
 
     assert 0 <= len(status_code.encode('ascii')) <= 30
+    assert 0 <= total_locked_amount <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
     rt_matches_the_signal = (
