@@ -5,7 +5,7 @@ from uuid import UUID
 from swpt_lib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
-from swpt_creditors.models import Creditor, Account, AccountData, ConfigureAccountSignal, LogEntry, \
+from swpt_creditors.models import Creditor, AccountData, ConfigureAccountSignal, LogEntry, \
     CommittedTransfer, PendingLedgerUpdate
 
 D_ID = -1
@@ -28,117 +28,96 @@ def creditor(db_session):
 
 
 @pytest.fixture
-def setup_account(creditor):
-    p.create_new_account(C_ID, D_ID)
+def account(creditor):
+    return p.create_new_account(C_ID, D_ID)
 
 
-@pytest.mark.skip
 def test_get_creditor(db_session, creditor):
     creditor = p.get_creditor(C_ID)
     assert creditor.creditor_id == C_ID
 
 
-@pytest.mark.skip
 def test_create_new_creditor(db_session):
     creditor = p.create_new_creditor(C_ID)
     assert creditor.creditor_id == C_ID
+    assert not creditor.is_active
     assert len(Creditor.query.all()) == 1
     with pytest.raises(p.CreditorExists):
         p.create_new_creditor(C_ID)
-    creditor = p.lock_or_create_creditor(C_ID)
-    assert creditor.creditor_id == C_ID
-    assert len(Creditor.query.all()) == 1
-    creditor = p.lock_or_create_creditor(666)
+
+    assert not p.get_creditor(C_ID)
+    p.activate_creditor(C_ID)
+    creditor = p.get_creditor(C_ID)
+    assert creditor
+    assert creditor.is_active
+
+    creditor = p.create_new_creditor(666, activate=True)
     assert creditor.creditor_id == 666
-    assert len(Creditor.query.all()) == 2
+    assert creditor.is_active
 
 
-@pytest.mark.skip
-def test_process_pending_account_commits(db_session, setup_account, current_ts):
-    ny2019 = date(2019, 1, 1)
-    p.process_account_transfer_signal(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        transfer_number=1,
-        coordinator_type='direct',
-        committed_at_ts=current_ts,
-        acquired_amount=1000,
-        transfer_note_format='',
-        transfer_note='',
-        creation_date=ny2019,
-        principal=1000,
-        previous_transfer_number=0,
-        sender='666',
-        recipient=str(C_ID),
-    )
-    assert p.process_pending_account_commits(C_ID, D_ID)
-
-
-@pytest.mark.skip
-def test_process_pending_account_commits_no_creditor(db_session):
-    assert p.process_pending_account_commits(C_ID, D_ID)
-
-
-@pytest.mark.skip
 def test_create_account(db_session, creditor):
     with pytest.raises(p.CreditorDoesNotExist):
-        p.create_account(666, D_ID)
-    created = p.create_account(C_ID, D_ID)
-    assert created
-    assert AccountConfig.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
-    created = p.create_account(C_ID, D_ID)
-    assert not created
+        p.create_new_account(666, D_ID)
+
+    account = p.create_new_account(C_ID, D_ID)
+    assert account
+    assert account.creditor_id == C_ID
+    assert account.debtor_id == D_ID
 
 
-@pytest.mark.skip
-def test_change_account_config(db_session, setup_account):
+def test_delete_account(db_session, account, current_ts):
     with pytest.raises(p.AccountDoesNotExist):
-        p.change_account_config(C_ID, 1234, False, 0.0, False)
-    p.change_account_config(C_ID, D_ID, False, 100.0, True)
-    config = AccountConfig.query.one()
-    assert config.negligible_amount == 100.0
-    assert config.is_scheduled_for_deletion
+        p.delete_account(C_ID, 1234)
 
+    params = {
+        'debtor_id': D_ID,
+        'creditor_id': C_ID,
+        'last_change_ts': current_ts,
+        'last_change_seqnum': 1,
+        'principal': 1000,
+        'interest': 0.0,
+        'interest_rate': 5.0,
+        'last_interest_rate_change_ts': current_ts,
+        'last_transfer_number': 1,
+        'last_transfer_committed_at': current_ts,
+        'last_config_ts': current_ts,
+        'last_config_seqnum': 1,
+        'creation_date': date(2020, 1, 15),
+        'negligible_amount': 0.0,
+        'status_flags': 0,
+        'ts': current_ts,
+        'ttl': 1000000,
+        'account_id': str(C_ID),
+        'config': '',
+        'config_flags': 0,
+        'debtor_info_iri': '',
+        'transfer_note_max_bytes': 500,
+    }
 
-@pytest.mark.skip
-def test_delete_account(db_session, setup_account, current_ts):
-    p.delete_account(C_ID, 1234)
-    p.process_account_update_signal(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        last_change_ts=current_ts,
-        last_change_seqnum=1,
-        principal=1000,
-        interest=0.0,
-        interest_rate=5.0,
-        last_interest_rate_change_ts=current_ts,
-        last_transfer_number=1,
-        last_transfer_committed_at_ts=current_ts,
-        last_config_ts=current_ts,
-        last_config_seqnum=1,
-        creation_date=date(2020, 1, 15),
-        negligible_amount=0.0,
-        status_flags=0,
-        ts=current_ts,
-        ttl=1000000,
-        account_id=str(C_ID),
-        config='',
-        config_flags=0,
-        debtor_info_iri='',
-        transfer_note_max_bytes=500,
-    )
-    account = Account.query.one()
-    assert not account.config.is_scheduled_for_deletion
+    p.process_account_update_signal(**params)
     with pytest.raises(p.UnsafeAccountDeletion):
         p.delete_account(C_ID, D_ID)
 
-    assert AccountConfig.query.one()
-    p.change_account_config(C_ID, D_ID, True, 0.0, False)
+    p.update_account_config(
+        C_ID, D_ID,
+        is_scheduled_for_deletion=True, negligible_amount=0.0,
+        allow_unsafe_deletion=False, latest_update_id=2)
+
+    config = p.get_account_config(C_ID, D_ID)
+    params['last_change_seqnum'] += 1
+    params['last_config_ts'] = config.last_config_ts
+    params['last_config_seqnum'] = config.last_config_seqnum
+    params['negligible_amount'] = config.negligible_amount
+    params['config_flags'] = config.config_flags
+    p.process_account_update_signal(**params)
+    p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 15))
+
     p.delete_account(C_ID, D_ID)
-    assert AccountConfig.query.one_or_none() is None
+    assert not p.get_account(C_ID, D_ID)
 
 
-def test_process_account_update_signal(db_session, setup_account):
+def test_process_account_update_signal(db_session, account):
     AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).update({
         'ledger_principal': 1001,
         'ledger_last_entry_id': 88,
@@ -292,7 +271,7 @@ def test_process_account_update_signal(db_session, setup_account):
     assert len(models.LogEntry.query.filter_by(object_type='AccountLedger').all()) == 1
 
 
-def test_process_rejected_config_signal(setup_account):
+def test_process_rejected_config_signal(account):
     c = p.get_account_config(C_ID, D_ID)
     assert c.config_error is None
     p.process_pending_log_entries(C_ID)
@@ -336,7 +315,7 @@ def test_process_rejected_config_signal(setup_account):
     assert len(LogEntry.query.all()) == ple_count + 1
 
 
-def test_process_account_purge_signal(db_session, creditor, setup_account, current_ts):
+def test_process_account_purge_signal(db_session, creditor, account, current_ts):
     AccountData.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).update({
         AccountData.creation_date: date(2020, 1, 2),
         AccountData.has_server_account: True,
@@ -377,7 +356,7 @@ def test_process_account_purge_signal(db_session, creditor, setup_account, curre
     assert len(LogEntry.query.all()) == 3
 
 
-def test_update_account_config(setup_account, current_ts):
+def test_update_account_config(account, current_ts):
     def get_data():
         return AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
 
@@ -455,7 +434,7 @@ def test_update_account_config(setup_account, current_ts):
     assert get_info_entries_count() == 3
 
 
-def test_process_account_transfer_signal(db_session, setup_account, current_ts):
+def test_process_account_transfer_signal(db_session, account, current_ts):
     def get_committed_tranfer_entries_count():
         p.process_pending_log_entries(C_ID)
         return len(LogEntry.query.filter_by(object_type='CommittedTransfer').all())
@@ -558,7 +537,7 @@ def test_get_pending_ledger_updates(db_session):
     assert p.get_pending_ledger_updates(max_count=10) == []
 
 
-def test_process_pending_ledger_update(setup_account, max_count, current_ts):
+def test_process_pending_ledger_update(account, max_count, current_ts):
     def get_ledger_update_entries_count():
         p.process_pending_log_entries(C_ID)
         return len(LogEntry.query.filter_by(object_type='AccountLedger').all())
