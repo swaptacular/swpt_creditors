@@ -111,7 +111,7 @@ def get_creditors_with_pending_log_entries() -> Iterable[int]:
 
 @atomic
 def process_pending_log_entries(creditor_id: int) -> None:
-    creditor = Creditor.lock_instance(creditor_id)
+    creditor = _get_creditor(creditor_id, lock=True)
     if creditor is None:
         return
 
