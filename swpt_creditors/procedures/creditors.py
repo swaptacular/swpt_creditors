@@ -109,7 +109,7 @@ def process_pending_log_entries(creditor_id: int) -> None:
             )
 
             # NOTE: When a transfer has been initiated or deleted, the
-            # creditor's list of transfers is undated too, and the
+            # creditor's list of transfers is updated too, and the
             # client should be informed about this. This hack is
             # necessary, because the update of the creditor's list of
             # transfers requires the `Creditor` table row to be
@@ -197,13 +197,9 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     with db.retry_on_integrity_error():
         Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
 
-    # NOTE: When the account gets deleted, all its related objects
-    # will be deleted too. Also, the deleted account will disappear
-    # from the list of accounts. Therefore, we need to write a bunch
-    # of events to the log, so as to inform the client.
+    paths, types = get_paths_and_types()
     creditor.accounts_list_latest_update_id += 1
     creditor.accounts_list_latest_update_ts = current_ts
-    paths, types = get_paths_and_types()
     _add_log_entry(
         creditor,
         object_type=types.accounts_list,
@@ -211,7 +207,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
         object_update_id=creditor.accounts_list_latest_update_id,
         added_at_ts=current_ts,
     )
-    deletion_events = [
+    for object_type, object_uri in [
         (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_config, paths.account_config(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_info, paths.account_info(creditorId=creditor_id, debtorId=debtor_id)),
@@ -219,8 +215,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
         (types.account_display, paths.account_display(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_exchange, paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id)),
         (types.account_knowledge, paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id)),
-    ]
-    for object_type, object_uri in deletion_events:
+    ]:
         _add_log_entry(
             creditor,
             object_type=object_type,
@@ -248,6 +243,7 @@ def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) 
 
 def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
     creditor_id = creditor.creditor_id
+
     paths, types = get_paths_and_types()
     _add_log_entry(
         creditor,
@@ -256,8 +252,6 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         object_update_id=1,
         added_at_ts=current_ts,
     )
-
-    # NOTE: The new account will appear in the creditor's list of accounts.
     creditor.accounts_list_latest_update_id += 1
     creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(
