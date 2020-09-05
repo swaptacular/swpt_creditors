@@ -1,8 +1,11 @@
-from datetime import datetime, timezone
 from swpt_creditors import actors as a
 
 D_ID = -1
 C_ID = 1
+
+
+def test_activate_creditor(db_session):
+    a.activate_creditor(C_ID)
 
 
 def test_on_rejected_config_signal(db_session):
