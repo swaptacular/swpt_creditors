@@ -346,7 +346,7 @@ def process_finalized_direct_transfer_signal(
         assert rt is not None
         if committed_amount == rt.amount and recipient == rt.recipient_id:
             _finalize_running_transfer(rt)
-        elif committed_amount == 0 and recipient == rt.recipient:
+        elif committed_amount == 0 and recipient == rt.recipient_id:
             _finalize_running_transfer(rt, error_code=status_code, total_locked_amount=total_locked_amount)
         else:
             _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)

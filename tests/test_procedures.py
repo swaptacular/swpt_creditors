@@ -735,7 +735,44 @@ def test_successful_transfer(db_session, account, current_ts):
     assert rt.finalized_at_ts is None
     assert rt.transfer_id == 123
     assert rt.error_code is None
-    p.process_finalized_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 1000, '666', 'OK', 0)
+    assert rt.total_locked_amount is None
+    p.process_finalized_direct_transfer_signal(
+        D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 1000, '666', 'OK', 100)
     assert rt.finalized_at_ts is not None
     assert rt.transfer_id == 123
     assert rt.error_code is None
+    assert rt.total_locked_amount is None
+
+
+def test_unsuccessful_transfer(db_session, account, current_ts):
+    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
+    with pytest.raises(p.ForbiddenTransferCancellation):
+        p.cancel_running_transfer(C_ID, TEST_UUID)
+
+    rt = RunningTransfer.query.one()
+    assert rt.finalized_at_ts is None
+    assert rt.transfer_id == 123
+    assert rt.error_code is None
+    assert rt.total_locked_amount is None
+    p.process_finalized_direct_transfer_signal(
+        D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666', 'TEST_ERROR', 100)
+    rt = RunningTransfer.query.one()
+    assert rt.finalized_at_ts is not None
+    assert rt.transfer_id == 123
+    assert rt.error_code == 'TEST_ERROR'
+    assert rt.total_locked_amount == 100
+
+
+def test_unsuccessful_transfer_unexpected_error(db_session, account, current_ts):
+    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
+    p.process_finalized_direct_transfer_signal(
+        D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 999, '666', 'TEST_ERROR', 100)
+    rt = RunningTransfer.query.one()
+    assert rt.finalized_at_ts is not None
+    assert rt.transfer_id == 123
+    assert rt.error_code == models.SC_UNEXPECTED_ERROR
+    assert rt.total_locked_amount is None
