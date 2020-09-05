@@ -213,22 +213,26 @@ class AccountEndpoint(MethodView):
 
         """
 
+        deleted = False
         inspect_ops.decrement_account_number(creditorId, debtorId)
         try:
             procedures.delete_account(creditorId, debtorId)
+            deleted = True
         except procedures.UnsafeAccountDeletion:
             abort(403)
         except procedures.ForbiddenPegDeletion:
             abort(403)
-        except procedures.AccountDoesNotExist:
+        except (procedures.CreditorDoesNotExist, procedures.AccountDoesNotExist):
+            return
+        finally:
             # NOTE: We decremented the account number before trying to
-            # delete the account, and now when we know that the
-            # deletion has been unsuccessful, we increment the account
-            # number again. This guarantees that in case of a crash,
-            # the difference between the recorded number of accounts
-            # and the real number of accounts will always be in users'
+            # delete the account. Now if the deletion has been
+            # unsuccessful, we should increment the account number
+            # again. This guarantees that in case of a crash, the
+            # difference between the recorded number of accounts and
+            # the real number of accounts will always be in users'
             # favor.
-            inspect_ops.increment_account_number(creditorId, debtorId)
+            deleted or inspect_ops.increment_account_number(creditorId, debtorId)
 
 
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])

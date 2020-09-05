@@ -2,13 +2,16 @@ from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from swpt_creditors.extensions import db
-from sqlalchemy.orm import exc, Load
+from sqlalchemy.orm import load_only, joinedload
 from swpt_creditors.models import (
     Creditor, PendingLogEntry, LogEntry, ConfigureAccountSignal,
-    Account, AccountKnowledge, AccountExchange, AccountDisplay, AccountData,
+    Account, AccountKnowledge, AccountExchange, AccountDisplay, AccountData, LedgerEntry,
     MIN_INT64, MAX_INT64, DEFAULT_CREDITOR_STATUS, DEFAULT_CONFIG_FLAGS, DEFAULT_NEGLIGIBLE_AMOUNT,
 )
-from .common import allow_update, get_paths_and_types, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
+from .common import (
+    allow_update, get_paths_and_types, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS,
+    ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_INFO_RELATED_COLUMNS,
+)
 from . import errors
 
 T = TypeVar('T')
@@ -173,21 +176,83 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 
 
 @atomic
+def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
+    return Account.get_instance(
+        (creditor_id, debtor_id),
+        joinedload(Account.knowledge, innerjoin=True),
+        joinedload(Account.exchange, innerjoin=True),
+        joinedload(Account.display, innerjoin=True),
+        joinedload(Account.data, innerjoin=True),
+    )
+
+
+@atomic
+@atomic
+def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDisplay]:
+    return AccountDisplay.get_instance((creditor_id, debtor_id))
+
+
+@atomic
+def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountKnowledge]:
+    return AccountKnowledge.get_instance((creditor_id, debtor_id))
+
+
+@atomic
+def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountExchange]:
+    return AccountExchange.get_instance((creditor_id, debtor_id))
+
+
+def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
+    return AccountData.get_instance((creditor_id, debtor_id), load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+
+
+@atomic
+def get_account_info(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
+    return AccountData.get_instance((creditor_id, debtor_id), load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS))
+
+
+@atomic
+def get_account_ledger(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
+    return AccountData.get_instance((creditor_id, debtor_id), load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+
+
+@atomic
+def get_account_ledger_entries(
+        creditor_id: int,
+        debtor_id: int,
+        *,
+        prev: int,
+        stop: int = 0,
+        count: int = 1) -> List[LedgerEntry]:
+
+    assert 0 <= prev <= MAX_INT64
+    assert 0 <= stop <= MAX_INT64
+    assert count >= 1
+
+    return LedgerEntry.query.\
+        filter(
+            LedgerEntry.creditor_id == creditor_id,
+            LedgerEntry.debtor_id == debtor_id,
+            LedgerEntry.entry_id < prev,
+            LedgerEntry.entry_id > stop,
+        ).\
+        order_by(LedgerEntry.entry_id.desc()).\
+        limit(count).\
+        all()
+
+
+@atomic
 def delete_account(creditor_id: int, debtor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    query = db.session.\
-        query(AccountData, Creditor).\
-        join(Creditor, Creditor.creditor_id == AccountData.creditor_id).\
-        filter(AccountData.creditor_id == creditor_id, AccountData.debtor_id == debtor_id).\
-        with_for_update(of=Creditor).\
-        options(Load(AccountData).load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+    creditor = get_creditor(creditor_id, lock=True)
+    if creditor is None:
+        raise errors.CreditorDoesNotExist()
 
-    try:
-        data, creditor = query.one()
-    except exc.NoResultFound:
+    account_data = get_account_config(creditor_id, debtor_id)
+    if account_data is None:
         raise errors.AccountDoesNotExist()
 
-    if not (data.is_deletion_safe or data.allow_unsafe_deletion):
+    if not (account_data.is_deletion_safe or account_data.allow_unsafe_deletion):
         raise errors.UnsafeAccountDeletion()
 
     pegged_accounts_query = AccountExchange.query.filter_by(creditor_id=creditor_id, peg_debtor_id=debtor_id)

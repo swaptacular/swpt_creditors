@@ -1,12 +1,11 @@
 from datetime import datetime, date, timezone
 from typing import TypeVar, Callable, Tuple, List, Optional
 from sqlalchemy.sql.expression import func
-from sqlalchemy.orm import joinedload, exc, load_only, Load
+from sqlalchemy.orm import exc, load_only, Load
 from swpt_lib.utils import Seqnum, increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
-    Account, AccountData,
-    ConfigureAccountSignal, AccountDisplay, AccountExchange, AccountKnowledge,
+    AccountData, ConfigureAccountSignal, AccountDisplay, AccountExchange, AccountKnowledge,
     PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES,
     DEFAULT_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS,
@@ -23,66 +22,6 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 EPS = 1e-5
-
-
-@atomic
-def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
-    options = [
-        joinedload(Account.knowledge, innerjoin=True),
-        joinedload(Account.exchange, innerjoin=True),
-        joinedload(Account.display, innerjoin=True),
-        joinedload(Account.data, innerjoin=True),
-    ]
-    return Account.get_instance((creditor_id, debtor_id), *options)
-
-
-@atomic
-def get_account_info(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.query.\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        options(load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)).\
-        one_or_none()
-
-
-@atomic
-def get_account_ledger(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.query.\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)).\
-        one_or_none()
-
-
-@atomic
-def get_account_ledger_entries(
-        creditor_id: int,
-        debtor_id: int,
-        *,
-        prev: int,
-        stop: int = 0,
-        count: int = 1) -> List[LedgerEntry]:
-
-    assert 0 <= prev <= MAX_INT64
-    assert 0 <= stop <= MAX_INT64
-    assert count >= 1
-
-    return LedgerEntry.query.\
-        filter(
-            LedgerEntry.creditor_id == creditor_id,
-            LedgerEntry.debtor_id == debtor_id,
-            LedgerEntry.entry_id < prev,
-            LedgerEntry.entry_id > stop,
-        ).\
-        order_by(LedgerEntry.entry_id.desc()).\
-        limit(count).\
-        all()
-
-
-@atomic
-def get_account_config(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.query.\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
-        one_or_none()
 
 
 @atomic
@@ -143,11 +82,6 @@ def update_account_config(
 
 
 @atomic
-def get_account_display(creditor_id: int, debtor_id: int) -> Optional[AccountDisplay]:
-    return AccountDisplay.get_instance((creditor_id, debtor_id))
-
-
-@atomic
 def update_account_display(
         creditor_id: int,
         debtor_id: int,
@@ -201,11 +135,6 @@ def update_account_display(
 
 
 @atomic
-def get_account_knowledge(creditor_id: int, debtor_id: int) -> Optional[AccountKnowledge]:
-    return AccountKnowledge.get_instance((creditor_id, debtor_id))
-
-
-@atomic
 def update_account_knowledge(
         creditor_id: int,
         debtor_id: int,
@@ -236,11 +165,6 @@ def update_account_knowledge(
     ))
 
     return knowledge
-
-
-@atomic
-def get_account_exchange(creditor_id: int, debtor_id: int) -> Optional[AccountExchange]:
-    return AccountExchange.get_instance((creditor_id, debtor_id))
 
 
 @atomic
