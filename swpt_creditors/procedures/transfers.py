@@ -277,15 +277,14 @@ def process_prepared_direct_transfer_signal(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
-    assert 0 < locked_amount <= MAX_INT64
+    assert 0 <= locked_amount <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
     rt_matches_the_signal = (
         rt is not None
         and rt.debtor_id == debtor_id
         and rt.creditor_id == creditor_id
-        and rt.recipient == recipient
-        and rt.amount <= locked_amount
+        and rt.recipient_id == recipient
     )
     if rt_matches_the_signal:
         assert rt is not None

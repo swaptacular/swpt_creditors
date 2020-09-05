@@ -6,7 +6,8 @@ from swpt_lib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
 from swpt_creditors.models import Creditor, AccountData, ConfigureAccountSignal, LogEntry, \
-    CommittedTransfer, PendingLedgerUpdate, PrepareTransferSignal, RunningTransfer
+    CommittedTransfer, PendingLedgerUpdate, PrepareTransferSignal, RunningTransfer, \
+    FinalizeTransferSignal
 
 D_ID = -1
 C_ID = 1
@@ -639,11 +640,10 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
 
 
 def test_process_rejected_direct_transfer_signal(db_session, account, current_ts):
-    uuid = UUID('123e4567-e89b-12d3-a456-426655440000')
-    rt = p.initiate_transfer(C_ID, uuid, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
                              deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
     assert rt.creditor_id == C_ID
-    assert rt.transfer_uuid == uuid
+    assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
     assert rt.recipient_uri == 'swpt:18446744073709551615/666'
@@ -672,7 +672,7 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     p.process_rejected_direct_transfer_signal(C_ID, rt.coordinator_request_id, 'TEST_ERROR', 600, D_ID, C_ID)
     rt = RunningTransfer.query.one()
     assert rt.creditor_id == C_ID
-    assert rt.transfer_uuid == uuid
+    assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
     assert rt.recipient_uri == 'swpt:18446744073709551615/666'
@@ -692,14 +692,13 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
 
 
 def test_process_rejected_direct_transfer_unexpected_error(db_session, account, current_ts):
-    uuid = UUID('123e4567-e89b-12d3-a456-426655440000')
-    rt = p.initiate_transfer(C_ID, uuid, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
                              deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
 
     p.process_rejected_direct_transfer_signal(C_ID, rt.coordinator_request_id, 'TEST_ERROR', 600, D_ID, 666)
     rt = RunningTransfer.query.one()
     assert rt.creditor_id == C_ID
-    assert rt.transfer_uuid == uuid
+    assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
     assert rt.finalized_at_ts is not None
@@ -707,3 +706,28 @@ def test_process_rejected_direct_transfer_unexpected_error(db_session, account, 
     assert rt.total_locked_amount is None
     assert rt.transfer_id is None
     assert rt.latest_update_id == 2
+
+
+def test_successful_transfer(db_session, account, current_ts):
+    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id + 1, 0, '666')
+    assert len(FinalizeTransferSignal.query.all()) == 1
+    fts = FinalizeTransferSignal.query.filter_by(coordinator_request_id=rt.coordinator_request_id + 1).one()
+    assert fts.creditor_id == C_ID
+    assert fts.debtor_id == D_ID
+    assert fts.transfer_id == 123
+    assert fts.coordinator_id == C_ID
+    assert fts.committed_amount == 0
+    assert fts.transfer_note_format == ''
+    assert fts.transfer_note == ''
+    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
+    assert len(FinalizeTransferSignal.query.all()) == 2
+    fts = FinalizeTransferSignal.query.filter_by(coordinator_request_id=rt.coordinator_request_id).one()
+    assert fts.creditor_id == C_ID
+    assert fts.debtor_id == D_ID
+    assert fts.transfer_id == 123
+    assert fts.coordinator_id == C_ID
+    assert fts.committed_amount == 1000
+    assert fts.transfer_note_format == 'json'
+    assert fts.transfer_note == '{}'
