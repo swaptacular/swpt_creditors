@@ -635,8 +635,9 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
 
 
 def test_process_rejected_direct_transfer_signal(db_session, account, current_ts):
-    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    rt = p.initiate_running_transfer(
+        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
     assert rt.creditor_id == C_ID
     assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
@@ -687,9 +688,9 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
 
 
 def test_process_rejected_direct_transfer_unexpected_error(db_session, account, current_ts):
-    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
-
+    rt = p.initiate_running_transfer(
+        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
     p.process_rejected_direct_transfer_signal(C_ID, rt.coordinator_request_id, 'TEST_ERROR', 600, D_ID, 666)
     rt = RunningTransfer.query.one()
     assert rt.creditor_id == C_ID
@@ -704,8 +705,9 @@ def test_process_rejected_direct_transfer_unexpected_error(db_session, account, 
 
 
 def test_successful_transfer(db_session, account, current_ts):
-    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    rt = p.initiate_running_transfer(
+        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
     p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id + 1, 0, '666')
     assert len(FinalizeTransferSignal.query.all()) == 1
     fts = FinalizeTransferSignal.query.filter_by(coordinator_request_id=rt.coordinator_request_id + 1).one()
@@ -740,8 +742,9 @@ def test_successful_transfer(db_session, account, current_ts):
 
 
 def test_unsuccessful_transfer(db_session, account, current_ts):
-    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    rt = p.initiate_running_transfer(
+        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
     p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
     with pytest.raises(p.ForbiddenTransferCancellation):
         p.cancel_running_transfer(C_ID, TEST_UUID)
@@ -761,8 +764,9 @@ def test_unsuccessful_transfer(db_session, account, current_ts):
 
 
 def test_unsuccessful_transfer_unexpected_error(db_session, account, current_ts):
-    rt = p.initiate_transfer(C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-                             deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+    rt = p.initiate_running_transfer(
+        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
+        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
     p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
     p.process_finalized_direct_transfer_signal(
         D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 999, '666', 'TEST_ERROR', 100)

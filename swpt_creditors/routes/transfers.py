@@ -2,10 +2,9 @@ from flask import redirect, url_for, request, current_app
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib.swpt_uris import parse_account_uri
-from swpt_creditors.schemas import (
-    examples, TransferCreationRequestSchema, TransferSchema, CommittedTransferSchema,
-    TransferCancelationRequestSchema, ObjectReferencesPageSchema, TransfersPaginationParamsSchema,
-)
+from swpt_creditors.schemas import examples, TransferCreationRequestSchema, TransferSchema, \
+    CommittedTransferSchema, TransferCancelationRequestSchema, ObjectReferencesPageSchema, \
+    TransfersPaginationParamsSchema
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
 from .common import context, parse_transfer_slug
@@ -77,7 +76,7 @@ class TransfersEndpoint(MethodView):
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
         try:
             inspect_ops.allow_transfer_creation(creditorId, debtorId)
-            transfer = procedures.initiate_transfer(
+            transfer = procedures.initiate_running_transfer(
                 creditor_id=creditorId,
                 transfer_uuid=uuid,
                 debtor_id=debtorId,

@@ -5,13 +5,11 @@ from datetime import datetime, timezone, date, timedelta
 from typing import TypeVar, Callable, Optional, List
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
-from swpt_creditors.models import (
-    AccountData, PendingLogEntry, RunningTransfer, CommittedTransfer, PrepareTransferSignal,
-    FinalizeTransferSignal, SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR,
-    MAX_INT32, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX,
-)
+from swpt_creditors.models import AccountData, PendingLogEntry, RunningTransfer, \
+    CommittedTransfer, PrepareTransferSignal, FinalizeTransferSignal, PendingLedgerUpdate, \
+    SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR, MAX_INT32, MIN_INT64, MAX_INT64, \
+    TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX
 from .common import get_paths_and_types
-from .accounts import ensure_pending_ledger_update
 from .creditors import get_active_creditor
 from . import errors
 
@@ -40,7 +38,7 @@ def get_running_transfer(creditor_id: int, transfer_uuid: UUID, lock=False) -> O
 
 
 @atomic
-def initiate_transfer(
+def initiate_running_transfer(
         creditor_id: int,
         transfer_uuid: UUID,
         debtor_id: int,
@@ -248,7 +246,7 @@ def process_account_transfer_signal(
     ))
 
     if creation_date == ledger_date and previous_transfer_number == ledger_last_transfer_number:
-        ensure_pending_ledger_update(creditor_id, debtor_id)
+        _ensure_pending_ledger_update(creditor_id, debtor_id)
 
 
 @atomic
@@ -381,6 +379,16 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
             object_uri=paths.transfer(creditorId=rt.creditor_id, transferUuid=rt.transfer_uuid),
             object_update_id=rt.latest_update_id,
         ))
+
+
+def _ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    pending_ledger_update_query = PendingLedgerUpdate.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+    if not db.session.query(pending_ledger_update_query.exists()).scalar():
+        with db.retry_on_integrity_error():
+            db.session.add(PendingLedgerUpdate(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
 def _calc_max_commit_delay(current_ts: datetime, deadline: datetime = None) -> int:

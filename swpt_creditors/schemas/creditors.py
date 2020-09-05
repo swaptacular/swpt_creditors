@@ -2,10 +2,8 @@ from copy import copy
 from marshmallow import Schema, fields, validate, pre_dump, post_dump
 from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64
-from .common import (
-    ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, MutableResourceSchema,
-    type_registry, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION,
-)
+from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
+    MutableResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
 
 
 class CreditorCreationRequestSchema(ValidateTypeMixin, Schema):

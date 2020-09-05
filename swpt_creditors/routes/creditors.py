@@ -1,10 +1,9 @@
 from flask import current_app, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from swpt_creditors.schemas import (
-    examples, CreditorSchema, CreditorCreationRequestSchema, WalletSchema,
-    LogEntriesPageSchema, LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema,
-)
+from swpt_creditors.schemas import examples, CreditorSchema, CreditorCreationRequestSchema, \
+    WalletSchema, LogEntriesPageSchema, LogPaginationParamsSchema, AccountsListSchema, \
+    TransfersListSchema
 from swpt_creditors import procedures
 from .common import context
 from .specs import CID

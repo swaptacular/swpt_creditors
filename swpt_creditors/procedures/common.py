@@ -1,4 +1,5 @@
 from typing import Callable, Dict, Any
+from sqlalchemy.orm import load_only
 from . import errors
 
 ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
@@ -54,6 +55,10 @@ ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
     'info_latest_update_id',
     'info_latest_update_ts',
 ]
+
+LOAD_ONLY_CONFIG_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)
+LOAD_ONLY_LEDGER_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)
+LOAD_ONLY_INFO_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)
 
 
 def init(path_builder, type_registry):
