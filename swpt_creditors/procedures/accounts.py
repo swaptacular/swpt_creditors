@@ -452,7 +452,8 @@ def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
 
-    if PendingLedgerUpdate.get_instance((creditor_id, debtor_id)) is None:
+    pending_ledger_update_query = PendingLedgerUpdate.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+    if not db.session.query(pending_ledger_update_query.exists()).scalar():
         with db.retry_on_integrity_error():
             db.session.add(PendingLedgerUpdate(creditor_id=creditor_id, debtor_id=debtor_id))
 

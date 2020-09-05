@@ -24,9 +24,6 @@ class ConfigureAccountSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     config = db.Column(db.String, nullable=False, default='')
     config_flags = db.Column(db.Integer, nullable=False)
-    __table_args__ = (
-        db.CheckConstraint(negligible_amount >= 0.0),
-    )
 
 
 class PrepareTransferSignal(Signal):
@@ -81,6 +78,3 @@ class FinalizeTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
-    __table_args__ = (
-        db.CheckConstraint(committed_amount >= 0),
-    )

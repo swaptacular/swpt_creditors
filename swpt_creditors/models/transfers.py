@@ -106,3 +106,7 @@ class RunningTransfer(db.Model):
                        'creditor deletes the initiated transfer.',
         }
     )
+
+    @property
+    def is_finalized(self):
+        return bool(self.finalized_at_ts)

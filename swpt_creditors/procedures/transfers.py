@@ -46,8 +46,6 @@ def initiate_transfer(
         deadline: datetime = None,
         min_interest_rate: float = -100.0) -> RunningTransfer:
 
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert isinstance(transfer_uuid, UUID)
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert 0 < amount <= MAX_INT64
     assert min_interest_rate >= -100.0
@@ -169,9 +167,10 @@ def process_account_transfer_signal(
         previous_transfer_number: int,
         retention_interval: timedelta) -> None:
 
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert 0 < transfer_number <= MAX_INT64
+    assert coordinator_type == '' or len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
+    assert sender == '' or len(sender) <= 100 and coordinator_type.encode('ascii')
+    assert recipient == '' or len(recipient) <= 100 and coordinator_type.encode('ascii')
     assert acquired_amount != 0
     assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
@@ -353,9 +352,6 @@ def process_finalized_direct_transfer_signal(
 
 
 def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> Optional[RunningTransfer]:
-    assert MIN_INT64 <= coordinator_id <= MAX_INT64
-    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
-
     return RunningTransfer.query.\
         filter_by(creditor_id=coordinator_id, coordinator_request_id=coordinator_request_id).\
         with_for_update().\
@@ -363,13 +359,14 @@ def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> 
 
 
 def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, total_locked_amount: int = None) -> None:
-    if not rt.finalized_at_ts:
+    if not rt.is_finalized:
         current_ts = datetime.now(tz=timezone.utc)
         rt.latest_update_id += 1
         rt.latest_update_ts = current_ts
         rt.finalized_at_ts = current_ts
         rt.error_code = error_code
         rt.total_locked_amount = total_locked_amount
+
         paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
             creditor_id=rt.creditor_id,
