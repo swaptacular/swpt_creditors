@@ -76,9 +76,9 @@ def test_process_log_entries(app, db_session, current_ts):
         allow_unsafe_deletion=False,
         latest_update_id=2,
     )
-    entries1, _ = p.get_creditor_log_entries(C_ID, count=10000)
+    entries1, _ = p.get_log_entries(C_ID, count=10000)
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_creditors', 'process_log_entries'])
     assert not result.output
-    entries2, _ = p.get_creditor_log_entries(C_ID, count=10000)
+    entries2, _ = p.get_log_entries(C_ID, count=10000)
     assert len(entries2) > len(entries1)

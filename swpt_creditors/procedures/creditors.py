@@ -42,6 +42,17 @@ def activate_creditor(creditor_id: int) -> None:
 
 
 @atomic
+def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
+    if lock:
+        creditor = Creditor.lock_instance(creditor_id)
+    else:
+        creditor = Creditor.get_instance(creditor_id)
+
+    if creditor and creditor.is_active and creditor.deactivated_at_date is None:
+        return creditor
+
+
+@atomic
 def update_creditor(creditor_id: int, *, latest_update_id: int) -> Creditor:
     assert 1 <= latest_update_id <= MAX_INT64
 
@@ -71,14 +82,26 @@ def update_creditor(creditor_id: int, *, latest_update_id: int) -> Creditor:
 
 
 @atomic
-def get_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
-    if lock:
-        creditor = Creditor.lock_instance(creditor_id)
-    else:
-        creditor = Creditor.get_instance(creditor_id)
+def get_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple[List[LogEntry], int]:
+    assert count >= 1
+    assert 0 <= prev <= MAX_INT64
 
-    if creditor and creditor.is_active and creditor.deactivated_at_date is None:
-        return creditor
+    last_log_entry_id = db.session.\
+        query(Creditor.last_log_entry_id).\
+        filter(Creditor.creditor_id == creditor_id).\
+        scalar()
+
+    if last_log_entry_id is None:
+        raise errors.CreditorDoesNotExist()
+
+    log_entries = LogEntry.query.\
+        filter(LogEntry.creditor_id == creditor_id).\
+        filter(LogEntry.entry_id > prev).\
+        order_by(LogEntry.entry_id).\
+        limit(count).\
+        all()
+
+    return log_entries, last_log_entry_id
 
 
 @atomic
@@ -129,29 +152,6 @@ def process_pending_log_entries(creditor_id: int) -> None:
                 )
 
             db.session.delete(entry)
-
-
-@atomic
-def get_creditor_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple[List[LogEntry], int]:
-    assert count >= 1
-    assert 0 <= prev <= MAX_INT64
-
-    last_log_entry_id = db.session.\
-        query(Creditor.last_log_entry_id).\
-        filter(Creditor.creditor_id == creditor_id).\
-        scalar()
-
-    if last_log_entry_id is None:
-        raise errors.CreditorDoesNotExist()
-
-    log_entries = LogEntry.query.\
-        filter(LogEntry.creditor_id == creditor_id).\
-        filter(LogEntry.entry_id > prev).\
-        order_by(LogEntry.entry_id).\
-        limit(count).\
-        all()
-
-    return log_entries, last_log_entry_id
 
 
 @atomic
@@ -291,7 +291,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
 
 
 @atomic
-def get_creditor_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -> List[int]:
+def get_account_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -> List[int]:
     assert count >= 1
     assert prev is None or MIN_INT64 <= prev <= MAX_INT64
 

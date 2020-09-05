@@ -631,7 +631,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     assert p.get_pending_ledger_updates() == []
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 6
 
-    log_entry = p.get_creditor_log_entries(C_ID, count=1000)[0][-1]
+    log_entry = p.get_log_entries(C_ID, count=1000)[0][-1]
     assert log_entry.creditor_id == C_ID
     assert log_entry.object_type == 'AccountLedger'
     assert log_entry.object_uri == '/creditors/1/accounts/18446744073709551615/ledger'

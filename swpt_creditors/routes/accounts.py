@@ -122,7 +122,7 @@ class AccountsEndpoint(MethodView):
             abort(422, errors={'query': {'prev': ['Invalid value.']}})
 
         n = current_app.config['APP_ACCOUNTS_PER_PAGE']
-        debtor_ids = procedures.get_creditor_debtor_ids(creditorId, count=n, prev=prev)
+        debtor_ids = procedures.get_account_debtor_ids(creditorId, count=n, prev=prev)
         items = [{'uri': f'{i64_to_u64(debtor_id)}/'} for debtor_id in debtor_ids]
 
         if len(debtor_ids) < n:
