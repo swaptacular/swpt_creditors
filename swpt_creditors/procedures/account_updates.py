@@ -1,5 +1,5 @@
 from datetime import datetime, date, timezone
-from typing import TypeVar, Callable, Tuple, List
+from typing import TypeVar, Callable, Tuple, List, Optional
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, Load
 from swpt_lib.utils import Seqnum
@@ -148,7 +148,17 @@ def process_account_update_signal(
     data.config_error = config_error
 
     if new_server_account:
-        _insert_ledger_entry(data, 0, 0, 0, data.ledger_last_transfer_committed_at_ts, current_ts)
+        ledger_update_pending_log_entry = _insert_ledger_entry(
+            data=data,
+            transfer_number=0,
+            acquired_amount=0,
+            principal=0,
+            committed_at_ts=data.ledger_last_transfer_committed_at_ts,
+            current_ts=current_ts,
+        )
+        if ledger_update_pending_log_entry:
+            db.session.add(ledger_update_pending_log_entry)
+
         _ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
 
 
@@ -204,11 +214,16 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
 
     transfers = _get_sorted_pending_transfers(data, max_count)
     all_done = max_count is None or len(transfers) < max_count
+    ledger_update_pending_log_entry = None
     for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at_ts in transfers:
         if previous_transfer_number != data.ledger_last_transfer_number:
             all_done = True
             break
-        _insert_ledger_entry(data, transfer_number, acquired_amount, principal, committed_at_ts, current_ts)
+        e = _insert_ledger_entry(data, transfer_number, acquired_amount, principal, committed_at_ts, current_ts)
+        ledger_update_pending_log_entry = e or ledger_update_pending_log_entry
+
+    if ledger_update_pending_log_entry:
+        db.session.add(ledger_update_pending_log_entry)
 
     if all_done:
         db.session.delete(pending_ledger_update)
@@ -264,8 +279,9 @@ def _insert_ledger_entry(
         acquired_amount: int,
         principal: int,
         committed_at_ts: datetime,
-        current_ts: datetime) -> None:
+        current_ts: datetime) -> Optional[PendingLogEntry]:
 
+    pending_log_entry = None
     creditor_id = data.creditor_id
     debtor_id = data.debtor_id
     correction_amount = principal - data.ledger_principal - acquired_amount
@@ -299,20 +315,18 @@ def _insert_ledger_entry(
     data.ledger_last_transfer_committed_at_ts = committed_at_ts
 
     if correction_amount != 0 or acquired_amount != 0:
-        # TODO: Use bulk insert for adding `PendingLogEntry`s. Now
-        #       each added row causes a database roundtrip to load the
-        #       auto-incremented primary key.
-
         # TODO: Add `data`, containing the principal and the latest
         #       etnry ID.
 
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
         paths, types = get_paths_and_types()
-        db.session.add(PendingLogEntry(
+        pending_log_entry = PendingLogEntry(
             creditor_id=creditor_id,
             added_at_ts=current_ts,
             object_type=types.account_ledger,
             object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
             object_update_id=data.ledger_latest_update_id,
-        ))
+        )
+
+    return pending_log_entry
