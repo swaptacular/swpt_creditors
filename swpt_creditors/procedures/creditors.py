@@ -123,22 +123,14 @@ def process_pending_log_entries(creditor_id: int) -> None:
                 data=entry.data,
             )
 
-            # NOTE: When a transfer has been initiated or deleted, the
-            # creditor's list of transfers is updated too, and the
-            # client should be informed about this. This hack is
-            # necessary, because the update of the creditor's list of
-            # transfers requires the `Creditor` table row to be
-            # locked.
             if entry.object_type == types.transfer and (entry.is_created or entry.is_deleted):
-                creditor.transfers_list_latest_update_id += 1
-                creditor.transfers_list_latest_update_ts = entry.added_at_ts
-                _add_log_entry(
-                    creditor,
-                    object_type=types.transfers_list,
-                    object_uri=paths.transfers_list(creditorId=creditor_id),
-                    object_update_id=creditor.transfers_list_latest_update_id,
-                    added_at_ts=creditor.transfers_list_latest_update_ts,
-                )
+                # NOTE: When a running transfer has been created or
+                # deleted, the client should be informed about the
+                # change in his list of transfers. The actual write to
+                # the log must be performed now, because at the time
+                # the running transfer was created, the correct value
+                # of the `object_update_id` field had been unknown.
+                _add_transfers_list_update_log_entry(creditor, entry.added_at_ts)
 
             db.session.delete(entry)
 
@@ -170,3 +162,17 @@ def _add_log_entry(
         is_deleted=is_deleted,
         data=data,
     ))
+
+
+def _add_transfers_list_update_log_entry(creditor: Creditor, added_at_ts: datetime) -> None:
+    paths, types = get_paths_and_types()
+    creditor.transfers_list_latest_update_id += 1
+    creditor.transfers_list_latest_update_ts = added_at_ts
+
+    _add_log_entry(
+        creditor,
+        object_type=types.transfers_list,
+        object_uri=paths.transfers_list(creditorId=creditor.creditor_id),
+        object_update_id=creditor.transfers_list_latest_update_id,
+        added_at_ts=creditor.transfers_list_latest_update_ts,
+    )
