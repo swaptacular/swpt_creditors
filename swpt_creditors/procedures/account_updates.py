@@ -281,7 +281,7 @@ def _insert_ledger_entry(
         committed_at_ts: datetime,
         current_ts: datetime) -> Optional[PendingLogEntry]:
 
-    pending_log_entry = None
+    ledger_update_pending_log_entry = None
     creditor_id = data.creditor_id
     debtor_id = data.debtor_id
     correction_amount = principal - data.ledger_principal - acquired_amount
@@ -321,7 +321,7 @@ def _insert_ledger_entry(
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
         paths, types = get_paths_and_types()
-        pending_log_entry = PendingLogEntry(
+        ledger_update_pending_log_entry = PendingLogEntry(
             creditor_id=creditor_id,
             added_at_ts=current_ts,
             object_type=types.account_ledger,
@@ -329,4 +329,4 @@ def _insert_ledger_entry(
             object_update_id=data.ledger_latest_update_id,
         )
 
-    return pending_log_entry
+    return ledger_update_pending_log_entry
