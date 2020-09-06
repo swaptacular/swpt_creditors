@@ -303,13 +303,22 @@ class LogEntrySchema(Schema):
         example=10,
     )
     optional_data = fields.Dict(
-        missing={},
         dump_only=True,
         data_key='data',
-        description='Information about the new state of the created/updated object. Generally, '
-                    'what data is being provided depends on the specified `objectType`. The '
-                    'data can be used so as to avoid making a network request to obtain the '
-                    'new state. This field will not be present when the object has been deleted.',
+        description='Optional information about the new state of the created/updated object. When '
+                    'present, this information can be used to avoid making a network request to '
+                    'obtain the new state. What properties the "data" object will have, depends '
+                    'on the value of the `objectType` field:'
+                    '\n\n'
+                    '### When the object type is "AccountLedger"\n'
+                    '`principal` and `nextEntryId` properties will  be present.'
+                    '\n\n'
+                    '### When the object type is "Transfer"\n'
+                    'If the transfer is finalized, `finalizedAt` and (only when there is an '
+                    'error) `errorCode` properties will be present. If the transfer is not '
+                    'finalized, the "data" object will not be present.'
+                    '\n\n'
+                    '**Note:** This field will never be present when the object has been deleted.',
     )
 
     @pre_dump
@@ -321,8 +330,10 @@ class LogEntrySchema(Schema):
         if obj.object_update_id is not None:
             obj.optional_object_update_id = obj.object_update_id
 
-        if isinstance(obj.data, dict) and not obj.is_deleted:
-            obj.optional_data = obj.data
+        if not obj.is_deleted:
+            data = obj.get_data_dict()
+            if data is not None:
+                obj.optional_data = data
 
         return obj
 

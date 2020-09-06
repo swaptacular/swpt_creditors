@@ -1,4 +1,6 @@
 from __future__ import annotations
+from typing import Dict, Optional
+from datetime import datetime
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
 from swpt_creditors.extensions import db
@@ -69,9 +71,38 @@ class BaseLogEntry(db.Model):
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
     data = db.Column(pg.JSON)
 
+    # NOTE: Those will be non-NULL for specific `object_type`s
+    # only. The key is the name of the column in the table, the value
+    # is the name of the corresponding JSON property in the `data`
+    # dictionary.
+    DATA_FIELDS = {
+        'data_principal': 'principal',
+        'data_next_entry_id': 'nextEntryId',
+        'data_finalized_at_ts': 'finalizedAt',
+        'data_error_code': 'errorCode',
+    }
+    data_principal = db.Column(db.BigInteger)
+    data_next_entry_id = db.Column(db.BigInteger)
+    data_finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True))
+    data_error_code = db.Column(db.String)
+
     @property
     def is_created(self):
         return not self.is_deleted and self.object_update_id in [1, None]
+
+    def get_data_dict(self) -> Optional[Dict]:
+        if isinstance(self.data, dict):
+            return self.data
+
+        data = self.DATA_FIELDS.items()
+        data = {prop: self._jsonify_attribute(attr) for attr, prop in data if getattr(self, attr) is not None}
+        return data or None
+
+    def _jsonify_attribute(self, attr_name):
+        value = getattr(self, attr_name)
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
 
 
 class PendingLogEntry(BaseLogEntry):

@@ -29,9 +29,10 @@ def ledger_entries(db_session, account, current_ts):
     from swpt_creditors.procedures.account_updates import _insert_ledger_entry
 
     data = m.AccountData.query.one()
-    _insert_ledger_entry(data, 1, 100, 100, current_ts - timedelta(minutes=2), current_ts)
-    _insert_ledger_entry(data, 2, 200, 350, current_ts - timedelta(minutes=1), current_ts)
+    db_session.add(_insert_ledger_entry(data, 1, 100, 100, current_ts - timedelta(minutes=2), current_ts))
+    db_session.add(_insert_ledger_entry(data, 2, 200, 350, current_ts - timedelta(minutes=1), current_ts))
     db_session.commit()
+    p.process_pending_log_entries(2)
 
 
 def _get_all_pages(client, url, page_type, streaming=False):
@@ -973,6 +974,16 @@ def test_ledger_entries_list(ledger_entries, client, current_ts):
 
     items = _get_all_pages(client, '/creditors/2/accounts/1/entries?prev=2&stop=2', page_type='LedgerEntriesPage')
     assert len(items) == 0
+
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 4
+    assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('data'))
+            for e in entries] == [
+        ('Account', '/creditors/2/accounts/1/', 1, None),
+        ('AccountsList', '/creditors/2/accounts-list', 2, None),
+        ('AccountLedger', '/creditors/2/accounts/1/ledger', 2, {'principal': 100, 'nextEntryId': 2}),
+        ('AccountLedger', '/creditors/2/accounts/1/ledger', 3, {'principal': 350, 'nextEntryId': 4}),
+    ]
 
 
 def test_get_committed_transfer(client, account, current_ts):

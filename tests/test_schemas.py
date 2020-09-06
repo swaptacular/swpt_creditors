@@ -124,6 +124,16 @@ def test_serialize_log_entry(app):
         'data': le.data,
     }
 
+    current_ts = datetime.now(tz=timezone.utc)
+    le.data_finalized_at_ts = current_ts
+    assert les.dump(le)['data'] == le.data
+
+    le.data = None
+    assert les.dump(le)['data'] == {'finalizedAt': current_ts.isoformat()}
+
+    le.data_finalized_at_ts = None
+    assert 'data' not in les.dump(le)
+
 
 def test_serialize_log_entries_page(app):
     le = models.LogEntry(

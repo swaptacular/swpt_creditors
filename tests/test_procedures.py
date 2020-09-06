@@ -686,6 +686,12 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert rt.latest_update_id == 2
     assert isinstance(rt.latest_update_ts, datetime)
 
+    p.process_pending_log_entries(C_ID)
+    le = LogEntry.query.filter_by(object_type='Transfer').filter(LogEntry.object_update_id > 1).one()
+    assert le.data is None
+    assert le.data_finalized_at_ts == rt.finalized_at_ts
+    assert le.data_error_code == rt.error_code
+
 
 def test_process_rejected_direct_transfer_unexpected_error(db_session, account, current_ts):
     rt = p.initiate_running_transfer(
@@ -739,6 +745,12 @@ def test_successful_transfer(db_session, account, current_ts):
     assert rt.transfer_id == 123
     assert rt.error_code is None
     assert rt.total_locked_amount is None
+
+    p.process_pending_log_entries(C_ID)
+    le = LogEntry.query.filter_by(object_type='Transfer').filter(LogEntry.object_update_id > 1).one()
+    assert le.data is None
+    assert le.data_finalized_at_ts == rt.finalized_at_ts
+    assert le.data_error_code is None
 
 
 def test_unsuccessful_transfer(db_session, account, current_ts):

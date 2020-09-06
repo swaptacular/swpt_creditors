@@ -327,6 +327,8 @@ def _insert_ledger_entry(
             object_type=types.account_ledger,
             object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
             object_update_id=data.ledger_latest_update_id,
+            data_principal=principal,
+            data_next_entry_id=data.ledger_last_entry_id + 1,
         )
 
     return ledger_update_pending_log_entry

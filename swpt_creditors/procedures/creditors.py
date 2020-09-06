@@ -113,15 +113,18 @@ def process_pending_log_entries(creditor_id: int) -> None:
     if pending_log_entries:
         paths, types = get_paths_and_types()
         for entry in pending_log_entries:
-            _add_log_entry(
-                creditor,
+            data_fields = {attr: getattr(entry, attr) for attr in LogEntry.DATA_FIELDS}
+            db.session.add(LogEntry(
+                creditor_id=creditor_id,
+                entry_id=creditor.generate_log_entry_id(),
                 object_type=entry.object_type,
                 object_uri=entry.object_uri,
                 object_update_id=entry.object_update_id,
                 added_at_ts=entry.added_at_ts,
                 is_deleted=entry.is_deleted,
                 data=entry.data,
-            )
+                **data_fields,
+            ))
 
             if entry.object_type == types.transfer and (entry.is_created or entry.is_deleted):
                 # NOTE: When a running transfer has been created or

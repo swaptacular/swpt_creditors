@@ -386,6 +386,8 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
             object_type=types.transfer,
             object_uri=paths.transfer(creditorId=rt.creditor_id, transferUuid=rt.transfer_uuid),
             object_update_id=rt.latest_update_id,
+            data_finalized_at_ts=current_ts,
+            data_error_code=error_code,
         ))
 
 
