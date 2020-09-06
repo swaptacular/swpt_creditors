@@ -122,7 +122,7 @@ def cancel_running_transfer(creditor_id: int, transfer_uuid: UUID) -> RunningTra
     if rt is None:
         raise errors.TransferDoesNotExist()
 
-    if rt.transfer_id is not None:
+    if rt.is_settled:
         raise errors.ForbiddenTransferCancellation()
 
     _finalize_running_transfer(rt, error_code=SC_CANCELED_BY_THE_SENDER)

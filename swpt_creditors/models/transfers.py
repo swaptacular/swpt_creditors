@@ -111,3 +111,7 @@ class RunningTransfer(db.Model):
     @property
     def is_finalized(self):
         return bool(self.finalized_at_ts)
+
+    @property
+    def is_settled(self):
+        return self.transfer_id is not None
