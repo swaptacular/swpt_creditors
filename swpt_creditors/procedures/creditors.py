@@ -126,20 +126,22 @@ def process_pending_log_entries(creditor_id: int) -> None:
             if entry.object_type == types.transfer and (entry.is_created or entry.is_deleted):
                 # NOTE: When a running transfer has been created or
                 # deleted, the client should be informed about the
-                # change in his list of transfers. The actual write to
+                # update in his list of transfers. The actual write to
                 # the log must be performed now, because at the time
-                # the running transfer was created, the correct value
-                # of the `object_update_id` field had been unknown.
+                # the running transfer was created/deleted, the
+                # correct value of the `object_update_id` field had
+                # been unknown.
                 _add_transfers_list_update_log_entry(creditor, entry.added_at_ts)
 
             db.session.delete(entry)
 
 
 def _get_creditor(creditor_id: int, lock=False) -> Optional[Creditor]:
+    query = Creditor.query.filter_by(creditor_id=creditor_id)
     if lock:
-        return Creditor.lock_instance(creditor_id)
-    else:
-        return Creditor.get_instance(creditor_id)
+        query = query.with_for_update()
+
+    return query.one_or_none()
 
 
 def _add_log_entry(

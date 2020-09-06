@@ -9,7 +9,7 @@ from swpt_creditors.models import Account, AccountData, ConfigureAccountSignal, 
     DEFAULT_CONFIG_FLAGS
 from .common import allow_update, get_paths_and_types, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
     LOAD_ONLY_INFO_RELATED_COLUMNS, LOAD_ONLY_LEDGER_RELATED_COLUMNS
-from .creditors import get_active_creditor, _add_log_entry
+from .creditors import get_active_creditor, _get_creditor, _add_log_entry
 from . import errors
 
 T = TypeVar('T')
@@ -42,13 +42,15 @@ def has_account(creditor_id: int, debtor_id: int) -> bool:
 
 @atomic
 def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
-    return Account.get_instance(
-        (creditor_id, debtor_id),
-        joinedload(Account.knowledge, innerjoin=True),
-        joinedload(Account.exchange, innerjoin=True),
-        joinedload(Account.display, innerjoin=True),
-        joinedload(Account.data, innerjoin=True),
-    )
+    return Account.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        options(
+            joinedload(Account.knowledge, innerjoin=True),
+            joinedload(Account.exchange, innerjoin=True),
+            joinedload(Account.display, innerjoin=True),
+            joinedload(Account.data, innerjoin=True),
+        ).\
+        one_or_none()
 
 
 @atomic
@@ -69,7 +71,7 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
 @atomic
 def delete_account(creditor_id: int, debtor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    creditor = get_active_creditor(creditor_id, lock=True)
+    creditor = _get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
 
@@ -116,10 +118,14 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
 
 
 def get_account_config(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountData]:
+    query = AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        options(LOAD_ONLY_CONFIG_RELATED_COLUMNS)
+
     if lock:
-        return AccountData.lock_instance((creditor_id, debtor_id), LOAD_ONLY_CONFIG_RELATED_COLUMNS)
-    else:
-        return AccountData.get_instance((creditor_id, debtor_id), LOAD_ONLY_CONFIG_RELATED_COLUMNS)
+        query = query.with_for_update()
+
+    return query.one_or_none()
 
 
 @atomic
@@ -181,10 +187,11 @@ def update_account_config(
 
 @atomic
 def get_account_display(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountDisplay]:
+    query = AccountDisplay.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
     if lock:
-        return AccountDisplay.lock_instance((creditor_id, debtor_id))
-    else:
-        return AccountDisplay.get_instance((creditor_id, debtor_id))
+        query = query.with_for_update()
+
+    return query.one_or_none()
 
 
 @atomic
@@ -242,10 +249,11 @@ def update_account_display(
 
 @atomic
 def get_account_knowledge(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountKnowledge]:
+    query = AccountKnowledge.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
     if lock:
-        return AccountKnowledge.lock_instance((creditor_id, debtor_id))
-    else:
-        return AccountKnowledge.get_instance((creditor_id, debtor_id))
+        query = query.with_for_update()
+
+    return query.one_or_none()
 
 
 @atomic
@@ -283,10 +291,11 @@ def update_account_knowledge(
 
 @atomic
 def get_account_exchange(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountExchange]:
+    query = AccountExchange.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
     if lock:
-        return AccountExchange.lock_instance((creditor_id, debtor_id))
-    else:
-        return AccountExchange.get_instance((creditor_id, debtor_id))
+        query = query.with_for_update()
+
+    return query.one_or_none()
 
 
 @atomic
@@ -340,12 +349,18 @@ def update_account_exchange(
 
 @atomic
 def get_account_info(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.get_instance((creditor_id, debtor_id), LOAD_ONLY_INFO_RELATED_COLUMNS)
+    return AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        options(LOAD_ONLY_INFO_RELATED_COLUMNS).\
+        one_or_none()
 
 
 @atomic
 def get_account_ledger(creditor_id: int, debtor_id: int) -> Optional[AccountData]:
-    return AccountData.get_instance((creditor_id, debtor_id), LOAD_ONLY_LEDGER_RELATED_COLUMNS)
+    return AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        options(LOAD_ONLY_LEDGER_RELATED_COLUMNS).\
+        one_or_none()
 
 
 @atomic
@@ -375,7 +390,6 @@ def get_account_ledger_entries(
 
 def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
     creditor_id = creditor.creditor_id
-
     paths, types = get_paths_and_types()
     _add_log_entry(
         creditor,
@@ -384,6 +398,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         object_update_id=1,
         added_at_ts=current_ts,
     )
+
     creditor.accounts_list_latest_update_id += 1
     creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(

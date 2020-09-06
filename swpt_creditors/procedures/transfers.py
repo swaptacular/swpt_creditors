@@ -26,15 +26,23 @@ def get_committed_transfer(
         creation_date: date,
         transfer_number: int) -> Optional[CommittedTransfer]:
 
-    return CommittedTransfer.get_instance((creditor_id, debtor_id, creation_date, transfer_number))
+    return CommittedTransfer.query.\
+        filter_by(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            creation_date=creation_date,
+            transfer_number=transfer_number,
+        ).\
+        one_or_none()
 
 
 @atomic
 def get_running_transfer(creditor_id: int, transfer_uuid: UUID, lock=False) -> Optional[RunningTransfer]:
+    query = RunningTransfer.query.filter_by(creditor_id=creditor_id, transfer_uuid=transfer_uuid)
     if lock:
-        return RunningTransfer.lock_instance((creditor_id, transfer_uuid))
-    else:
-        return RunningTransfer.get_instance((creditor_id, transfer_uuid))
+        query = query.with_for_update()
+
+    return query.one_or_none()
 
 
 @atomic
