@@ -36,7 +36,7 @@ def account(creditor):
 def test_create_new_creditor(db_session):
     creditor = p.create_new_creditor(C_ID)
     assert creditor.creditor_id == C_ID
-    assert not creditor.is_active
+    assert not creditor.is_activated
     assert len(Creditor.query.all()) == 1
     with pytest.raises(p.CreditorExists):
         p.create_new_creditor(C_ID)
@@ -45,11 +45,11 @@ def test_create_new_creditor(db_session):
     p.activate_creditor(C_ID)
     creditor = p.get_active_creditor(C_ID)
     assert creditor
-    assert creditor.is_active
+    assert creditor.is_activated
 
     creditor = p.create_new_creditor(666, activate=True)
     assert creditor.creditor_id == 666
-    assert creditor.is_active
+    assert creditor.is_activated
 
 
 def test_create_account(db_session, creditor):

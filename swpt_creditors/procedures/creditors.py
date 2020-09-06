@@ -16,7 +16,7 @@ def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     creditor = Creditor(creditor_id=creditor_id, status=DEFAULT_CREDITOR_STATUS)
-    creditor.is_active = activate
+    creditor.is_activated = activate
 
     db.session.add(creditor)
     try:
@@ -31,13 +31,13 @@ def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
 def activate_creditor(creditor_id: int) -> None:
     creditor = _get_creditor(creditor_id, lock=True)
     if creditor:
-        creditor.is_active = True
+        creditor.is_activated = True
 
 
 @atomic
 def get_active_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
     creditor = _get_creditor(creditor_id, lock=lock)
-    if creditor and creditor.is_active and creditor.deactivated_at_date is None:
+    if creditor and creditor.is_activated and creditor.deactivated_at_date is None:
         return creditor
 
 

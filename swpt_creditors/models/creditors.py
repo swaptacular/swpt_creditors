@@ -14,7 +14,7 @@ DEFAULT_CREDITOR_STATUS = 0
 
 
 class Creditor(db.Model):
-    STATUS_IS_ACTIVE_FLAG = 1
+    STATUS_IS_ACTIVATED_FLAG = 1
 
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
@@ -39,19 +39,19 @@ class Creditor(db.Model):
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(accounts_list_latest_update_id > 0),
         db.CheckConstraint(transfers_list_latest_update_id > 0),
-        db.CheckConstraint(or_(deactivated_at_date == null(), status.op('&')(STATUS_IS_ACTIVE_FLAG) != 0)),
+        db.CheckConstraint(or_(deactivated_at_date == null(), status.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0)),
     )
 
     @property
-    def is_active(self):
-        return bool(self.status & Creditor.STATUS_IS_ACTIVE_FLAG)
+    def is_activated(self):
+        return bool(self.status & Creditor.STATUS_IS_ACTIVATED_FLAG)
 
-    @is_active.setter
-    def is_active(self, value):
+    @is_activated.setter
+    def is_activated(self, value):
         if value:
-            self.status |= Creditor.STATUS_IS_ACTIVE_FLAG
+            self.status |= Creditor.STATUS_IS_ACTIVATED_FLAG
         else:
-            self.status &= ~Creditor.STATUS_IS_ACTIVE_FLAG
+            self.status &= ~Creditor.STATUS_IS_ACTIVATED_FLAG
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1
