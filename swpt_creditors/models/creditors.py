@@ -94,8 +94,8 @@ class BaseLogEntry(db.Model):
         if isinstance(self.data, dict):
             return self.data
 
-        data = self.DATA_FIELDS.items()
-        data = {prop: self._jsonify_attribute(attr) for attr, prop in data if getattr(self, attr) is not None}
+        items = self.DATA_FIELDS.items()
+        data = {prop: self._jsonify_attribute(attr) for attr, prop in items if getattr(self, attr) is not None}
         return data or None
 
     def _jsonify_attribute(self, attr_name):
