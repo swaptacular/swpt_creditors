@@ -92,7 +92,11 @@ def process_account_update_signal(
     if (current_ts - ts).total_seconds() > ttl:
         return
 
-    data = AccountData.lock_instance((creditor_id, debtor_id))
+    data = AccountData.query.\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        with_for_update().\
+        one_or_none()
+
     if data is None:
         _discard_orphaned_account(creditor_id, debtor_id, config_flags, negligible_amount)
         return
@@ -102,8 +106,7 @@ def process_account_update_signal(
 
     prev_event = (data.creation_date, data.last_change_ts, Seqnum(data.last_change_seqnum))
     this_event = (creation_date, last_change_ts, Seqnum(last_change_seqnum))
-    is_new_event = this_event > prev_event
-    if not is_new_event:
+    if this_event <= prev_event:
         return
 
     is_config_effectual = (
@@ -115,7 +118,7 @@ def process_account_update_signal(
     )
     config_error = None if is_config_effectual else data.config_error
     new_server_account = creation_date > data.creation_date
-    info_update = (
+    is_info_updated = (
         data.is_deletion_safe
         or data.account_id != account_id
         or abs(data.interest_rate - interest_rate) > EPS * interest_rate
@@ -124,7 +127,7 @@ def process_account_update_signal(
         or data.debtor_info_iri != debtor_info_iri
         or data.config_error != config_error
     )
-    if info_update:
+    if is_info_updated:
         _insert_info_update_pending_log_entry(data, current_ts)
 
     data.has_server_account = True
@@ -193,6 +196,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
         filter(PendingLedgerUpdate.creditor_id == creditor_id, PendingLedgerUpdate.debtor_id == debtor_id).\
         with_for_update().\
         options(Load(AccountData).load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+
     try:
         pending_ledger_update, data = query.one()
     except exc.NoResultFound:
@@ -208,6 +212,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
 
     if all_done:
         db.session.delete(pending_ledger_update)
+
     return all_done
 
 
