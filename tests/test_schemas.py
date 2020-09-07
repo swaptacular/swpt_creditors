@@ -80,6 +80,7 @@ def test_serialize_wallet(app):
         'debtorLookup': {'uri': '/creditors/1/debtor-lookup'},
         'createAccount': {'uri': '/creditors/1/accounts/'},
         'createTransfer': {'uri': '/creditors/1/transfers/'},
+        'logRetentionDays': 31,
         'log': {
             'type': 'PaginatedStream',
             'itemsType': 'LogEntry',

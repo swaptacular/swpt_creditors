@@ -19,6 +19,7 @@ config_dict = {
     'APP_ACCOUNTS_PER_PAGE': 2,
     'APP_TRANSFERS_PER_PAGE': 2,
     'APP_LEDGER_ENTRIES_PER_PAGE': 2,
+    'APP_LOG_RETENTION_DAYS': 31,
 }
 
 

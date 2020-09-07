@@ -175,6 +175,17 @@ class WalletSchema(Schema):
             'type': 'PaginatedStream',
         },
     )
+    log_retention_days = fields.Method(
+        'get_log_retention_days',
+        required=True,
+        dump_only=True,
+        type='integer',
+        format="int32",
+        data_key='logRetentionDays',
+        description="The entries in the creditor's log stream will not be deleted for at least this "
+                    "number of days. This will always be a positive number.",
+        example=30,
+    )
     transfers_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
@@ -224,6 +235,10 @@ class WalletSchema(Schema):
                     "the response will be empty (response code 204).",
         example={'uri': '/creditors/2/debtor-lookup'},
     )
+
+    def get_log_retention_days(self, obj):
+        calc_log_retention_days = self.context['calc_log_retention_days']
+        return calc_log_retention_days(obj.creditor_id)
 
     @pre_dump
     def process_creditor_instance(self, obj, many):

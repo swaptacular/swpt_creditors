@@ -33,6 +33,10 @@ def calc_checkup_datetime(debtor_id: int, initiated_at_ts: datetime) -> datetime
     return current_ts + max(current_delay, average_delay)
 
 
+def calc_log_retention_days(creditor_id: int) -> int:
+    return current_app.config['APP_LOG_RETENTION_DAYS']
+
+
 class path_builder:
     def _build_committed_transfer_path(creditorId, debtorId, creationDate, transferNumber):
         return url_for(
@@ -70,4 +74,5 @@ class path_builder:
 context = {
     'paths': path_builder,
     'calc_checkup_datetime': calc_checkup_datetime,
+    'calc_log_retention_days': calc_log_retention_days,
 }
