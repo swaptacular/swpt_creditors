@@ -140,7 +140,7 @@ def on_account_transfer_signal(
         principal,
         iso8601.parse_date(ts),
         previous_transfer_number,
-        timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS']),
+        timedelta(days=int(current_app.config['APP_LOG_RETENTION_DAYS'])),
     )
 
 

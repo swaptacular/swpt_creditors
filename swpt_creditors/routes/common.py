@@ -29,12 +29,12 @@ def parse_transfer_slug(slug) -> Tuple[date, int]:
 def calc_checkup_datetime(debtor_id: int, initiated_at_ts: datetime) -> datetime:
     current_ts = datetime.now(tz=timezone.utc)
     current_delay = current_ts - initiated_at_ts
-    average_delay = timedelta(seconds=current_app.config['APP_TRANSFERS_FINALIZATION_AVG_SECONDS'])
+    average_delay = timedelta(seconds=float(current_app.config['APP_TRANSFERS_FINALIZATION_AVG_SECONDS']))
     return current_ts + max(current_delay, average_delay)
 
 
 def calc_log_retention_days(creditor_id: int) -> int:
-    return current_app.config['APP_LOG_RETENTION_DAYS']
+    return int(current_app.config['APP_LOG_RETENTION_DAYS'])
 
 
 class path_builder:

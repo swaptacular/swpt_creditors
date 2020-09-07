@@ -36,7 +36,7 @@ class TransfersEndpoint(MethodView):
 
         """
 
-        n = current_app.config['APP_TRANSFERS_PER_PAGE']
+        n = int(current_app.config['APP_TRANSFERS_PER_PAGE'])
         transfer_uuids = procedures.get_creditor_transfer_uuids(creditorId, count=n, prev=params.get('prev'))
         items = [{'uri': str(uuid)} for uuid in transfer_uuids]
 

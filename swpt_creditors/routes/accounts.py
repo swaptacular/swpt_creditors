@@ -118,7 +118,7 @@ class AccountsEndpoint(MethodView):
         except ValueError:
             abort(422, errors={'query': {'prev': ['Invalid value.']}})
 
-        n = current_app.config['APP_ACCOUNTS_PER_PAGE']
+        n = int(current_app.config['APP_ACCOUNTS_PER_PAGE'])
         debtor_ids = procedures.get_account_debtor_ids(creditorId, count=n, prev=prev)
         items = [{'uri': f'{i64_to_u64(debtor_id)}/'} for debtor_id in debtor_ids]
 
@@ -448,7 +448,7 @@ class AccountLedgerEntriesEndpoint(MethodView):
 
         """
 
-        n = current_app.config['APP_LEDGER_ENTRIES_PER_PAGE']
+        n = int(current_app.config['APP_LEDGER_ENTRIES_PER_PAGE'])
         prev = params['prev']
         stop = params['stop']
         try:
