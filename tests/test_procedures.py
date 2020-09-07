@@ -34,6 +34,9 @@ def account(creditor):
 
 
 def test_create_new_creditor(db_session):
+    with pytest.raises(p.InvalidCreditor):
+        creditor = p.create_new_creditor(models.MAX_INT64 + 1)
+
     creditor = p.create_new_creditor(C_ID)
     assert creditor.creditor_id == C_ID
     assert not creditor.is_activated

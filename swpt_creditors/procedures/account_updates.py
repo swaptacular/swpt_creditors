@@ -6,9 +6,10 @@ from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
-    TRANSFER_NOTE_MAX_BYTES, DEFAULT_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS
+    TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS
 from .common import get_paths_and_types, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
     LOAD_ONLY_INFO_RELATED_COLUMNS, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS
+from .creditors import _is_correct_creditor_id
 from .accounts import _insert_info_update_pending_log_entry
 from .transfers import _ensure_pending_ledger_update
 
@@ -16,6 +17,7 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 EPS = 1e-5
+assert 0 < EPS <= 0.01
 
 
 @atomic
@@ -255,22 +257,19 @@ def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> L
 
 
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
-    # TODO: Consider consulting the `CreditorSpace` table before
-    #       performing this potentially very dangerous
-    #       operation. Also, consider adding a "recovery" app
-    #       configuration option, and if it is set, do not delete
-    #       orphaned accounts, but instead create creditor accounts.
-
-    scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-    if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= DEFAULT_NEGLIGIBLE_AMOUNT):
-        db.session.add(ConfigureAccountSignal(
-            creditor_id=creditor_id,
-            debtor_id=debtor_id,
-            ts=datetime.now(tz=timezone.utc),
-            seqnum=0,
-            negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
-            config_flags=DEFAULT_CONFIG_FLAGS | scheduled_for_deletion_flag,
-        ))
+    if _is_correct_creditor_id(creditor_id):
+        scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        safely_huge_negligible_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT
+        assert safely_huge_negligible_amount < HUGE_NEGLIGIBLE_AMOUNT
+        if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_negligible_amount):
+            db.session.add(ConfigureAccountSignal(
+                creditor_id=creditor_id,
+                debtor_id=debtor_id,
+                ts=datetime.now(tz=timezone.utc),
+                seqnum=0,
+                negligible_amount=HUGE_NEGLIGIBLE_AMOUNT,
+                config_flags=DEFAULT_CONFIG_FLAGS | scheduled_for_deletion_flag,
+            ))
 
 
 def _insert_ledger_entry(

@@ -2,17 +2,26 @@ from __future__ import annotations
 from typing import Dict, Optional
 from datetime import datetime
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, or_
+from sqlalchemy.sql.expression import null, true, or_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, MAX_INT64
 
 DEFAULT_CREDITOR_STATUS = 0
 
 
-# TODO: Consider using a `CreditorSpace` model, which may contain a
-#       `mask` field. The idea is to know the interval of creditor IDs
-#       for which the instance is responsible for, and therefore, not
-#       messing up with accounts belonging to other instances.
+class AgentConfig(db.Model):
+    is_effective = db.Column(db.BOOLEAN, primary_key=True, default=True)
+    min_creditor_id = db.Column(db.BigInteger, nullable=False)
+    max_creditor_id = db.Column(db.BigInteger, nullable=False)
+    __table_args__ = (
+        db.CheckConstraint(is_effective == true()),
+        db.CheckConstraint(min_creditor_id <= max_creditor_id),
+        {
+            'comment': 'Represents the global agent configuration (a singleton). The '
+                       'agent is responsible only for creditor IDs that are within the '
+                       'interval [min_creditor_id, max_creditor_id].',
+        }
+    )
 
 
 class Creditor(db.Model):

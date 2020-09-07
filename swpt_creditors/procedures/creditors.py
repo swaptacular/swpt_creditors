@@ -1,8 +1,9 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
-from swpt_creditors.models import Creditor, LogEntry, PendingLogEntry, MIN_INT64, MAX_INT64, \
+from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, MIN_INT64, MAX_INT64, \
     DEFAULT_CREDITOR_STATUS
 from .common import allow_update, get_paths_and_types
 from . import errors
@@ -12,8 +13,27 @@ atomic: Callable[[T], T] = db.atomic
 
 
 @atomic
+def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
+    assert MIN_INT64 <= min_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= max_creditor_id <= MAX_INT64
+    assert min_creditor_id <= max_creditor_id
+
+    agent_config = AgentConfig.query.with_for_update().one_or_none()
+    if agent_config:
+        agent_config.min_creditor_id = min_creditor_id
+        agent_config.max_creditor_id = max_creditor_id
+    else:  # pragma: no cover
+        with db.retry_on_integrity_error():
+            db.session.add(AgentConfig(
+                min_creditor_id=min_creditor_id,
+                max_creditor_id=max_creditor_id,
+            ))
+
+
+@atomic
 def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    if not _is_correct_creditor_id(creditor_id):
+        raise errors.InvalidCreditor()
 
     creditor = Creditor(creditor_id=creditor_id, status=DEFAULT_CREDITOR_STATUS)
     creditor.is_activated = activate
@@ -181,3 +201,14 @@ def _add_transfers_list_update_log_entry(creditor: Creditor, added_at_ts: dateti
         object_update_id=creditor.transfers_list_latest_update_id,
         added_at_ts=creditor.transfers_list_latest_update_ts,
     )
+
+
+def _is_correct_creditor_id(creditor_id: int) -> bool:
+    try:
+        config = AgentConfig.query.one()
+        if not config.min_creditor_id <= creditor_id <= config.max_creditor_id:
+            raise ValueError()
+    except (exc.NoResultFound, ValueError):
+        return False
+
+    return True

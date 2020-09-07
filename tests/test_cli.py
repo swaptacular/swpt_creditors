@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from swpt_creditors import procedures as p
+from swpt_creditors import models as m
 
 D_ID = -1
 C_ID = 1
@@ -82,3 +83,40 @@ def test_process_log_entries(app, db_session, current_ts):
     assert not result.output
     entries2, _ = p.get_log_entries(C_ID, count=10000)
     assert len(entries2) > len(entries1)
+
+
+def test_configure_interval(app, db_session, current_ts):
+    ac = m.AgentConfig.query.one_or_none()
+    if ac and ac.min_creditor_id == m.MIN_INT64:
+        min_creditor_id = m.MIN_INT64 + 1
+        max_creditor_id = m.MAX_INT64
+    else:
+        min_creditor_id = m.MIN_INT64
+        max_creditor_id = m.MAX_INT64
+    runner = app.test_cli_runner()
+
+    result = runner.invoke(args=[
+        'swpt_creditors', 'configure_interval', '--', str(m.MIN_INT64 - 1), str(m.MAX_INT64)])
+    assert 'not a valid creditor ID' in result.output
+
+    result = runner.invoke(args=[
+        'swpt_creditors', 'configure_interval', '--', str(m.MIN_INT64), str(m.MAX_INT64 + 1)])
+    assert 'not a valid creditor ID' in result.output
+
+    result = runner.invoke(args=[
+        'swpt_creditors', 'configure_interval', '--', str(m.MAX_INT64), str(m.MIN_INT64)])
+    assert 'invalid interval' in result.output
+
+    result = runner.invoke(args=[
+        'swpt_creditors', 'configure_interval', '--', str(min_creditor_id), str(max_creditor_id)])
+    assert not result.output
+    ac = m.AgentConfig.query.one()
+    assert ac.min_creditor_id == min_creditor_id
+    assert ac.max_creditor_id == max_creditor_id
+
+    result = runner.invoke(args=[
+        'swpt_creditors', 'configure_interval', '--', str(min_creditor_id), str(max_creditor_id)])
+    assert not result.output
+    ac = m.AgentConfig.query.one()
+    assert ac.min_creditor_id == min_creditor_id
+    assert ac.max_creditor_id == max_creditor_id

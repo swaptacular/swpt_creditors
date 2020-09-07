@@ -1,10 +1,12 @@
 import logging
+import sys
 import click
 from os import environ
 from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
-from . import procedures
+from swpt_creditors.models import MIN_INT64, MAX_INT64
+from swpt_creditors import procedures
 
 
 @click.group('swpt_creditors')
@@ -47,6 +49,35 @@ def subscribe(queue_name):  # pragma: no cover
             else:
                 unbind(queue_name, MAIN_EXCHANGE_NAME, routing_key)
                 click.echo(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
+
+
+@swpt_creditors.command('configure_interval')
+@with_appcontext
+@click.argument('min_id', type=int)
+@click.argument('max_id', type=int)
+def configure_interval(min_id, max_id):
+    """Configures the server to manage creditor IDs between MIN_ID and MAX_ID.
+
+    The passed creditor IDs must be between -9223372036854775808 and
+    9223372036854775807. Use "--" to pass negative integers. For
+    example:
+
+    $ flask swpt_creditors configure_interval -- -16 0
+
+    """
+
+    def validate(value):
+        if not MIN_INT64 <= value <= MAX_INT64:
+            click.echo(f'Error: {value} is not a valid creditor ID.')
+            sys.exit(1)
+
+    validate(min_id)
+    validate(max_id)
+    if min_id > max_id:
+        click.echo('Error: an invalid interval has been specified.')
+        sys.exit(1)
+
+    procedures.configure_agent(min_creditor_id=min_id, max_creditor_id=max_id)
 
 
 @swpt_creditors.command('process_log_entries')

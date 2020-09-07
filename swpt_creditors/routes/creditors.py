@@ -43,6 +43,8 @@ class CreditorEndpoint(MethodView):
             creditor = procedures.create_new_creditor(creditorId, activate=creditor_creation_request['activate'])
         except procedures.CreditorExists:
             abort(409)
+        except procedures.InvalidCreditor:  # pragma: no cover
+            abort(500, message='The agent is not responsible for this creditor.')
 
         return creditor
 

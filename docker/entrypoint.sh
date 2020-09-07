@@ -42,7 +42,7 @@ setup_rabbitmq_bindings() {
 # initializations. Make sure that it is idempotent.
 # (https://en.wikipedia.org/wiki/Idempotence)
 perform_initializations() {
-    return 0
+    flask swpt_creditors configure_interval -- $MIN_CREDITOR_ID $MAX_CREDITOR_ID
 }
 
 case $1 in

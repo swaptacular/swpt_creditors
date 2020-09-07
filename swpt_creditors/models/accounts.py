@@ -6,9 +6,10 @@ from sqlalchemy.sql.expression import null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, MAX_INT64, MIN_INT64, TS0, DATE0, SECONDS_IN_YEAR
 
+HUGE_NEGLIGIBLE_AMOUNT = 1e30
+DEFAULT_NEGLIGIBLE_AMOUNT = HUGE_NEGLIGIBLE_AMOUNT
 DEFAULT_STATUS_FLAGS = 0
 DEFAULT_CONFIG_FLAGS = 0
-DEFAULT_NEGLIGIBLE_AMOUNT = 1e30
 
 
 class Account(db.Model):
