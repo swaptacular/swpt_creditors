@@ -1,4 +1,4 @@
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Callable, Tuple, List, Optional
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, Load
@@ -17,6 +17,7 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 EPS = 1e-5
+HUGE_INTERVAL = timedelta(days=500000)
 assert 0 < EPS <= 0.01
 
 
@@ -198,7 +199,13 @@ def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
 
 
 @atomic
-def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: int = None) -> bool:
+def process_pending_ledger_update(
+        creditor_id: int,
+        debtor_id: int,
+        *,
+        max_count: int = None,
+        max_delay: timedelta = HUGE_INTERVAL) -> bool:
+
     """Returns `False` if some legible committed transfers remained unprocessed."""
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -217,8 +224,9 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
     transfers = _get_sorted_pending_transfers(data, max_count)
     all_done = max_count is None or len(transfers) < max_count
     ledger_update_pending_log_entry = None
+    committed_at_cutoff = current_ts - max_delay
     for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at_ts in transfers:
-        if previous_transfer_number != data.ledger_last_transfer_number:
+        if previous_transfer_number != data.ledger_last_transfer_number and committed_at_ts >= committed_at_cutoff:
             all_done = True
             break
         e = _insert_ledger_entry(data, transfer_number, acquired_amount, principal, committed_at_ts, current_ts)
@@ -259,9 +267,9 @@ def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> L
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
     if _is_correct_creditor_id(creditor_id):
         scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        safely_huge_negligible_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT
-        assert safely_huge_negligible_amount < HUGE_NEGLIGIBLE_AMOUNT
-        if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_negligible_amount):
+        safely_huge_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT
+        assert safely_huge_amount < HUGE_NEGLIGIBLE_AMOUNT
+        if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_amount):
             db.session.add(ConfigureAccountSignal(
                 creditor_id=creditor_id,
                 debtor_id=debtor_id,

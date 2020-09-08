@@ -2,6 +2,7 @@ import logging
 import sys
 import click
 from os import environ
+from datetime import timedelta
 from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
@@ -116,6 +117,7 @@ def process_ledger_updates(threads, burst):
 
     threads = threads or int(environ.get('APP_PROCESS_LEDGER_UPDATES_THREADS', '1'))
     burst = burst or int(environ.get('APP_PROCESS_LEDGER_UPDATES_BURST', '1000'))
+    max_delay = timedelta(days=float(current_app.config['APP_MAX_TRANSFER_DELAY_DAYS']))
     app = current_app._get_current_object()
 
     def push_app_context():
@@ -130,7 +132,8 @@ def process_ledger_updates(threads, burst):
             logger.exception('Caught error while processing ledger updates.')
 
     def process_ledger_update(creditor_id, debtor_id):
-        while not procedures.process_pending_ledger_update(creditor_id, debtor_id, max_count=burst):
+        while not procedures.process_pending_ledger_update(
+                creditor_id, debtor_id, max_count=burst, max_delay=max_delay):
             pass
 
     pool = ThreadPool(threads, initializer=push_app_context)
