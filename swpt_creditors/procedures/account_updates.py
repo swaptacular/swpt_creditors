@@ -1,6 +1,6 @@
 from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Callable, Tuple, List, Optional
-from sqlalchemy.sql.expression import func, or_
+from sqlalchemy.sql.expression import func, or_, and_, null
 from sqlalchemy.orm import exc, Load
 from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
@@ -281,8 +281,8 @@ def schedule_ledger_repair(creditor_id: int, debtor_id: int, max_delay: timedelt
         filter(AccountData.last_transfer_number > AccountData.ledger_last_transfer_number).\
         filter(or_(
             AccountData.ledger_pending_transfer_ts < committed_at_cutoff,
-            AccountData.last_transfer_ts < committed_at_cutoff),
-        )
+            and_(AccountData.ledger_pending_transfer_ts == null(), AccountData.last_transfer_ts < committed_at_cutoff),
+        ))
 
     if db.session.query(broken_ledger_query.exists()).scalar():
         ensure_pending_ledger_update(creditor_id, debtor_id)
