@@ -26,11 +26,11 @@ def account(creditor):
 
 @pytest.fixture(scope='function')
 def ledger_entries(db_session, account, current_ts):
-    from swpt_creditors.procedures.account_updates import _insert_ledger_entry
+    from swpt_creditors.procedures.account_updates import _update_ledger
 
     data = m.AccountData.query.one()
-    db_session.add(_insert_ledger_entry(data, 1, 100, 100, current_ts - timedelta(minutes=2), current_ts))
-    db_session.add(_insert_ledger_entry(data, 2, 200, 350, current_ts - timedelta(minutes=1), current_ts))
+    db_session.add(_update_ledger(data, 1, 100, 100, current_ts - timedelta(minutes=2), current_ts))
+    db_session.add(_update_ledger(data, 2, 200, 350, current_ts - timedelta(minutes=1), current_ts))
     db_session.commit()
     p.process_pending_log_entries(2)
 

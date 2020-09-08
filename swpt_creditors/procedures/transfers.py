@@ -254,7 +254,18 @@ def process_account_transfer_signal(
     ))
 
     if creation_date == ledger_date and previous_transfer_number == ledger_last_transfer_number:
-        _ensure_pending_ledger_update(creditor_id, debtor_id)
+        ensure_pending_ledger_update(creditor_id, debtor_id)
+
+
+@atomic
+def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
+    pending_ledger_update_query = PendingLedgerUpdate.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+    if not db.session.query(pending_ledger_update_query.exists()).scalar():
+        with db.retry_on_integrity_error():
+            db.session.add(PendingLedgerUpdate(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
 @atomic
@@ -389,16 +400,6 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
             data_finalized_at_ts=current_ts,
             data_error_code=error_code,
         ))
-
-
-def _ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
-    pending_ledger_update_query = PendingLedgerUpdate.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
-    if not db.session.query(pending_ledger_update_query.exists()).scalar():
-        with db.retry_on_integrity_error():
-            db.session.add(PendingLedgerUpdate(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
 def _calc_max_commit_delay(current_ts: datetime, deadline: datetime = None) -> int:

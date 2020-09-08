@@ -11,7 +11,7 @@ from .common import get_paths_and_types, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
     LOAD_ONLY_INFO_RELATED_COLUMNS, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS
 from .creditors import _is_correct_creditor_id
 from .accounts import _insert_info_update_pending_log_entry
-from .transfers import _ensure_pending_ledger_update
+from .transfers import ensure_pending_ledger_update
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -151,7 +151,7 @@ def process_account_update_signal(
     data.config_error = config_error
 
     if new_server_account:
-        ledger_update_pending_log_entry = _insert_ledger_entry(
+        ledger_update_pending_log_entry = _update_ledger(
             data=data,
             transfer_number=0,
             acquired_amount=0,
@@ -162,7 +162,7 @@ def process_account_update_signal(
         if ledger_update_pending_log_entry:
             db.session.add(ledger_update_pending_log_entry)
 
-        _ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
+        ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
 
 
 @atomic
@@ -222,23 +222,53 @@ def process_pending_ledger_update(
         return True
 
     transfers = _get_sorted_pending_transfers(data, max_count)
-    all_done = max_count is None or len(transfers) < max_count
-    ledger_update_pending_log_entry = None
     committed_at_cutoff = current_ts - max_delay
+    ledger_update_pending_log_entry = None
+
     for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at_ts in transfers:
+        # NOTE: When an `AccountTransfer` message has been lost, we
+        # want the account's ledger to be able to automatically
+        # "repair" after some time.
         if previous_transfer_number != data.ledger_last_transfer_number and committed_at_ts >= committed_at_cutoff:
-            all_done = True
+            has_complete_transfer_sequence = False
+            is_done = True
             break
-        e = _insert_ledger_entry(data, transfer_number, acquired_amount, principal, committed_at_ts, current_ts)
-        ledger_update_pending_log_entry = e or ledger_update_pending_log_entry
+
+        ledger_update_pending_log_entry = _update_ledger(
+            data,
+            transfer_number,
+            acquired_amount,
+            principal,
+            committed_at_ts,
+            current_ts,
+        ) or ledger_update_pending_log_entry
+
+    else:
+        has_complete_transfer_sequence = True
+        is_done = max_count is None or len(transfers) < max_count
+
+    if is_done:
+        # NOTE: When the `AccountTransfer` message for the last
+        # transfer has been lost, we want the account's ledger to be
+        # able to automatically "repair" after some time.
+        last_transfer_is_missing = data.last_transfer_number > data.ledger_last_transfer_number
+        last_transfer_is_old = data.last_transfer_committed_at_ts < committed_at_cutoff
+        if last_transfer_is_missing and last_transfer_is_old and has_complete_transfer_sequence:
+            ledger_update_pending_log_entry = _update_ledger(
+                data,
+                data.last_transfer_number,
+                0,
+                data.principal,
+                data.last_transfer_committed_at_ts,
+                current_ts,
+            ) or ledger_update_pending_log_entry
+
+        db.session.delete(pending_ledger_update)
 
     if ledger_update_pending_log_entry:
         db.session.add(ledger_update_pending_log_entry)
 
-    if all_done:
-        db.session.delete(pending_ledger_update)
-
-    return all_done
+    return is_done
 
 
 def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
@@ -280,7 +310,7 @@ def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: in
             ))
 
 
-def _insert_ledger_entry(
+def _update_ledger(
         data: AccountData,
         transfer_number: int,
         acquired_amount: int,

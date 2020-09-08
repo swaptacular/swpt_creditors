@@ -637,6 +637,71 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     assert not log_entry.is_deleted
 
 
+def test_process_pending_ledger_update_missing_last_transfer(account, max_count, current_ts):
+    def get_ledger_update_entries_count():
+        p.process_pending_log_entries(C_ID)
+        return len(LogEntry.query.filter_by(object_type='AccountLedger').all())
+
+    creation_date = date(2020, 1, 2)
+    assert get_ledger_update_entries_count() == 0
+
+    p.process_account_update_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=creation_date,
+        last_change_ts=current_ts,
+        last_change_seqnum=1,
+        principal=1000,
+        interest=0.0,
+        interest_rate=0.0,
+        last_interest_rate_change_ts=models.TS0,
+        transfer_note_max_bytes=500,
+        status_flags=0,
+        last_config_ts=current_ts,
+        last_config_seqnum=0,
+        negligible_amount=10.0,
+        config_flags=models.DEFAULT_CONFIG_FLAGS,
+        config='',
+        account_id=str(C_ID),
+        debtor_info_iri='http://example.com',
+        last_transfer_number=3,
+        last_transfer_committed_at=current_ts - timedelta(days=20),
+        ts=current_ts,
+        ttl=10000,
+    )
+
+    p.ensure_pending_ledger_update(C_ID, D_ID)
+    max_delay = timedelta(days=30)
+    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
+        pass
+    lue_count = get_ledger_update_entries_count()
+    assert lue_count == 0
+    data = p.get_account_ledger(C_ID, D_ID)
+    assert data.ledger_principal == 0
+    assert data.ledger_last_entry_id == 0
+    assert data.ledger_last_transfer_number == 0
+    assert data.ledger_last_transfer_committed_at_ts == models.TS0
+    assert data.ledger_latest_update_id == 1
+
+    p.ensure_pending_ledger_update(C_ID, D_ID)
+    max_delay = timedelta(days=10)
+    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
+        pass
+
+    p.ensure_pending_ledger_update(C_ID, D_ID)
+    max_delay = timedelta(days=10)
+    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
+        pass
+    lue_count = get_ledger_update_entries_count()
+    assert lue_count == 1
+    data = p.get_account_ledger(C_ID, D_ID)
+    assert data.ledger_principal == 1000
+    assert data.ledger_last_entry_id == 1
+    assert data.ledger_last_transfer_number == 3
+    assert data.ledger_last_transfer_committed_at_ts == current_ts - timedelta(days=20)
+    assert data.ledger_latest_update_id == 2
+
+
 def test_process_rejected_direct_transfer_signal(db_session, account, current_ts):
     rt = p.initiate_running_transfer(
         C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
