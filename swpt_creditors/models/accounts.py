@@ -76,7 +76,6 @@ class AccountData(db.Model):
     ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    ledger_last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     ledger_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 

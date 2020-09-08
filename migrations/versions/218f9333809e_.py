@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cdbced9e8a68
+Revision ID: 218f9333809e
 Revises: 8d8c816257ce
-Create Date: 2020-09-07 15:05:44.242371
+Create Date: 2020-09-08 17:06:19.863353
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'cdbced9e8a68'
+revision = '218f9333809e'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -187,7 +187,6 @@ def upgrade():
     sa.Column('ledger_principal', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('ledger_last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('config_latest_update_id > 0'),

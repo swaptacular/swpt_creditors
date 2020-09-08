@@ -680,7 +680,6 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert data.ledger_principal == 0
     assert data.ledger_last_entry_id == 0
     assert data.ledger_last_transfer_number == 0
-    assert data.ledger_last_transfer_committed_at_ts == models.TS0
     assert data.ledger_latest_update_id == 1
 
     p.ensure_pending_ledger_update(C_ID, D_ID)
@@ -698,7 +697,6 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert data.ledger_principal == 1000
     assert data.ledger_last_entry_id == 1
     assert data.ledger_last_transfer_number == 3
-    assert data.ledger_last_transfer_committed_at_ts == current_ts - timedelta(days=20)
     assert data.ledger_latest_update_id == 2
 
 
