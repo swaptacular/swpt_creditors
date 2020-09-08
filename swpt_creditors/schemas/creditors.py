@@ -238,7 +238,9 @@ class WalletSchema(Schema):
 
     def get_log_retention_days(self, obj):
         calc_log_retention_days = self.context['calc_log_retention_days']
-        return calc_log_retention_days(obj.creditor_id)
+        days = calc_log_retention_days(obj.creditor_id)
+        assert days > 0
+        return days
 
     @pre_dump
     def process_creditor_instance(self, obj, many):
