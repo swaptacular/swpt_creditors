@@ -62,9 +62,8 @@ class PendingLedgerUpdate(db.Model):
             ondelete='CASCADE',
         ),
         {
-            'comment': "Represents a very high probability that there is at least one record in "
-                       "the `committed_transfer` table, which should be added to the creditor's "
-                       "account ledger.",
+            'comment': "Represents a good change that there is at least one ledger entry that "
+                       "should be added to the creditor's account ledger.",
         }
     )
 

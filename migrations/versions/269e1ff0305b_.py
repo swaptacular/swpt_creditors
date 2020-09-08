@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cdbced9e8a68
+Revision ID: 269e1ff0305b
 Revises: 8d8c816257ce
-Create Date: 2020-09-07 15:05:44.242371
+Create Date: 2020-09-08 17:42:57.196321
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'cdbced9e8a68'
+revision = '269e1ff0305b'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -188,6 +188,7 @@ def upgrade():
     sa.Column('ledger_last_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('ledger_last_repair_attempt_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('config_latest_update_id > 0'),
@@ -288,7 +289,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id'),
-    comment="Represents a very high probability that there is at least one record in the `committed_transfer` table, which should be added to the creditor's account ledger."
+    comment="Represents a good change that there is at least one ledger entry that should be added to the creditor's account ledger."
     )
     # ### end Alembic commands ###
 
