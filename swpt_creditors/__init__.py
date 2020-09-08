@@ -64,6 +64,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_TRANSFERS_PER_PAGE = 100
     APP_LEDGER_ENTRIES_PER_PAGE = 100
     APP_LOG_RETENTION_DAYS = 30
+    APP_MAX_TRANSFER_DELAY_DAYS = 14
 
 
 def create_app(config_dict={}):
