@@ -27,13 +27,13 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'ledger_principal',
     'ledger_last_entry_id',
     'ledger_last_transfer_number',
-    'ledger_last_transfer_committed_at_ts',
-    'ledger_last_repair_attempt_ts',
     'ledger_latest_update_id',
     'ledger_latest_update_ts',
     'principal',
     'interest',
     'interest_rate',
+    'last_transfer_number',
+    'last_transfer_ts',
     'last_change_ts',
 ]
 

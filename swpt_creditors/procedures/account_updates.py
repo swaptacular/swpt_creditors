@@ -1,14 +1,14 @@
 from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Callable, Tuple, List, Optional
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, or_
 from sqlalchemy.orm import exc, Load
 from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
     TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS
-from .common import get_paths_and_types, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
-    LOAD_ONLY_INFO_RELATED_COLUMNS, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS
+from .common import get_paths_and_types, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, \
+    LOAD_ONLY_CONFIG_RELATED_COLUMNS, LOAD_ONLY_INFO_RELATED_COLUMNS
 from .creditors import _is_correct_creditor_id
 from .accounts import _insert_info_update_pending_log_entry
 from .transfers import ensure_pending_ledger_update
@@ -146,7 +146,7 @@ def process_account_update_signal(
     data.account_id = account_id
     data.debtor_info_iri = debtor_info_iri
     data.last_transfer_number = last_transfer_number,
-    data.last_transfer_committed_at_ts = last_transfer_committed_at
+    data.last_transfer_ts = last_transfer_committed_at
     data.is_config_effectual = is_config_effectual
     data.config_error = config_error
 
@@ -156,7 +156,6 @@ def process_account_update_signal(
             transfer_number=0,
             acquired_amount=0,
             principal=0,
-            committed_at_ts=data.ledger_last_transfer_committed_at_ts,
             current_ts=current_ts,
         )
         if ledger_update_pending_log_entry:
@@ -230,6 +229,7 @@ def process_pending_ledger_update(
         # want the account's ledger to be able to automatically
         # "repair" after some time.
         if previous_transfer_number != data.ledger_last_transfer_number and committed_at_ts >= committed_at_cutoff:
+            data.ledger_pending_transfer_ts = committed_at_ts
             has_complete_transfer_sequence = False
             is_done = True
             break
@@ -239,11 +239,11 @@ def process_pending_ledger_update(
             transfer_number=transfer_number,
             acquired_amount=acquired_amount,
             principal=principal,
-            committed_at_ts=committed_at_ts,
             current_ts=current_ts,
         ) or ledger_update_pending_log_entry
 
     else:
+        data.ledger_pending_transfer_ts = None
         has_complete_transfer_sequence = True
         is_done = max_count is None or len(transfers) < max_count
 
@@ -251,15 +251,15 @@ def process_pending_ledger_update(
         # NOTE: When the `AccountTransfer` message for the last
         # transfer has been lost, we want the account's ledger to be
         # able to automatically "repair" after some time.
+        has_complete_transfer_sequence = data.ledger_pending_transfer_ts is None
         last_transfer_is_missing = data.last_transfer_number > data.ledger_last_transfer_number
-        last_transfer_is_old = data.last_transfer_committed_at_ts < committed_at_cutoff
-        if last_transfer_is_missing and last_transfer_is_old and has_complete_transfer_sequence:
+        last_transfer_is_old = data.last_transfer_ts < committed_at_cutoff
+        if has_complete_transfer_sequence and last_transfer_is_missing and last_transfer_is_old:
             ledger_update_pending_log_entry = _update_ledger(
                 data=data,
                 transfer_number=data.last_transfer_number,
                 acquired_amount=0,
                 principal=data.principal,
-                committed_at_ts=data.last_transfer_committed_at_ts,
                 current_ts=current_ts,
             ) or ledger_update_pending_log_entry
 
@@ -269,6 +269,23 @@ def process_pending_ledger_update(
         db.session.add(ledger_update_pending_log_entry)
 
     return is_done
+
+
+@atomic
+def schedule_ledger_repair(creditor_id: int, debtor_id: int, max_delay: timedelta) -> None:
+    current_ts = datetime.now(tz=timezone.utc)
+    committed_at_cutoff = current_ts - max_delay
+    broken_ledger_query = AccountData.query.\
+        filter(AccountData.creditor_id == creditor_id).\
+        filter(AccountData.debtor_id == debtor_id).\
+        filter(AccountData.last_transfer_number > AccountData.ledger_last_transfer_number).\
+        filter(or_(
+            AccountData.ledger_pending_transfer_ts < committed_at_cutoff,
+            AccountData.last_transfer_ts < committed_at_cutoff),
+        )
+
+    if db.session.query(broken_ledger_query.exists()).scalar():
+        ensure_pending_ledger_update(creditor_id, debtor_id)
 
 
 def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
@@ -315,7 +332,6 @@ def _update_ledger(
         transfer_number: int,
         acquired_amount: int,
         principal: int,
-        committed_at_ts: datetime,
         current_ts: datetime) -> Optional[PendingLogEntry]:
 
     ledger_update_pending_log_entry = None
@@ -349,7 +365,7 @@ def _update_ledger(
 
     data.ledger_principal = principal
     data.ledger_last_transfer_number = transfer_number
-    data.ledger_last_transfer_committed_at_ts = committed_at_ts
+    data.ledger_pending_transfer_ts = None
 
     if correction_amount != 0 or acquired_amount != 0:
         data.ledger_latest_update_id += 1

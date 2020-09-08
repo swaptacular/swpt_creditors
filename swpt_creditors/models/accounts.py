@@ -47,7 +47,7 @@ class AccountData(db.Model):
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
+    last_transfer_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     last_heartbeat_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     # `AccountConfig` data
@@ -76,8 +76,7 @@ class AccountData(db.Model):
     ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    ledger_last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
-    ledger_last_repair_attempt_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
+    ledger_pending_transfer_ts = db.Column(db.TIMESTAMP(timezone=True))
     ledger_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 

@@ -196,7 +196,7 @@ def test_process_account_update_signal(db_session, account):
     assert ad.account_id == str(C_ID)
     assert ad.debtor_info_iri == 'http://example.com'
     assert ad.last_transfer_number == 22
-    assert ad.last_transfer_committed_at_ts == current_ts - timedelta(days=2)
+    assert ad.last_transfer_ts == current_ts - timedelta(days=2)
     assert ad.config_error is None
 
     p.process_account_update_signal(**params)
@@ -670,26 +670,25 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
         ttl=10000,
     )
 
-    p.ensure_pending_ledger_update(C_ID, D_ID)
+    assert len(PendingLedgerUpdate.query.all()) == 1
     max_delay = timedelta(days=30)
     while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
         pass
+    assert len(PendingLedgerUpdate.query.all()) == 0
     lue_count = get_ledger_update_entries_count()
     assert lue_count == 0
     data = p.get_account_ledger(C_ID, D_ID)
     assert data.ledger_principal == 0
     assert data.ledger_last_entry_id == 0
     assert data.ledger_last_transfer_number == 0
-    assert data.ledger_last_transfer_committed_at_ts == models.TS0
     assert data.ledger_latest_update_id == 1
+    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
+    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
+    assert len(PendingLedgerUpdate.query.all()) == 0
 
-    p.ensure_pending_ledger_update(C_ID, D_ID)
     max_delay = timedelta(days=10)
-    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
-        pass
-
-    p.ensure_pending_ledger_update(C_ID, D_ID)
-    max_delay = timedelta(days=10)
+    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
+    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
     while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
         pass
     lue_count = get_ledger_update_entries_count()
@@ -698,7 +697,6 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert data.ledger_principal == 1000
     assert data.ledger_last_entry_id == 1
     assert data.ledger_last_transfer_number == 3
-    assert data.ledger_last_transfer_committed_at_ts == current_ts - timedelta(days=20)
     assert data.ledger_latest_update_id == 2
 
 

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 269e1ff0305b
+Revision ID: e4f24f30b778
 Revises: 8d8c816257ce
-Create Date: 2020-09-08 17:42:57.196321
+Create Date: 2020-09-08 20:59:40.409164
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '269e1ff0305b'
+revision = 'e4f24f30b778'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -164,7 +164,7 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_transfer_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
@@ -187,8 +187,7 @@ def upgrade():
     sa.Column('ledger_principal', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('ledger_last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('ledger_last_repair_attempt_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('ledger_pending_transfer_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('config_latest_update_id > 0'),
