@@ -235,12 +235,12 @@ def process_pending_ledger_update(
             break
 
         ledger_update_pending_log_entry = _update_ledger(
-            data,
-            transfer_number,
-            acquired_amount,
-            principal,
-            committed_at_ts,
-            current_ts,
+            data=data,
+            transfer_number=transfer_number,
+            acquired_amount=acquired_amount,
+            principal=principal,
+            committed_at_ts=committed_at_ts,
+            current_ts=current_ts,
         ) or ledger_update_pending_log_entry
 
     else:
@@ -255,12 +255,12 @@ def process_pending_ledger_update(
         last_transfer_is_old = data.last_transfer_committed_at_ts < committed_at_cutoff
         if last_transfer_is_missing and last_transfer_is_old and has_complete_transfer_sequence:
             ledger_update_pending_log_entry = _update_ledger(
-                data,
-                data.last_transfer_number,
-                0,
-                data.principal,
-                data.last_transfer_committed_at_ts,
-                current_ts,
+                data=data,
+                transfer_number=data.last_transfer_number,
+                acquired_amount=0,
+                principal=data.principal,
+                committed_at_ts=data.last_transfer_committed_at_ts,
+                current_ts=current_ts,
             ) or ledger_update_pending_log_entry
 
         db.session.delete(pending_ledger_update)
