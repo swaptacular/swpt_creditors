@@ -9,6 +9,7 @@ from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS
 from .common import get_paths_and_types, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, \
     LOAD_ONLY_CONFIG_RELATED_COLUMNS, LOAD_ONLY_INFO_RELATED_COLUMNS
+from .common import contain_principal_overflow
 from .creditors import _is_correct_creditor_id
 from .accounts import _insert_info_update_pending_log_entry
 from .transfers import ensure_pending_ledger_update
@@ -334,23 +335,29 @@ def _update_ledger(
         principal: int,
         current_ts: datetime) -> Optional[PendingLogEntry]:
 
-    ledger_update_pending_log_entry = None
     creditor_id = data.creditor_id
     debtor_id = data.debtor_id
-    correction_amount = principal - data.ledger_principal - acquired_amount
+    ledger_principal = data.ledger_principal
+    correction_amount = principal - ledger_principal - acquired_amount
+    is_updated = False
 
-    if correction_amount != 0:
+    while correction_amount != 0:
+        is_updated = True
+        safe_correction_amount = contain_principal_overflow(correction_amount)
+        correction_amount -= safe_correction_amount
+        ledger_principal += safe_correction_amount
         data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             entry_id=data.ledger_last_entry_id,
-            aquired_amount=correction_amount,
-            principal=principal - acquired_amount,
+            aquired_amount=safe_correction_amount,
+            principal=ledger_principal,
             added_at_ts=current_ts,
         ))
 
     if acquired_amount != 0:
+        is_updated = True
         data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
@@ -367,11 +374,12 @@ def _update_ledger(
     data.ledger_last_transfer_number = transfer_number
     data.ledger_pending_transfer_ts = None
 
-    if correction_amount != 0 or acquired_amount != 0:
+    if is_updated:
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
         paths, types = get_paths_and_types()
-        ledger_update_pending_log_entry = PendingLogEntry(
+
+        return PendingLogEntry(
             creditor_id=creditor_id,
             added_at_ts=current_ts,
             object_type=types.account_ledger,
@@ -380,5 +388,3 @@ def _update_ledger(
             data_principal=principal,
             data_next_entry_id=data.ledger_last_entry_id + 1,
         )
-
-    return ledger_update_pending_log_entry

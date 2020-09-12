@@ -1,5 +1,6 @@
 from typing import Callable, Dict, Any
 from sqlalchemy.orm import load_only
+from swpt_creditors.models import MIN_INT64, MAX_INT64
 from . import errors
 
 ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
@@ -99,3 +100,11 @@ def allow_update(obj, update_id_field_name: str, update_id: int, update: Dict[st
         raise errors.UpdateConflict()
 
     return set_values
+
+
+def contain_principal_overflow(value: int) -> int:
+    if value <= MIN_INT64:  # pragma: no cover
+        return -MAX_INT64
+    if value > MAX_INT64:  # pragma: no cover
+        return MAX_INT64
+    return value

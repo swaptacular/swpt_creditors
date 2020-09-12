@@ -8,6 +8,8 @@ from flask import current_app
 from flask.cli import with_appcontext
 from swpt_creditors.models import MIN_INT64, MAX_INT64
 from swpt_creditors import procedures
+from .extensions import db
+from .table_scanners import AccountScanner
 
 
 @click.group('swpt_creditors')
@@ -141,3 +143,23 @@ def process_ledger_updates(threads, burst):
         pool.apply_async(process_ledger_update, account_pk, error_callback=log_error)
     pool.close()
     pool.join()
+
+
+@swpt_creditors.command('scan_accounts')
+@with_appcontext
+@click.option('-h', '--hours', type=float, help='The number of hours.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def scan_accounts(hours, quit_early):
+    """Start a process that executes accounts maintenance operations.
+
+    The specified number of hours determines the intended duration of
+    a single pass through the accounts table. If the number of hours
+    is not specified, the default number of hours is 8.
+
+    """
+
+    click.echo('Scanning accounts...')
+    hours = hours or 8
+    assert hours > 0.0
+    scanner = AccountScanner()
+    scanner.run(db.engine, timedelta(hours=hours), quit_early=quit_early)
