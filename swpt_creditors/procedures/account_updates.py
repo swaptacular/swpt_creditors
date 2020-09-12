@@ -6,7 +6,8 @@ from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
-    TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS
+    TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS, \
+    MIN_INT64, MAX_INT64
 from .common import get_paths_and_types, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, \
     LOAD_ONLY_CONFIG_RELATED_COLUMNS, LOAD_ONLY_INFO_RELATED_COLUMNS
 from .common import contain_principal_overflow
@@ -337,24 +338,26 @@ def _update_ledger(
 
     creditor_id = data.creditor_id
     debtor_id = data.debtor_id
+    old_principal = principal - acquired_amount
     ledger_principal = data.ledger_principal
-    correction_amount = principal - ledger_principal - acquired_amount
+    correction_amount = old_principal - ledger_principal
     is_updated = False
 
-    while correction_amount != 0:
-        is_updated = True
-        safe_correction_amount = contain_principal_overflow(correction_amount)
-        correction_amount -= safe_correction_amount
-        ledger_principal += safe_correction_amount
-        data.ledger_last_entry_id += 1
-        db.session.add(LedgerEntry(
-            creditor_id=creditor_id,
-            debtor_id=debtor_id,
-            entry_id=data.ledger_last_entry_id,
-            aquired_amount=safe_correction_amount,
-            principal=ledger_principal,
-            added_at_ts=current_ts,
-        ))
+    if MIN_INT64 <= old_principal <= MAX_INT64:
+        while correction_amount != 0:
+            is_updated = True
+            safe_correction_amount = contain_principal_overflow(correction_amount)
+            correction_amount -= safe_correction_amount
+            ledger_principal += safe_correction_amount
+            data.ledger_last_entry_id += 1
+            db.session.add(LedgerEntry(
+                creditor_id=creditor_id,
+                debtor_id=debtor_id,
+                entry_id=data.ledger_last_entry_id,
+                aquired_amount=safe_correction_amount,
+                principal=ledger_principal,
+                added_at_ts=current_ts,
+            ))
 
     if acquired_amount != 0:
         is_updated = True
