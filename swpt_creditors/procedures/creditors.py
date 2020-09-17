@@ -62,35 +62,6 @@ def get_active_creditor(creditor_id: int, lock: bool = False) -> Optional[Credit
 
 
 @atomic
-def update_creditor(creditor_id: int, *, latest_update_id: int) -> Creditor:
-    assert 1 <= latest_update_id <= MAX_INT64
-
-    current_ts = datetime.now(tz=timezone.utc)
-    creditor = get_active_creditor(creditor_id, lock=True)
-    if creditor is None:
-        raise errors.CreditorDoesNotExist()
-
-    try:
-        perform_update = allow_update(creditor, 'creditor_latest_update_id', latest_update_id, {})
-    except errors.AlreadyUpToDate:
-        return creditor
-
-    creditor.creditor_latest_update_ts = current_ts
-    perform_update()
-
-    paths, types = get_paths_and_types()
-    _add_log_entry(
-        creditor,
-        object_type=types.creditor,
-        object_uri=paths.creditor(creditorId=creditor_id),
-        object_update_id=creditor.creditor_latest_update_id,
-        added_at_ts=current_ts,
-    )
-
-    return creditor
-
-
-@atomic
 def get_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple[List[LogEntry], int]:
     assert count >= 1
     assert 0 <= prev <= MAX_INT64

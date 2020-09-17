@@ -98,36 +98,6 @@ def test_create_creditor(client):
     assert r.status_code == 200
 
 
-def test_update_creditor(client, creditor):
-    r = client.patch('/creditors/2222/', json={'latestUpdateId': 2})
-    assert r.status_code == 403
-
-    r = client.patch('/creditors/2/', json={'latestUpdateId': 2})
-    assert r.status_code == 200
-    r = client.patch('/creditors/2/', json={'latestUpdateId': 2})
-    assert r.status_code == 200
-    data = r.get_json()
-    assert data['type'] == 'Creditor'
-    assert data['uri'] == '/creditors/2/'
-    assert data['latestUpdateId'] == 2
-    assert iso8601.parse_date(data['latestUpdateAt'])
-    assert data['createdAt']
-
-    r = client.patch('/creditors/2/', json={'latestUpdateId': 1})
-    assert r.status_code == 409
-
-    p.process_pending_log_entries(2)
-    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 1
-    e = entries[0]
-    assert e['type'] == 'LogEntry'
-    assert e['entryId'] == 1
-    assert e['objectType'] == 'Creditor'
-    assert e['object'] == {'uri': '/creditors/2/'}
-    assert not e.get('deleted')
-    assert iso8601.parse_date(e['addedAt'])
-
-
 def test_get_wallet(client, creditor):
     r = client.get('/creditors/2222/wallet')
     assert r.status_code == 404

@@ -48,26 +48,6 @@ class CreditorEndpoint(MethodView):
 
         return creditor
 
-    @creditors_api.arguments(CreditorSchema)
-    @creditors_api.response(CreditorSchema(context=context))
-    @creditors_api.doc(operationId='updateCreditor',
-                       responses={409: specs.UPDATE_CONFLICT})
-    def patch(self, creditor, creditorId):
-        """Update a creditor.
-
-        **Note:** This is an idempotent operation.
-
-        """
-
-        try:
-            creditor = procedures.update_creditor(creditorId, latest_update_id=creditor['latest_update_id'])
-        except procedures.CreditorDoesNotExist:
-            abort(403)
-        except procedures.UpdateConflict:
-            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
-
-        return creditor
-
 
 @creditors_api.route('/<i64:creditorId>/wallet', parameters=[CID])
 class WalletEndpoint(MethodView):
