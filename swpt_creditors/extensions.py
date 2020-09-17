@@ -1,5 +1,6 @@
 import os
 import warnings
+from json import dumps
 from sqlalchemy.exc import SAWarning
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -19,7 +20,10 @@ warnings.filterwarnings(
 
 
 class CustomAlchemy(AtomicProceduresMixin, SignalBusMixin, SQLAlchemy):
-    pass
+    def apply_driver_hacks(self, app, info, options):
+        separators = (',', ':')
+        options["json_serializer"] = lambda obj: dumps(obj, ensure_ascii=False, allow_nan=False, separators=separators)
+        return super().apply_driver_hacks(app, info, options)
 
 
 class EventSubscriptionMiddleware(Middleware):
