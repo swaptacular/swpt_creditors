@@ -1,9 +1,8 @@
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlsplit, urljoin
 from werkzeug.routing import NotFound, RequestRedirect, MethodNotAllowed
 from flask import current_app, redirect, url_for, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from swpt_lib.endpoints import get_server_name, get_url_scheme
 from swpt_lib.utils import i64_to_u64, u64_to_i64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.schemas import examples, DebtorIdentitySchema, AccountIdentitySchema, \
@@ -21,11 +20,12 @@ def _parse_peg_account_uri(creditor_id: int, base_url: str, uri: str) -> int:
     Error = procedures.PegDoesNotExist
 
     try:
-        scheme, netloc, path, *rest = urlparse(urljoin(base_url, uri))
+        scheme, netloc, path, *rest = urlsplit(urljoin(base_url, uri))
     except ValueError:
         raise Error()
 
-    if any(rest) or (scheme and scheme != get_url_scheme()) or (netloc and netloc != get_server_name()):
+    base_url_scheme, base_url_netloc, *_ = urlsplit(request.base_url)
+    if any(rest) or (scheme and scheme != base_url_scheme) or (netloc and netloc != base_url_netloc):
         raise Error()
 
     try:

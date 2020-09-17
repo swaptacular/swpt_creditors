@@ -12,7 +12,7 @@ server_name = 'example.com'
 config_dict = {
     'TESTING': True,
     'SERVER_NAME': server_name,
-    'SWPT_SERVER_NAME': server_name,
+    'PREFERRED_URL_SCHEME': 'http',
     'APP_TRANSFERS_FINALIZATION_AVG_SECONDS': 10.0,
     'APP_MAX_TRANSFERS_PER_MONTH': 10,
     'APP_LOG_ENTRIES_PER_PAGE': 2,
