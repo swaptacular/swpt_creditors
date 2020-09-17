@@ -57,11 +57,13 @@ def initiate_running_transfer(
         transfer_note: str,
         *,
         deadline: datetime = None,
-        min_interest_rate: float = -100.0) -> RunningTransfer:
+        min_interest_rate: float = -100.0,
+        locked_amount: int = 0) -> RunningTransfer:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert 0 < amount <= MAX_INT64
+    assert 0 <= amount <= MAX_INT64
     assert min_interest_rate >= -100.0
+    assert 0 <= locked_amount <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
     creditor = get_active_creditor(creditor_id)
@@ -77,6 +79,7 @@ def initiate_running_transfer(
         'transfer_note': transfer_note,
         'deadline': deadline,
         'min_interest_rate': min_interest_rate,
+        'locked_amount': locked_amount,
     }
 
     rt = get_running_transfer(creditor_id, transfer_uuid)
@@ -99,6 +102,7 @@ def initiate_running_transfer(
         coordinator_request_id=new_running_transfer.coordinator_request_id,
         debtor_id=debtor_id,
         recipient=recipient_id,
+        locked_amount=locked_amount,
         min_interest_rate=min_interest_rate,
         max_commit_delay=_calc_max_commit_delay(current_ts, deadline),
         inserted_at_ts=current_ts,

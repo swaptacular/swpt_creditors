@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e4f24f30b778
+Revision ID: 972f42bc1c23
 Revises: 8d8c816257ce
-Create Date: 2020-09-08 20:59:40.409164
+Create Date: 2020-09-17 14:08:30.836754
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'e4f24f30b778'
+revision = '972f42bc1c23'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -76,6 +76,7 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('min_interest_rate', sa.Float(), nullable=False),
     sa.Column('max_commit_delay', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('creditor_id', 'coordinator_request_id')
@@ -141,6 +142,7 @@ def upgrade():
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=True),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), server_default=sa.text("nextval('coordinator_request_id_seq')"), nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=True),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
@@ -148,6 +150,7 @@ def upgrade():
     sa.CheckConstraint('amount >= 0'),
     sa.CheckConstraint('error_code IS NULL OR finalized_at_ts IS NOT NULL'),
     sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('min_interest_rate >= -100.0'),
     sa.CheckConstraint('total_locked_amount >= 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),

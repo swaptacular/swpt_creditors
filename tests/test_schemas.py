@@ -1325,6 +1325,7 @@ def test_deserialize_transfer_creation_request(app):
         'options': {
             'type': 'TransferOptions',
             'min_interest_rate': -100.0,
+            'locked_amount': 0,
         },
     }
 
@@ -1347,15 +1348,18 @@ def test_deserialize_transfer_creation_request(app):
         'options': {
             'type': 'TransferOptions',
             'min_interest_rate': -100.0,
+            'locked_amount': 0,
         },
     }
 
     data = dis.load({**base_data, 'options': {
         'deadline': '1970-01-01T00:00:00Z',
         'minInterestRate': -5,
+        'lockedAmount': 1000,
     }})
     assert data['options']['optional_deadline'] == models.TS0
     assert data['options']['min_interest_rate'] == -5.0
+    assert data['options']['locked_amount'] == 1000
 
     with pytest.raises(ValidationError):
         dis.load({'type': 'WrongType', **base_data})
@@ -1463,6 +1467,7 @@ def test_serialize_transfer(app):
         'transfer_note': '{"note": "test"}',
         'deadline': datetime(2020, 1, 1),
         'min_interest_rate': -50.0,
+        'locked_amount': 1000,
         'latest_update_id': 2,
         'latest_update_ts': datetime(2020, 1, 2),
         'initiated_at_ts': models.TS0,
@@ -1490,6 +1495,7 @@ def test_serialize_transfer(app):
             "type": "TransferOptions",
             "minInterestRate": -50.0,
             "deadline": "2020-01-01T00:00:00",
+            "lockedAmount": 1000,
         },
         "result": {
             "type": "TransferResult",
@@ -1524,6 +1530,7 @@ def test_serialize_transfer(app):
         "options": {
             "type": "TransferOptions",
             "minInterestRate": -50.0,
+            "lockedAmount": 1000,
         },
         "result": {
             "type": "TransferResult",
@@ -1553,6 +1560,7 @@ def test_serialize_transfer(app):
         "options": {
             "type": "TransferOptions",
             "minInterestRate": -50.0,
+            "lockedAmount": 1000,
         },
         "latestUpdateAt": "2020-01-02T00:00:00",
         "latestUpdateId": 2,

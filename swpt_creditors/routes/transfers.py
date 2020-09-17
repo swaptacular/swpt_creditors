@@ -87,6 +87,7 @@ class TransfersEndpoint(MethodView):
                 transfer_note=transfer_creation_request['transfer_note'],
                 min_interest_rate=transfer_creation_request['options']['min_interest_rate'],
                 deadline=transfer_creation_request['options'].get('optional_deadline'),
+                locked_amount=transfer_creation_request['options']['locked_amount'],
             )
         except inspect_ops.ForbiddenOperation:  # pragma: no cover
             abort(403)

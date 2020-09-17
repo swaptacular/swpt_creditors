@@ -101,6 +101,15 @@ class TransferOptionsSchema(Schema):
                     'not present, this means that the deadline for the transfer will not be '
                     'earlier than normal.',
     )
+    locked_amount = fields.Integer(
+        missing=0,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        format='int64',
+        data_key='lockedAmount',
+        description="The amount that should to be locked when the transer is prepared. This must "
+                    "be a non-negative number.",
+        example=0,
+    )
 
 
 class TransferResultSchema(Schema):
@@ -280,7 +289,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         obj.uri = paths.transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
         obj.transfers_list = {'uri': paths.transfers_list(creditorId=obj.creditor_id)}
         obj.recipient = {'uri': obj.recipient_uri}
-        obj.options = {'min_interest_rate': obj.min_interest_rate}
+        obj.options = {'min_interest_rate': obj.min_interest_rate, 'locked_amount': obj.locked_amount}
 
         if obj.deadline is not None:
             obj.options['optional_deadline'] = obj.deadline
