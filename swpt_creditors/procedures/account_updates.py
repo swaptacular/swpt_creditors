@@ -88,11 +88,6 @@ def process_account_update_signal(
     assert account_id == '' or len(account_id) <= 100 and account_id.encode('ascii')
     assert len(debtor_info_iri) <= 200
 
-    # TODO: Think about limiting the maximum rate at which this
-    #       procedure can be called. Calling it too often may lead to
-    #       lock contention on `AccountData` rows, although it is not
-    #       clear if this is a practical problem.
-
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - ts).total_seconds() > ttl:
         return

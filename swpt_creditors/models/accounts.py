@@ -29,11 +29,6 @@ class Account(db.Model):
     display = db.relationship('AccountDisplay', uselist=False, cascade='all', passive_deletes=True)
 
 
-# TODO: Implement a daemon that periodically scan the `AccountData`
-#       table and makes sure that the `config_error` filed is set for
-#       each record that has an old `last_config_ts`, and is not
-#       effectual (`is_config_effectual is False`). The same daemon
-#       shoud repair ledgers "broken" by a missing transfers.
 class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1

@@ -23,6 +23,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     data2 = m.AccountData.query.filter_by(debtor_id=2).one()
     data2.principal = 1000
     data2.ledger_latest_update_ts = current_ts - timedelta(days=60)
+    data2.last_config_ts = current_ts - timedelta(days=1000)
 
     data3 = m.AccountData.query.filter_by(debtor_id=3).one()
     data3.last_transfer_number = 1
@@ -52,10 +53,15 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     assert le.principal == 1000
     assert le.added_at_ts >= current_ts
 
-    ple = m.PendingLogEntry.query.one()
+    ple = m.PendingLogEntry.query.filter_by(object_type='AccountLedger').one()
     assert ple.creditor_id == C_ID
     assert ple.added_at_ts >= current_ts
-    assert ple.object_type == 'AccountLedger'
+    assert ple.object_update_id == 2
+    assert not ple.is_deleted
+
+    ple = m.PendingLogEntry.query.filter_by(object_type='AccountInfo').one()
+    assert ple.creditor_id == C_ID
+    assert ple.added_at_ts >= current_ts
     assert ple.object_update_id == 2
     assert not ple.is_deleted
 
@@ -64,6 +70,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     assert data2.ledger_last_transfer_number == data2.last_transfer_number == 0
     assert data2.ledger_last_entry_id == 1
     assert data2.ledger_latest_update_ts >= current_ts
+    assert data2.config_error == 'CONFIGURATION_IS_NOT_EFFECTUAL'
 
     plu_list = m.PendingLedgerUpdate.query.all()
     assert len(plu_list) == 2

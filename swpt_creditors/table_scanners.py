@@ -1,13 +1,14 @@
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from flask import current_app
-from sqlalchemy.sql.expression import tuple_
+from sqlalchemy.sql.expression import tuple_, false, null
 from sqlalchemy.orm import load_only
 from sqlalchemy.dialects import postgresql
 from swpt_lib.scan_table import TableScanner
 from .extensions import db
 from .models import AccountData, PendingLogEntry, LedgerEntry, PendingLedgerUpdate
-from .procedures import contain_principal_overflow, get_paths_and_types, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS
+from .procedures import contain_principal_overflow, get_paths_and_types, \
+    ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -26,12 +27,14 @@ class AccountScanner(TableScanner):
 
     def __init__(self):
         self.max_transfer_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
+        self.max_config_delay = timedelta(hours=current_app.config['APP_MAX_CONFIG_DELAY_HOURS'])
         super().__init__()
 
     @atomic
     def process_rows(self, rows):
         self._update_ledgers_if_necessary(rows)
         self._schedule_ledger_repairs_if_necessary(rows)
+        self._set_config_errors_if_necessary(rows)
 
     def _update_ledgers_if_necessary(self, rows):
         c = self.table.c
@@ -119,3 +122,46 @@ class AccountScanner(TableScanner):
                 {'creditor_id': creditor_id, 'debtor_id': debtor_id}
                 for creditor_id, debtor_id in pks_to_repair
             ])
+
+    def _set_config_errors_if_necessary(self, rows):
+        c = self.table.c
+        current_ts = datetime.now(tz=timezone.utc)
+        last_config_ts_cutoff = current_ts - self.max_config_delay
+
+        def has_stale_config(row) -> bool:
+            return (
+                not row[c.is_config_effectual]
+                and row[c.config_error] is None
+                and row[c.last_config_ts] < last_config_ts_cutoff
+            )
+
+        pks_to_set = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if has_stale_config(row)]
+        if pks_to_set:
+            info_update_pending_log_entries = []
+            to_set = AccountData.query.\
+                filter(self.pk.in_(pks_to_set)).\
+                filter(AccountData.is_config_effectual == false()).\
+                filter(AccountData.config_error == null()).\
+                filter(AccountData.last_config_ts < last_config_ts_cutoff).\
+                with_for_update().\
+                options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
+                all()
+            for data in to_set:
+                log_entry = self._set_config_error(data, current_ts)
+                info_update_pending_log_entries.append(log_entry)
+
+            db.session.bulk_save_objects(info_update_pending_log_entries, preserve_order=False)
+
+    def _set_config_error(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
+        data.config_error = 'CONFIGURATION_IS_NOT_EFFECTUAL'
+        data.info_latest_update_id += 1
+        data.info_latest_update_ts = current_ts
+        paths, types = get_paths_and_types()
+
+        return PendingLogEntry(
+            creditor_id=data.creditor_id,
+            added_at_ts=current_ts,
+            object_type=types.account_info,
+            object_uri=paths.account_info(creditorId=data.creditor_id, debtorId=data.debtor_id),
+            object_update_id=data.info_latest_update_id,
+        )
