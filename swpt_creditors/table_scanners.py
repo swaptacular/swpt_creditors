@@ -1,7 +1,7 @@
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from flask import current_app
-from sqlalchemy.sql.expression import tuple_, false, null
+from sqlalchemy.sql.expression import tuple_, or_, and_, false, true, null
 from sqlalchemy.orm import load_only
 from sqlalchemy.dialects import postgresql
 from swpt_lib.scan_table import TableScanner
@@ -26,6 +26,7 @@ class AccountScanner(TableScanner):
     pk = tuple_(AccountData.creditor_id, AccountData.debtor_id)
 
     def __init__(self):
+        self.max_heartbeat_delay = timedelta(days=current_app.config['APP_MAX_HEARTBEAT_DELAY_DAYS'])
         self.max_transfer_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
         self.max_config_delay = timedelta(hours=current_app.config['APP_MAX_CONFIG_DELAY_HOURS'])
         super().__init__()
@@ -126,21 +127,29 @@ class AccountScanner(TableScanner):
     def _set_config_errors_if_necessary(self, rows):
         c = self.table.c
         current_ts = datetime.now(tz=timezone.utc)
+        last_heartbeat_ts_cutoff = current_ts - self.max_heartbeat_delay
         last_config_ts_cutoff = current_ts - self.max_config_delay
 
-        def has_stale_config(row) -> bool:
+        def has_config_problem(row) -> bool:
             return (
-                not row[c.is_config_effectual]
+                (not row[c.is_config_effectual]
+                 or row[c.has_server_account] and row[c.last_heartbeat_ts] < last_heartbeat_ts_cutoff)
                 and row[c.config_error] is None
                 and row[c.last_config_ts] < last_config_ts_cutoff
             )
 
-        pks_to_set = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if has_stale_config(row)]
+        pks_to_set = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if has_config_problem(row)]
         if pks_to_set:
             info_update_pending_log_entries = []
             to_set = AccountData.query.\
                 filter(self.pk.in_(pks_to_set)).\
-                filter(AccountData.is_config_effectual == false()).\
+                filter(or_(
+                    AccountData.is_config_effectual == false(),
+                    and_(
+                        AccountData.has_server_account == true(),
+                        AccountData.last_heartbeat_ts < last_heartbeat_ts_cutoff,
+                    ),
+                )).\
                 filter(AccountData.config_error == null()).\
                 filter(AccountData.last_config_ts < last_config_ts_cutoff).\
                 with_for_update().\

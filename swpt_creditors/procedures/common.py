@@ -17,6 +17,7 @@ ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
     'config_latest_update_id',
     'config_latest_update_ts',
     'has_server_account',
+    'last_heartbeat_ts',
     'info_latest_update_id',
     'info_latest_update_ts',
 ]

@@ -1,6 +1,6 @@
 from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Callable, Tuple, List, Optional
-from sqlalchemy.sql.expression import func, or_, and_, null
+from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, Load
 from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
@@ -163,9 +163,6 @@ def process_account_update_signal(
 
 @atomic
 def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date: date) -> None:
-    # TODO: Do not foget to do the same thing when the account is dead
-    #       (no heartbeat for a long time).
-
     current_ts = datetime.now(tz=timezone.utc)
     data = AccountData.query.\
         filter_by(
