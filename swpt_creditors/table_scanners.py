@@ -30,10 +30,10 @@ class AccountScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
-        self._update_ledger_if_necessary(rows)
-        self._schedule_ledger_repair_if_necessary(rows)
+        self._update_ledgers_if_necessary(rows)
+        self._schedule_ledger_repairs_if_necessary(rows)
 
-    def _update_ledger_if_necessary(self, rows):
+    def _update_ledgers_if_necessary(self, rows):
         c = self.table.c
         current_ts = datetime.now(tz=timezone.utc)
         latest_update_cutoff_ts = current_ts - TD_HOUR
@@ -101,7 +101,7 @@ class AccountScanner(TableScanner):
             data_next_entry_id=data.ledger_last_entry_id + 1,
         )
 
-    def _schedule_ledger_repair_if_necessary(self, rows):
+    def _schedule_ledger_repairs_if_necessary(self, rows):
         c = self.table.c
         committed_at_cutoff = datetime.now(tz=timezone.utc) - self.max_transfer_delay
 
