@@ -273,23 +273,6 @@ def process_pending_ledger_update(
     return is_done
 
 
-@atomic
-def schedule_ledger_repair(creditor_id: int, debtor_id: int, max_delay: timedelta) -> None:
-    current_ts = datetime.now(tz=timezone.utc)
-    committed_at_cutoff = current_ts - max_delay
-    broken_ledger_query = AccountData.query.\
-        filter(AccountData.creditor_id == creditor_id).\
-        filter(AccountData.debtor_id == debtor_id).\
-        filter(AccountData.last_transfer_number > AccountData.ledger_last_transfer_number).\
-        filter(or_(
-            AccountData.ledger_pending_transfer_ts < committed_at_cutoff,
-            and_(AccountData.ledger_pending_transfer_ts == null(), AccountData.last_transfer_ts < committed_at_cutoff),
-        ))
-
-    if db.session.query(broken_ledger_query.exists()).scalar():
-        ensure_pending_ledger_update(creditor_id, debtor_id)
-
-
 def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
     transfer_numbers_query = db.session.\
         query(

@@ -682,13 +682,11 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert data.ledger_last_entry_id == 0
     assert data.ledger_last_transfer_number == 0
     assert data.ledger_latest_update_id == 1
-    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
-    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
     assert len(PendingLedgerUpdate.query.all()) == 0
 
     max_delay = timedelta(days=10)
-    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
-    p.schedule_ledger_repair(C_ID, D_ID, max_delay=max_delay)
+    p.ensure_pending_ledger_update(C_ID, D_ID)
+    assert len(PendingLedgerUpdate.query.all()) == 1
     while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
         pass
     lue_count = get_ledger_update_entries_count()
