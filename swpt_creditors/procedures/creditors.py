@@ -48,7 +48,7 @@ def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
         filter_by(creditor_id=creditor_id).\
         scalar()
 
-    creditor.last_log_entry_id = 0 if relic_log_entry_id is None else relic_log_entry_id + 1
+    creditor.last_log_entry_id = 0 if relic_log_entry_id is None else relic_log_entry_id + 1  # a leap
     creditor.is_activated = activate
 
     return creditor

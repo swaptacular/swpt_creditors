@@ -428,7 +428,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
             config_latest_update_ts=current_ts,
             info_latest_update_ts=current_ts,
             ledger_latest_update_ts=current_ts,
-            ledger_last_entry_id=0 if relic_ledger_entry_id is None else relic_ledger_entry_id + 1,
+            ledger_last_entry_id=0 if relic_ledger_entry_id is None else relic_ledger_entry_id + 1  # a leap
         ),
         latest_update_ts=current_ts,
     )
