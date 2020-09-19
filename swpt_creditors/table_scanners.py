@@ -6,7 +6,7 @@ from sqlalchemy.orm import load_only
 from sqlalchemy.dialects import postgresql
 from swpt_lib.scan_table import TableScanner
 from .extensions import db
-from .models import AccountData, PendingLogEntry, LedgerEntry, PendingLedgerUpdate
+from .models import AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, PendingLedgerUpdate
 from .procedures import contain_principal_overflow, get_paths_and_types, \
     ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
 
@@ -18,6 +18,77 @@ ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate._
 
 # TODO: Consider making `TableScanner.blocks_per_query` and
 #       `TableScanner.target_beat_duration` configurable.
+
+
+class LogEntriesScanner(TableScanner):
+    """Garbage-collects staled log entries."""
+
+    table = LogEntry.__table__
+    columns = [LogEntry.creditor_id, LogEntry.entry_id, LogEntry.added_at_ts]
+    pk = tuple_(table.c.creditor_id, table.c.entry_id)
+
+    def __init__(self):
+        super().__init__()
+        self.retention_interval = timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS'])
+
+    @atomic
+    def process_rows(self, rows):
+        cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
+        pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts]
+        if pks_to_delete:
+            db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+
+
+class LedgerEntriesScanner(TableScanner):
+    """Garbage-collects staled ledger entries."""
+
+    table = LedgerEntry.__table__
+    columns = [LedgerEntry.creditor_id, LedgerEntry.debtor_id, LedgerEntry.entry_id, LedgerEntry.added_at_ts]
+    pk = tuple_(table.c.creditor_id, table.c.debtor_id, table.c.entry_id)
+
+    def __init__(self):
+        super().__init__()
+        self.retention_interval = timedelta(days=current_app.config['APP_LEDGER_RETENTION_DAYS'])
+
+    @atomic
+    def process_rows(self, rows):
+        cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
+        pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts]
+        if pks_to_delete:
+            db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+
+
+class CommittedTransfersScanner(TableScanner):
+    """Garbage-collects staled committed transfers."""
+
+    table = CommittedTransfer.__table__
+    columns = [
+        CommittedTransfer.creditor_id,
+        CommittedTransfer.debtor_id,
+        CommittedTransfer.creation_date,
+        CommittedTransfer.transfer_number,
+        CommittedTransfer.committed_at_ts,
+    ]
+    pk = tuple_(
+        table.c.creditor_id,
+        table.c.debtor_id,
+        table.c.creation_date,
+        table.c.transfer_number,
+    )
+
+    def __init__(self):
+        super().__init__()
+        self.retention_interval = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS']) + max(
+            timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS']),
+            timedelta(days=current_app.config['APP_LEDGER_RETENTION_DAYS']),
+        )
+
+    @atomic
+    def process_rows(self, rows):
+        cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
+        pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts]
+        if pks_to_delete:
+            db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
 
 class AccountScanner(TableScanner):

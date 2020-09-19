@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta, date
 from swpt_creditors.extensions import db
 from swpt_creditors import procedures as p
 from swpt_creditors import models as m
@@ -13,7 +13,6 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     m.PendingLedgerUpdate.query.delete()
     db.session.commit()
 
-    current_ts = datetime.now(tz=timezone.utc)
     p.create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, 2)
     p.create_new_account(C_ID, 3)
@@ -87,4 +86,120 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     m.PendingLogEntry.query.delete()
     m.PendingLedgerUpdate.query.delete()
+    db.session.commit()
+
+
+def test_scan_log_entries(app_unsafe_session, current_ts):
+    m.Creditor.query.delete()
+    m.LogEntry.query.delete()
+    db.session.commit()
+
+    p.create_new_creditor(C_ID, activate=True)
+    creditor = m.Creditor.query.one()
+    creditor.creditor_latest_update_id += 1
+    db.session.add(m.LogEntry(
+        creditor_id=creditor.creditor_id,
+        entry_id=creditor.generate_log_entry_id(),
+        object_type='Creditor',
+        object_uri='/creditors/1/',
+        object_update_id=creditor.creditor_latest_update_id,
+        added_at_ts=current_ts,
+    ))
+    creditor.creditor_latest_update_id += 1
+    db.session.add(m.LogEntry(
+        creditor_id=creditor.creditor_id,
+        entry_id=creditor.generate_log_entry_id(),
+        object_type='Creditor',
+        object_uri='/creditors/1/',
+        object_update_id=creditor.creditor_latest_update_id,
+        added_at_ts=current_ts - timedelta(days=1000),
+    ))
+    db.session.commit()
+    assert len(m.LogEntry.query.all()) == 2
+    app = app_unsafe_session
+
+    db.engine.execute('ANALYZE account')
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_creditors', 'scan_log_entries', '--days', '0.000001', '--quit-early'])
+    assert result.exit_code == 0
+    assert len(m.LogEntry.query.all()) == 1
+    le = m.LogEntry.query.one()
+    assert le.added_at_ts == current_ts
+
+    m.Creditor.query.delete()
+    m.LogEntry.query.delete()
+    db.session.commit()
+
+
+def test_scan_ledger_entries(app_unsafe_session, current_ts):
+    from swpt_creditors.procedures.account_updates import _update_ledger
+
+    m.Creditor.query.delete()
+    m.Account.query.delete()
+    db.session.commit()
+
+    p.create_new_creditor(C_ID, activate=True)
+    p.create_new_account(C_ID, D_ID)
+    data = m.AccountData.query.one()
+    _update_ledger(data, 1, 1000, 1000, current_ts - timedelta(days=1000))
+    _update_ledger(data, 1, 500, 1500, current_ts)
+    db.session.commit()
+    assert len(m.LedgerEntry.query.all()) == 2
+    app = app_unsafe_session
+
+    db.engine.execute('ANALYZE account')
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_creditors', 'scan_ledger_entries', '--days', '0.000001', '--quit-early'])
+    assert result.exit_code == 0
+    assert len(m.LedgerEntry.query.all()) == 1
+    le = m.LedgerEntry.query.one()
+    assert le.added_at_ts == current_ts
+
+    m.Creditor.query.delete()
+    m.Account.query.delete()
+    db.session.commit()
+
+
+def test_scan_committed_transfers(app_unsafe_session, current_ts):
+    m.Creditor.query.delete()
+    m.Account.query.delete()
+    db.session.commit()
+
+    p.create_new_creditor(C_ID, activate=True)
+    p.create_new_account(C_ID, D_ID)
+    params = {
+        'debtor_id': D_ID,
+        'creditor_id': C_ID,
+        'creation_date': date(2020, 1, 2),
+        'transfer_number': 1,
+        'coordinator_type': 'direct',
+        'sender': '666',
+        'recipient': str(C_ID),
+        'acquired_amount': 100,
+        'transfer_note_format': 'json',
+        'transfer_note': '{"message": "test"}',
+        'committed_at_ts': current_ts - timedelta(days=1000),
+        'principal': 1000,
+        'ts': current_ts - timedelta(days=1000),
+        'previous_transfer_number': 0,
+        'retention_interval': timedelta(days=2000),
+    }
+    p.process_account_transfer_signal(**params)
+    params['committed_at_ts'] = current_ts
+    params['ts'] = current_ts
+    params['transfer_number'] = 2
+    p.process_account_transfer_signal(**params)
+    assert len(m.CommittedTransfer.query.all()) == 2
+    app = app_unsafe_session
+
+    db.engine.execute('ANALYZE account')
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_creditors', 'scan_committed_transfers', '--days', '0.000001', '--quit-early'])
+    assert result.exit_code == 0
+    assert len(m.CommittedTransfer.query.all()) == 1
+    ct = m.CommittedTransfer.query.one()
+    assert ct.transfer_number == 2
+
+    m.Creditor.query.delete()
+    m.Account.query.delete()
     db.session.commit()

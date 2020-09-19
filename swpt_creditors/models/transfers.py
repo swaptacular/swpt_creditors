@@ -10,10 +10,6 @@ SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_CANCELED_BY_THE_SENDER = 'CANCELED_BY_THE_SENDER'
 
 
-# TODO: Implement a daemon that periodically scan the
-#       `CommittedTransfer` table and deletes old records (ones having
-#       an old `committed_at_ts`). We need to do this to free up disk
-#       space.
 class CommittedTransfer(db.Model):
     creditor_id = db.Column(db.BigInteger, nullable=False)
     debtor_id = db.Column(db.BigInteger, nullable=False)
