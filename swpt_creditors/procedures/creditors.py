@@ -1,6 +1,7 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, MIN_INT64, MAX_INT64, \
@@ -35,14 +36,20 @@ def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
     if not _is_correct_creditor_id(creditor_id):
         raise errors.InvalidCreditor()
 
-    creditor = Creditor(creditor_id=creditor_id, status=DEFAULT_CREDITOR_STATUS)
-    creditor.is_activated = activate
-
+    creditor = Creditor(creditor_id=creditor_id)
     db.session.add(creditor)
     try:
         db.session.flush()
     except IntegrityError:
         raise errors.CreditorExists() from None
+
+    last_log_entry_id = db.session.\
+        query(func.max(LogEntry.entry_id)).\
+        filter_by(creditor_id=creditor_id).\
+        scalar()
+
+    creditor.last_log_entry_id = last_log_entry_id or 0
+    creditor.is_activated = activate
 
     return creditor
 

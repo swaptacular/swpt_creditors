@@ -32,11 +32,6 @@ class CommittedTransfer(db.Model):
         'primary_key': [creditor_id, debtor_id, creation_date, transfer_number],
     }
     __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_data.creditor_id', 'account_data.debtor_id'],
-            ondelete='CASCADE',
-        ),
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(acquired_amount != 0),
         db.CheckConstraint(previous_transfer_number >= 0),

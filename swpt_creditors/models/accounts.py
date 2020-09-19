@@ -218,11 +218,6 @@ class LedgerEntry(db.Model):
         'primary_key': [creditor_id, debtor_id, entry_id],
     }
     __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['creditor_id', 'debtor_id'],
-            ['account_data.creditor_id', 'account_data.debtor_id'],
-            ondelete='CASCADE',
-        ),
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(entry_id > 0),
         db.CheckConstraint(or_(

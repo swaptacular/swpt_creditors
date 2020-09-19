@@ -137,7 +137,6 @@ class LogEntry(BaseLogEntry):
         'primary_key': [creditor_id, entry_id],
     }
     __table_args__ = (
-        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint('object_update_id > 0'),
         db.CheckConstraint(entry_id > 0),
 

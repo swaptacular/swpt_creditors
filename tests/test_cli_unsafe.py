@@ -9,6 +9,8 @@ C_ID = 1
 
 def test_scan_accounts(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
+    m.LogEntry.query.delete()
+    m.LedgerEntry.query.delete()
     m.PendingLogEntry.query.delete()
     m.PendingLedgerUpdate.query.delete()
     db.session.commit()
@@ -84,6 +86,8 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     assert len(m.LedgerEntry.query.all())
 
     m.Creditor.query.delete()
+    m.LogEntry.query.delete()
+    m.LedgerEntry.query.delete()
     m.PendingLogEntry.query.delete()
     m.PendingLedgerUpdate.query.delete()
     db.session.commit()
@@ -135,7 +139,9 @@ def test_scan_ledger_entries(app_unsafe_session, current_ts):
     from swpt_creditors.procedures.account_updates import _update_ledger
 
     m.Creditor.query.delete()
+    m.LogEntry.query.delete()
     m.Account.query.delete()
+    m.LedgerEntry.query.delete()
     db.session.commit()
 
     p.create_new_creditor(C_ID, activate=True)
@@ -156,13 +162,17 @@ def test_scan_ledger_entries(app_unsafe_session, current_ts):
     assert le.added_at_ts == current_ts
 
     m.Creditor.query.delete()
+    m.LogEntry.query.delete()
     m.Account.query.delete()
+    m.LedgerEntry.query.delete()
     db.session.commit()
 
 
 def test_scan_committed_transfers(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
+    m.LogEntry.query.delete()
     m.Account.query.delete()
+    m.CommittedTransfer.query.delete()
     db.session.commit()
 
     p.create_new_creditor(C_ID, activate=True)
@@ -201,5 +211,7 @@ def test_scan_committed_transfers(app_unsafe_session, current_ts):
     assert ct.transfer_number == 2
 
     m.Creditor.query.delete()
+    m.LogEntry.query.delete()
     m.Account.query.delete()
+    m.CommittedTransfer.query.delete()
     db.session.commit()

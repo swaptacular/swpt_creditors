@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import TypeVar, Callable, List, Optional
+from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import joinedload
 from swpt_lib.utils import increment_seqnum
 from swpt_creditors.extensions import db
@@ -409,6 +410,11 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         added_at_ts=current_ts,
     )
 
+    ledger_last_entry_id = db.session.\
+        query(func.max(LedgerEntry.entry_id)).\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        scalar()
+
     account = Account(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
@@ -422,6 +428,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
             config_latest_update_ts=current_ts,
             info_latest_update_ts=current_ts,
             ledger_latest_update_ts=current_ts,
+            ledger_last_entry_id=ledger_last_entry_id or 0,
         ),
         latest_update_ts=current_ts,
     )

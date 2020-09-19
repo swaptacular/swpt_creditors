@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 972f42bc1c23
+Revision ID: a4c1325b5100
 Revises: 8d8c816257ce
-Create Date: 2020-09-17 14:08:30.836754
+Create Date: 2020-09-19 18:40:18.701168
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '972f42bc1c23'
+revision = 'a4c1325b5100'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -27,6 +27,26 @@ def upgrade():
     sa.PrimaryKeyConstraint('is_effective'),
     comment='Represents the global agent configuration (a singleton). The agent is responsible only for creditor IDs that are within the interval [min_creditor_id, max_creditor_id].'
     )
+    op.create_table('committed_transfer',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(), nullable=False),
+    sa.Column('sender_id', sa.String(), nullable=False),
+    sa.Column('recipient_id', sa.String(), nullable=False),
+    sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
+    sa.Column('transfer_note', sa.TEXT(), nullable=False),
+    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('principal', sa.BigInteger(), nullable=False),
+    sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
+    sa.CheckConstraint('acquired_amount != 0'),
+    sa.CheckConstraint('previous_transfer_number < transfer_number'),
+    sa.CheckConstraint('previous_transfer_number >= 0'),
+    sa.CheckConstraint('transfer_number > 0')
+    )
+    op.create_index('idx_committed_transfer_pk', 'committed_transfer', ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], unique=True)
     op.create_table('configure_account_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -70,6 +90,37 @@ def upgrade():
     sa.Column('transfer_note', sa.String(), nullable=False),
     sa.PrimaryKeyConstraint('creditor_id', 'signal_id')
     )
+    op.create_table('ledger_entry',
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('entry_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=True),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=True),
+    sa.Column('aquired_amount', sa.BigInteger(), nullable=False),
+    sa.Column('principal', sa.BigInteger(), nullable=False),
+    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('creation_date IS NULL AND transfer_number IS NULL OR creation_date IS NOT NULL AND transfer_number IS NOT NULL'),
+    sa.CheckConstraint('entry_id > 0'),
+    sa.CheckConstraint('transfer_number > 0')
+    )
+    op.create_index('idx_ledger_entry_pk', 'ledger_entry', ['creditor_id', 'debtor_id', 'entry_id'], unique=True)
+    op.create_table('log_entry',
+    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('object_type', sa.String(), nullable=False),
+    sa.Column('object_uri', sa.String(), nullable=False),
+    sa.Column('object_update_id', sa.BigInteger(), nullable=True),
+    sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
+    sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+    sa.Column('data_principal', sa.BigInteger(), nullable=True),
+    sa.Column('data_next_entry_id', sa.BigInteger(), nullable=True),
+    sa.Column('data_finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('data_error_code', sa.String(), nullable=True),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('entry_id', sa.BigInteger(), nullable=False),
+    sa.CheckConstraint('entry_id > 0'),
+    sa.CheckConstraint('object_update_id > 0')
+    )
+    op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
     op.create_table('prepare_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -91,24 +142,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
-    op.create_table('log_entry',
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('object_type', sa.String(), nullable=False),
-    sa.Column('object_uri', sa.String(), nullable=False),
-    sa.Column('object_update_id', sa.BigInteger(), nullable=True),
-    sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
-    sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
-    sa.Column('data_principal', sa.BigInteger(), nullable=True),
-    sa.Column('data_next_entry_id', sa.BigInteger(), nullable=True),
-    sa.Column('data_finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.Column('data_error_code', sa.String(), nullable=True),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('entry_id', sa.BigInteger(), nullable=False),
-    sa.CheckConstraint('entry_id > 0'),
-    sa.CheckConstraint('object_update_id > 0'),
-    sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE')
-    )
-    op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
     op.create_table('pending_log_entry',
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('object_type', sa.String(), nullable=False),
@@ -250,42 +283,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account.creditor_id', 'account.debtor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
-    op.create_table('committed_transfer',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False),
-    sa.Column('transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_type', sa.String(), nullable=False),
-    sa.Column('sender_id', sa.String(), nullable=False),
-    sa.Column('recipient_id', sa.String(), nullable=False),
-    sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
-    sa.Column('transfer_note', sa.TEXT(), nullable=False),
-    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
-    sa.CheckConstraint('acquired_amount != 0'),
-    sa.CheckConstraint('previous_transfer_number < transfer_number'),
-    sa.CheckConstraint('previous_transfer_number >= 0'),
-    sa.CheckConstraint('transfer_number > 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE')
-    )
-    op.create_index('idx_committed_transfer_pk', 'committed_transfer', ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], unique=True)
-    op.create_table('ledger_entry',
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('entry_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=True),
-    sa.Column('transfer_number', sa.BigInteger(), nullable=True),
-    sa.Column('aquired_amount', sa.BigInteger(), nullable=False),
-    sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('creation_date IS NULL AND transfer_number IS NULL OR creation_date IS NOT NULL AND transfer_number IS NOT NULL'),
-    sa.CheckConstraint('entry_id > 0'),
-    sa.CheckConstraint('transfer_number > 0'),
-    sa.ForeignKeyConstraint(['creditor_id', 'debtor_id'], ['account_data.creditor_id', 'account_data.debtor_id'], ondelete='CASCADE')
-    )
-    op.create_index('idx_ledger_entry_pk', 'ledger_entry', ['creditor_id', 'debtor_id', 'entry_id'], unique=True)
     op.create_table('pending_ledger_update',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -299,10 +296,6 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('pending_ledger_update')
-    op.drop_index('idx_ledger_entry_pk', table_name='ledger_entry')
-    op.drop_table('ledger_entry')
-    op.drop_index('idx_committed_transfer_pk', table_name='committed_transfer')
-    op.drop_table('committed_transfer')
     op.drop_table('account_knowledge')
     op.drop_index('idx_peg_debtor_id', table_name='account_exchange')
     op.drop_table('account_exchange')
@@ -312,12 +305,16 @@ def downgrade():
     op.drop_index('idx_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
     op.drop_table('pending_log_entry')
-    op.drop_index('idx_log_entry_pk', table_name='log_entry')
-    op.drop_table('log_entry')
     op.drop_table('account')
     op.drop_table('prepare_transfer_signal')
+    op.drop_index('idx_log_entry_pk', table_name='log_entry')
+    op.drop_table('log_entry')
+    op.drop_index('idx_ledger_entry_pk', table_name='ledger_entry')
+    op.drop_table('ledger_entry')
     op.drop_table('finalize_transfer_signal')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
+    op.drop_index('idx_committed_transfer_pk', table_name='committed_transfer')
+    op.drop_table('committed_transfer')
     op.drop_table('agent_config')
     # ### end Alembic commands ###
