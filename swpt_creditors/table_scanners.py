@@ -12,6 +12,7 @@ from .procedures import contain_principal_overflow, get_paths_and_types, \
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
+
 TD_HOUR = timedelta(hours=1)
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
 

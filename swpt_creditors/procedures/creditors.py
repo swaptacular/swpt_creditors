@@ -1,11 +1,11 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, MIN_INT64, MAX_INT64, \
     DEFAULT_CREDITOR_STATUS
-from .common import allow_update, get_paths_and_types
+from .common import get_paths_and_types
 from . import errors
 
 T = TypeVar('T')
