@@ -13,7 +13,7 @@ from .procedures import contain_principal_overflow, get_paths_and_types, \
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 TD_HOUR = timedelta(hours=1)
-INSERT_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
+ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
 
 # TODO: Consider making `TableScanner.blocks_per_query` and
 #       `TableScanner.target_beat_duration` configurable.
@@ -119,7 +119,7 @@ class AccountScanner(TableScanner):
 
         pks_to_repair = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if needs_repair(row)]
         if pks_to_repair:
-            db.session.execute(INSERT_PENDING_LEDGER_UPDATE_STATEMENT, [
+            db.session.execute(ENSURE_PENDING_LEDGER_UPDATE_STATEMENT, [
                 {'creditor_id': creditor_id, 'debtor_id': debtor_id}
                 for creditor_id, debtor_id in pks_to_repair
             ])

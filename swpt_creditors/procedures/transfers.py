@@ -4,6 +4,7 @@ from math import floor
 from datetime import datetime, timezone, date, timedelta
 from typing import TypeVar, Callable, Optional, List
 from sqlalchemy.orm import exc
+from sqlalchemy.dialects import postgresql
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, PendingLogEntry, RunningTransfer, \
     CommittedTransfer, PrepareTransferSignal, FinalizeTransferSignal, PendingLedgerUpdate, \
@@ -17,6 +18,7 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
+ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
 
 
 @atomic
@@ -263,13 +265,7 @@ def process_account_transfer_signal(
 
 @atomic
 def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
-    pending_ledger_update_query = PendingLedgerUpdate.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
-    if not db.session.query(pending_ledger_update_query.exists()).scalar():
-        with db.retry_on_integrity_error():
-            db.session.add(PendingLedgerUpdate(creditor_id=creditor_id, debtor_id=debtor_id))
+    db.session.execute(ENSURE_PENDING_LEDGER_UPDATE_STATEMENT.values(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
 @atomic
