@@ -43,12 +43,12 @@ def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
     except IntegrityError:
         raise errors.CreditorExists() from None
 
-    last_log_entry_id = db.session.\
+    relic_log_entry_id = db.session.\
         query(func.max(LogEntry.entry_id)).\
         filter_by(creditor_id=creditor_id).\
         scalar()
 
-    creditor.last_log_entry_id = last_log_entry_id or 0
+    creditor.last_log_entry_id = 0 if relic_log_entry_id is None else relic_log_entry_id + 1
     creditor.is_activated = activate
 
     return creditor

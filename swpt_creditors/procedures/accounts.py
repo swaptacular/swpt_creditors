@@ -410,7 +410,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         added_at_ts=current_ts,
     )
 
-    ledger_last_entry_id = db.session.\
+    relic_ledger_entry_id = db.session.\
         query(func.max(LedgerEntry.entry_id)).\
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
         scalar()
@@ -428,7 +428,7 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
             config_latest_update_ts=current_ts,
             info_latest_update_ts=current_ts,
             ledger_latest_update_ts=current_ts,
-            ledger_last_entry_id=ledger_last_entry_id or 0,
+            ledger_last_entry_id=0 if relic_ledger_entry_id is None else relic_ledger_entry_id + 1,
         ),
         latest_update_ts=current_ts,
     )
