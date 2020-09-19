@@ -265,6 +265,9 @@ def process_account_transfer_signal(
 
 @atomic
 def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+
     db.session.execute(ENSURE_PENDING_LEDGER_UPDATE_STATEMENT.values(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
