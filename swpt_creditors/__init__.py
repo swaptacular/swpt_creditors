@@ -58,6 +58,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     OPENAPI_REDOC_URL = 'https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js'
     OPENAPI_SWAGGER_UI_PATH = 'swagger-ui'
     OPENAPI_SWAGGER_UI_URL = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
+    APP_ACCOUNTS_SCAN_HOURS = 8
     APP_TRANSFERS_FINALIZATION_AVG_SECONDS = 5.0
     APP_LOG_ENTRIES_PER_PAGE = 100
     APP_ACCOUNTS_PER_PAGE = 100
