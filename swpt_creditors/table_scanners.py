@@ -95,23 +95,41 @@ class AccountScanner(TableScanner):
     """Performs accounts maintenance operations."""
 
     table = AccountData.__table__
+    columns = [
+        AccountData.creditor_id,
+        AccountData.debtor_id,
+        AccountData.ledger_latest_update_ts,
+        AccountData.ledger_pending_transfer_ts,
+        AccountData.last_transfer_number,
+        AccountData.ledger_last_transfer_number,
+        AccountData.principal,
+        AccountData.ledger_principal,
+        AccountData.last_transfer_number,
+        AccountData.ledger_last_transfer_number,
+        AccountData.last_transfer_ts,
+        AccountData.is_config_effectual,
+        AccountData.has_server_account,
+        AccountData.last_heartbeat_ts,
+        AccountData.config_error,
+        AccountData.last_config_ts,
+    ]
     pk = tuple_(AccountData.creditor_id, AccountData.debtor_id)
 
     def __init__(self):
+        super().__init__()
         self.max_heartbeat_delay = timedelta(days=current_app.config['APP_MAX_HEARTBEAT_DELAY_DAYS'])
         self.max_transfer_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
         self.max_config_delay = timedelta(hours=current_app.config['APP_MAX_CONFIG_DELAY_HOURS'])
-        super().__init__()
 
     @atomic
     def process_rows(self, rows):
-        self._update_ledgers_if_necessary(rows)
-        self._schedule_ledger_repairs_if_necessary(rows)
-        self._set_config_errors_if_necessary(rows)
-
-    def _update_ledgers_if_necessary(self, rows):
-        c = self.table.c
         current_ts = datetime.now(tz=timezone.utc)
+        self._update_ledgers_if_necessary(rows, current_ts)
+        self._schedule_ledger_repairs_if_necessary(rows, current_ts)
+        self._set_config_errors_if_necessary(rows, current_ts)
+
+    def _update_ledgers_if_necessary(self, rows, current_ts):
+        c = self.table.c
         latest_update_cutoff_ts = current_ts - TD_HOUR
 
         def needs_update(row) -> bool:
@@ -124,6 +142,7 @@ class AccountScanner(TableScanner):
         pks_to_update = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if needs_update(row)]
         if pks_to_update:
             ledger_update_pending_log_entries = []
+
             to_update = AccountData.query.\
                 filter(self.pk.in_(pks_to_update)).\
                 filter(AccountData.last_transfer_number == AccountData.ledger_last_transfer_number).\
@@ -132,6 +151,7 @@ class AccountScanner(TableScanner):
                 with_for_update().\
                 options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)).\
                 all()
+
             for data in to_update:
                 log_entry = self._update_ledger(data, current_ts)
                 ledger_update_pending_log_entries.append(log_entry)
@@ -139,34 +159,35 @@ class AccountScanner(TableScanner):
             db.session.bulk_save_objects(ledger_update_pending_log_entries, preserve_order=False)
 
     def _update_ledger(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
-        assert data.last_transfer_number == data.ledger_last_transfer_number
-        assert data.principal != data.ledger_principal
         creditor_id = data.creditor_id
         debtor_id = data.debtor_id
         principal = data.principal
         ledger_principal = data.ledger_principal
-        correction_amount = principal - ledger_principal
+        ledger_last_entry_id = data.ledger_last_entry_id
 
+        correction_amount = principal - ledger_principal
+        assert correction_amount != 0
         while correction_amount != 0:
             safe_correction_amount = contain_principal_overflow(correction_amount)
             correction_amount -= safe_correction_amount
             ledger_principal += safe_correction_amount
-            data.ledger_last_entry_id += 1
+            ledger_last_entry_id += 1
             db.session.add(LedgerEntry(
                 creditor_id=creditor_id,
                 debtor_id=debtor_id,
-                entry_id=data.ledger_last_entry_id,
+                entry_id=ledger_last_entry_id,
                 aquired_amount=safe_correction_amount,
                 principal=ledger_principal,
                 added_at_ts=current_ts,
             ))
 
+        data.ledger_last_entry_id = ledger_last_entry_id
         data.ledger_principal = principal
         data.ledger_pending_transfer_ts = None
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
-        paths, types = get_paths_and_types()
 
+        paths, types = get_paths_and_types()
         return PendingLogEntry(
             creditor_id=creditor_id,
             added_at_ts=current_ts,
@@ -177,9 +198,9 @@ class AccountScanner(TableScanner):
             data_next_entry_id=data.ledger_last_entry_id + 1,
         )
 
-    def _schedule_ledger_repairs_if_necessary(self, rows):
+    def _schedule_ledger_repairs_if_necessary(self, rows, current_ts):
         c = self.table.c
-        committed_at_cutoff = datetime.now(tz=timezone.utc) - self.max_transfer_delay
+        committed_at_cutoff = current_ts - self.max_transfer_delay
 
         def needs_repair(row) -> bool:
             if row[c.last_transfer_number] <= row[c.ledger_last_transfer_number]:
@@ -196,16 +217,20 @@ class AccountScanner(TableScanner):
                 for creditor_id, debtor_id in pks_to_repair
             ])
 
-    def _set_config_errors_if_necessary(self, rows):
+    def _set_config_errors_if_necessary(self, rows, current_ts):
         c = self.table.c
-        current_ts = datetime.now(tz=timezone.utc)
         last_heartbeat_ts_cutoff = current_ts - self.max_heartbeat_delay
         last_config_ts_cutoff = current_ts - self.max_config_delay
 
         def has_config_problem(row) -> bool:
             return (
-                (not row[c.is_config_effectual]
-                 or row[c.has_server_account] and row[c.last_heartbeat_ts] < last_heartbeat_ts_cutoff)
+                (
+                    not row[c.is_config_effectual]
+                    or (
+                        row[c.has_server_account]
+                        and row[c.last_heartbeat_ts] < last_heartbeat_ts_cutoff
+                    )
+                )
                 and row[c.config_error] is None
                 and row[c.last_config_ts] < last_config_ts_cutoff
             )
@@ -213,6 +238,7 @@ class AccountScanner(TableScanner):
         pks_to_set = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if has_config_problem(row)]
         if pks_to_set:
             info_update_pending_log_entries = []
+
             to_set = AccountData.query.\
                 filter(self.pk.in_(pks_to_set)).\
                 filter(or_(
@@ -227,6 +253,7 @@ class AccountScanner(TableScanner):
                 with_for_update().\
                 options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
                 all()
+
             for data in to_set:
                 log_entry = self._set_config_error(data, current_ts)
                 info_update_pending_log_entries.append(log_entry)
@@ -237,8 +264,8 @@ class AccountScanner(TableScanner):
         data.config_error = 'CONFIGURATION_IS_NOT_EFFECTUAL'
         data.info_latest_update_id += 1
         data.info_latest_update_ts = current_ts
-        paths, types = get_paths_and_types()
 
+        paths, types = get_paths_and_types()
         return PendingLogEntry(
             creditor_id=data.creditor_id,
             added_at_ts=current_ts,
