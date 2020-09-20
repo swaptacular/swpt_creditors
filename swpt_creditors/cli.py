@@ -87,9 +87,15 @@ def configure_interval(min_id, max_id):
 @with_appcontext
 @click.option('-t', '--threads', type=int, help='The number of worker threads.')
 def process_log_entries(threads):
-    """Process all pending log entries."""
+    """Process all pending log entries.
 
-    threads = threads or int(environ.get('APP_PROCESS_LOG_ENTRIES_THREADS', '1'))
+    If --threads is not specified, the value of the configuration
+    variable APP_PROCESS_LOG_ENTRIES_THREADS is taken (the default is
+    1).
+
+    """
+
+    threads = threads or int(current_app.config['APP_PROCESS_LOG_ENTRIES_THREADS'])
     app = current_app._get_current_object()
 
     def push_app_context():
@@ -115,10 +121,20 @@ def process_log_entries(threads):
 @click.option('-t', '--threads', type=int, help='The number of worker threads.')
 @click.option('-b', '--burst', type=int, help='The number of transfers to process in a single database transaction.')
 def process_ledger_updates(threads, burst):
-    """Process all pending ledger updates."""
+    """Process all pending ledger updates.
 
-    threads = threads or int(environ.get('APP_PROCESS_LEDGER_UPDATES_THREADS', '1'))
-    burst = burst or int(environ.get('APP_PROCESS_LEDGER_UPDATES_BURST', '1000'))
+    If --threads is not specified, the value of the configuration
+    variable APP_PROCESS_LEDGER_UPDATES_THREADS is taken (the default
+    is 1).
+
+    If --burst is not specified, the value of the configuration
+    variable APP_PROCESS_LEDGER_UPDATES_BURST is taken (the default is
+    1000).
+
+    """
+
+    threads = threads or int(current_app.config['APP_PROCESS_LEDGER_UPDATES_THREADS'])
+    burst = burst or int(current_app.config['APP_PROCESS_LEDGER_UPDATES_BURST'])
     max_delay = timedelta(days=float(current_app.config['APP_MAX_TRANSFER_DELAY_DAYS']))
     app = current_app._get_current_object()
 
@@ -154,7 +170,7 @@ def scan_accounts(hours, quit_early):
 
     The specified number of hours determines the intended duration of
     a single pass through the accounts table. If the number of hours
-    is not specified, the value of the environment variable
+    is not specified, the value of the configuration variable
     APP_ACCOUNTS_SCAN_HOURS is taken. If it is not set, the default
     number of hours is 8.
 
@@ -176,7 +192,7 @@ def scan_log_entries(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the log entries table. If the number of days
-    is not specified, the value of the environment variable
+    is not specified, the value of the configuration variable
     APP_LOG_ENTRIES_SCAN_DAYS is taken. If it is not set, the default
     number of days is 7.
 
@@ -198,7 +214,7 @@ def scan_ledger_entries(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the ledger entries table. If the number of
-    days is not specified, the value of the environment variable
+    days is not specified, the value of the configuration variable
     APP_LEDGER_ENTRIES_SCAN_DAYS is taken. If it is not set, the
     default number of days is 7.
 
@@ -220,7 +236,7 @@ def scan_committed_transfers(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the committed transfers table. If the number
-    of days is not specified, the value of the environment variable
+    of days is not specified, the value of the configuration variable
     APP_COMMITTED_TRANSFERS_SCAN_DAYS is taken. If it is not set, the
     default number of days is 7.
 

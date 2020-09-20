@@ -1,3 +1,4 @@
+import pytest
 from datetime import timedelta, date
 from swpt_creditors.extensions import db
 from swpt_creditors import procedures as p
@@ -7,6 +8,7 @@ D_ID = -1
 C_ID = 1
 
 
+@pytest.mark.unsafe
 def test_scan_accounts(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     m.LogEntry.query.delete()
@@ -93,6 +95,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_scan_log_entries(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     m.LogEntry.query.delete()
@@ -135,6 +138,7 @@ def test_scan_log_entries(app_unsafe_session, current_ts):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_scan_ledger_entries(app_unsafe_session, current_ts):
     from swpt_creditors.procedures.account_updates import _update_ledger
 
@@ -168,6 +172,7 @@ def test_scan_ledger_entries(app_unsafe_session, current_ts):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_scan_committed_transfers(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     m.LogEntry.query.delete()
