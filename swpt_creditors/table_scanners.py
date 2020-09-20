@@ -16,9 +16,6 @@ atomic: Callable[[T], T] = db.atomic
 TD_HOUR = timedelta(hours=1)
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
 
-# TODO: Consider making `TableScanner.blocks_per_query` and
-#       `TableScanner.target_beat_duration` configurable.
-
 
 class LogEntriesScanner(TableScanner):
     """Garbage-collects staled log entries."""
@@ -30,6 +27,14 @@ class LogEntriesScanner(TableScanner):
     def __init__(self):
         super().__init__()
         self.retention_interval = timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS'])
+
+    @property
+    def blocks_per_query(self) -> int:
+        return int(current_app.config['APP_LOG_ENTRIES_SCAN_BLOCKS_PER_QUERY'])
+
+    @property
+    def target_beat_duration(self) -> int:
+        return int(current_app.config['APP_LOG_ENTRIES_SCAN_BEAT_MILLISECS'])
 
     @atomic
     def process_rows(self, rows):
@@ -49,6 +54,14 @@ class LedgerEntriesScanner(TableScanner):
     def __init__(self):
         super().__init__()
         self.retention_interval = timedelta(days=current_app.config['APP_LEDGER_RETENTION_DAYS'])
+
+    @property
+    def blocks_per_query(self) -> int:
+        return int(current_app.config['APP_LEDGER_ENTRIES_SCAN_BLOCKS_PER_QUERY'])
+
+    @property
+    def target_beat_duration(self) -> int:
+        return int(current_app.config['APP_LEDGER_ENTRIES_SCAN_BEAT_MILLISECS'])
 
     @atomic
     def process_rows(self, rows):
@@ -82,6 +95,14 @@ class CommittedTransfersScanner(TableScanner):
             timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS']),
             timedelta(days=current_app.config['APP_LEDGER_RETENTION_DAYS']),
         )
+
+    @property
+    def blocks_per_query(self) -> int:
+        return int(current_app.config['APP_COMMITTED_TRANSFERS_SCAN_BLOCKS_PER_QUERY'])
+
+    @property
+    def target_beat_duration(self) -> int:
+        return int(current_app.config['APP_COMMITTED_TRANSFERS_SCAN_BEAT_MILLISECS'])
 
     @atomic
     def process_rows(self, rows):
@@ -120,6 +141,14 @@ class AccountScanner(TableScanner):
         self.max_heartbeat_delay = timedelta(days=current_app.config['APP_MAX_HEARTBEAT_DELAY_DAYS'])
         self.max_transfer_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
         self.max_config_delay = timedelta(hours=current_app.config['APP_MAX_CONFIG_DELAY_HOURS'])
+
+    @property
+    def blocks_per_query(self) -> int:
+        return int(current_app.config['APP_ACCOUNTS_SCAN_BLOCKS_PER_QUERY'])
+
+    @property
+    def target_beat_duration(self) -> int:
+        return int(current_app.config['APP_ACCOUNTS_SCAN_BEAT_MILLISECS'])
 
     @atomic
     def process_rows(self, rows):
