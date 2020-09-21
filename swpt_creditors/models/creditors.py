@@ -168,7 +168,7 @@ class BaseLogEntry(db.Model):
                 )
 
         logger = logging.getLogger(__name__)
-        logger.error('Log entry without an object type.')
+        logger.error('Log entry without an object URI.')
         return ''
 
     def get_data_dict(self) -> Optional[Dict]:
