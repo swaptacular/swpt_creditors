@@ -85,6 +85,11 @@ class BaseLogEntry(db.Model):
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
     data = db.Column(pg.JSON)
 
+    # NOTE: The following columns will be non-NULL for specific
+    # `object_type`s only. They contain information allowing the
+    # object's URI and type to be generated. Thus, the `object_uri`
+    # and `object_type` columns can be NULL for the most frequently
+    # occuring log entries.
     AUX_FIELDS = {
         'object_type_hint',
         'debtor_id',
@@ -98,6 +103,10 @@ class BaseLogEntry(db.Model):
     transfer_number = db.Column(db.BigInteger)
     transfer_uuid = db.Column(pg.UUID(as_uuid=True))
 
+    # NOTE: The following columns will be non-NULL for specific
+    # `object_type`s only. They contain information allowing the
+    # object's JSON data to be generated. Thus, `data `column can be
+    # NULL for the most frequently occuring log entries.
     DATA_FIELDS = {
         # The key is the name of the column in the table, the value is
         # the name of the corresponding JSON property in the `data`
