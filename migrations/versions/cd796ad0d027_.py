@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ebcf7a51b284
+Revision ID: cd796ad0d027
 Revises: 8d8c816257ce
-Create Date: 2020-09-21 21:40:58.024348
+Create Date: 2020-09-21 21:51:54.470506
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ebcf7a51b284'
+revision = 'cd796ad0d027'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -122,6 +122,7 @@ def upgrade():
     sa.Column('data_error_code', sa.String(), nullable=True),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('entry_id', sa.BigInteger(), nullable=False),
+    sa.CheckConstraint('data_next_entry_id > 0'),
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('object_update_id > 0'),
     sa.CheckConstraint('transfer_number > 0')
@@ -166,6 +167,7 @@ def upgrade():
     sa.Column('data_error_code', sa.String(), nullable=True),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('pending_entry_id', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.CheckConstraint('data_next_entry_id > 0'),
     sa.CheckConstraint('object_update_id > 0'),
     sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),

@@ -204,6 +204,7 @@ class PendingLogEntry(BaseLogEntry):
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint('object_update_id > 0'),
         db.CheckConstraint('transfer_number > 0'),
+        db.CheckConstraint('data_next_entry_id > 0'),
         {
             'comment': 'Represents a log entry that should be added to the log. Log entries '
                        'are queued to this table because this allows multiple log entries '
@@ -222,6 +223,7 @@ class LogEntry(BaseLogEntry):
     __table_args__ = (
         db.CheckConstraint('object_update_id > 0'),
         db.CheckConstraint('transfer_number > 0'),
+        db.CheckConstraint('data_next_entry_id > 0'),
         db.CheckConstraint(entry_id > 0),
 
         # TODO: The rest of the columns are not be part of the primary
