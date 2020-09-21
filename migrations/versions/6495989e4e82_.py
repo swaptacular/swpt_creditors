@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: a4c1325b5100
+Revision ID: 6495989e4e82
 Revises: 8d8c816257ce
-Create Date: 2020-09-19 18:40:18.701168
+Create Date: 2020-09-21 17:51:21.461164
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'a4c1325b5100'
+revision = '6495989e4e82'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -106,11 +106,16 @@ def upgrade():
     op.create_index('idx_ledger_entry_pk', 'ledger_entry', ['creditor_id', 'debtor_id', 'entry_id'], unique=True)
     op.create_table('log_entry',
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('object_type', sa.String(), nullable=False),
-    sa.Column('object_uri', sa.String(), nullable=False),
+    sa.Column('object_type', sa.String(), nullable=True),
+    sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
     sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+    sa.Column('object_type_hint', sa.SmallInteger(), nullable=True),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=True),
+    sa.Column('creation_date', sa.DATE(), nullable=True),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=True),
+    sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=True),
     sa.Column('data_principal', sa.BigInteger(), nullable=True),
     sa.Column('data_next_entry_id', sa.BigInteger(), nullable=True),
     sa.Column('data_finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
@@ -118,7 +123,8 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('entry_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('entry_id > 0'),
-    sa.CheckConstraint('object_update_id > 0')
+    sa.CheckConstraint('object_update_id > 0'),
+    sa.CheckConstraint('transfer_number > 0')
     )
     op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
     op.create_table('prepare_transfer_signal',
@@ -144,11 +150,16 @@ def upgrade():
     )
     op.create_table('pending_log_entry',
     sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('object_type', sa.String(), nullable=False),
-    sa.Column('object_uri', sa.String(), nullable=False),
+    sa.Column('object_type', sa.String(), nullable=True),
+    sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
     sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+    sa.Column('object_type_hint', sa.SmallInteger(), nullable=True),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=True),
+    sa.Column('creation_date', sa.DATE(), nullable=True),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=True),
+    sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=True),
     sa.Column('data_principal', sa.BigInteger(), nullable=True),
     sa.Column('data_next_entry_id', sa.BigInteger(), nullable=True),
     sa.Column('data_finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
@@ -156,6 +167,7 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('pending_entry_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.CheckConstraint('object_update_id > 0'),
+    sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id'),
     comment='Represents a log entry that should be added to the log. Log entries are queued to this table because this allows multiple log entries for one creditor to be added to the log in one database transaction, thus reducing the lock contention on `creditor` table rows.'

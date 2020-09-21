@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Dict, Optional
 from datetime import datetime
 from sqlalchemy.dialects import postgresql as pg
@@ -73,18 +74,34 @@ class Creditor(db.Model):
 class BaseLogEntry(db.Model):
     __abstract__ = True
 
+    OT_TRANSFER = 1
+    OT_COMMITTED_TRANSFER = 2
+    OT_ACCOUNT_LEDGER = 3
+
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    object_type = db.Column(db.String, nullable=False)
-    object_uri = db.Column(db.String, nullable=False)
+    object_type = db.Column(db.String)
+    object_uri = db.Column(db.String)
     object_update_id = db.Column(db.BigInteger)
     is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
     data = db.Column(pg.JSON)
 
-    # NOTE: Those will be non-NULL for specific `object_type`s
-    # only. The key is the name of the column in the table, the value
-    # is the name of the corresponding JSON property in the `data`
-    # dictionary.
+    AUX_FIELDS = {
+        'object_type_hint',
+        'debtor_id',
+        'creation_date',
+        'transfer_number',
+        'transfer_uuid',
+    }
+    object_type_hint = db.Column(db.SmallInteger)
+    debtor_id = db.Column(db.BigInteger)
+    creation_date = db.Column(db.DATE)
+    transfer_number = db.Column(db.BigInteger)
+    transfer_uuid = db.Column(pg.UUID(as_uuid=True))
+
     DATA_FIELDS = {
+        # The key is the name of the column in the table, the value is
+        # the name of the corresponding JSON property in the `data`
+        # dictionary.
         'data_principal': 'principal',
         'data_next_entry_id': 'nextEntryId',
         'data_finalized_at_ts': 'finalizedAt',
@@ -98,6 +115,61 @@ class BaseLogEntry(db.Model):
     @property
     def is_created(self):
         return not self.is_deleted and self.object_update_id in [1, None]
+
+    def get_object_type(self, types) -> str:
+        object_type = self.object_type
+        if object_type is not None:
+            return object_type
+
+        object_type_hint = self.object_type_hint
+
+        if object_type_hint == self.OT_TRANSFER:
+            return types.transfer
+        elif object_type_hint == self.OT_COMMITTED_TRANSFER:
+            return types.committed_transfer
+        elif object_type_hint == self.OT_ACCOUNT_LEDGER:
+            return types.account_ledger
+
+        logger = logging.getLogger(__name__)
+        logger.error('Log entry without an object type.')
+        return 'object'
+
+    def get_object_uri(self, paths) -> str:
+        object_uri = self.object_uri
+        if object_uri is not None:
+            return object_uri
+
+        object_type_hint = self.object_type_hint
+
+        if object_type_hint == self.OT_TRANSFER:
+            transfer_uuid = self.transfer_uuid
+            if transfer_uuid is not None:
+                return paths.transfer(
+                    creditorId=self.creditor_id,
+                    transferUuid=transfer_uuid,
+                )
+        elif object_type_hint == self.OT_COMMITTED_TRANSFER:
+            debtor_id = self.debtor_id
+            creation_date = self.creation_date
+            transfer_number = self.transfer_number
+            if debtor_id is not None and creation_date is not None and transfer_number is not None:
+                return paths.committed_transfer(
+                    creditorId=self.creditor_id,
+                    debtorId=debtor_id,
+                    creationDate=creation_date,
+                    transferNumber=transfer_number,
+                )
+        elif object_type_hint == self.OT_ACCOUNT_LEDGER:
+            debtor_id = self.debtor_id
+            if debtor_id is not None:
+                return paths.account_ledger(
+                    creditorId=self.creditor_id,
+                    debtorId=self.debtor_id,
+                )
+
+        logger = logging.getLogger(__name__)
+        logger.error('Log entry without an object type.')
+        return ''
 
     def get_data_dict(self) -> Optional[Dict]:
         if isinstance(self.data, dict):
@@ -121,6 +193,7 @@ class PendingLogEntry(BaseLogEntry):
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint('object_update_id > 0'),
+        db.CheckConstraint('transfer_number > 0'),
         {
             'comment': 'Represents a log entry that should be added to the log. Log entries '
                        'are queued to this table because this allows multiple log entries '
@@ -138,6 +211,7 @@ class LogEntry(BaseLogEntry):
     }
     __table_args__ = (
         db.CheckConstraint('object_update_id > 0'),
+        db.CheckConstraint('transfer_number > 0'),
         db.CheckConstraint(entry_id > 0),
 
         # TODO: The rest of the columns are not be part of the primary

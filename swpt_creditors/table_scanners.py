@@ -220,8 +220,8 @@ class AccountScanner(TableScanner):
         return PendingLogEntry(
             creditor_id=creditor_id,
             added_at_ts=current_ts,
-            object_type=types.account_ledger,
-            object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
+            object_type_hint=LogEntry.OT_ACCOUNT_LEDGER,
+            debtor_id=debtor_id,
             object_update_id=data.ledger_latest_update_id,
             data_principal=principal,
             data_next_entry_id=data.ledger_last_entry_id + 1,

@@ -289,9 +289,11 @@ class LogEntrySchema(Schema):
         data_key='addedAt',
         description='The moment at which the entry was added to the log.',
     )
-    object_type = fields.String(
+    object_type = fields.Method(
+        'get_object_type',
         required=True,
         dump_only=True,
+        type='string',
         data_key='objectType',
         description='The type of the object that has been created, updated, or deleted.',
         example='Account',
@@ -342,7 +344,7 @@ class LogEntrySchema(Schema):
     def process_log_entry_instance(self, obj, many):
         assert isinstance(obj, models.LogEntry)
         obj = copy(obj)
-        obj.object = {'uri': obj.object_uri}
+        obj.object = {'uri': obj.get_object_uri(self.context['paths'])}
 
         if obj.object_update_id is not None:
             obj.optional_object_update_id = obj.object_update_id
@@ -353,6 +355,9 @@ class LogEntrySchema(Schema):
                 obj.optional_data = data
 
         return obj
+
+    def get_object_type(self, obj):
+        return obj.get_object_type(self.context['types'])
 
 
 class LogPaginationParamsSchema(Schema):

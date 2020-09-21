@@ -267,7 +267,7 @@ def test_process_account_update_signal(db_session, account):
     p.process_pending_log_entries(1235)
     p.process_pending_log_entries(C_ID)
     assert len(models.LogEntry.query.filter_by(object_type='AccountInfo').all()) == 3
-    assert len(models.LogEntry.query.filter_by(object_type='AccountLedger').all()) == 1
+    assert len(models.LogEntry.query.filter_by(object_type_hint=LogEntry.OT_ACCOUNT_LEDGER).all()) == 1
 
 
 def test_process_rejected_config_signal(account):
@@ -436,7 +436,7 @@ def test_update_account_config(account, current_ts):
 def test_process_account_transfer_signal(db_session, account, current_ts):
     def get_committed_tranfer_entries_count():
         p.process_pending_log_entries(C_ID)
-        return len(LogEntry.query.filter_by(object_type='CommittedTransfer').all())
+        return len(LogEntry.query.filter_by(object_type_hint=LogEntry.OT_COMMITTED_TRANSFER).all())
 
     def has_pending_ledger_update():
         return len(PendingLedgerUpdate.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).all()) > 0
@@ -519,8 +519,11 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
     p.process_account_transfer_signal(**params)
     assert len(CommittedTransfer.query.all()) == 1
     assert get_committed_tranfer_entries_count() == 1
-    le = LogEntry.query.filter_by(object_type='CommittedTransfer').one()
-    assert le.object_uri == f'/creditors/{i64_to_u64(C_ID)}/accounts/{i64_to_u64(D_ID)}/transfers/18263-1'
+    le = LogEntry.query.filter_by(object_type_hint=LogEntry.OT_COMMITTED_TRANSFER).one()
+    assert le.creditor_id == C_ID
+    assert le.debtor_id == D_ID
+    assert le.creation_date == params['creation_date']
+    assert le.transfer_number == 1
     assert not le.is_deleted
     assert le.object_update_id is None
     assert not has_pending_ledger_update()
@@ -539,7 +542,7 @@ def test_get_pending_ledger_updates(db_session):
 def test_process_pending_ledger_update(account, max_count, current_ts):
     def get_ledger_update_entries_count():
         p.process_pending_log_entries(C_ID)
-        return len(LogEntry.query.filter_by(object_type='AccountLedger').all())
+        return len(LogEntry.query.filter_by(object_type_hint=LogEntry.OT_ACCOUNT_LEDGER).all())
 
     creation_date = date(2020, 1, 2)
 
@@ -631,8 +634,8 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
 
     log_entry = p.get_log_entries(C_ID, count=1000)[0][-1]
     assert log_entry.creditor_id == C_ID
-    assert log_entry.object_type == 'AccountLedger'
-    assert log_entry.object_uri == '/creditors/1/accounts/18446744073709551615/ledger'
+    assert log_entry.object_type_hint == LogEntry.OT_ACCOUNT_LEDGER
+    assert log_entry.debtor_id == D_ID
     assert log_entry.object_update_id > 2
     assert not log_entry.is_deleted
 
@@ -640,7 +643,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
 def test_process_pending_ledger_update_missing_last_transfer(account, max_count, current_ts):
     def get_ledger_update_entries_count():
         p.process_pending_log_entries(C_ID)
-        return len(LogEntry.query.filter_by(object_type='AccountLedger').all())
+        return len(LogEntry.query.filter_by(object_type_hint=LogEntry.OT_ACCOUNT_LEDGER).all())
 
     creation_date = date(2020, 1, 2)
     assert get_ledger_update_entries_count() == 0
@@ -751,7 +754,7 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert isinstance(rt.latest_update_ts, datetime)
 
     p.process_pending_log_entries(C_ID)
-    le = LogEntry.query.filter_by(object_type='Transfer').filter(LogEntry.object_update_id > 1).one()
+    le = LogEntry.query.filter_by(object_type_hint=LogEntry.OT_TRANSFER).filter(LogEntry.object_update_id > 1).one()
     assert le.data is None
     assert le.data_finalized_at_ts == rt.finalized_at_ts
     assert le.data_error_code == rt.error_code
@@ -811,7 +814,7 @@ def test_successful_transfer(db_session, account, current_ts):
     assert rt.total_locked_amount is None
 
     p.process_pending_log_entries(C_ID)
-    le = LogEntry.query.filter_by(object_type='Transfer').filter(LogEntry.object_update_id > 1).one()
+    le = LogEntry.query.filter_by(object_type_hint=LogEntry.OT_TRANSFER).filter(LogEntry.object_update_id > 1).one()
     assert le.data is None
     assert le.data_finalized_at_ts == rt.finalized_at_ts
     assert le.data_error_code is None

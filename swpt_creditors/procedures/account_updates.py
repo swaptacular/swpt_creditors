@@ -5,7 +5,7 @@ from sqlalchemy.orm import exc, Load
 from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
-    PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
+    LogEntry, PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
     TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS, \
     MIN_INT64, MAX_INT64
 from .common import get_paths_and_types, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, \
@@ -360,8 +360,8 @@ def _update_ledger(
         return PendingLogEntry(
             creditor_id=creditor_id,
             added_at_ts=current_ts,
-            object_type=types.account_ledger,
-            object_uri=paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id),
+            object_type_hint=LogEntry.OT_ACCOUNT_LEDGER,
+            debtor_id=debtor_id,
             object_update_id=data.ledger_latest_update_id,
             data_principal=principal,
             data_next_entry_id=data.ledger_last_entry_id + 1,

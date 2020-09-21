@@ -3,6 +3,7 @@ from typing import Tuple
 from datetime import date, timedelta, datetime, timezone
 from flask import url_for, current_app
 from swpt_creditors.models import MAX_INT64, DATE0
+from swpt_creditors.schemas import type_registry
 
 
 def make_transfer_slug(creation_date: date, transfer_number: int) -> str:
@@ -73,6 +74,7 @@ class path_builder:
 
 context = {
     'paths': path_builder,
+    'types': type_registry,
     'calc_checkup_datetime': calc_checkup_datetime,
     'calc_log_retention_days': calc_log_retention_days,
 }

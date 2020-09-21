@@ -135,6 +135,86 @@ def test_serialize_log_entry(app):
     le.data_finalized_at_ts = None
     assert 'data' not in les.dump(le)
 
+    transfer_le = models.LogEntry(
+        creditor_id=C_ID,
+        entry_id=12345,
+        added_at_ts=datetime(2020, 1, 2),
+        object_type_hint=models.LogEntry.OT_TRANSFER,
+        transfer_uuid=UUID('123e4567-e89b-12d3-a456-426655440000'),
+        object_update_id=777,
+        is_deleted=True,
+        data=None,
+    )
+    assert les.dump(transfer_le) == {
+        'type': 'LogEntry',
+        'entryId': 12345,
+        'addedAt': '2020-01-02T00:00:00',
+        'objectType': 'Transfer',
+        'object': {'uri': '/creditors/1/transfers/123e4567-e89b-12d3-a456-426655440000'},
+        'objectUpdateId': 777,
+        'deleted': True,
+    }
+
+    committed_transfer_le = models.LogEntry(
+        creditor_id=C_ID,
+        entry_id=12345,
+        added_at_ts=datetime(2020, 1, 2),
+        object_type_hint=models.LogEntry.OT_COMMITTED_TRANSFER,
+        debtor_id=D_ID,
+        creation_date=date(1970, 1, 2),
+        transfer_number=123,
+        object_update_id=777,
+        is_deleted=True,
+        data=None,
+    )
+    assert les.dump(committed_transfer_le) == {
+        'type': 'LogEntry',
+        'entryId': 12345,
+        'addedAt': '2020-01-02T00:00:00',
+        'objectType': 'CommittedTransfer',
+        'object': {'uri': '/creditors/1/accounts/18446744073709551615/transfers/1-123'},
+        'objectUpdateId': 777,
+        'deleted': True,
+    }
+
+    account_ledger_le = models.LogEntry(
+        creditor_id=C_ID,
+        entry_id=12345,
+        added_at_ts=datetime(2020, 1, 2),
+        object_type_hint=models.LogEntry.OT_ACCOUNT_LEDGER,
+        debtor_id=D_ID,
+        object_update_id=777,
+        is_deleted=True,
+        data=None,
+    )
+    assert les.dump(account_ledger_le) == {
+        'type': 'LogEntry',
+        'entryId': 12345,
+        'addedAt': '2020-01-02T00:00:00',
+        'objectType': 'AccountLedger',
+        'object': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'objectUpdateId': 777,
+        'deleted': True,
+    }
+
+    messed_up_le = models.LogEntry(
+        creditor_id=C_ID,
+        entry_id=12345,
+        added_at_ts=datetime(2020, 1, 2),
+        object_update_id=777,
+        is_deleted=True,
+        data=None,
+    )
+    assert les.dump(messed_up_le) == {
+        'type': 'LogEntry',
+        'entryId': 12345,
+        'addedAt': '2020-01-02T00:00:00',
+        'objectType': 'object',
+        'object': {'uri': ''},
+        'objectUpdateId': 777,
+        'deleted': True,
+    }
+
 
 def test_serialize_log_entries_page(app):
     le = models.LogEntry(

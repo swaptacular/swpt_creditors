@@ -6,7 +6,7 @@ from typing import TypeVar, Callable, Optional, List
 from sqlalchemy.orm import exc
 from sqlalchemy.dialects import postgresql
 from swpt_creditors.extensions import db
-from swpt_creditors.models import AccountData, PendingLogEntry, RunningTransfer, \
+from swpt_creditors.models import AccountData, LogEntry, PendingLogEntry, RunningTransfer, \
     CommittedTransfer, PrepareTransferSignal, FinalizeTransferSignal, PendingLedgerUpdate, \
     SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR, MAX_INT32, MIN_INT64, MAX_INT64, \
     TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX
@@ -114,8 +114,8 @@ def initiate_running_transfer(
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at_ts=current_ts,
-        object_type=types.transfer,
-        object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
+        object_type_hint=LogEntry.OT_TRANSFER,
+        transfer_uuid=transfer_uuid,
         object_update_id=1,
     ))
 
@@ -149,8 +149,8 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at_ts=datetime.now(tz=timezone.utc),
-        object_type=types.transfer,
-        object_uri=paths.transfer(creditorId=creditor_id, transferUuid=transfer_uuid),
+        object_type_hint=LogEntry.OT_TRANSFER,
+        transfer_uuid=transfer_uuid,
         is_deleted=True,
     ))
 
@@ -250,13 +250,10 @@ def process_account_transfer_signal(
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at_ts=current_ts,
-        object_type=types.committed_transfer,
-        object_uri=paths.committed_transfer(
-            creditorId=creditor_id,
-            debtorId=debtor_id,
-            creationDate=creation_date,
-            transferNumber=transfer_number,
-        ),
+        object_type_hint=LogEntry.OT_COMMITTED_TRANSFER,
+        debtor_id=debtor_id,
+        creation_date=creation_date,
+        transfer_number=transfer_number,
     ))
 
     if creation_date == ledger_date and previous_transfer_number == ledger_last_transfer_number:
@@ -397,8 +394,8 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
         db.session.add(PendingLogEntry(
             creditor_id=rt.creditor_id,
             added_at_ts=current_ts,
-            object_type=types.transfer,
-            object_uri=paths.transfer(creditorId=rt.creditor_id, transferUuid=rt.transfer_uuid),
+            object_type_hint=LogEntry.OT_TRANSFER,
+            transfer_uuid=rt.transfer_uuid,
             object_update_id=rt.latest_update_id,
             data_finalized_at_ts=current_ts,
             data_error_code=error_code,
