@@ -154,7 +154,7 @@ def _add_log_entry(
         object_type: str,
         object_uri: str,
         object_update_id: int = None,
-        is_deleted: bool = False,
+        is_deleted: bool = None,
         data: dict = None) -> None:
 
     db.session.add(LogEntry(

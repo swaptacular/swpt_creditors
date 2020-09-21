@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 6495989e4e82
+Revision ID: ebcf7a51b284
 Revises: 8d8c816257ce
-Create Date: 2020-09-21 17:51:21.461164
+Create Date: 2020-09-21 21:40:58.024348
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '6495989e4e82'
+revision = 'ebcf7a51b284'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -109,7 +109,7 @@ def upgrade():
     sa.Column('object_type', sa.String(), nullable=True),
     sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
-    sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
+    sa.Column('is_deleted', sa.BOOLEAN(), nullable=True, comment='NULL has the same meaning as as FALSE.'),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.Column('object_type_hint', sa.SmallInteger(), nullable=True),
     sa.Column('debtor_id', sa.BigInteger(), nullable=True),
@@ -153,7 +153,7 @@ def upgrade():
     sa.Column('object_type', sa.String(), nullable=True),
     sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
-    sa.Column('is_deleted', sa.BOOLEAN(), nullable=False),
+    sa.Column('is_deleted', sa.BOOLEAN(), nullable=True, comment='NULL has the same meaning as as FALSE.'),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.Column('object_type_hint', sa.SmallInteger(), nullable=True),
     sa.Column('debtor_id', sa.BigInteger(), nullable=True),

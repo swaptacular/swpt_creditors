@@ -82,14 +82,14 @@ class BaseLogEntry(db.Model):
     object_type = db.Column(db.String)
     object_uri = db.Column(db.String)
     object_update_id = db.Column(db.BigInteger)
-    is_deleted = db.Column(db.BOOLEAN, nullable=False, default=False)
+    is_deleted = db.Column(db.BOOLEAN, comment='NULL has the same meaning as as FALSE.')
     data = db.Column(pg.JSON)
 
     # NOTE: The following columns will be non-NULL for specific
     # `object_type`s only. They contain information allowing the
     # object's URI and type to be generated. Thus, the `object_uri`
-    # and `object_type` columns can be NULL for the most frequently
-    # occuring log entries.
+    # and `object_type` columns can contain NULL for the most
+    # frequently occuring log entries, saving space in the DB index.
     AUX_FIELDS = {
         'object_type_hint',
         'debtor_id',
@@ -105,8 +105,9 @@ class BaseLogEntry(db.Model):
 
     # NOTE: The following columns will be non-NULL for specific
     # `object_type`s only. They contain information allowing the
-    # object's JSON data to be generated. Thus, `data `column can be
-    # NULL for the most frequently occuring log entries.
+    # object's JSON data to be generated. Thus, the `data `column can
+    # contain NULL for the most frequently occuring log entries,
+    # saving space in the DB index.
     DATA_FIELDS = {
         # The key is the name of the column in the table, the value is
         # the name of the corresponding JSON property in the `data`

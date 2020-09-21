@@ -112,7 +112,7 @@ def test_serialize_log_entry(app):
         'deleted': True,
     }
 
-    le.is_deleted = False
+    le.is_deleted = None
     le.data = {'test': 'test', 'list': [1, 2, 3]}
     le.object_update_id = None
     assert les.dump(le) == {

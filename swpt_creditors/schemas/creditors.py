@@ -305,9 +305,11 @@ class LogEntrySchema(Schema):
         description='The URI of the object that has been created, updated, or deleted.',
         example={'uri': '/creditors/2/accounts/1/'},
     )
-    is_deleted = fields.Boolean(
+    is_deleted = fields.Function(
+        lambda obj: bool(obj.is_deleted),
         required=True,
         dump_only=True,
+        type='boolean',
         data_key='deleted',
         description='Whether the object has been deleted.',
         example=False,
