@@ -6,7 +6,8 @@ from sqlalchemy.orm import load_only
 from sqlalchemy.dialects import postgresql
 from swpt_lib.scan_table import TableScanner
 from .extensions import db
-from .models import AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, PendingLedgerUpdate
+from .models import Creditor, AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, \
+    PendingLedgerUpdate
 from .procedures import contain_principal_overflow, get_paths_and_types, \
     ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
 
@@ -15,9 +16,54 @@ atomic: Callable[[T], T] = db.atomic
 
 TD_HOUR = timedelta(hours=1)
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
+CREDITOR_DELETE_STATEMENT = Creditor.__table__.delete()
 
 
-class LogEntriesScanner(TableScanner):
+class CreditorScanner(TableScanner):
+    """Garbage-collects inactive creditors."""
+
+    table = Creditor.__table__
+    columns = [Creditor.creditor_id, Creditor.created_at_ts, Creditor.status, Creditor.deactivated_at_date]
+    pk = tuple_(table.c.creditor_id,)
+
+    def __init__(self):
+        super().__init__()
+        self.inactive_interval = timedelta(days=current_app.config['APP_INACTIVE_CREDITOR_RETENTION_DAYS'])
+        self.deactivated_interval = timedelta(days=current_app.config['APP_DEACTIVATED_CREDITOR_RETENTION_DAYS'])
+
+    @property
+    def blocks_per_query(self) -> int:
+        return int(current_app.config['APP_CREDITORS_SCAN_BLOCKS_PER_QUERY'])
+
+    @property
+    def target_beat_duration(self) -> int:
+        return int(current_app.config['APP_CREDITORS_SCAN_BEAT_MILLISECS'])
+
+    @atomic
+    def process_rows(self, rows):
+        c = self.table.c
+        current_ts = datetime.now(tz=timezone.utc)
+        inactive_cutoff_ts = current_ts - self.inactive_interval
+        deactivated_cutoff_date = (current_ts - self.deactivated_interval).date()
+        activated_flag = Creditor.STATUS_IS_ACTIVATED_FLAG
+
+        inactive_pks = [(row[0],) for row in rows if row[2] & activated_flag == 0 and row[1] < inactive_cutoff_ts]
+        if inactive_pks:
+            db.session.execute(CREDITOR_DELETE_STATEMENT.where(and_(
+                self.pk.in_(inactive_pks),
+                c.status.op('&')(activated_flag) == 0,
+                c.created_at_ts < inactive_cutoff_ts,
+            )))
+
+        deactivated_pks = [(row[0],) for row in rows if row[3] and row[3] < deactivated_cutoff_date]
+        if deactivated_pks:
+            db.session.execute(CREDITOR_DELETE_STATEMENT.where(and_(
+                self.pk.in_(deactivated_pks),
+                c.deactivated_at_date < deactivated_cutoff_date,
+            )))
+
+
+class LogEntryScanner(TableScanner):
     """Garbage-collects staled log entries."""
 
     table = LogEntry.__table__
@@ -44,7 +90,7 @@ class LogEntriesScanner(TableScanner):
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
 
-class LedgerEntriesScanner(TableScanner):
+class LedgerEntryScanner(TableScanner):
     """Garbage-collects staled ledger entries."""
 
     table = LedgerEntry.__table__
@@ -71,7 +117,7 @@ class LedgerEntriesScanner(TableScanner):
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
 
-class CommittedTransfersScanner(TableScanner):
+class CommittedTransferScanner(TableScanner):
     """Garbage-collects staled committed transfers."""
 
     table = CommittedTransfer.__table__

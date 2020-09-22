@@ -9,7 +9,8 @@ from flask.cli import with_appcontext
 from swpt_creditors.models import MIN_INT64, MAX_INT64
 from swpt_creditors import procedures
 from .extensions import db
-from .table_scanners import AccountScanner, LogEntriesScanner, LedgerEntriesScanner, CommittedTransfersScanner
+from .table_scanners import CreditorScanner, AccountScanner, LogEntryScanner, LedgerEntryScanner, \
+    CommittedTransferScanner
 
 
 @click.group('swpt_creditors')
@@ -161,6 +162,28 @@ def process_ledger_updates(threads, burst):
     pool.join()
 
 
+@swpt_creditors.command('scan_creditors')
+@with_appcontext
+@click.option('-d', '--days', type=float, help='The number of days.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def scan_creditors(days, quit_early):
+    """Start a process that garbage-collects inactive creditors.
+
+    The specified number of days determines the intended duration of a
+    single pass through the creditors table. If the number of days is
+    not specified, the value of the configuration variable
+    APP_CREDITORS_SCAN_DAYS is taken. If it is not set, the default
+    number of days is 7.
+
+    """
+
+    click.echo('Scanning creditors...')
+    days = days or float(current_app.config['APP_CREDITORS_SCAN_DAYS'])
+    assert days > 0.0
+    scanner = CreditorScanner()
+    scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
+
+
 @swpt_creditors.command('scan_accounts')
 @with_appcontext
 @click.option('-h', '--hours', type=float, help='The number of hours.')
@@ -201,7 +224,7 @@ def scan_log_entries(days, quit_early):
     click.echo('Scanning log entries...')
     days = days or float(current_app.config['APP_LOG_ENTRIES_SCAN_DAYS'])
     assert days > 0.0
-    scanner = LogEntriesScanner()
+    scanner = LogEntryScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
 
 
@@ -223,7 +246,7 @@ def scan_ledger_entries(days, quit_early):
     click.echo('Scanning ledger entries...')
     days = days or float(current_app.config['APP_LEDGER_ENTRIES_SCAN_DAYS'])
     assert days > 0.0
-    scanner = LedgerEntriesScanner()
+    scanner = LedgerEntryScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
 
 
@@ -245,5 +268,5 @@ def scan_committed_transfers(days, quit_early):
     click.echo('Scanning committed transfers...')
     days = days or float(current_app.config['APP_COMMITTED_TRANSFERS_SCAN_DAYS'])
     assert days > 0.0
-    scanner = CommittedTransfersScanner()
+    scanner = CommittedTransferScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)

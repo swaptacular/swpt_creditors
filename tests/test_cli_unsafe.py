@@ -9,6 +9,44 @@ C_ID = 1
 
 
 @pytest.mark.unsafe
+def test_scan_creditors(app_unsafe_session, current_ts):
+    m.Creditor.query.delete()
+    db.session.commit()
+
+    p.create_new_creditor(1, activate=False)
+    p.create_new_creditor(2, activate=False)
+    p.create_new_creditor(3, activate=True)
+    p.create_new_creditor(4, activate=True)
+    p.create_new_creditor(5, activate=True)
+    m.Creditor.query.filter_by(creditor_id=1).update({
+        'created_at_ts': current_ts - timedelta(days=30),
+    })
+    m.Creditor.query.filter_by(creditor_id=3).update({
+        'created_at_ts': current_ts - timedelta(days=3000),
+        'deactivated_at_date': (current_ts - timedelta(days=3000)).date(),
+    })
+    m.Creditor.query.filter_by(creditor_id=4).update({
+        'created_at_ts': current_ts - timedelta(days=3000),
+        'deactivated_at_date': (current_ts - timedelta(days=3000)).date(),
+    })
+    db.session.commit()
+    app = app_unsafe_session
+    assert len(m.Creditor.query.all()) == 5
+
+    db.engine.execute('ANALYZE account')
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_creditors', 'scan_creditors', '--days', '0.000001', '--quit-early'])
+    assert result.exit_code == 0
+
+    creditors = m.Creditor.query.all()
+    assert len(creditors) == 2
+    assert sorted([c.creditor_id for c in creditors]) == [2, 5]
+
+    m.Creditor.query.delete()
+    db.session.commit()
+
+
+@pytest.mark.unsafe
 def test_scan_accounts(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     m.LogEntry.query.delete()
