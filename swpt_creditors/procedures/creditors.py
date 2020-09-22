@@ -1,11 +1,11 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
-from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, MIN_INT64, MAX_INT64, \
-    DEFAULT_CREDITOR_STATUS
+from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Account, \
+    RunningTransfer, MIN_INT64, MAX_INT64
 from .common import get_paths_and_types
 from . import errors
 
@@ -59,6 +59,17 @@ def activate_creditor(creditor_id: int) -> None:
     creditor = _get_creditor(creditor_id, lock=True)
     if creditor:
         creditor.is_activated = True
+
+
+@atomic
+def deactivate_creditor(creditor_id: int) -> None:
+    creditor = get_active_creditor(creditor_id, lock=True)
+    if creditor:
+        assert creditor.is_activated
+        assert creditor.deactivated_at_date is None
+        creditor.deactivated_at_date = datetime.now(tz=timezone.utc).date()
+        Account.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
+        RunningTransfer.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
 
 
 @atomic
