@@ -32,7 +32,7 @@ def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
 
 
 @atomic
-def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
+def reserve_creditor(creditor_id) -> Creditor:
     if not _is_correct_creditor_id(creditor_id):
         raise errors.InvalidCreditor()
 
@@ -47,18 +47,25 @@ def create_new_creditor(creditor_id: int, activate: bool = False) -> Creditor:
         query(func.max(LogEntry.entry_id)).\
         filter_by(creditor_id=creditor_id).\
         scalar()
-
     creditor.last_log_entry_id = 0 if relic_log_entry_id is None else relic_log_entry_id + 1  # a leap
-    creditor.is_activated = activate
 
     return creditor
 
 
 @atomic
-def activate_creditor(creditor_id: int) -> None:
+def activate_creditor(creditor_id: int, activation_code: str) -> Creditor:
     creditor = _get_creditor(creditor_id, lock=True)
-    if creditor:
-        creditor.is_activated = True
+    if creditor is None:
+        raise errors.InvalidActivationCode()
+
+    if creditor.is_activated:
+        raise errors.CreditorExists()
+
+    if activation_code != creditor.activation_code:
+        raise errors.InvalidActivationCode()
+
+    creditor.activate()
+    return creditor
 
 
 @atomic

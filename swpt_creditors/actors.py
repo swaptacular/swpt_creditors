@@ -6,13 +6,6 @@ from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def activate_creditor(creditor_id: int) -> None:
-    """Activate a creditor."""
-
-    procedures.activate_creditor(creditor_id)
-
-
 @broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_rejected_config_signal(
         debtor_id: int,

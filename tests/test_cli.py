@@ -6,8 +6,14 @@ D_ID = -1
 C_ID = 1
 
 
+def _create_new_creditor(creditor_id: int, activate: bool = False):
+    creditor = p.reserve_creditor(creditor_id)
+    if activate:
+        p.activate_creditor(creditor_id, creditor.activation_code)
+
+
 def test_process_ledger_entries(app, db_session, current_ts):
-    p.create_new_creditor(C_ID, activate=True)
+    _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
 
     params = {
@@ -67,7 +73,7 @@ def test_process_ledger_entries(app, db_session, current_ts):
 
 
 def test_process_log_entries(app, db_session, current_ts):
-    p.create_new_creditor(C_ID, activate=True)
+    _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     p.update_account_config(
         creditor_id=C_ID,

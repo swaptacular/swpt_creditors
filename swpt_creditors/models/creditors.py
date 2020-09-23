@@ -4,6 +4,7 @@ from typing import Dict, Optional
 from datetime import datetime
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, true, or_
+from swpt_lib.utils import i64_to_u64
 from swpt_creditors.extensions import db
 from .common import get_now_utc, MAX_INT64
 
@@ -28,9 +29,12 @@ class AgentConfig(db.Model):
 class Creditor(db.Model):
     STATUS_IS_ACTIVATED_FLAG = 1
 
+    _ac_seq = db.Sequence('creditor_activation_id_seq', metadata=db.Model.metadata)
+
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     status = db.Column(db.SmallInteger, nullable=False, default=DEFAULT_CREDITOR_STATUS)
+    activation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
@@ -46,6 +50,7 @@ class Creditor(db.Model):
                 'not been deactivated yet. Once deactivated, a creditor stays deactivated '
                 'until it is deleted.',
     )
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.CheckConstraint(last_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
@@ -58,12 +63,14 @@ class Creditor(db.Model):
     def is_activated(self):
         return bool(self.status & Creditor.STATUS_IS_ACTIVATED_FLAG)
 
-    @is_activated.setter
-    def is_activated(self, value):
-        if value:
-            self.status |= Creditor.STATUS_IS_ACTIVATED_FLAG
-        else:
-            self.status &= ~Creditor.STATUS_IS_ACTIVATED_FLAG
+    @property
+    def activation_code(self):
+        activation_id = self.activation_id
+        return '' if activation_id is None else str(i64_to_u64(activation_id))
+
+    def activate(self):
+        self.status |= Creditor.STATUS_IS_ACTIVATED_FLAG
+        self.activation_id = None
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1

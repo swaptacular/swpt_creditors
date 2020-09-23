@@ -54,5 +54,9 @@ class InvalidExchangePolicy(Exception):
     """Invalid exchange policy."""
 
 
+class InvalidActivationCode(Exception):
+    """Invalid creditor activation code."""
+
+
 class DebtorNameConflict(Exception):
     """Another account with this debtorName already exist."""

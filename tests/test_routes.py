@@ -14,8 +14,8 @@ def client(app, db_session):
 
 @pytest.fixture(scope='function')
 def creditor(db_session):
-    creditor = p.create_new_creditor(2)
-    p.activate_creditor(2)
+    creditor = p.reserve_creditor(2)
+    p.activate_creditor(2, creditor.activation_code)
     return creditor
 
 
@@ -61,8 +61,32 @@ def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 403
 
-    r = client.post('/creditors/2/', json={})
-    assert r.status_code == 202
+    r = client.post('/creditors/2/reserve', json={})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'CreditorReservation'
+    assert data['creditorId'] == '2'
+    assert data['activationCode'] != ''
+    assert iso8601.parse_date(data['validUntil'])
+    assert iso8601.parse_date(data['createdAt'])
+    activation_code = data['activationCode']
+
+    r = client.post('/creditors/2/reserve', json={})
+    assert r.status_code == 409
+
+    r = client.get('/creditors/2/')
+    assert r.status_code == 403
+
+    r = client.post('/creditors/2/activate', json={
+        'activationCode': 'INVALID CODE',
+    })
+    assert r.status_code == 422
+    assert 'activationCode' in r.get_json()['errors']['json']
+
+    r = client.post('/creditors/2/activate', json={
+        'activationCode': activation_code,
+    })
+    assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/2/'
@@ -70,13 +94,28 @@ def test_create_creditor(client):
     assert iso8601.parse_date(data['latestUpdateAt'])
     assert iso8601.parse_date(data['createdAt'])
 
-    r = client.post('/creditors/2/', json={})
+    r = client.post('/creditors/2/activate', json={
+        'activationCode': activation_code,
+    })
     assert r.status_code == 409
 
-    r = client.get('/creditors/2/')
-    assert r.status_code == 403
+    r = client.post('/creditors/3/activate', json={
+        'activationCode': '123',
+    })
+    assert r.status_code == 422
+    assert 'activationCode' in r.get_json()['errors']['json']
 
-    p.activate_creditor(2)
+    r = client.post('/creditors/3/activate', json={})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'Creditor'
+    assert data['uri'] == '/creditors/3/'
+    assert data['latestUpdateId'] == 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert iso8601.parse_date(data['createdAt'])
+
+    r = client.post('/creditors/3/activate', json={})
+    assert r.status_code == 409
 
     r = client.get('/creditors/2/')
     assert r.status_code == 200
@@ -90,9 +129,6 @@ def test_create_creditor(client):
     p.process_pending_log_entries(2)
     entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 0
-
-    r = client.post('/creditors/3/', json={'activate': True})
-    assert r.status_code == 202
 
     r = client.get('/creditors/3/')
     assert r.status_code == 200

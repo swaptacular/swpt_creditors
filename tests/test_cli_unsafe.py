@@ -8,16 +8,22 @@ D_ID = -1
 C_ID = 1
 
 
+def _create_new_creditor(creditor_id: int, activate: bool = False):
+    creditor = p.reserve_creditor(creditor_id)
+    if activate:
+        p.activate_creditor(creditor_id, creditor.activation_code)
+
+
 @pytest.mark.unsafe
 def test_scan_creditors(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     db.session.commit()
 
-    p.create_new_creditor(1, activate=False)
-    p.create_new_creditor(2, activate=False)
-    p.create_new_creditor(3, activate=True)
-    p.create_new_creditor(4, activate=True)
-    p.create_new_creditor(5, activate=True)
+    _create_new_creditor(1, activate=False)
+    _create_new_creditor(2, activate=False)
+    _create_new_creditor(3, activate=True)
+    _create_new_creditor(4, activate=True)
+    _create_new_creditor(5, activate=True)
     m.Creditor.query.filter_by(creditor_id=1).update({
         'created_at_ts': current_ts - timedelta(days=30),
     })
@@ -55,7 +61,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     m.PendingLedgerUpdate.query.delete()
     db.session.commit()
 
-    p.create_new_creditor(C_ID, activate=True)
+    _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, 2)
     p.create_new_account(C_ID, 3)
     p.create_new_account(C_ID, 4)
@@ -139,7 +145,7 @@ def test_scan_log_entries(app_unsafe_session, current_ts):
     m.LogEntry.query.delete()
     db.session.commit()
 
-    p.create_new_creditor(C_ID, activate=True)
+    _create_new_creditor(C_ID, activate=True)
     creditor = m.Creditor.query.one()
     creditor.creditor_latest_update_id += 1
     db.session.add(m.LogEntry(
@@ -186,7 +192,7 @@ def test_scan_ledger_entries(app_unsafe_session, current_ts):
     m.LedgerEntry.query.delete()
     db.session.commit()
 
-    p.create_new_creditor(C_ID, activate=True)
+    _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     data = m.AccountData.query.one()
     _update_ledger(data, 1, 1000, 1000, current_ts - timedelta(days=1000))
@@ -218,7 +224,7 @@ def test_scan_committed_transfers(app_unsafe_session, current_ts):
     m.CommittedTransfer.query.delete()
     db.session.commit()
 
-    p.create_new_creditor(C_ID, activate=True)
+    _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     params = {
         'debtor_id': D_ID,
