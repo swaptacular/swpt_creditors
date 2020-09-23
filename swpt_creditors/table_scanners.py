@@ -16,7 +16,6 @@ atomic: Callable[[T], T] = db.atomic
 
 TD_HOUR = timedelta(hours=1)
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
-CREDITOR_DELETE_STATEMENT = Creditor.__table__.delete()
 
 
 class CreditorScanner(TableScanner):
@@ -41,26 +40,31 @@ class CreditorScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
-        c = self.table.c
         current_ts = datetime.now(tz=timezone.utc)
         inactive_cutoff_ts = current_ts - self.inactive_interval
         deactivated_cutoff_date = (current_ts - self.deactivated_interval).date()
         activated_flag = Creditor.STATUS_IS_ACTIVATED_FLAG
 
-        inactive_pks = [(row[0],) for row in rows if row[2] & activated_flag == 0 and row[1] < inactive_cutoff_ts]
-        if inactive_pks:
-            db.session.execute(CREDITOR_DELETE_STATEMENT.where(and_(
-                self.pk.in_(inactive_pks),
-                c.status.op('&')(activated_flag) == 0,
-                c.created_at_ts < inactive_cutoff_ts,
-            )))
+        ids_to_delete = [row[0] for row in rows if row[2] & activated_flag == 0 and row[1] < inactive_cutoff_ts]
+        if ids_to_delete:
+            to_delete = Creditor.query.\
+                filter(Creditor.creditor_id.in_(ids_to_delete)).\
+                filter(Creditor.status.op('&')(activated_flag) == 0).\
+                filter(Creditor.created_at_ts < inactive_cutoff_ts).\
+                with_for_update(skip_locked=False).\
+                all()
+            for creditor in to_delete:
+                db.session.delete(creditor)
 
-        deactivated_pks = [(row[0],) for row in rows if row[3] and row[3] < deactivated_cutoff_date]
-        if deactivated_pks:
-            db.session.execute(CREDITOR_DELETE_STATEMENT.where(and_(
-                self.pk.in_(deactivated_pks),
-                c.deactivated_at_date < deactivated_cutoff_date,
-            )))
+        ids_to_delete = [row[0] for row in rows if row[3] and row[3] < deactivated_cutoff_date]
+        if ids_to_delete:
+            to_delete = Creditor.query.\
+                filter(Creditor.creditor_id.in_(ids_to_delete)).\
+                filter(Creditor.deactivated_at_date < deactivated_cutoff_date).\
+                with_for_update(skip_locked=False).\
+                all()
+            for creditor in to_delete:
+                db.session.delete(creditor)
 
 
 class LogEntryScanner(TableScanner):
@@ -223,7 +227,7 @@ class AccountScanner(TableScanner):
                 filter(AccountData.last_transfer_number == AccountData.ledger_last_transfer_number).\
                 filter(AccountData.ledger_principal != AccountData.principal).\
                 filter(AccountData.ledger_latest_update_ts < latest_update_cutoff_ts).\
-                with_for_update().\
+                with_for_update(skip_locked=False).\
                 options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)).\
                 all()
 
@@ -325,7 +329,7 @@ class AccountScanner(TableScanner):
                 )).\
                 filter(AccountData.config_error == null()).\
                 filter(AccountData.last_config_ts < last_config_ts_cutoff).\
-                with_for_update().\
+                with_for_update(skip_locked=False).\
                 options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
                 all()
 
