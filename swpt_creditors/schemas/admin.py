@@ -30,7 +30,7 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
     reservationId = fields.Function(
         lambda obj: obj.reservation_id or 0,
         required=True,
-        description='A number that will be required when activating the creditor.',
+        description='A number that will be needed in order to activate the creditor.',
         type='integer',
         format='int64',
         example=12345,
@@ -39,7 +39,7 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         lambda obj: str(i64_to_u64(obj.creditor_id)),
         required=True,
         type='string',
-        description='The creditor ID that has been reserved.',
+        description='The reserved creditor ID.',
         example='1',
     )
     validUntil = fields.Method(
@@ -47,7 +47,7 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         required=True,
         type='string',
         format='date-time',
-        description='The reservation will not be valid after this moment.',
+        description='The moment at which the reservation will expire.',
     )
 
     def get_valid_until_string(self, obj) -> str:

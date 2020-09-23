@@ -53,7 +53,7 @@ def reserve_creditor(creditor_id) -> Creditor:
 
 
 @atomic
-def activate_creditor(creditor_id: int, reservation_id: str) -> Creditor:
+def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
     assert reservation_id is not None
 
     creditor = _get_creditor(creditor_id, lock=True)

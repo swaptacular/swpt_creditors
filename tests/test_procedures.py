@@ -46,7 +46,7 @@ def test_activate_new_creditor(db_session):
 
     assert not p.get_active_creditor(C_ID)
     with pytest.raises(p.InvalidReservationId):
-        p.activate_creditor(C_ID, 'INVALID_CODE')
+        p.activate_creditor(C_ID, 123)
     p.activate_creditor(C_ID, creditor.reservation_id)
     creditor = p.get_active_creditor(C_ID)
     assert creditor
