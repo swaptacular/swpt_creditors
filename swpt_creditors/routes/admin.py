@@ -62,7 +62,7 @@ class ReserveCreditorEndpoint(MethodView):
     @admin_api.response(CreditorReservationSchema(context=context))
     @admin_api.doc(operationId='reserveCreditor',
                    responses={409: specs.CONFLICTING_CREDITOR})
-    def post(self, creditor_creation_request, creditorId):
+    def post(self, creditor_reservation_request, creditorId):
         """Try to reserve a creditor ID.
 
         ---
