@@ -88,6 +88,7 @@ class ActivateCreditorEndpoint(MethodView):
         try:
             if reservation_id is None:
                 reservation_id = procedures.reserve_creditor(creditorId).reservation_id
+                assert reservation_id is not None
             creditor = procedures.activate_creditor(creditorId, reservation_id)
         except procedures.CreditorExists:
             abort(409)
