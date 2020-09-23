@@ -1,10 +1,9 @@
 from __future__ import annotations
 import logging
 from typing import Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, true, or_
-from swpt_lib.utils import i64_to_u64
 from swpt_creditors.extensions import db
 from .common import get_now_utc, MAX_INT64
 
@@ -27,7 +26,8 @@ class AgentConfig(db.Model):
 
 
 class Creditor(db.Model):
-    STATUS_IS_ACTIVATED_FLAG = 1
+    STATUS_IS_ACTIVATED_FLAG = 1 << 0
+    STATUS_IS_DEACTIVATED_FLAG = 1 << 1  # The creditor must have been activated.
 
     _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
 
@@ -56,16 +56,27 @@ class Creditor(db.Model):
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(accounts_list_latest_update_id > 0),
         db.CheckConstraint(transfers_list_latest_update_id > 0),
-        db.CheckConstraint(or_(deactivated_at_date == null(), status.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0)),
+        db.CheckConstraint(or_(
+            status.op('&')(STATUS_IS_DEACTIVATED_FLAG) == 0,
+            status.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0,
+        )),
     )
 
     @property
     def is_activated(self):
         return bool(self.status & Creditor.STATUS_IS_ACTIVATED_FLAG)
 
+    @property
+    def is_deactivated(self):
+        return bool(self.status & Creditor.STATUS_IS_DEACTIVATED_FLAG)
+
     def activate(self):
         self.status |= Creditor.STATUS_IS_ACTIVATED_FLAG
         self.reservation_id = None
+
+    def deactivate(self):
+        self.status |= Creditor.STATUS_IS_DEACTIVATED_FLAG
+        self.deactivated_at_date = datetime.now(tz=timezone.utc).date()
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1

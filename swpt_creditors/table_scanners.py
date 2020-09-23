@@ -41,11 +41,21 @@ class CreditorScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
-        inactive_cutoff_ts = current_ts - self.inactive_interval
-        deactivated_cutoff_date = (current_ts - self.deactivated_interval).date()
-        activated_flag = Creditor.STATUS_IS_ACTIVATED_FLAG
+        self._delete_creditors_not_activated_for_long_time(rows, current_ts)
+        self._delete_creditors_deactivated_long_time_ago(rows, current_ts)
 
-        ids_to_delete = [row[0] for row in rows if row[2] & activated_flag == 0 and row[1] < inactive_cutoff_ts]
+    def _delete_creditors_not_activated_for_long_time(self, rows, current_ts):
+        c = self.table.c
+        activated_flag = Creditor.STATUS_IS_ACTIVATED_FLAG
+        inactive_cutoff_ts = current_ts - self.inactive_interval
+
+        def not_activated_for_long_time(row) -> bool:
+            return (
+                row[c.status] & activated_flag == 0
+                and row[c.created_at_ts] < inactive_cutoff_ts
+            )
+
+        ids_to_delete = [row[c.creditor_id] for row in rows if not_activated_for_long_time(row)]
         if ids_to_delete:
             to_delete = Creditor.query.\
                 filter(Creditor.creditor_id.in_(ids_to_delete)).\
@@ -53,16 +63,36 @@ class CreditorScanner(TableScanner):
                 filter(Creditor.created_at_ts < inactive_cutoff_ts).\
                 with_for_update(skip_locked=False).\
                 all()
+
             for creditor in to_delete:
                 db.session.delete(creditor)
 
-        ids_to_delete = [row[0] for row in rows if row[3] and row[3] < deactivated_cutoff_date]
+    def _delete_creditors_deactivated_long_time_ago(self, rows, current_ts):
+        c = self.table.c
+        deactivated_flag = Creditor.STATUS_IS_DEACTIVATED_FLAG
+        deactivated_cutoff_date = (current_ts - self.deactivated_interval).date()
+
+        def deactivated_long_time_ago(row) -> bool:
+            return (
+                row[c.status] & deactivated_flag != 0
+                and (
+                    row[c.deactivated_at_date] is None
+                    or row[c.deactivated_at_date] < deactivated_cutoff_date
+                )
+            )
+
+        ids_to_delete = [row[c.creditor_id] for row in rows if deactivated_long_time_ago(row)]
         if ids_to_delete:
             to_delete = Creditor.query.\
                 filter(Creditor.creditor_id.in_(ids_to_delete)).\
-                filter(Creditor.deactivated_at_date < deactivated_cutoff_date).\
+                filter(Creditor.status.op('&')(deactivated_flag) != 0).\
+                filter(or_(
+                    Creditor.deactivated_at_date == null(),
+                    Creditor.deactivated_at_date < deactivated_cutoff_date),
+                ).\
                 with_for_update(skip_locked=False).\
                 all()
+
             for creditor in to_delete:
                 db.session.delete(creditor)
 

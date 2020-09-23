@@ -24,9 +24,13 @@ def test_scan_creditors(app_unsafe_session, current_ts):
     _create_new_creditor(3, activate=True)
     _create_new_creditor(4, activate=True)
     _create_new_creditor(5, activate=True)
+    _create_new_creditor(6, activate=True)
     m.Creditor.query.filter_by(creditor_id=1).update({
         'created_at_ts': current_ts - timedelta(days=30),
     })
+    p.deactivate_creditor(3)
+    p.deactivate_creditor(4)
+    p.deactivate_creditor(6)
     m.Creditor.query.filter_by(creditor_id=3).update({
         'created_at_ts': current_ts - timedelta(days=3000),
         'deactivated_at_date': (current_ts - timedelta(days=3000)).date(),
@@ -37,7 +41,7 @@ def test_scan_creditors(app_unsafe_session, current_ts):
     })
     db.session.commit()
     app = app_unsafe_session
-    assert len(m.Creditor.query.all()) == 5
+    assert len(m.Creditor.query.all()) == 6
 
     db.engine.execute('ANALYZE account')
     runner = app.test_cli_runner()
@@ -45,8 +49,8 @@ def test_scan_creditors(app_unsafe_session, current_ts):
     assert result.exit_code == 0
 
     creditors = m.Creditor.query.all()
-    assert len(creditors) == 2
-    assert sorted([c.creditor_id for c in creditors]) == [2, 5]
+    assert len(creditors) == 3
+    assert sorted([c.creditor_id for c in creditors]) == [2, 5, 6]
 
     m.Creditor.query.delete()
     db.session.commit()

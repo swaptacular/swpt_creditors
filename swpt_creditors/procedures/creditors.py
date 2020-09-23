@@ -55,14 +55,11 @@ def reserve_creditor(creditor_id) -> Creditor:
 @atomic
 def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
     creditor = _get_creditor(creditor_id, lock=True)
-    if creditor is None:
+    creditor_can_be_activated = creditor and (creditor.is_activated or reservation_id == creditor.reservation_id)
+    if not creditor_can_be_activated:
         raise errors.InvalidReservationId()
 
-    if not creditor.is_activated:
-        if reservation_id != creditor.reservation_id:
-            raise errors.InvalidReservationId()
-        creditor.activate()
-
+    creditor.activate()
     return creditor
 
 
@@ -70,17 +67,15 @@ def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
 def deactivate_creditor(creditor_id: int) -> None:
     creditor = get_active_creditor(creditor_id, lock=True)
     if creditor:
-        assert creditor.is_activated
-        assert creditor.deactivated_at_date is None
-        creditor.deactivated_at_date = datetime.now(tz=timezone.utc).date()
-        Account.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
-        RunningTransfer.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
+        creditor.deactivate()
+        _delete_creditor_accounts(creditor_id)
+        _delete_creditor_running_transfers(creditor_id)
 
 
 @atomic
 def get_active_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
     creditor = _get_creditor(creditor_id, lock=lock)
-    if creditor and creditor.is_activated and creditor.deactivated_at_date is None:
+    if creditor and creditor.is_activated and not creditor.is_deactivated:
         return creditor
 
 
@@ -208,3 +203,11 @@ def _is_correct_creditor_id(creditor_id: int) -> bool:
         return False
 
     return True
+
+
+def _delete_creditor_accounts(creditor_id: int) -> None:
+    Account.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
+
+
+def _delete_creditor_running_transfers(creditor_id: int) -> None:
+    RunningTransfer.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
