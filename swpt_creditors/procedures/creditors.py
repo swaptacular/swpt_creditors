@@ -53,18 +53,18 @@ def reserve_creditor(creditor_id) -> Creditor:
 
 
 @atomic
-def activate_creditor(creditor_id: int, activation_code: str) -> Creditor:
+def activate_creditor(creditor_id: int, reservation_id: str) -> Creditor:
+    assert reservation_id is not None
+
     creditor = _get_creditor(creditor_id, lock=True)
     if creditor is None:
-        raise errors.InvalidActivationCode()
+        raise errors.InvalidReservationId()
 
-    if creditor.is_activated:
-        raise errors.CreditorExists()
+    if not creditor.is_activated:
+        if reservation_id != creditor.reservation_id:
+            raise errors.InvalidReservationId()
+        creditor.activate()
 
-    if activation_code != creditor.activation_code:
-        raise errors.InvalidActivationCode()
-
-    creditor.activate()
     return creditor
 
 

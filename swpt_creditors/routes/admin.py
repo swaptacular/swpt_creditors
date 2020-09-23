@@ -84,15 +84,15 @@ class ActivateCreditorEndpoint(MethodView):
     def post(self, creditor_activation_request, creditorId):
         """Activate a creditor."""
 
-        activation_code = creditor_activation_request.get('optional_activation_code')
+        reservation_id = creditor_activation_request.get('optional_reservation_id')
         try:
-            if activation_code is None:
-                activation_code = procedures.reserve_creditor(creditorId).activation_code
-            creditor = procedures.activate_creditor(creditorId, activation_code)
+            if reservation_id is None:
+                reservation_id = procedures.reserve_creditor(creditorId).reservation_id
+            creditor = procedures.activate_creditor(creditorId, reservation_id)
         except procedures.CreditorExists:
             abort(409)
-        except procedures.InvalidActivationCode:
-            abort(422, errors={'json': {'activationCode': ['Invalid code.']}})
+        except procedures.InvalidReservationId:
+            abort(422, errors={'json': {'reservationId': ['Invalid ID.']}})
         except procedures.InvalidCreditor:  # pragma: no cover
             abort(500, message='The agent is not responsible for this creditor.')
 

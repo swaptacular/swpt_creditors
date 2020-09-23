@@ -15,7 +15,7 @@ def client(app, db_session):
 @pytest.fixture(scope='function')
 def creditor(db_session):
     creditor = p.reserve_creditor(2)
-    p.activate_creditor(2, creditor.activation_code)
+    p.activate_creditor(2, creditor.reservation_id)
     return creditor
 
 
@@ -66,10 +66,10 @@ def test_create_creditor(client):
     data = r.get_json()
     assert data['type'] == 'CreditorReservation'
     assert data['creditorId'] == '2'
-    assert data['activationCode'] != ''
+    assert isinstance(data['reservationId'], int)
     assert iso8601.parse_date(data['validUntil'])
     assert iso8601.parse_date(data['createdAt'])
-    activation_code = data['activationCode']
+    reservation_id = data['reservationId']
 
     r = client.post('/creditors/2/reserve', json={})
     assert r.status_code == 409
@@ -78,13 +78,13 @@ def test_create_creditor(client):
     assert r.status_code == 403
 
     r = client.post('/creditors/2/activate', json={
-        'activationCode': 'INVALID CODE',
+        'reservationId': 123,
     })
     assert r.status_code == 422
-    assert 'activationCode' in r.get_json()['errors']['json']
+    assert 'reservationId' in r.get_json()['errors']['json']
 
     r = client.post('/creditors/2/activate', json={
-        'activationCode': activation_code,
+        'reservationId': reservation_id,
     })
     assert r.status_code == 200
     data = r.get_json()
@@ -95,15 +95,15 @@ def test_create_creditor(client):
     assert iso8601.parse_date(data['createdAt'])
 
     r = client.post('/creditors/2/activate', json={
-        'activationCode': activation_code,
+        'reservationId': reservation_id,
     })
-    assert r.status_code == 409
+    assert r.status_code == 200
 
     r = client.post('/creditors/3/activate', json={
-        'activationCode': '123',
+        'reservationId': 123,
     })
     assert r.status_code == 422
-    assert 'activationCode' in r.get_json()['errors']['json']
+    assert 'reservationId' in r.get_json()['errors']['json']
 
     r = client.post('/creditors/3/activate', json={})
     assert r.status_code == 200
@@ -132,6 +132,15 @@ def test_create_creditor(client):
 
     r = client.get('/creditors/3/')
     assert r.status_code == 200
+
+    r = client.post('/creditors/3/deactivate', json={})
+    assert r.status_code == 204
+
+    r = client.get('/creditors/3/')
+    assert r.status_code == 403
+
+    r = client.post('/creditors/3/deactivate', json={})
+    assert r.status_code == 204
 
 
 def test_get_wallet(client, creditor):

@@ -11,7 +11,7 @@ C_ID = 1
 def _create_new_creditor(creditor_id: int, activate: bool = False):
     creditor = p.reserve_creditor(creditor_id)
     if activate:
-        p.activate_creditor(creditor_id, creditor.activation_code)
+        p.activate_creditor(creditor_id, creditor.reservation_id)
 
 
 @pytest.mark.unsafe

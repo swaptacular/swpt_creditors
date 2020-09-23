@@ -54,8 +54,8 @@ class InvalidExchangePolicy(Exception):
     """Invalid exchange policy."""
 
 
-class InvalidActivationCode(Exception):
-    """Invalid creditor activation code."""
+class InvalidReservationId(Exception):
+    """Invalid creditor reservation ID."""
 
 
 class DebtorNameConflict(Exception):

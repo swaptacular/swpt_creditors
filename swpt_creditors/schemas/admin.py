@@ -1,5 +1,6 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
 from swpt_lib.utils import i64_to_u64
+from swpt_creditors.models import MIN_INT64, MAX_INT64
 from .common import type_registry, ValidateTypeMixin
 
 
@@ -26,11 +27,13 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         data_key='createdAt',
         description='The moment at which the reservation was created.',
     )
-    activation_code = fields.String(
+    reservationId = fields.Function(
+        lambda obj: obj.reservation_id or 0,
         required=True,
-        data_key='activationCode',
-        description='A code that will be required when activating the creditor.',
-        example='12345',
+        description='A number that will be required when activating the creditor.',
+        type='integer',
+        format='int64',
+        example=12345,
     )
     creditorId = fields.Function(
         lambda obj: str(i64_to_u64(obj.creditor_id)),
@@ -59,14 +62,15 @@ class CreditorActivationRequestSchema(ValidateTypeMixin, Schema):
         description='The type of this object.',
         example='CreditorActivationRequest',
     )
-    optional_activation_code = fields.String(
+    optional_reservation_id = fields.Integer(
         load_only=True,
-        data_key='activationCode',
+        data_key='reservationId',
+        format='int64',
         description='When this field is present, the server will try to activate an existing '
-                    'reservation with matching creditor ID and activation code. When this '
+                    'reservation with matching `creditorID` and `reservationID`. When this '
                     'field is not present, the server will try to reserve the creditor ID '
                     'specified in the path, and activate it at once.',
-        example='12345',
+        example=12345,
     )
 
 

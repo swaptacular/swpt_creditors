@@ -19,9 +19,9 @@ depends_on = None
 
 def upgrade():
     op.execute(CreateSequence(Sequence('coordinator_request_id_seq')))
-    op.execute(CreateSequence(Sequence('creditor_activation_id_seq')))
+    op.execute(CreateSequence(Sequence('creditor_reservation_id_seq')))
 
 
 def downgrade():
     op.execute(DropSequence(Sequence('coordinator_request_id_seq')))
-    op.execute(DropSequence(Sequence('creditor_activation_id_seq')))
+    op.execute(DropSequence(Sequence('creditor_reservation_id_seq')))
