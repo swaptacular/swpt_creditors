@@ -66,8 +66,8 @@ def initiate_running_transfer(
     assert 0 <= amount <= MAX_INT64
     assert min_interest_rate >= -100.0
     assert 0 <= locked_amount <= MAX_INT64
-
     current_ts = datetime.now(tz=timezone.utc)
+
     creditor = get_active_creditor(creditor_id)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
@@ -98,6 +98,15 @@ def initiate_running_transfer(
     with db.retry_on_integrity_error():
         db.session.add(new_running_transfer)
 
+    paths, types = get_paths_and_types()
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at_ts=current_ts,
+        object_type_hint=LogEntry.OT_TRANSFER,
+        transfer_uuid=transfer_uuid,
+        object_update_id=1,
+    ))
+
     db.session.add(PrepareTransferSignal(
         creditor_id=creditor_id,
         coordinator_request_id=new_running_transfer.coordinator_request_id,
@@ -107,15 +116,6 @@ def initiate_running_transfer(
         min_interest_rate=min_interest_rate,
         max_commit_delay=_calc_max_commit_delay(current_ts, deadline),
         inserted_at_ts=current_ts,
-    ))
-
-    paths, types = get_paths_and_types()
-    db.session.add(PendingLogEntry(
-        creditor_id=creditor_id,
-        added_at_ts=current_ts,
-        object_type_hint=LogEntry.OT_TRANSFER,
-        transfer_uuid=transfer_uuid,
-        object_update_id=1,
     ))
 
     return new_running_transfer
@@ -304,14 +304,27 @@ def process_prepared_direct_transfer_signal(
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 <= locked_amount <= MAX_INT64
 
+    def dismiss_prepared_transfer():
+        db.session.add(FinalizeTransferSignal(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            transfer_id=transfer_id,
+            coordinator_id=coordinator_id,
+            coordinator_request_id=coordinator_request_id,
+            committed_amount=0,
+            transfer_note_format='',
+            transfer_note='',
+        ))
+
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
-    rt_matches_the_signal = (
+
+    the_signal_matches_the_transfer = (
         rt is not None
         and rt.debtor_id == debtor_id
         and rt.creditor_id == creditor_id
         and rt.recipient_id == recipient
     )
-    if rt_matches_the_signal:
+    if the_signal_matches_the_transfer:
         assert rt is not None
         if not rt.is_finalized and rt.transfer_id is None:
             rt.transfer_id = transfer_id
@@ -329,17 +342,7 @@ def process_prepared_direct_transfer_signal(
             ))
             return
 
-    # The newly prepared transfer is dismissed.
-    db.session.add(FinalizeTransferSignal(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        transfer_id=transfer_id,
-        coordinator_id=coordinator_id,
-        coordinator_request_id=coordinator_request_id,
-        committed_amount=0,
-        transfer_note_format='',
-        transfer_note='',
-    ))
+    dismiss_prepared_transfer()
 
 
 @atomic
@@ -358,13 +361,14 @@ def process_finalized_direct_transfer_signal(
     assert 0 <= total_locked_amount <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
-    rt_matches_the_signal = (
+
+    the_signal_matches_the_transfer = (
         rt is not None
         and rt.debtor_id == debtor_id
         and rt.creditor_id == creditor_id
         and rt.transfer_id == transfer_id
     )
-    if rt_matches_the_signal:
+    if the_signal_matches_the_transfer:
         assert rt is not None
         if status_code == SC_OK and committed_amount == rt.amount and recipient == rt.recipient_id:
             _finalize_running_transfer(rt)

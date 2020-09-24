@@ -96,7 +96,6 @@ def process_account_update_signal(
         filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
         with_for_update().\
         one_or_none()
-
     if data is None:
         _discard_orphaned_account(creditor_id, debtor_id, config_flags, negligible_amount)
         return
@@ -117,7 +116,7 @@ def process_account_update_signal(
         and abs(data.negligible_amount - negligible_amount) <= EPS * negligible_amount
     )
     config_error = None if is_config_effectual else data.config_error
-    new_server_account = creation_date > data.creation_date
+    is_new_server_account = creation_date > data.creation_date
     is_info_updated = (
         data.is_deletion_safe
         or data.account_id != account_id
@@ -127,9 +126,6 @@ def process_account_update_signal(
         or data.debtor_info_iri != debtor_info_iri
         or data.config_error != config_error
     )
-    if is_info_updated:
-        _insert_info_update_pending_log_entry(data, current_ts)
-
     data.has_server_account = True
     data.creation_date = creation_date
     data.last_change_ts = last_change_ts
@@ -147,7 +143,10 @@ def process_account_update_signal(
     data.is_config_effectual = is_config_effectual
     data.config_error = config_error
 
-    if new_server_account:
+    if is_info_updated:
+        _insert_info_update_pending_log_entry(data, current_ts)
+
+    if is_new_server_account:
         ledger_update_pending_log_entry = _update_ledger(
             data=data,
             transfer_number=0,
@@ -164,6 +163,7 @@ def process_account_update_signal(
 @atomic
 def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date: date) -> None:
     current_ts = datetime.now(tz=timezone.utc)
+
     data = AccountData.query.\
         filter_by(
             creditor_id=creditor_id,
@@ -316,11 +316,11 @@ def _update_ledger(
     old_principal = principal - acquired_amount
     ledger_principal = data.ledger_principal
     correction_amount = old_principal - ledger_principal
-    is_updated = False
+    should_insert_ledger_update_pending_log_entry = False
 
     if MIN_INT64 <= old_principal <= MAX_INT64:
         while correction_amount != 0:
-            is_updated = True
+            should_insert_ledger_update_pending_log_entry = True
             safe_correction_amount = contain_principal_overflow(correction_amount)
             correction_amount -= safe_correction_amount
             ledger_principal += safe_correction_amount
@@ -335,7 +335,7 @@ def _update_ledger(
             ))
 
     if acquired_amount != 0:
-        is_updated = True
+        should_insert_ledger_update_pending_log_entry = True
         data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
             creditor_id=creditor_id,
@@ -352,7 +352,7 @@ def _update_ledger(
     data.ledger_last_transfer_number = transfer_number
     data.ledger_pending_transfer_ts = None
 
-    if is_updated:
+    if should_insert_ledger_update_pending_log_entry:
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
         paths, types = get_paths_and_types()

@@ -355,7 +355,7 @@ class AccountExchangeEndpoint(MethodView):
             abort(404)
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
-        except procedures.InvalidExchangePolicy:
+        except procedures.InvalidPolicyName:
             abort(422, errors={'json': {'policy': ['Invalid policy name.']}})
         except procedures.PegDoesNotExist:
             abort(422, errors={'json': {'peg': {'account': {'uri': ['Account does not exist.']}}}})

@@ -50,8 +50,8 @@ class ForbiddenPegDeletion(Exception):
     """Can not delete an account that acts as a currency peg."""
 
 
-class InvalidExchangePolicy(Exception):
-    """Invalid exchange policy."""
+class InvalidPolicyName(Exception):
+    """Invalid exchange policy name."""
 
 
 class InvalidReservationId(Exception):

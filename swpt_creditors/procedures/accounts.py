@@ -57,8 +57,8 @@ def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
 @atomic
 def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-
     current_ts = datetime.now(tz=timezone.utc)
+
     creditor = get_active_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
@@ -66,12 +66,23 @@ def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     if has_account(creditor_id, debtor_id):
         raise errors.AccountExists()
 
-    return _create_new_account(creditor, debtor_id, current_ts)
+    account = _insert_account(creditor, debtor_id, current_ts)
+
+    db.session.add(ConfigureAccountSignal(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=current_ts,
+        seqnum=0,
+        negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
+        config_flags=DEFAULT_CONFIG_FLAGS,
+    ))
+    return account
 
 
 @atomic
 def delete_account(creditor_id: int, debtor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
+
     creditor = _get_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
@@ -83,11 +94,18 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     if not (data.is_deletion_safe or data.allow_unsafe_deletion):
         raise errors.UnsafeAccountDeletion()
 
-    pegged_accounts_query = AccountExchange.query.filter_by(creditor_id=creditor_id, peg_debtor_id=debtor_id)
+    pegged_accounts_query = AccountExchange.query.\
+        filter_by(creditor_id=creditor_id, peg_debtor_id=debtor_id).\
+        filter(AccountExchange.debtor_id != debtor_id)
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise errors.ForbiddenPegDeletion()
 
-    _delete_account(creditor, debtor_id, current_ts)
+    with db.retry_on_integrity_error():
+        Account.query.\
+            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+            delete(synchronize_session=False)
+
+    _log_account_deletion(creditor, debtor_id, current_ts)
 
 
 def get_account_config(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountData]:
@@ -112,6 +130,7 @@ def update_account_config(
         latest_update_id: int) -> AccountData:
 
     current_ts = datetime.now(tz=timezone.utc)
+
     data = get_account_config(creditor_id, debtor_id, lock=True)
     if data is None:
         raise errors.AccountDoesNotExist()
@@ -125,12 +144,7 @@ def update_account_config(
     except errors.AlreadyUpToDate:
         return data
 
-    # NOTE: The account will not be safe to delete once the config is
-    # updated. Therefore, if the account is safe to delete now, we
-    # need to inform the client about the upcoming change.
-    if data.is_deletion_safe:
-        _insert_info_update_pending_log_entry(data, current_ts)
-
+    deletion_was_safe_before_the_update = data.is_deletion_safe
     data.last_config_ts = current_ts
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     data.is_config_effectual = False
@@ -145,6 +159,10 @@ def update_account_config(
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
     ))
+
+    assert not data.is_deletion_safe
+    if deletion_was_safe_before_the_update:
+        _insert_info_update_pending_log_entry(data, current_ts)
 
     db.session.add(ConfigureAccountSignal(
         debtor_id=debtor_id,
@@ -182,8 +200,8 @@ def update_account_display(
     assert amount_divisor > 0.0
     assert MIN_INT32 <= decimal_places <= MAX_INT32
     assert 1 <= latest_update_id <= MAX_INT64
-
     current_ts = datetime.now(tz=timezone.utc)
+
     display = get_account_display(creditor_id, debtor_id, lock=True)
     if display is None:
         raise errors.AccountDoesNotExist()
@@ -283,10 +301,8 @@ def update_account_exchange(
         peg_debtor_id: Optional[int],
         latest_update_id: int) -> AccountKnowledge:
 
-    if policy not in [None, 'conservative']:
-        raise errors.InvalidExchangePolicy()
-
     current_ts = datetime.now(tz=timezone.utc)
+
     exchange = get_account_exchange(creditor_id, debtor_id, lock=True)
     if exchange is None:
         raise errors.AccountDoesNotExist()
@@ -301,6 +317,9 @@ def update_account_exchange(
         })
     except errors.AlreadyUpToDate:
         return exchange
+
+    if policy not in [None, 'conservative']:
+        raise errors.InvalidPolicyName()
 
     if peg_debtor_id is not None and not has_account(creditor_id, peg_debtor_id):
         raise errors.PegDoesNotExist()
@@ -361,9 +380,36 @@ def get_account_ledger_entries(
         all()
 
 
-def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
+def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
     creditor_id = creditor.creditor_id
+
+    relic_ledger_entry_id = db.session.\
+        query(func.max(LedgerEntry.entry_id)).\
+        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+        scalar()
+    data = AccountData(
+        last_config_ts=current_ts,
+        last_config_seqnum=0,
+        config_latest_update_ts=current_ts,
+        info_latest_update_ts=current_ts,
+        ledger_latest_update_ts=current_ts,
+        ledger_last_entry_id=0 if relic_ledger_entry_id is None else relic_ledger_entry_id + 1  # a leap
+    )
+    account = Account(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        created_at_ts=current_ts,
+        knowledge=AccountKnowledge(latest_update_ts=current_ts),
+        exchange=AccountExchange(latest_update_ts=current_ts),
+        display=AccountDisplay(latest_update_ts=current_ts),
+        data=data,
+        latest_update_ts=current_ts,
+    )
+    db.session.add(account)
+
     paths, types = get_paths_and_types()
+    creditor.accounts_list_latest_update_id += 1
+    creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(
         creditor,
         object_type=types.account,
@@ -371,9 +417,6 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         object_update_id=1,
         added_at_ts=current_ts,
     )
-
-    creditor.accounts_list_latest_update_id += 1
-    creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(
         creditor,
         object_type=types.accounts_list,
@@ -382,50 +425,11 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
         added_at_ts=current_ts,
     )
 
-    relic_ledger_entry_id = db.session.\
-        query(func.max(LedgerEntry.entry_id)).\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        scalar()
-
-    account = Account(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        created_at_ts=current_ts,
-        knowledge=AccountKnowledge(latest_update_ts=current_ts),
-        exchange=AccountExchange(latest_update_ts=current_ts),
-        display=AccountDisplay(latest_update_ts=current_ts),
-        data=AccountData(
-            last_config_ts=current_ts,
-            last_config_seqnum=0,
-            config_latest_update_ts=current_ts,
-            info_latest_update_ts=current_ts,
-            ledger_latest_update_ts=current_ts,
-            ledger_last_entry_id=0 if relic_ledger_entry_id is None else relic_ledger_entry_id + 1  # a leap
-        ),
-        latest_update_ts=current_ts,
-    )
-    db.session.add(account)
-
-    db.session.add(ConfigureAccountSignal(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        ts=current_ts,
-        seqnum=0,
-        negligible_amount=DEFAULT_NEGLIGIBLE_AMOUNT,
-        config_flags=DEFAULT_CONFIG_FLAGS,
-    ))
-
     return account
 
 
-def _delete_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> None:
+def _log_account_deletion(creditor: Creditor, debtor_id: int, current_ts: datetime) -> None:
     creditor_id = creditor.creditor_id
-
-    with db.retry_on_integrity_error():
-        Account.query.\
-            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-            delete(synchronize_session=False)
-
     paths, types = get_paths_and_types()
     creditor.accounts_list_latest_update_id += 1
     creditor.accounts_list_latest_update_ts = current_ts
@@ -458,7 +462,6 @@ def _delete_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
 def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
     data.info_latest_update_id += 1
     data.info_latest_update_ts = current_ts
-
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=data.creditor_id,

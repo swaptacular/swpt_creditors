@@ -55,12 +55,14 @@ def reserve_creditor(creditor_id) -> Creditor:
 @atomic
 def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
     creditor = _get_creditor(creditor_id, lock=True)
+
     creditor_can_be_activated = creditor and (creditor.is_activated or reservation_id == creditor.reservation_id)
     if not creditor_can_be_activated:
         raise errors.InvalidReservationId()
 
     assert creditor is not None
     creditor.activate()
+
     return creditor
 
 
@@ -140,13 +142,12 @@ def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> No
     )
 
     if entry.get_object_type(types) == types.transfer and (entry.is_created or entry.is_deleted):
-        # NOTE: When a running transfer has been created or
-        # deleted, the client should be informed about the
-        # update in his list of transfers. The actual write to
-        # the log must be performed now, because at the time
-        # the running transfer was created/deleted, the
-        # correct value of the `object_update_id` field had
-        # been unknown.
+        # NOTE: When a running transfer has been created or deleted,
+        # the client should be informed about the update in his list
+        # of transfers. The write to the log is performed now, because
+        # at the time the running transfer was created/deleted, the
+        # correct value of the `object_update_id` field had been
+        # unknown (a lock on creditor's table row would be required).
         _add_transfers_list_update_log_entry(creditor, entry.added_at_ts)
 
     db.session.delete(entry)
