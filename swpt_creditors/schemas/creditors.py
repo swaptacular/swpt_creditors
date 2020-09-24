@@ -26,12 +26,21 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         data_key='createdAt',
         description='The moment at which the creditor was created.',
     )
+    wallet = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the creditor's `Wallet`.",
+        example={'uri': '/creditors/2/wallet'},
+    )
 
     @pre_dump
     def process_creditor_instance(self, obj, many):
         assert isinstance(obj, models.Creditor)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = self.context['paths'].creditor(creditorId=obj.creditor_id)
+        obj.uri = paths.creditor(creditorId=obj.creditor_id)
+        obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.latest_update_id = obj.creditor_latest_update_id
         obj.latest_update_ts = obj.creditor_latest_update_ts
 

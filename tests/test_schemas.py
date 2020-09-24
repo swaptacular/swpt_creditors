@@ -28,6 +28,7 @@ def test_serialize_creditor(app):
     assert cs.dump(c) == {
         'type': 'Creditor',
         'uri': '/creditors/1/',
+        'wallet': {'uri': '/creditors/1/wallet'},
         'createdAt': '2019-11-30T00:00:00',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
