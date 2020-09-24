@@ -59,6 +59,7 @@ def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
     if not creditor_can_be_activated:
         raise errors.InvalidReservationId()
 
+    assert creditor is not None
     creditor.activate()
     return creditor
 

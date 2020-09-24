@@ -87,35 +87,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise errors.ForbiddenPegDeletion()
 
-    with db.retry_on_integrity_error():
-        Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id).delete(synchronize_session=False)
-
-    paths, types = get_paths_and_types()
-    creditor.accounts_list_latest_update_id += 1
-    creditor.accounts_list_latest_update_ts = current_ts
-    _add_log_entry(
-        creditor,
-        object_type=types.accounts_list,
-        object_uri=paths.accounts_list(creditorId=creditor_id),
-        object_update_id=creditor.accounts_list_latest_update_id,
-        added_at_ts=current_ts,
-    )
-    for object_type, object_uri in [
-        (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
-        (types.account_config, paths.account_config(creditorId=creditor_id, debtorId=debtor_id)),
-        (types.account_info, paths.account_info(creditorId=creditor_id, debtorId=debtor_id)),
-        (types.account_ledger, paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id)),
-        (types.account_display, paths.account_display(creditorId=creditor_id, debtorId=debtor_id)),
-        (types.account_exchange, paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id)),
-        (types.account_knowledge, paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id)),
-    ]:
-        _add_log_entry(
-            creditor,
-            object_type=object_type,
-            object_uri=object_uri,
-            added_at_ts=current_ts,
-            is_deleted=True,
-        )
+    _delete_account(creditor, debtor_id, current_ts)
 
 
 def get_account_config(creditor_id: int, debtor_id: int, lock=False) -> Optional[AccountData]:
@@ -444,6 +416,43 @@ def _create_new_account(creditor: Creditor, debtor_id: int, current_ts: datetime
     ))
 
     return account
+
+
+def _delete_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> None:
+    creditor_id = creditor.creditor_id
+
+    with db.retry_on_integrity_error():
+        Account.query.\
+            filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
+            delete(synchronize_session=False)
+
+    paths, types = get_paths_and_types()
+    creditor.accounts_list_latest_update_id += 1
+    creditor.accounts_list_latest_update_ts = current_ts
+    _add_log_entry(
+        creditor,
+        object_type=types.accounts_list,
+        object_uri=paths.accounts_list(creditorId=creditor_id),
+        object_update_id=creditor.accounts_list_latest_update_id,
+        added_at_ts=current_ts,
+    )
+
+    for object_type, object_uri in [
+        (types.account, paths.account(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_config, paths.account_config(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_info, paths.account_info(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_ledger, paths.account_ledger(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_display, paths.account_display(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_exchange, paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id)),
+        (types.account_knowledge, paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id)),
+    ]:
+        _add_log_entry(
+            creditor,
+            object_type=object_type,
+            object_uri=object_uri,
+            added_at_ts=current_ts,
+            is_deleted=True,
+        )
 
 
 def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
