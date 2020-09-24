@@ -57,6 +57,16 @@ def _get_all_pages(client, url, page_type, streaming=False):
     return items
 
 
+def test_get_creditors_list(client):
+    r = client.get('/creditors-list')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'CreditorsList'
+    assert data['uri'] == '/creditors-list'
+    assert data['itemsType'] == 'ObjectReference'
+    assert data['first'] == '/creditors/9223372036854775808/enumerate'
+
+
 def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 403

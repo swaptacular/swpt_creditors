@@ -71,3 +71,10 @@ TRANSFERS_LIST_EXAMPLE = {
     'latestUpdateId': 778,
     'latestUpdateAt': '2020-06-20T18:53:43Z',
 }
+
+CREDITORS_LIST_EXAMPLE = {
+    'type': 'CreditorsList',
+    'uri': '/creditors-list',
+    'itemsType': 'ObjectReference',
+    'first': '/creditors/9223372036854775808/enumerate/',
+}

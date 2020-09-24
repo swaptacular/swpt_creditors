@@ -26,6 +26,7 @@ class type_registry:
     creditor_activation_request = 'CreditorActivationRequest'
     creditor_deactivation_request = 'CreditorDeactivationRequest'
     creditor_creation_request = 'CreditorCreationRequest'
+    creditors_list = 'CreditorsList'
     creditor = 'Creditor'
     log_entries_page = 'LogEntriesPage'
     log_entry = 'LogEntry'

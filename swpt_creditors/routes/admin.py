@@ -5,6 +5,8 @@ from swpt_creditors.schemas import examples, CreditorSchema, CreditorReservation
     CreditorReservationSchema, CreditorActivationRequestSchema, CreditorDeactivationRequestSchema, \
     ObjectReferencesPageSchema
 from swpt_creditors import procedures
+from swpt_creditors.schemas import type_registry, CreditorsListSchema
+from swpt_creditors.models import MIN_INT64
 from .common import context, path_builder
 from .specs import CID
 from . import specs
@@ -13,12 +15,26 @@ from . import specs
 admin_api = Blueprint(
     'admin',
     __name__,
-    url_prefix='/creditors',
+    url_prefix='/',
     description="View creditors list, create new creditors.",
 )
 
 
-@admin_api.route('/<i64:creditorId>/enumerate', parameters=[CID])
+@admin_api.route('/creditors-list')
+class CreditorsListEndpoint(MethodView):
+    @admin_api.response(CreditorsListSchema, example=examples.CREDITORS_LIST_EXAMPLE)
+    @admin_api.doc(operationId='getCreditorsList')
+    def get(self):
+        """Return a paginated list of links to all active creditors."""
+
+        return {
+            'uri': path_builder.creditors_list(),
+            'items_type': type_registry.object_reference,
+            'first': path_builder.enumerate_creditors(creditorId=MIN_INT64)
+        }
+
+
+@admin_api.route('/creditors/<i64:creditorId>/enumerate', parameters=[CID])
 class EnumerateCreditorsEndpoint(MethodView):
     @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.LOG_ENTRIES_EXAMPLE)
     @admin_api.doc(operationId='getCreditorsPage')
@@ -56,7 +72,7 @@ class EnumerateCreditorsEndpoint(MethodView):
         }
 
 
-@admin_api.route('/<i64:creditorId>/reserve', parameters=[CID])
+@admin_api.route('/creditors/<i64:creditorId>/reserve', parameters=[CID])
 class ReserveCreditorEndpoint(MethodView):
     @admin_api.arguments(CreditorReservationRequestSchema)
     @admin_api.response(CreditorReservationSchema(context=context))
@@ -80,7 +96,7 @@ class ReserveCreditorEndpoint(MethodView):
         return creditor
 
 
-@admin_api.route('/<i64:creditorId>/activate', parameters=[CID])
+@admin_api.route('/creditors/<i64:creditorId>/activate', parameters=[CID])
 class ActivateCreditorEndpoint(MethodView):
     @admin_api.arguments(CreditorActivationRequestSchema)
     @admin_api.response(CreditorSchema(context=context))
@@ -105,7 +121,7 @@ class ActivateCreditorEndpoint(MethodView):
         return creditor
 
 
-@admin_api.route('/<i64:creditorId>/deactivate', parameters=[CID])
+@admin_api.route('/creditors/<i64:creditorId>/deactivate', parameters=[CID])
 class DeactivateCreditorEndpoint(MethodView):
     @admin_api.arguments(CreditorDeactivationRequestSchema)
     @admin_api.response(code=204)

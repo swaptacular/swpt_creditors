@@ -1,7 +1,30 @@
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, post_dump
 from swpt_lib.utils import i64_to_u64
-from swpt_creditors.models import MIN_INT64, MAX_INT64
-from .common import type_registry, ValidateTypeMixin
+from .common import type_registry, ValidateTypeMixin, PaginatedListSchema, URI_DESCRIPTION
+
+
+class CreditorsListSchema(PaginatedListSchema):
+    uri = fields.String(
+        required=True,
+        dump_only=True,
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors-list',
+    )
+    type = fields.Function(
+        lambda obj: type_registry.creditors_list,
+        required=True,
+        type='string',
+        description='The type of this object.',
+        example='CreditorsList',
+    )
+
+    @post_dump
+    def assert_required_fields(self, obj, many):
+        assert 'uri' in obj
+        assert 'itemsType' in obj
+        assert 'first' in obj
+        return obj
 
 
 class CreditorReservationRequestSchema(ValidateTypeMixin, Schema):

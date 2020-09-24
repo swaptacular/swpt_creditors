@@ -55,6 +55,7 @@ class path_builder:
     def _url_for(name):
         return staticmethod(partial(url_for, name, _external=False))
 
+    creditors_list = _url_for('admin.CreditorsListEndpoint')
     enumerate_creditors = _url_for('admin.EnumerateCreditorsEndpoint')
     wallet = _url_for('creditors.WalletEndpoint')
     creditor = _url_for('creditors.CreditorEndpoint')
