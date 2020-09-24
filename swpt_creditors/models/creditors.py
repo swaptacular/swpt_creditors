@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from typing import Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, true, or_
 from swpt_creditors.extensions import db
@@ -26,11 +26,15 @@ class AgentConfig(db.Model):
 
 
 class Creditor(db.Model):
-    STATUS_IS_ACTIVATED_FLAG = 1
+    STATUS_IS_ACTIVATED_FLAG = 1 << 0
+    STATUS_IS_DEACTIVATED_FLAG = 1 << 1  # The creditor must have been activated.
+
+    _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
 
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     status = db.Column(db.SmallInteger, nullable=False, default=DEFAULT_CREDITOR_STATUS)
+    reservation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
@@ -46,24 +50,33 @@ class Creditor(db.Model):
                 'not been deactivated yet. Once deactivated, a creditor stays deactivated '
                 'until it is deleted.',
     )
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.CheckConstraint(last_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(accounts_list_latest_update_id > 0),
         db.CheckConstraint(transfers_list_latest_update_id > 0),
-        db.CheckConstraint(or_(deactivated_at_date == null(), status.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0)),
+        db.CheckConstraint(or_(
+            status.op('&')(STATUS_IS_DEACTIVATED_FLAG) == 0,
+            status.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0,
+        )),
     )
 
     @property
     def is_activated(self):
         return bool(self.status & Creditor.STATUS_IS_ACTIVATED_FLAG)
 
-    @is_activated.setter
-    def is_activated(self, value):
-        if value:
-            self.status |= Creditor.STATUS_IS_ACTIVATED_FLAG
-        else:
-            self.status &= ~Creditor.STATUS_IS_ACTIVATED_FLAG
+    @property
+    def is_deactivated(self):
+        return bool(self.status & Creditor.STATUS_IS_DEACTIVATED_FLAG)
+
+    def activate(self):
+        self.status |= Creditor.STATUS_IS_ACTIVATED_FLAG
+        self.reservation_id = None
+
+    def deactivate(self):
+        self.status |= Creditor.STATUS_IS_DEACTIVATED_FLAG
+        self.deactivated_at_date = datetime.now(tz=timezone.utc).date()
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cd796ad0d027
+Revision ID: 37dec429ce9c
 Revises: 8d8c816257ce
-Create Date: 2020-09-21 21:51:54.470506
+Create Date: 2020-09-23 20:33:22.453330
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'cd796ad0d027'
+revision = '37dec429ce9c'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -62,6 +62,7 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('reservation_id', sa.BigInteger(), server_default=sa.text("nextval('creditor_reservation_id_seq')"), nullable=True),
     sa.Column('last_log_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),

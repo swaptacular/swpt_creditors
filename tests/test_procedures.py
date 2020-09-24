@@ -23,8 +23,8 @@ def max_count(request):
 
 @pytest.fixture
 def creditor(db_session):
-    creditor = p.create_new_creditor(C_ID)
-    p.activate_creditor(C_ID)
+    creditor = p.reserve_creditor(C_ID)
+    p.activate_creditor(C_ID, creditor.reservation_id)
     return creditor
 
 
@@ -33,26 +33,27 @@ def account(creditor):
     return p.create_new_account(C_ID, D_ID)
 
 
-def test_create_new_creditor(db_session):
+def test_activate_new_creditor(db_session):
     with pytest.raises(p.InvalidCreditor):
-        creditor = p.create_new_creditor(models.MAX_INT64 + 1)
+        creditor = p.reserve_creditor(models.MAX_INT64 + 1)
 
-    creditor = p.create_new_creditor(C_ID)
+    creditor = p.reserve_creditor(C_ID)
     assert creditor.creditor_id == C_ID
     assert not creditor.is_activated
     assert len(Creditor.query.all()) == 1
     with pytest.raises(p.CreditorExists):
-        p.create_new_creditor(C_ID)
+        p.reserve_creditor(C_ID)
 
     assert not p.get_active_creditor(C_ID)
-    p.activate_creditor(C_ID)
+    with pytest.raises(p.InvalidReservationId):
+        p.activate_creditor(C_ID, 123)
+    p.activate_creditor(C_ID, creditor.reservation_id)
     creditor = p.get_active_creditor(C_ID)
     assert creditor
     assert creditor.is_activated
 
-    creditor = p.create_new_creditor(666, activate=True)
-    assert creditor.creditor_id == 666
-    assert creditor.is_activated
+    with pytest.raises(p.CreditorExists):
+        p.reserve_creditor(C_ID)
 
 
 def test_create_account(db_session, creditor):

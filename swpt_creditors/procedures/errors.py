@@ -54,5 +54,9 @@ class InvalidExchangePolicy(Exception):
     """Invalid exchange policy."""
 
 
+class InvalidReservationId(Exception):
+    """Invalid creditor reservation ID."""
+
+
 class DebtorNameConflict(Exception):
     """Another account with this debtorName already exist."""

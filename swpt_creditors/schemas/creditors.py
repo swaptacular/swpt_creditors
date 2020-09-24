@@ -6,20 +6,6 @@ from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamS
     MutableResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
 
 
-class CreditorCreationRequestSchema(ValidateTypeMixin, Schema):
-    type = fields.String(
-        missing=type_registry.creditor_creation_request,
-        load_only=True,
-        description='The type of this object.',
-        example='CreditorCreationRequest',
-    )
-    activate = fields.Boolean(
-        missing=False,
-        load_only=True,
-        description='Whether to activate the creditor immediately after its creation.',
-    )
-
-
 class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
     uri = fields.String(
         required=True,

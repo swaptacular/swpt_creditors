@@ -94,7 +94,7 @@ def create_app(config_dict={}):
     from flask import Flask
     from swpt_lib.utils import Int64Converter
     from .extensions import db, migrate, broker, api
-    from .routes import creditors_api, accounts_api, transfers_api, path_builder
+    from .routes import admin_api, creditors_api, accounts_api, transfers_api, path_builder
     from .schemas import type_registry
     from .cli import swpt_creditors
     from . import procedures
@@ -108,6 +108,7 @@ def create_app(config_dict={}):
     migrate.init_app(app, db)
     broker.init_app(app)
     api.init_app(app)
+    api.register_blueprint(admin_api)
     api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)

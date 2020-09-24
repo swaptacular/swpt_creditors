@@ -867,8 +867,8 @@ def test_serialize_account_info(app):
 
 
 def test_serialize_account(db_session):
-    procedures.create_new_creditor(C_ID)
-    procedures.activate_creditor(C_ID)
+    creditor = procedures.reserve_creditor(C_ID)
+    procedures.activate_creditor(C_ID, creditor.reservation_id)
     procedures.create_new_account(C_ID, D_ID)
     account = models.Account.get_instance((C_ID, D_ID))
     account_schema = schemas.AccountSchema(context=context)
@@ -1226,21 +1226,6 @@ def test_deserialize_pagination_parameters(app):
 
     data = pps.load({'prev': 'p', 'stop': 's'})
     assert data == {'prev': 'p', 'stop': 's'}
-
-
-def test_deserialize_creditor_creation_request(app):
-    ccr = schemas.CreditorCreationRequestSchema(context=context)
-    assert ccr.load({}) == {'type': 'CreditorCreationRequest', 'activate': False}
-    assert ccr.load({
-        'type': 'CreditorCreationRequest',
-        'activate': True
-    }) == {
-        'type': 'CreditorCreationRequest',
-        'activate': True,
-    }
-
-    with pytest.raises(ValidationError):
-        ccr.load({'type': 'WrongType'})
 
 
 def test_serialize_committed_transfer(app):
@@ -1644,4 +1629,22 @@ def test_serialize_transfer(app):
         },
         "latestUpdateAt": "2020-01-02T00:00:00",
         "latestUpdateId": 2,
+    }
+
+
+def test_serialize_creditor_reservation(app):
+    c = models.Creditor(
+        creditor_id=C_ID,
+        created_at_ts=datetime(2020, 1, 1),
+        reservation_id=2,
+        status=0,
+        deactivated_at_date=None,
+    )
+    crs = schemas.CreditorReservationSchema(context=context)
+    assert crs.dump(c) == {
+        'type': 'CreditorReservation',
+        'createdAt': '2020-01-01T00:00:00',
+        'creditorId': '1',
+        'reservationId': 2,
+        'validUntil': '2020-01-15T00:00:00',
     }

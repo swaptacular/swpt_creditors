@@ -38,6 +38,10 @@ def calc_log_retention_days(creditor_id: int) -> int:
     return int(current_app.config['APP_LOG_RETENTION_DAYS'])
 
 
+def calc_reservation_deadline(created_at_ts: datetime) -> datetime:
+    return created_at_ts + timedelta(days=current_app.config['APP_INACTIVE_CREDITOR_RETENTION_DAYS'])
+
+
 class path_builder:
     def _build_committed_transfer_path(creditorId, debtorId, creationDate, transferNumber):
         return url_for(
@@ -51,6 +55,7 @@ class path_builder:
     def _url_for(name):
         return staticmethod(partial(url_for, name, _external=False))
 
+    enumerate_creditors = _url_for('admin.EnumerateCreditorsEndpoint')
     wallet = _url_for('creditors.WalletEndpoint')
     creditor = _url_for('creditors.CreditorEndpoint')
     log_entries = _url_for('creditors.LogEntriesEndpoint')
@@ -77,4 +82,5 @@ context = {
     'types': type_registry,
     'calc_checkup_datetime': calc_checkup_datetime,
     'calc_log_retention_days': calc_log_retention_days,
+    'calc_reservation_deadline': calc_reservation_deadline,
 }

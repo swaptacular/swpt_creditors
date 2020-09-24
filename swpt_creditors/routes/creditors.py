@@ -1,13 +1,11 @@
 from flask import current_app, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from swpt_creditors.schemas import examples, CreditorSchema, CreditorCreationRequestSchema, \
-    WalletSchema, LogEntriesPageSchema, LogPaginationParamsSchema, AccountsListSchema, \
-    TransfersListSchema
+from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
+    LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema
 from swpt_creditors import procedures
 from .common import context
 from .specs import CID
-from . import specs
 
 
 creditors_api = Blueprint(
@@ -26,27 +24,6 @@ class CreditorEndpoint(MethodView):
         """Return a creditor."""
 
         return procedures.get_active_creditor(creditorId) or abort(403)
-
-    @creditors_api.arguments(CreditorCreationRequestSchema)
-    @creditors_api.response(CreditorSchema(context=context), code=202)
-    @creditors_api.doc(operationId='createCreditor',
-                       responses={409: specs.CONFLICTING_CREDITOR})
-    def post(self, creditor_creation_request, creditorId):
-        """Try to create a new creditor. Requires special privileges.
-
-        ---
-        Must fail if the creditor already exists.
-
-        """
-
-        try:
-            creditor = procedures.create_new_creditor(creditorId, activate=creditor_creation_request['activate'])
-        except procedures.CreditorExists:
-            abort(409)
-        except procedures.InvalidCreditor:  # pragma: no cover
-            abort(500, message='The agent is not responsible for this creditor.')
-
-        return creditor
 
 
 @creditors_api.route('/<i64:creditorId>/wallet', parameters=[CID])
