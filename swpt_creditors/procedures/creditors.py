@@ -50,7 +50,7 @@ def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Option
     else:
         next_creditor_id = AgentConfig.query.one().max_creditor_id + 1
 
-    if next_creditor_id > MAX_INT64 or start_from >= next_creditor_id:
+    if next_creditor_id > MAX_INT64 or next_creditor_id <= start_from:
         next_creditor_id = None
 
     return creditor_ids, next_creditor_id
