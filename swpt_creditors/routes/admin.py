@@ -34,7 +34,7 @@ class ReserveRandomCreditorEndpoint(MethodView):
 
         """
 
-        for _ in range(1000):
+        for _ in range(100):
             creditor_id = procedures.generate_new_creditor_id()
             try:
                 creditor = procedures.reserve_creditor(creditor_id, verify_correctness=False)
@@ -74,6 +74,10 @@ class EnumerateCreditorsEndpoint(MethodView):
         subsequent fragments, will be sorted by creditor ID, starting
         from the `creditorID` specified in the path. The sorting order
         is implementation-specific.
+
+        **Note:** To obtain references to all active creditors, the
+        client should start with the creditor ID that precedes all
+        other IDs in the sorting order.
 
         """
 
