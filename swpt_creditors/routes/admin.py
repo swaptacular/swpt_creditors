@@ -112,7 +112,7 @@ class ReserveCreditorEndpoint(MethodView):
         `creditorId` specified in the path.
 
         ---
-        Must fail if the creditor already exists.
+        Will fail if the creditor already exists.
 
         """
 
