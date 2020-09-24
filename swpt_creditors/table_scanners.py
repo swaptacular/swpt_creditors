@@ -61,7 +61,7 @@ class CreditorScanner(TableScanner):
                 filter(Creditor.creditor_id.in_(ids_to_delete)).\
                 filter(Creditor.status.op('&')(activated_flag) == 0).\
                 filter(Creditor.created_at_ts < inactive_cutoff_ts).\
-                with_for_update(skip_locked=False).\
+                with_for_update(skip_locked=True).\
                 all()
 
             for creditor in to_delete:
@@ -90,7 +90,7 @@ class CreditorScanner(TableScanner):
                     Creditor.deactivated_at_date == null(),
                     Creditor.deactivated_at_date < deactivated_cutoff_date),
                 ).\
-                with_for_update(skip_locked=False).\
+                with_for_update(skip_locked=True).\
                 all()
 
             for creditor in to_delete:
@@ -257,7 +257,7 @@ class AccountScanner(TableScanner):
                 filter(AccountData.last_transfer_number == AccountData.ledger_last_transfer_number).\
                 filter(AccountData.ledger_principal != AccountData.principal).\
                 filter(AccountData.ledger_latest_update_ts < latest_update_cutoff_ts).\
-                with_for_update(skip_locked=False).\
+                with_for_update(skip_locked=True).\
                 options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)).\
                 all()
 
@@ -359,7 +359,7 @@ class AccountScanner(TableScanner):
                 )).\
                 filter(AccountData.config_error == null()).\
                 filter(AccountData.last_config_ts < last_config_ts_cutoff).\
-                with_for_update(skip_locked=False).\
+                with_for_update(skip_locked=True).\
                 options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
                 all()
 
