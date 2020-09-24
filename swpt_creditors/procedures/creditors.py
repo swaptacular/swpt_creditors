@@ -123,6 +123,7 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
 
 def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> None:
+    paths, types = get_paths_and_types()
     aux_fields = {attr: getattr(entry, attr) for attr in LogEntry.AUX_FIELDS}
     data_fields = {attr: getattr(entry, attr) for attr in LogEntry.DATA_FIELDS}
     _add_log_entry(
@@ -137,7 +138,6 @@ def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> No
         **data_fields,
     )
 
-    paths, types = get_paths_and_types()
     if entry.get_object_type(types) == types.transfer and (entry.is_created or entry.is_deleted):
         # NOTE: When a running transfer has been created or
         # deleted, the client should be informed about the

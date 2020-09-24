@@ -83,7 +83,6 @@ def initiate_running_transfer(
         'min_interest_rate': min_interest_rate,
         'locked_amount': locked_amount,
     }
-
     rt = get_running_transfer(creditor_id, transfer_uuid)
     if rt:
         if any(getattr(rt, attr) != value for attr, value in transfer_data.items()):
@@ -143,8 +142,8 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
 
     if number_of_deleted_rows == 0:
         raise errors.TransferDoesNotExist()
-    assert number_of_deleted_rows == 1
 
+    assert number_of_deleted_rows == 1
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
