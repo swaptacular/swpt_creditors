@@ -57,16 +57,6 @@ def _get_all_pages(client, url, page_type, streaming=False):
     return items
 
 
-def test_get_creditors_list(client):
-    r = client.get('/creditors-list')
-    assert r.status_code == 200
-    data = r.get_json()
-    assert data['type'] == 'CreditorsList'
-    assert data['uri'] == '/creditors-list'
-    assert data['itemsType'] == 'ObjectReference'
-    assert data['first'] == '/creditors/9223372036854775808/enumerate'
-
-
 def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 403
@@ -151,6 +141,35 @@ def test_create_creditor(client):
 
     r = client.post('/creditors/3/deactivate', json={})
     assert r.status_code == 204
+
+
+def test_get_creditors_list(client):
+    r = client.post('/creditors/1/reserve', json={})
+    assert r.status_code == 200
+    r = client.post('/creditors/2/activate', json={})
+    assert r.status_code == 200
+    r = client.post('/creditors/3/activate', json={})
+    assert r.status_code == 200
+    r = client.post('/creditors/9223372036854775808/activate', json={})
+    assert r.status_code == 200
+    r = client.post('/creditors/18446744073709551615/activate', json={})
+    assert r.status_code == 200
+
+    r = client.get('/creditors-list')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'CreditorsList'
+    assert data['uri'] == '/creditors-list'
+    assert data['itemsType'] == 'ObjectReference'
+    assert data['first'] == '/creditors/9223372036854775808/enumerate'
+
+    entries = _get_all_pages(client, data['first'], page_type='ObjectReferencesPage')
+    assert entries == [
+        {'uri': '/creditors/9223372036854775808/'},
+        {'uri': '/creditors/18446744073709551615/'},
+        {'uri': '/creditors/2/'},
+        {'uri': '/creditors/3/'},
+    ]
 
 
 def test_get_wallet(client, creditor):

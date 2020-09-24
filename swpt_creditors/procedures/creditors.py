@@ -12,6 +12,8 @@ from . import errors
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
+ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
+
 
 @atomic
 def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
@@ -29,6 +31,29 @@ def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
                 min_creditor_id=min_creditor_id,
                 max_creditor_id=max_creditor_id,
             ))
+
+
+@atomic
+def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Optional[int]]:
+    assert MIN_INT64 <= start_from <= MAX_INT64
+    assert count >= 1
+
+    query = db.session.\
+        query(Creditor.creditor_id).\
+        filter(Creditor.creditor_id >= start_from).\
+        filter(Creditor.status.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
+        order_by(Creditor.creditor_id)
+
+    creditor_ids = [t[0] for t in query.limit(count).all()]
+    if len(creditor_ids) > 0:
+        next_creditor_id = creditor_ids[-1] + 1
+    else:
+        next_creditor_id = AgentConfig.query.one().max_creditor_id + 1
+
+    if next_creditor_id > MAX_INT64 or start_from >= next_creditor_id:
+        next_creditor_id = None
+
+    return creditor_ids, next_creditor_id
 
 
 @atomic
