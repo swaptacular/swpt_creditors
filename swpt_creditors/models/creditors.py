@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Optional
 from datetime import datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, true, or_
+from sqlalchemy.sql.expression import true, or_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, MAX_INT64
 
@@ -31,9 +31,9 @@ class Creditor(db.Model):
 
     _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
 
-    creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
-    created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    creditor_id = db.Column(db.BigInteger, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False, default=DEFAULT_CREDITOR_STATUS)
+    created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     reservation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
@@ -50,7 +50,10 @@ class Creditor(db.Model):
                 'not been deactivated yet. Once deactivated, a creditor stays deactivated '
                 'until it is deleted.',
     )
-    __mapper_args__ = {'eager_defaults': True}
+    __mapper_args__ = {
+        'primary_key': [creditor_id],
+        'eager_defaults': True,
+    }
     __table_args__ = (
         db.CheckConstraint(last_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
@@ -60,6 +63,13 @@ class Creditor(db.Model):
             status.op('&')(STATUS_IS_DEACTIVATED_FLAG) == 0,
             status.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0,
         )),
+
+        # TODO: The `status` column is not be part of the primary key,
+        #       but should be included in the primary key index to
+        #       allow index-only scans. Because SQLAlchemy does not
+        #       support this yet (2020-01-11), temporarily, there are
+        #       no index-only scans.
+        db.Index('idx_creditor_pk', creditor_id, unique=True),
     )
 
     @property

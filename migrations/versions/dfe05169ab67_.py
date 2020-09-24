@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 37dec429ce9c
+Revision ID: dfe05169ab67
 Revises: 8d8c816257ce
-Create Date: 2020-09-23 20:33:22.453330
+Create Date: 2020-09-24 14:53:57.131628
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '37dec429ce9c'
+revision = 'dfe05169ab67'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -59,9 +59,9 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id', 'ts', 'seqnum')
     )
     op.create_table('creditor',
-    sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
-    sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('reservation_id', sa.BigInteger(), server_default=sa.text("nextval('creditor_reservation_id_seq')"), nullable=True),
     sa.Column('last_log_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_id', sa.BigInteger(), nullable=False),
@@ -71,13 +71,13 @@ def upgrade():
     sa.Column('transfers_list_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('transfers_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. A `NULL` value for this column means that the creditor has not been deactivated yet. Once deactivated, a creditor stays deactivated until it is deleted.'),
+    sa.CheckConstraint('(status & 2) = 0 OR (status & 1) != 0'),
     sa.CheckConstraint('accounts_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
-    sa.CheckConstraint('deactivated_at_date IS NULL OR (status & 1) != 0'),
     sa.CheckConstraint('last_log_entry_id >= 0'),
-    sa.CheckConstraint('transfers_list_latest_update_id > 0'),
-    sa.PrimaryKeyConstraint('creditor_id')
+    sa.CheckConstraint('transfers_list_latest_update_id > 0')
     )
+    op.create_index('idx_creditor_pk', 'creditor', ['creditor_id'], unique=True)
     op.create_table('finalize_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -327,6 +327,7 @@ def downgrade():
     op.drop_index('idx_ledger_entry_pk', table_name='ledger_entry')
     op.drop_table('ledger_entry')
     op.drop_table('finalize_transfer_signal')
+    op.drop_index('idx_creditor_pk', table_name='creditor')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
     op.drop_index('idx_committed_transfer_pk', table_name='committed_transfer')
