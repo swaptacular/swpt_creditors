@@ -32,6 +32,17 @@ LOG_ENTRIES_EXAMPLE = {
     'forthcoming': '?prev=12345',
 }
 
+CREDITOR_LINKS_EXAMPLE = {
+    'uri': '/creditors/2/enumerate',
+    'type': 'ObjectReferencesPage',
+    'items': [
+        {'uri': '/creditors/2/'},
+        {'uri': '/creditors/5/'},
+        {'uri': '/creditors/11/'},
+    ],
+    'next': '/creditors/12/enumerate',
+}
+
 TRANSFER_LINKS_EXAMPLE = {
     'next': '?prev=00112233-4455-6677-8899-aabbccddeeff',
     'items': [
@@ -76,5 +87,5 @@ CREDITORS_LIST_EXAMPLE = {
     'type': 'CreditorsList',
     'uri': '/creditors-list',
     'itemsType': 'ObjectReference',
-    'first': '/creditors/9223372036854775808/enumerate/',
+    'first': '/creditors/9223372036854775808/enumerate',
 }

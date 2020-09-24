@@ -36,21 +36,17 @@ class CreditorsListEndpoint(MethodView):
 
 @admin_api.route('/creditors/<i64:creditorId>/enumerate', parameters=[CID])
 class EnumerateCreditorsEndpoint(MethodView):
-    @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.LOG_ENTRIES_EXAMPLE)
+    @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.CREDITOR_LINKS_EXAMPLE)
     @admin_api.doc(operationId='getCreditorsPage')
     def get(self, creditorId):
         """Return a collection of references to active creditors.
 
         The returned object will be a fragment (a page) of a paginated
-        list. The paginated list contains references to all creditors
-        that are currently active on the server. The returned fragment
-        and all the subsequent fragments will be sorted by creditor
-        ID, starting from the `creditorID` specified in the path. The
-        sorting order is implementation-specific.
-
-        **Note:** To obtain references to all active creditors, the
-        client should start with the creditor ID that precedes all
-        other IDs in the sorting order.
+        list. The paginated list contains references to all active
+        creditors on the server. The returned fragment, and all the
+        subsequent fragments, will be sorted by creditor ID, starting
+        from the `creditorID` specified in the path. The sorting order
+        is implementation-specific.
 
         """
 
