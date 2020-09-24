@@ -347,7 +347,7 @@ def _update_ledger(
         return PendingLogEntry(
             creditor_id=data.creditor_id,
             added_at_ts=current_ts,
-            object_type_hint=LogEntry.OT_ACCOUNT_LEDGER,
+            object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER,
             debtor_id=data.debtor_id,
             object_update_id=data.ledger_latest_update_id,
             data_principal=principal,

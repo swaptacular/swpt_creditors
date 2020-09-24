@@ -104,7 +104,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     assert le.principal == 1000
     assert le.added_at_ts >= current_ts
 
-    ple = m.PendingLogEntry.query.filter_by(object_type_hint=m.LogEntry.OT_ACCOUNT_LEDGER).one()
+    ple = m.PendingLogEntry.query.filter_by(object_type_hint=m.LogEntry.OTH_ACCOUNT_LEDGER).one()
     assert ple.creditor_id == C_ID
     assert ple.added_at_ts >= current_ts
     assert ple.object_update_id == 2

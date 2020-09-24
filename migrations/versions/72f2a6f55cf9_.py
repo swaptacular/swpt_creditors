@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: dfe05169ab67
+Revision ID: 72f2a6f55cf9
 Revises: 8d8c816257ce
-Create Date: 2020-09-24 14:53:57.131628
+Create Date: 2020-09-24 22:47:53.405186
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'dfe05169ab67'
+revision = '72f2a6f55cf9'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -70,7 +70,7 @@ def upgrade():
     sa.Column('accounts_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('transfers_list_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('transfers_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. A `NULL` value for this column means that the creditor has not been deactivated yet. Once deactivated, a creditor stays deactivated until it is deleted.'),
+    sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. To be deactivated, the creditor must be activated first. Once deactivated, a creditor stays deactivated until it is deleted. A `NULL` value for this column means either that the creditor has not been deactivated yet, or that the deactivation date is unknown.'),
     sa.CheckConstraint('(status & 2) = 0 OR (status & 1) != 0'),
     sa.CheckConstraint('accounts_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
@@ -173,7 +173,7 @@ def upgrade():
     sa.CheckConstraint('transfer_number > 0'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id'),
-    comment='Represents a log entry that should be added to the log. Log entries are queued to this table because this allows multiple log entries for one creditor to be added to the log in one database transaction, thus reducing the lock contention on `creditor` table rows.'
+    comment="Represents a log entry that should be added to the log. Adding entries to the creditor's log requires a lock on the `creditor` table row. To avoid obtaining the lock too often, log entries are queued to this table, allowing many log entries for one creditor to be added to the log in a single database transaction, thus reducing the lock contention."
     )
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),

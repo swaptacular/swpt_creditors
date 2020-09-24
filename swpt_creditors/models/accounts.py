@@ -32,6 +32,7 @@ class Account(db.Model):
 class AccountData(db.Model):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
+
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -108,7 +109,7 @@ class AccountData(db.Model):
         return not self.has_server_account and self.is_scheduled_for_deletion and self.is_config_effectual
 
     @property
-    def ledger_interest(self):
+    def ledger_interest(self) -> int:
         interest = self.interest
         current_balance = self.principal + interest
         if current_balance > 0.0:
@@ -131,8 +132,6 @@ class AccountData(db.Model):
         if interest < MIN_INT64:
             interest = MIN_INT64
 
-        assert isinstance(interest, int)
-        assert MIN_INT64 <= interest <= MAX_INT64
         return interest
 
 

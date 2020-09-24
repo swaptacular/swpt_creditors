@@ -102,7 +102,7 @@ def initiate_running_transfer(
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at_ts=current_ts,
-        object_type_hint=LogEntry.OT_TRANSFER,
+        object_type_hint=LogEntry.OTH_TRANSFER,
         transfer_uuid=transfer_uuid,
         object_update_id=1,
     ))
@@ -148,7 +148,7 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at_ts=datetime.now(tz=timezone.utc),
-        object_type_hint=LogEntry.OT_TRANSFER,
+        object_type_hint=LogEntry.OTH_TRANSFER,
         transfer_uuid=transfer_uuid,
         is_deleted=True,
     ))
@@ -249,7 +249,7 @@ def process_account_transfer_signal(
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at_ts=current_ts,
-        object_type_hint=LogEntry.OT_COMMITTED_TRANSFER,
+        object_type_hint=LogEntry.OTH_COMMITTED_TRANSFER,
         debtor_id=debtor_id,
         creation_date=creation_date,
         transfer_number=transfer_number,
@@ -397,7 +397,7 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
         db.session.add(PendingLogEntry(
             creditor_id=rt.creditor_id,
             added_at_ts=current_ts,
-            object_type_hint=LogEntry.OT_TRANSFER,
+            object_type_hint=LogEntry.OTH_TRANSFER,
             transfer_uuid=rt.transfer_uuid,
             object_update_id=rt.latest_update_id,
             data_finalized_at_ts=current_ts,

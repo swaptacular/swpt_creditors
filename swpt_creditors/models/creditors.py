@@ -27,7 +27,7 @@ class AgentConfig(db.Model):
 
 class Creditor(db.Model):
     STATUS_IS_ACTIVATED_FLAG = 1 << 0
-    STATUS_IS_DEACTIVATED_FLAG = 1 << 1  # The creditor must have been activated.
+    STATUS_IS_DEACTIVATED_FLAG = 1 << 1
 
     _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
 
@@ -46,9 +46,10 @@ class Creditor(db.Model):
         db.DATE,
         comment='The date on which the creditor was deactivated. When a creditor gets '
                 'deactivated, all its belonging objects (account, transfers, etc.) are '
-                'removed. A `NULL` value for this column means that the creditor has '
-                'not been deactivated yet. Once deactivated, a creditor stays deactivated '
-                'until it is deleted.',
+                'removed. To be deactivated, the creditor must be activated first. Once '
+                'deactivated, a creditor stays deactivated until it is deleted. A '
+                '`NULL` value for this column means either that the creditor has not '
+                'been deactivated yet, or that the deactivation date is unknown.',
     )
     __mapper_args__ = {
         'primary_key': [creditor_id],
@@ -90,16 +91,16 @@ class Creditor(db.Model):
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1
-        assert 1 <= self.last_log_entry_id <= MAX_INT64
         return self.last_log_entry_id
 
 
 class BaseLogEntry(db.Model):
     __abstract__ = True
 
-    OT_TRANSFER = 1
-    OT_COMMITTED_TRANSFER = 2
-    OT_ACCOUNT_LEDGER = 3
+    # Object type hints:
+    OTH_TRANSFER = 1
+    OTH_COMMITTED_TRANSFER = 2
+    OTH_ACCOUNT_LEDGER = 3
 
     added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     object_type = db.Column(db.String)
@@ -156,11 +157,11 @@ class BaseLogEntry(db.Model):
 
         object_type_hint = self.object_type_hint
 
-        if object_type_hint == self.OT_TRANSFER:
+        if object_type_hint == self.OTH_TRANSFER:
             return types.transfer
-        elif object_type_hint == self.OT_COMMITTED_TRANSFER:
+        elif object_type_hint == self.OTH_COMMITTED_TRANSFER:
             return types.committed_transfer
-        elif object_type_hint == self.OT_ACCOUNT_LEDGER:
+        elif object_type_hint == self.OTH_ACCOUNT_LEDGER:
             return types.account_ledger
 
         logger = logging.getLogger(__name__)
@@ -174,14 +175,14 @@ class BaseLogEntry(db.Model):
 
         object_type_hint = self.object_type_hint
 
-        if object_type_hint == self.OT_TRANSFER:
+        if object_type_hint == self.OTH_TRANSFER:
             transfer_uuid = self.transfer_uuid
             if transfer_uuid is not None:
                 return paths.transfer(
                     creditorId=self.creditor_id,
                     transferUuid=transfer_uuid,
                 )
-        elif object_type_hint == self.OT_COMMITTED_TRANSFER:
+        elif object_type_hint == self.OTH_COMMITTED_TRANSFER:
             debtor_id = self.debtor_id
             creation_date = self.creation_date
             transfer_number = self.transfer_number
@@ -192,7 +193,7 @@ class BaseLogEntry(db.Model):
                     creationDate=creation_date,
                     transferNumber=transfer_number,
                 )
-        elif object_type_hint == self.OT_ACCOUNT_LEDGER:
+        elif object_type_hint == self.OTH_ACCOUNT_LEDGER:
             debtor_id = self.debtor_id
             if debtor_id is not None:
                 return paths.account_ledger(
@@ -229,10 +230,11 @@ class PendingLogEntry(BaseLogEntry):
         db.CheckConstraint('transfer_number > 0'),
         db.CheckConstraint('data_next_entry_id > 0'),
         {
-            'comment': 'Represents a log entry that should be added to the log. Log entries '
-                       'are queued to this table because this allows multiple log entries '
-                       'for one creditor to be added to the log in one database transaction, '
-                       'thus reducing the lock contention on `creditor` table rows.',
+            'comment': 'Represents a log entry that should be added to the log. Adding entries '
+                       'to the creditor\'s log requires a lock on the `creditor` table row. To '
+                       'avoid obtaining the lock too often, log entries are queued to this table, '
+                       'allowing many log entries for one creditor to be added to the log in '
+                       'a single database transaction, thus reducing the lock contention.',
         }
     )
 
