@@ -39,7 +39,7 @@ class EnumerateCreditorsEndpoint(MethodView):
     @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.CREDITOR_LINKS_EXAMPLE)
     @admin_api.doc(operationId='getCreditorsPage')
     def get(self, creditorId):
-        """Return a collection of references to active creditors.
+        """Return a collection of active creditors.
 
         The returned object will be a fragment (a page) of a paginated
         list. The paginated list contains references to all active
