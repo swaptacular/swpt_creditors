@@ -20,6 +20,33 @@ admin_api = Blueprint(
 )
 
 
+@admin_api.route('/creditors-reserve')
+class ReserveRandomCreditorEndpoint(MethodView):
+    @admin_api.arguments(CreditorReservationRequestSchema)
+    @admin_api.response(CreditorReservationSchema(context=context))
+    @admin_api.doc(operationId='reserveRandomCreditor',
+                   responses={409: specs.CONFLICTING_CREDITOR})
+    def post(self, creditor_reservation_request):
+        """Reserve an auto-generated creditor ID.
+
+        **Note:** The reserved creditor ID will be a random valid
+        creditor ID.
+
+        """
+
+        for _ in range(1000):
+            creditor_id = procedures.generate_new_creditor_id()
+            try:
+                creditor = procedures.reserve_creditor(creditor_id, verify_correctness=False)
+                break
+            except procedures.CreditorExists:  # pragma: no cover
+                pass
+        else:  # pragma: no cover
+            abort(500, message='Can not generate a valid creditor ID.')
+
+        return creditor
+
+
 @admin_api.route('/creditors-list')
 class CreditorsListEndpoint(MethodView):
     @admin_api.response(CreditorsListSchema, example=examples.CREDITORS_LIST_EXAMPLE)
@@ -75,7 +102,7 @@ class ReserveCreditorEndpoint(MethodView):
     @admin_api.doc(operationId='reserveCreditor',
                    responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_reservation_request, creditorId):
-        """Try to reserve a creditor ID.
+        """Try to reserve a specific creditor ID.
 
         **Note:** The reserved creditor ID will be the same as the
         `creditorId` specified in the path.

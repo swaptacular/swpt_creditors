@@ -1,4 +1,5 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
+from random import randint
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
@@ -13,6 +14,11 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
+
+
+def generate_new_creditor_id() -> int:
+    agent_config = AgentConfig.query.with_for_update().one()
+    return randint(agent_config.min_creditor_id, agent_config.max_creditor_id)
 
 
 @atomic
@@ -57,8 +63,8 @@ def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Option
 
 
 @atomic
-def reserve_creditor(creditor_id) -> Creditor:
-    if not _is_correct_creditor_id(creditor_id):
+def reserve_creditor(creditor_id, verify_correctness=True) -> Creditor:
+    if verify_correctness and not _is_correct_creditor_id(creditor_id):
         raise errors.InvalidCreditor()
 
     creditor = Creditor(creditor_id=creditor_id)

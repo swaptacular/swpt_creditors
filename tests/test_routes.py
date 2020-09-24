@@ -57,6 +57,17 @@ def _get_all_pages(client, url, page_type, streaming=False):
     return items
 
 
+def test_auto_genereate_creditor_id(client):
+    r = client.post('/creditors-reserve', json={})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'CreditorReservation'
+    assert isinstance(data['creditorId'], str)
+    assert isinstance(data['reservationId'], int)
+    assert iso8601.parse_date(data['validUntil'])
+    assert iso8601.parse_date(data['createdAt'])
+
+
 def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 403
