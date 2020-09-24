@@ -1,4 +1,3 @@
-import re
 import json
 from copy import copy
 from marshmallow import Schema, fields, ValidationError, validate, validates_schema, \
@@ -9,8 +8,6 @@ from swpt_creditors import models
 from swpt_creditors.models import MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES
 from .common import ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, \
     type_registry, MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
-
-URLSAFE_B64 = re.compile(r'^[A-Za-z0-9_=-]*$')
 
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
