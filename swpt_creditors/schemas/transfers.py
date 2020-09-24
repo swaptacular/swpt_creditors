@@ -237,6 +237,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         required=True,
         dump_only=True,
         data_key='noteFormat',
+        pattern=TRANSFER_NOTE_FORMAT_REGEX,
         description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
         example='',
     )
@@ -383,6 +384,7 @@ class CommittedTransferSchema(Schema):
         required=True,
         dump_only=True,
         data_key='noteFormat',
+        pattern=TRANSFER_NOTE_FORMAT_REGEX,
         description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
         example='',
     )

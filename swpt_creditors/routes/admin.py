@@ -77,6 +77,9 @@ class ReserveCreditorEndpoint(MethodView):
     def post(self, creditor_reservation_request, creditorId):
         """Try to reserve a creditor ID.
 
+        **Note:** The reserved creditor ID will be the same as the
+        `creditorId` specified in the path.
+
         ---
         Must fail if the creditor already exists.
 

@@ -62,6 +62,7 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         lambda obj: str(i64_to_u64(obj.creditor_id)),
         required=True,
         type='string',
+        pattern='^[0-9A-Za-z_=-]{1,64}$',
         description='The reserved creditor ID.',
         example='1',
     )
