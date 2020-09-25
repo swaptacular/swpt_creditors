@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 72f2a6f55cf9
+Revision ID: 9bdecc64d58d
 Revises: 8d8c816257ce
-Create Date: 2020-09-24 22:47:53.405186
+Create Date: 2020-09-25 14:11:43.255481
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '72f2a6f55cf9'
+revision = '9bdecc64d58d'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -60,7 +60,7 @@ def upgrade():
     )
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is activated, 2 - is deactivated."),
     sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('reservation_id', sa.BigInteger(), server_default=sa.text("nextval('creditor_reservation_id_seq')"), nullable=True),
     sa.Column('last_log_entry_id', sa.BigInteger(), nullable=False),

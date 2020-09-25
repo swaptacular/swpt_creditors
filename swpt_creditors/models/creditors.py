@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import true, or_
 from swpt_creditors.extensions import db
-from .common import get_now_utc, MAX_INT64
+from .common import get_now_utc
 
 DEFAULT_CREDITOR_STATUS = 0
 
@@ -32,7 +32,14 @@ class Creditor(db.Model):
     _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
 
     creditor_id = db.Column(db.BigInteger, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=DEFAULT_CREDITOR_STATUS)
+    status = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=DEFAULT_CREDITOR_STATUS,
+        comment="Creditor's status bits: "
+                f"{STATUS_IS_ACTIVATED_FLAG} - is activated, "
+                f"{STATUS_IS_DEACTIVATED_FLAG} - is deactivated.",
+    )
     created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     reservation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
