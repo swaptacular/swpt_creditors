@@ -54,7 +54,7 @@ def initiate_running_transfer(
         debtor_id: int,
         amount: int,
         recipient_uri: str,
-        recipient_id: str,
+        recipient: str,
         transfer_note_format: str,
         transfer_note: str,
         *,
@@ -76,7 +76,7 @@ def initiate_running_transfer(
         'debtor_id': debtor_id,
         'amount': amount,
         'recipient_uri': recipient_uri,
-        'recipient_id': recipient_id,
+        'recipient': recipient,
         'transfer_note_format': transfer_note_format,
         'transfer_note': transfer_note,
         'deadline': deadline,
@@ -111,7 +111,7 @@ def initiate_running_transfer(
         creditor_id=creditor_id,
         coordinator_request_id=new_running_transfer.coordinator_request_id,
         debtor_id=debtor_id,
-        recipient=recipient_id,
+        recipient=recipient,
         locked_amount=locked_amount,
         min_interest_rate=min_interest_rate,
         max_commit_delay=_calc_max_commit_delay(current_ts, deadline),
@@ -235,8 +235,8 @@ def process_account_transfer_signal(
             creation_date=creation_date,
             transfer_number=transfer_number,
             coordinator_type=coordinator_type,
-            sender_id=sender,
-            recipient_id=recipient,
+            sender=sender,
+            recipient=recipient,
             acquired_amount=acquired_amount,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
@@ -322,7 +322,7 @@ def process_prepared_direct_transfer_signal(
         rt is not None
         and rt.debtor_id == debtor_id
         and rt.creditor_id == creditor_id
-        and rt.recipient_id == recipient
+        and rt.recipient == recipient
     )
     if the_signal_matches_the_transfer:
         assert rt is not None
@@ -370,9 +370,9 @@ def process_finalized_direct_transfer_signal(
     )
     if the_signal_matches_the_transfer:
         assert rt is not None
-        if status_code == SC_OK and committed_amount == rt.amount and recipient == rt.recipient_id:
+        if status_code == SC_OK and committed_amount == rt.amount and recipient == rt.recipient:
             _finalize_running_transfer(rt)
-        elif status_code != SC_OK and committed_amount == 0 and recipient == rt.recipient_id:
+        elif status_code != SC_OK and committed_amount == 0 and recipient == rt.recipient:
             _finalize_running_transfer(rt, error_code=status_code, total_locked_amount=total_locked_amount)
         else:
             _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)

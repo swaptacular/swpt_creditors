@@ -113,7 +113,7 @@ class BaseLogEntry(db.Model):
     object_type = db.Column(db.String)
     object_uri = db.Column(db.String)
     object_update_id = db.Column(db.BigInteger)
-    is_deleted = db.Column(db.BOOLEAN, comment='NULL has the same meaning as as FALSE.')
+    is_deleted = db.Column(db.BOOLEAN, comment='NULL has the same meaning as FALSE.')
     data = db.Column(pg.JSON)
 
     # NOTE: The following columns will be non-NULL for specific

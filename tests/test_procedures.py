@@ -512,8 +512,8 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
     assert ct.creation_date == params['creation_date']
     assert ct.transfer_number == 1
     assert ct.coordinator_type == 'direct'
-    assert ct.sender_id == '666'
-    assert ct.recipient_id == str(C_ID)
+    assert ct.sender == '666'
+    assert ct.recipient == str(C_ID)
     assert ct.acquired_amount == 100
     assert ct.transfer_note_format == params['transfer_note_format']
     assert ct.transfer_note == params['transfer_note']
@@ -719,7 +719,7 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
     assert rt.recipient_uri == 'swpt:18446744073709551615/666'
-    assert rt.recipient_id == '666'
+    assert rt.recipient == '666'
     assert rt.transfer_note_format == 'json'
     assert rt.transfer_note == '{}'
     assert isinstance(rt.initiated_at_ts, datetime)
@@ -737,7 +737,7 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert pts.creditor_id == C_ID
     assert pts.debtor_id == D_ID
     assert pts.coordinator_request_id == rt.coordinator_request_id
-    assert pts.recipient == rt.recipient_id
+    assert pts.recipient == rt.recipient
     assert pts.min_interest_rate == rt.min_interest_rate
     assert 500 <= pts.max_commit_delay <= 1500
 
@@ -748,7 +748,7 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
     assert rt.recipient_uri == 'swpt:18446744073709551615/666'
-    assert rt.recipient_id == '666'
+    assert rt.recipient == '666'
     assert rt.transfer_note_format == 'json'
     assert rt.transfer_note == '{}'
     assert isinstance(rt.initiated_at_ts, datetime)

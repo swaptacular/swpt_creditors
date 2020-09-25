@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9bdecc64d58d
+Revision ID: af6d7a301637
 Revises: 8d8c816257ce
-Create Date: 2020-09-25 14:11:43.255481
+Create Date: 2020-09-25 15:33:31.952125
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9bdecc64d58d'
+revision = 'af6d7a301637'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -33,8 +33,8 @@ def upgrade():
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(), nullable=False),
-    sa.Column('sender_id', sa.String(), nullable=False),
-    sa.Column('recipient_id', sa.String(), nullable=False),
+    sa.Column('sender', sa.String(), nullable=False),
+    sa.Column('recipient', sa.String(), nullable=False),
     sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
@@ -110,7 +110,7 @@ def upgrade():
     sa.Column('object_type', sa.String(), nullable=True),
     sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
-    sa.Column('is_deleted', sa.BOOLEAN(), nullable=True, comment='NULL has the same meaning as as FALSE.'),
+    sa.Column('is_deleted', sa.BOOLEAN(), nullable=True, comment='NULL has the same meaning as FALSE.'),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.Column('object_type_hint', sa.SmallInteger(), nullable=True),
     sa.Column('debtor_id', sa.BigInteger(), nullable=True),
@@ -155,7 +155,7 @@ def upgrade():
     sa.Column('object_type', sa.String(), nullable=True),
     sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
-    sa.Column('is_deleted', sa.BOOLEAN(), nullable=True, comment='NULL has the same meaning as as FALSE.'),
+    sa.Column('is_deleted', sa.BOOLEAN(), nullable=True, comment='NULL has the same meaning as FALSE.'),
     sa.Column('data', postgresql.JSON(astext_type=sa.Text()), nullable=True),
     sa.Column('object_type_hint', sa.SmallInteger(), nullable=True),
     sa.Column('debtor_id', sa.BigInteger(), nullable=True),
@@ -181,7 +181,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient_uri', sa.String(), nullable=False),
-    sa.Column('recipient_id', sa.String(), nullable=False),
+    sa.Column('recipient', sa.String(), nullable=False),
     sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
     sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),

@@ -1243,8 +1243,8 @@ def test_serialize_committed_transfer(app):
         transfer_note_format='json',
         transfer_note=NOTE,
         principal=1500,
-        sender_id='1',
-        recipient_id='1111',
+        sender='1',
+        recipient='1111',
     )
     cts = schemas.CommittedTransferSchema(context=context)
     assert cts.dump(ct) == {
@@ -1272,8 +1272,8 @@ def test_serialize_committed_transfer(app):
     assert cts.dump(ct)['note'] == '[]'
 
     # invalid identity
-    ct.sender_id = 1000 * '1'
-    ct.recipient_id = 1000 * '1'
+    ct.sender = 1000 * '1'
+    ct.recipient = 1000 * '1'
     data = cts.dump(ct)
     assert data['sender'] == {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!'}
     assert data['recipient'] == {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!'}
@@ -1384,7 +1384,7 @@ def test_deserialize_transfer_creation_request(app):
     }) == {
         'type': 'TransferCreationRequest',
         'transfer_uuid': UUID('123e4567-e89b-12d3-a456-426655440000'),
-        'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
+        'recipient_identity': {'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
         'amount': 1000,
         'transfer_note_format': '',
         'transfer_note': '',
@@ -1407,7 +1407,7 @@ def test_deserialize_transfer_creation_request(app):
     assert data == {
         'type': 'TransferCreationRequest',
         'transfer_uuid': UUID('123e4567-e89b-12d3-a456-426655440000'),
-        'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
+        'recipient_identity': {'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
         'amount': 1000,
         'transfer_note_format': 'json',
         'transfer_note': models.TRANSFER_NOTE_MAX_BYTES * 'x',

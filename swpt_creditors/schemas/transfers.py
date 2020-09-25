@@ -163,9 +163,10 @@ class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
         description="A client-generated UUID for the transfer.",
         example='123e4567-e89b-12d3-a456-426655440000',
     )
-    recipient = fields.Nested(
+    recipient_identity = fields.Nested(
         AccountIdentitySchema,
         required=True,
+        data_key='recipient',
         description="The recipient's `AccountIdentity` information.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
     )
@@ -289,7 +290,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         obj = copy(obj)
         obj.uri = paths.transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
         obj.transfers_list = {'uri': paths.transfers_list(creditorId=obj.creditor_id)}
-        obj.recipient = {'uri': obj.recipient_uri}
+        obj.recipient_identity = {'uri': obj.recipient_uri}
         obj.options = {'min_interest_rate': obj.min_interest_rate, 'locked_amount': obj.locked_amount}
 
         if obj.deadline is not None:
@@ -356,17 +357,19 @@ class CommittedTransferSchema(Schema):
                     'new money into existence, the value will be `"issuing"`.',
         example='interest',
     )
-    sender = fields.Nested(
+    sender_identity = fields.Nested(
         AccountIdentitySchema,
         required=True,
         dump_only=True,
+        data_key='sender',
         description="The sender's `AccountIdentity` information.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
     )
-    recipient = fields.Nested(
+    recipient_identity = fields.Nested(
         AccountIdentitySchema,
         required=True,
         dump_only=True,
+        data_key='recipient',
         description="The recipient's `AccountIdentity` information.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
     )
@@ -418,16 +421,16 @@ class CommittedTransferSchema(Schema):
         obj.account = {'uri': paths.account(creditorId=obj.creditor_id, debtorId=obj.debtor_id)}
 
         try:
-            sender_uri = make_account_uri(obj.debtor_id, obj.sender_id)
+            sender_uri = make_account_uri(obj.debtor_id, obj.sender)
         except ValueError:
             sender_uri = _make_invalid_account_uri(obj.debtor_id)
-        obj.sender = {'uri': sender_uri}
+        obj.sender_identity = {'uri': sender_uri}
 
         try:
-            recipient_uri = make_account_uri(obj.debtor_id, obj.recipient_id)
+            recipient_uri = make_account_uri(obj.debtor_id, obj.recipient)
         except ValueError:
             recipient_uri = _make_invalid_account_uri(obj.debtor_id)
-        obj.recipient = {'uri': recipient_uri}
+        obj.recipient_identity = {'uri': recipient_uri}
 
         coordinator_type = obj.coordinator_type
         if coordinator_type != CT_DIRECT:

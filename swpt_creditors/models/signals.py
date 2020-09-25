@@ -12,7 +12,7 @@ class ConfigureAccountSignal(Signal):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         ts = fields.DateTime()
-        seqnum = fields.Constant(0)
+        seqnum = fields.Integer()
         negligible_amount = fields.Float()
         config = fields.String()
         config_flags = fields.Integer()
