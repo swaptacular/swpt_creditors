@@ -7,7 +7,7 @@ from sqlalchemy.dialects import postgresql
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, LogEntry, PendingLogEntry, RunningTransfer, \
     CommittedTransfer, PrepareTransferSignal, FinalizeTransferSignal, PendingLedgerUpdate, \
-    SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR, MAX_INT32, MIN_INT64, MAX_INT64
+    SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR, MAX_INT32
 from .creditors import get_active_creditor
 from . import errors
 
@@ -144,7 +144,7 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
 
 
 @atomic
-def get_creditor_transfer_uuids(creditor_id: int, count: int = 1, prev: UUID = None) -> List[UUID]:
+def get_creditor_transfer_uuids(creditor_id: int, *, count: int = 1, prev: UUID = None) -> List[UUID]:
     query = db.session.\
         query(RunningTransfer.transfer_uuid).\
         filter(RunningTransfer.creditor_id == creditor_id).\
@@ -154,6 +154,11 @@ def get_creditor_transfer_uuids(creditor_id: int, count: int = 1, prev: UUID = N
         query = query.filter(RunningTransfer.transfer_uuid > prev)
 
     return [t[0] for t in query.limit(count).all()]
+
+
+@atomic
+def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
+    db.session.execute(ENSURE_PENDING_LEDGER_UPDATE_STATEMENT.values(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
 @atomic
@@ -230,11 +235,6 @@ def process_account_transfer_signal(
 
     if creation_date == ledger_date and previous_transfer_number == ledger_last_transfer_number:
         ensure_pending_ledger_update(creditor_id, debtor_id)
-
-
-@atomic
-def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
-    db.session.execute(ENSURE_PENDING_LEDGER_UPDATE_STATEMENT.values(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
 @atomic
