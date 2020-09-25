@@ -119,6 +119,7 @@ class LogEntryScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
+
         pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
@@ -146,6 +147,7 @@ class LedgerEntryScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
+
         pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
@@ -187,6 +189,7 @@ class CommittedTransferScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
+
         pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
@@ -233,6 +236,7 @@ class AccountScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
+
         self._update_ledgers_if_necessary(rows, current_ts)
         self._schedule_ledger_repairs_if_necessary(rows, current_ts)
         self._set_config_errors_if_necessary(rows, current_ts)
@@ -273,8 +277,8 @@ class AccountScanner(TableScanner):
         principal = data.principal
         ledger_principal = data.ledger_principal
         ledger_last_entry_id = data.ledger_last_entry_id
-
         correction_amount = principal - ledger_principal
+
         assert correction_amount != 0
         while correction_amount != 0:
             safe_correction_amount = contain_principal_overflow(correction_amount)
