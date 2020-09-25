@@ -162,6 +162,7 @@ def process_account_purge_signal(
         creation_date: date) -> None:
 
     current_ts = datetime.now(tz=timezone.utc)
+
     data = AccountData.query.\
         filter_by(
             creditor_id=creditor_id,
@@ -206,6 +207,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, *, max_count
     """
 
     current_ts = datetime.now(tz=timezone.utc)
+
     query = db.session.\
         query(PendingLedgerUpdate, AccountData).\
         join(PendingLedgerUpdate.account_data).\

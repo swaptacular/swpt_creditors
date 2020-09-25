@@ -75,6 +75,7 @@ def initiate_running_transfer(
         'min_interest_rate': min_interest_rate,
         'locked_amount': locked_amount,
     }
+
     rt = get_running_transfer(creditor_id, transfer_uuid)
     if rt:
         if any(getattr(rt, attr) != value for attr, value in transfer_data.items()):
@@ -290,6 +291,7 @@ def process_prepared_direct_transfer_signal(
     )
     if the_signal_matches_the_transfer:
         assert rt is not None
+
         if not rt.is_finalized and rt.transfer_id is None:
             rt.transfer_id = transfer_id
 
@@ -332,6 +334,7 @@ def process_finalized_direct_transfer_signal(
     )
     if the_signal_matches_the_transfer:
         assert rt is not None
+
         if status_code == SC_OK and committed_amount == rt.amount and recipient == rt.recipient:
             _finalize_running_transfer(rt)
         elif status_code != SC_OK and committed_amount == 0 and recipient == rt.recipient:
