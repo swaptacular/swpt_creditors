@@ -117,6 +117,7 @@ def process_account_update_signal(
         or data.debtor_info_iri != debtor_info_iri
         or data.config_error != config_error
     )
+
     data.has_server_account = True
     data.creation_date = creation_date
     data.last_change_ts = last_change_ts
@@ -213,6 +214,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
     log_entry = None
     committed_at_cutoff = current_ts - max_delay
     transfers = _get_sorted_pending_transfers(data, max_count)
+
     for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at in transfers:
         if previous_transfer_number != data.ledger_last_transfer_number and committed_at >= committed_at_cutoff:
             data.ledger_pending_transfer_ts = committed_at
@@ -267,6 +269,7 @@ def _fix_missing_last_transfer_if_necessary(
     has_no_pending_transfers = data.ledger_pending_transfer_ts is None
     last_transfer_is_missing = data.last_transfer_number > data.ledger_last_transfer_number
     last_transfer_is_old = data.last_transfer_committed_at < current_ts - max_delay
+
     if has_no_pending_transfers and last_transfer_is_missing and last_transfer_is_old:
         return _update_ledger(
             data=data,
@@ -280,8 +283,10 @@ def _fix_missing_last_transfer_if_necessary(
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
     if _is_correct_creditor_id(creditor_id):
         scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        safely_huge_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT  # slightly smaller than `HUGE_NEGLIGIBLE_AMOUNT`
-        if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_amount):
+        safely_huge_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT
+        is_already_discarded = config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_amount
+
+        if not is_already_discarded:
             db.session.add(ConfigureAccountSignal(
                 creditor_id=creditor_id,
                 debtor_id=debtor_id,
@@ -346,8 +351,8 @@ def _make_correcting_ledger_entry_if_necessary(
         current_ts: datetime) -> bool:
 
     made_correcting_ledger_entry = False
-
     previous_principal = principal - acquired_amount
+
     if MIN_INT64 <= previous_principal <= MAX_INT64:
         ledger_principal = data.ledger_principal
         correction_amount = previous_principal - ledger_principal
