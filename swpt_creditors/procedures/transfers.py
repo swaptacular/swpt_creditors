@@ -45,6 +45,7 @@ def get_running_transfer(creditor_id: int, transfer_uuid: UUID, lock=False) -> O
 
 @atomic
 def initiate_running_transfer(
+        *,
         creditor_id: int,
         transfer_uuid: UUID,
         debtor_id: int,
@@ -53,7 +54,6 @@ def initiate_running_transfer(
         recipient: str,
         transfer_note_format: str,
         transfer_note: str,
-        *,
         deadline: datetime = None,
         min_interest_rate: float = -100.0,
         locked_amount: int = 0) -> RunningTransfer:
@@ -158,6 +158,7 @@ def get_creditor_transfer_uuids(creditor_id: int, count: int = 1, prev: UUID = N
 
 @atomic
 def process_account_transfer_signal(
+        *,
         debtor_id: int,
         creditor_id: int,
         creation_date: date,
@@ -238,6 +239,7 @@ def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
 
 @atomic
 def process_rejected_direct_transfer_signal(
+        *,
         coordinator_id: int,
         coordinator_request_id: int,
         status_code: str,
@@ -255,6 +257,7 @@ def process_rejected_direct_transfer_signal(
 
 @atomic
 def process_prepared_direct_transfer_signal(
+        *,
         debtor_id: int,
         creditor_id: int,
         transfer_id: int,
@@ -307,6 +310,7 @@ def process_prepared_direct_transfer_signal(
 
 @atomic
 def process_finalized_direct_transfer_signal(
+        *,
         debtor_id: int,
         creditor_id: int,
         transfer_id: int,

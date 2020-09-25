@@ -23,6 +23,7 @@ HUGE_INTERVAL = timedelta(days=500000)
 
 @atomic
 def process_rejected_config_signal(
+        *,
         debtor_id: int,
         creditor_id: int,
         config_ts: datetime,
@@ -56,6 +57,7 @@ def process_rejected_config_signal(
 
 @atomic
 def process_account_update_signal(
+        *,
         debtor_id: int,
         creditor_id: int,
         creation_date: date,
@@ -153,9 +155,13 @@ def process_account_update_signal(
 
 
 @atomic
-def process_account_purge_signal(debtor_id: int, creditor_id: int, creation_date: date) -> None:
-    current_ts = datetime.now(tz=timezone.utc)
+def process_account_purge_signal(
+        *,
+        debtor_id: int,
+        creditor_id: int,
+        creation_date: date) -> None:
 
+    current_ts = datetime.now(tz=timezone.utc)
     data = AccountData.query.\
         filter_by(
             creditor_id=creditor_id,

@@ -119,7 +119,7 @@ def test_delete_account(db_session, account, current_ts):
     params['negligible_amount'] = config.negligible_amount
     params['config_flags'] = config.config_flags
     p.process_account_update_signal(**params)
-    p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 15))
+    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 15))
 
     p.delete_account(C_ID, D_ID)
     assert not p.get_account(C_ID, D_ID)
@@ -285,28 +285,30 @@ def test_process_rejected_config_signal(account):
     p.process_pending_log_entries(C_ID)
     ple_count = len(models.LogEntry.query.all())
 
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
-                                     c.negligible_amount, 'UNEXPECTED', c.config_flags, 'TEST_CODE')
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
-                                     c.negligible_amount * 1.0001, '', c.config_flags, 'TEST_CODE')
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
-                                     c.negligible_amount, '', c.config_flags ^ 1, 'TEST_CODE')
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum - 1,
-                                     c.negligible_amount, '', c.config_flags, 'TEST_CODE')
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum + 1,
-                                     c.negligible_amount, '', c.config_flags, 'TEST_CODE')
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts + timedelta(seconds=-1), c.last_config_seqnum,
-                                     c.negligible_amount, '', c.config_flags, 'TEST_CODE')
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts + timedelta(seconds=1), c.last_config_seqnum,
-                                     c.negligible_amount, '', c.config_flags, 'TEST_CODE')
+    params = {
+        'debtor_id': D_ID,
+        'creditor_id': C_ID,
+        'config_ts': c.last_config_ts,
+        'config_seqnum': c.last_config_seqnum,
+        'negligible_amount': c.negligible_amount,
+        'config': '',
+        'config_flags': c.config_flags,
+        'rejection_code': 'TEST_CODE',
+    }
+    p.process_rejected_config_signal(**{**params, 'config': 'UNEXPECTED'})
+    p.process_rejected_config_signal(**{**params, 'negligible_amount': c.negligible_amount * 1.0001})
+    p.process_rejected_config_signal(**{**params, 'config_flags': c.config_flags ^ 1})
+    p.process_rejected_config_signal(**{**params, 'config_seqnum': c.last_config_seqnum - 1})
+    p.process_rejected_config_signal(**{**params, 'config_seqnum': c.last_config_seqnum + 1})
+    p.process_rejected_config_signal(**{**params, 'config_ts': c.last_config_ts + timedelta(seconds=-1)})
+    p.process_rejected_config_signal(**{**params, 'config_ts': c.last_config_ts + timedelta(seconds=1)})
     c = p.get_account_config(C_ID, D_ID)
     info_latest_update_id = c.info_latest_update_id
     info_latest_update_ts = c.info_latest_update_ts
     assert c.config_error is None
     assert len(models.PendingLogEntry.query.all()) == 0
 
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
-                                     c.negligible_amount, '', c.config_flags, 'TEST_CODE')
+    p.process_rejected_config_signal(**params)
     c = p.get_account_config(C_ID, D_ID)
     assert c.config_error == 'TEST_CODE'
     assert c.info_latest_update_id == info_latest_update_id + 1
@@ -318,8 +320,7 @@ def test_process_rejected_config_signal(account):
     assert ple.creditor_id == C_ID
     assert '/info' in ple.object_uri
 
-    p.process_rejected_config_signal(D_ID, C_ID, c.last_config_ts, c.last_config_seqnum,
-                                     c.negligible_amount, '', c.config_flags, 'TEST_CODE')
+    p.process_rejected_config_signal(**params)
     assert len(LogEntry.query.all()) == ple_count + 1
 
 
@@ -338,8 +339,8 @@ def test_process_account_purge_signal(db_session, creditor, account, current_ts)
     assert data.principal == 1000
     assert data.interest == 15.0
 
-    p.process_account_purge_signal(1111, 2222, date(2020, 1, 2))
-    p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 1))
+    p.process_account_purge_signal(debtor_id=1111, creditor_id=2222, creation_date=date(2020, 1, 2))
+    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 1))
     data = AccountData.query.one()
     assert data.has_server_account
     assert data.principal == 1000
@@ -347,7 +348,7 @@ def test_process_account_purge_signal(db_session, creditor, account, current_ts)
     p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 2
 
-    p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 2))
+    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 2))
     data = AccountData.query.one()
     assert not data.has_server_account
     assert data.principal == 0
@@ -359,7 +360,7 @@ def test_process_account_purge_signal(db_session, creditor, account, current_ts)
     assert entry.object_uri == f'/creditors/{i64_to_u64(C_ID)}/accounts/{i64_to_u64(D_ID)}/info'
     assert not entry.is_deleted
 
-    p.process_account_purge_signal(D_ID, C_ID, date(2020, 1, 2))
+    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 2))
     p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 3
 
@@ -423,7 +424,7 @@ def test_update_account_config(account, current_ts):
     assert data.has_server_account
     assert get_info_entries_count() == 1
 
-    p.process_account_purge_signal(D_ID, C_ID, creation_date)
+    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=creation_date)
     data = get_data()
     assert data.is_config_effectual
     assert data.is_deletion_safe
@@ -712,8 +713,17 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
 
 def test_process_rejected_direct_transfer_signal(db_session, account, current_ts):
     rt = p.initiate_running_transfer(
-        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
+        creditor_id=C_ID,
+        transfer_uuid=TEST_UUID,
+        debtor_id=D_ID,
+        amount=1000,
+        recipient_uri='swpt:18446744073709551615/666',
+        recipient='666',
+        transfer_note_format='json',
+        transfer_note='{}',
+        deadline=current_ts + timedelta(seconds=1000),
+        min_interest_rate=10.0,
+    )
     assert rt.creditor_id == C_ID
     assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
@@ -741,7 +751,14 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert pts.min_interest_rate == rt.min_interest_rate
     assert 500 <= pts.max_commit_delay <= 1500
 
-    p.process_rejected_direct_transfer_signal(C_ID, rt.coordinator_request_id, 'TEST_ERROR', 600, D_ID, C_ID)
+    p.process_rejected_direct_transfer_signal(
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        status_code='TEST_ERROR',
+        total_locked_amount=600,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+    )
     rt = RunningTransfer.query.one()
     assert rt.creditor_id == C_ID
     assert rt.transfer_uuid == TEST_UUID
@@ -771,9 +788,25 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
 
 def test_process_rejected_direct_transfer_unexpected_error(db_session, account, current_ts):
     rt = p.initiate_running_transfer(
-        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
-    p.process_rejected_direct_transfer_signal(C_ID, rt.coordinator_request_id, 'TEST_ERROR', 600, D_ID, 666)
+        creditor_id=C_ID,
+        transfer_uuid=TEST_UUID,
+        debtor_id=D_ID,
+        amount=1000,
+        recipient_uri='swpt:18446744073709551615/666',
+        recipient='666',
+        transfer_note_format='json',
+        transfer_note='{}',
+        deadline=current_ts + timedelta(seconds=1000),
+        min_interest_rate=10.0,
+    )
+    p.process_rejected_direct_transfer_signal(
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        status_code='TEST_ERROR',
+        total_locked_amount=600,
+        debtor_id=D_ID,
+        creditor_id=666,
+    )
     rt = RunningTransfer.query.one()
     assert rt.creditor_id == C_ID
     assert rt.transfer_uuid == TEST_UUID
@@ -788,9 +821,26 @@ def test_process_rejected_direct_transfer_unexpected_error(db_session, account, 
 
 def test_successful_transfer(db_session, account, current_ts):
     rt = p.initiate_running_transfer(
-        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
-    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id + 1, 0, '666')
+        creditor_id=C_ID,
+        transfer_uuid=TEST_UUID,
+        debtor_id=D_ID,
+        amount=1000,
+        recipient_uri='swpt:18446744073709551615/666',
+        recipient='666',
+        transfer_note_format='json',
+        transfer_note='{}',
+        deadline=current_ts + timedelta(seconds=1000),
+        min_interest_rate=10.0,
+    )
+    p.process_prepared_direct_transfer_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id + 1,
+        locked_amount=0,
+        recipient='666',
+    )
     assert len(FinalizeTransferSignal.query.all()) == 1
     fts = FinalizeTransferSignal.query.filter_by(coordinator_request_id=rt.coordinator_request_id + 1).one()
     assert fts.creditor_id == C_ID
@@ -800,7 +850,15 @@ def test_successful_transfer(db_session, account, current_ts):
     assert fts.committed_amount == 0
     assert fts.transfer_note_format == ''
     assert fts.transfer_note == ''
-    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
+    p.process_prepared_direct_transfer_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        locked_amount=0,
+        recipient='666',
+    )
     assert len(FinalizeTransferSignal.query.all()) == 2
     fts = FinalizeTransferSignal.query.filter_by(coordinator_request_id=rt.coordinator_request_id).one()
     assert fts.creditor_id == C_ID
@@ -816,7 +874,16 @@ def test_successful_transfer(db_session, account, current_ts):
     assert rt.error_code is None
     assert rt.total_locked_amount is None
     p.process_finalized_direct_transfer_signal(
-        D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 1000, '666', 'OK', 100)
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        committed_amount=1000,
+        recipient='666',
+        status_code='OK',
+        total_locked_amount=100,
+    )
     assert rt.finalized_at is not None
     assert rt.transfer_id == 123
     assert rt.error_code is None
@@ -831,9 +898,26 @@ def test_successful_transfer(db_session, account, current_ts):
 
 def test_unsuccessful_transfer(db_session, account, current_ts):
     rt = p.initiate_running_transfer(
-        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
-    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
+        creditor_id=C_ID,
+        transfer_uuid=TEST_UUID,
+        debtor_id=D_ID,
+        amount=1000,
+        recipient_uri='swpt:18446744073709551615/666',
+        recipient='666',
+        transfer_note_format='json',
+        transfer_note='{}',
+        deadline=current_ts + timedelta(seconds=1000),
+        min_interest_rate=10.0,
+    )
+    p.process_prepared_direct_transfer_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        locked_amount=0,
+        recipient='666',
+    )
     with pytest.raises(p.ForbiddenTransferCancellation):
         p.cancel_running_transfer(C_ID, TEST_UUID)
 
@@ -843,7 +927,16 @@ def test_unsuccessful_transfer(db_session, account, current_ts):
     assert rt.error_code is None
     assert rt.total_locked_amount is None
     p.process_finalized_direct_transfer_signal(
-        D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666', 'TEST_ERROR', 100)
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        committed_amount=0,
+        recipient='666',
+        status_code='TEST_ERROR',
+        total_locked_amount=100,
+    )
     rt = RunningTransfer.query.one()
     assert rt.finalized_at is not None
     assert rt.transfer_id == 123
@@ -853,11 +946,37 @@ def test_unsuccessful_transfer(db_session, account, current_ts):
 
 def test_unsuccessful_transfer_unexpected_error(db_session, account, current_ts):
     rt = p.initiate_running_transfer(
-        C_ID, TEST_UUID, D_ID, 1000, 'swpt:18446744073709551615/666', '666', 'json', '{}',
-        deadline=current_ts + timedelta(seconds=1000), min_interest_rate=10.0)
-    p.process_prepared_direct_transfer_signal(D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666')
+        creditor_id=C_ID,
+        transfer_uuid=TEST_UUID,
+        debtor_id=D_ID,
+        amount=1000,
+        recipient_uri='swpt:18446744073709551615/666',
+        recipient='666',
+        transfer_note_format='json',
+        transfer_note='{}',
+        deadline=current_ts + timedelta(seconds=1000),
+        min_interest_rate=10.0,
+    )
+    p.process_prepared_direct_transfer_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        locked_amount=0,
+        recipient='666',
+    )
     p.process_finalized_direct_transfer_signal(
-        D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 999, '666', 'TEST_ERROR', 100)
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        transfer_id=123,
+        coordinator_id=C_ID,
+        coordinator_request_id=rt.coordinator_request_id,
+        committed_amount=999,
+        recipient='666',
+        status_code='TEST_ERROR',
+        total_locked_amount=100,
+    )
     rt = RunningTransfer.query.one()
     assert rt.finalized_at is not None
     assert rt.transfer_id == 123
