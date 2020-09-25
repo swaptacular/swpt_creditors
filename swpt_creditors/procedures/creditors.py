@@ -16,8 +16,9 @@ atomic: Callable[[T], T] = db.atomic
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
 
 
+@atomic
 def generate_new_creditor_id() -> int:
-    agent_config = AgentConfig.query.with_for_update().one()
+    agent_config = AgentConfig.query.one()
     return randint(agent_config.min_creditor_id, agent_config.max_creditor_id)
 
 
@@ -28,6 +29,7 @@ def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
     assert min_creditor_id <= max_creditor_id
 
     agent_config = AgentConfig.query.with_for_update().one_or_none()
+
     if agent_config:
         agent_config.min_creditor_id = min_creditor_id
         agent_config.max_creditor_id = max_creditor_id
@@ -47,8 +49,8 @@ def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Option
         filter(Creditor.status.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
         order_by(Creditor.creditor_id).\
         limit(count)
-
     creditor_ids = [t[0] for t in query.all()]
+
     if len(creditor_ids) > 0:
         next_creditor_id = creditor_ids[-1] + 1
     else:
@@ -76,8 +78,8 @@ def reserve_creditor(creditor_id, verify_correctness=True) -> Creditor:
         query(func.max(LogEntry.entry_id)).\
         filter_by(creditor_id=creditor_id).\
         scalar()
-
     creditor.last_log_entry_id = 0 if relic_log_entry_id is None else relic_log_entry_id + 1  # a leap
+
     return creditor
 
 
@@ -155,6 +157,7 @@ def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> No
     paths, types = get_paths_and_types()
     aux_fields = {attr: getattr(entry, attr) for attr in LogEntry.AUX_FIELDS}
     data_fields = {attr: getattr(entry, attr) for attr in LogEntry.DATA_FIELDS}
+
     _add_log_entry(
         creditor,
         object_type=entry.object_type,
@@ -183,6 +186,7 @@ def _add_transfers_list_update_log_entry(creditor: Creditor, added_at: datetime)
     paths, types = get_paths_and_types()
     creditor.transfers_list_latest_update_id += 1
     creditor.transfers_list_latest_update_ts = added_at
+
     _add_log_entry(
         creditor,
         object_type=types.transfers_list,
@@ -209,11 +213,15 @@ def _add_log_entry(creditor: Creditor, **kwargs) -> None:
 
 
 def _delete_creditor_accounts(creditor_id: int) -> None:
-    Account.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
+    Account.query.\
+        filter_by(creditor_id=creditor_id).\
+        delete(synchronize_session=False)
 
 
 def _delete_creditor_running_transfers(creditor_id: int) -> None:
-    RunningTransfer.query.filter_by(creditor_id=creditor_id).delete(synchronize_session=False)
+    RunningTransfer.query.\
+        filter_by(creditor_id=creditor_id).\
+        delete(synchronize_session=False)
 
 
 def _is_correct_creditor_id(creditor_id: int) -> bool:

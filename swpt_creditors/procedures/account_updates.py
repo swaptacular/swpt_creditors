@@ -310,6 +310,7 @@ def _update_ledger(
         principal=principal,
         current_ts=current_ts,
     )
+
     if acquired_amount != 0:
         data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
