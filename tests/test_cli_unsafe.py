@@ -78,7 +78,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
 
     data3 = m.AccountData.query.filter_by(debtor_id=3).one()
     data3.last_transfer_number = 1
-    data3.last_transfer_ts = current_ts - timedelta(days=1000)
+    data3.last_transfer_committed_at = current_ts - timedelta(days=1000)
 
     data4 = m.AccountData.query.filter_by(debtor_id=4).one()
     data4.last_transfer_number = 1

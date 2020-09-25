@@ -35,7 +35,7 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     'interest',
     'interest_rate',
     'last_transfer_number',
-    'last_transfer_ts',
+    'last_transfer_committed_at',
     'last_change_ts',
 ]
 

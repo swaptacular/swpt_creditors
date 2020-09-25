@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ed7a6341e1f7
+Revision ID: 1d7bf033fcc3
 Revises: 8d8c816257ce
-Create Date: 2020-09-25 16:05:26.978375
+Create Date: 2020-09-25 16:44:01.063896
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ed7a6341e1f7'
+revision = '1d7bf033fcc3'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -215,12 +215,13 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('last_transfer_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_transfer_committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
+    sa.Column('config', sa.String(), nullable=False),
     sa.Column('is_config_effectual', sa.BOOLEAN(), nullable=False),
     sa.Column('allow_unsafe_deletion', sa.BOOLEAN(), nullable=False),
     sa.Column('has_server_account', sa.BOOLEAN(), nullable=False),

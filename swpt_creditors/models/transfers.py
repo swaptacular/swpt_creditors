@@ -78,7 +78,7 @@ class RunningTransfer(db.Model):
     total_locked_amount = db.Column(db.BigInteger)
     deadline = db.Column(db.TIMESTAMP(timezone=True))
     min_interest_rate = db.Column(db.REAL, nullable=False, default=-100.0)
-    locked_amount = db.Column(db.BigInteger, nullable=False)
+    locked_amount = db.Column(db.BigInteger, nullable=False, default=0)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False, server_default=_cr_seq.next_value())
     transfer_id = db.Column(db.BigInteger)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)

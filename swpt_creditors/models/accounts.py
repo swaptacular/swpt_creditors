@@ -43,7 +43,7 @@ class AccountData(db.Model):
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    last_transfer_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
+    last_transfer_committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     last_heartbeat_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     # `AccountConfig` data
@@ -51,6 +51,7 @@ class AccountData(db.Model):
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     negligible_amount = db.Column(db.REAL, nullable=False, default=DEFAULT_NEGLIGIBLE_AMOUNT)
     config_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_CONFIG_FLAGS)
+    config = db.Column(db.String, nullable=False, default='')
     is_config_effectual = db.Column(db.BOOLEAN, nullable=False, default=False)
     allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
     has_server_account = db.Column(db.BOOLEAN, nullable=False, default=False)

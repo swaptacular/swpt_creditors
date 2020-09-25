@@ -109,10 +109,10 @@ def process_account_update_signal(
         return
 
     is_config_effectual = (
-        config == ''
-        and last_config_ts == data.last_config_ts
+        last_config_ts == data.last_config_ts
         and last_config_seqnum == data.last_config_seqnum
         and config_flags == data.config_flags
+        and config == data.config
         and abs(data.negligible_amount - negligible_amount) <= EPS * negligible_amount
     )
     config_error = None if is_config_effectual else data.config_error
@@ -139,7 +139,7 @@ def process_account_update_signal(
     data.account_id = account_id
     data.debtor_info_iri = debtor_info_iri
     data.last_transfer_number = last_transfer_number,
-    data.last_transfer_ts = last_transfer_committed_at
+    data.last_transfer_committed_at = last_transfer_committed_at
     data.is_config_effectual = is_config_effectual
     data.config_error = config_error
 
@@ -279,7 +279,7 @@ def _fix_missing_last_transfer_if_necessary(
 
     has_no_pending_transfers = data.ledger_pending_transfer_ts is None
     last_transfer_is_missing = data.last_transfer_number > data.ledger_last_transfer_number
-    last_transfer_is_old = data.last_transfer_ts < current_ts - max_delay
+    last_transfer_is_old = data.last_transfer_committed_at < current_ts - max_delay
     if has_no_pending_transfers and last_transfer_is_missing and last_transfer_is_old:
         return _update_ledger(
             data=data,

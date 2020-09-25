@@ -207,7 +207,7 @@ class AccountScanner(TableScanner):
         AccountData.ledger_principal,
         AccountData.last_transfer_number,
         AccountData.ledger_last_transfer_number,
-        AccountData.last_transfer_ts,
+        AccountData.last_transfer_committed_at,
         AccountData.is_config_effectual,
         AccountData.has_server_account,
         AccountData.last_heartbeat_ts,
@@ -317,7 +317,7 @@ class AccountScanner(TableScanner):
             ledger_pending_transfer_ts = row[c.ledger_pending_transfer_ts]
             if ledger_pending_transfer_ts is not None:
                 return ledger_pending_transfer_ts < committed_at_cutoff
-            return row[c.last_transfer_ts] < committed_at_cutoff
+            return row[c.last_transfer_committed_at] < committed_at_cutoff
 
         pks_to_repair = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if needs_repair(row)]
         if pks_to_repair:

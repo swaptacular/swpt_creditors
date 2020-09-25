@@ -205,7 +205,7 @@ def test_process_account_update_signal(db_session, account):
     assert ad.account_id == str(C_ID)
     assert ad.debtor_info_iri == 'http://example.com'
     assert ad.last_transfer_number == 22
-    assert ad.last_transfer_ts == current_ts - timedelta(days=2)
+    assert ad.last_transfer_committed_at == current_ts - timedelta(days=2)
     assert ad.config_error is None
 
     p.process_account_update_signal(**params)
