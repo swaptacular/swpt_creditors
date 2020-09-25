@@ -50,25 +50,28 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         data_key='createdAt',
         description='The moment at which the reservation was created.',
     )
-    reservationId = fields.Function(
+    reservation_id = fields.Function(
         lambda obj: obj.reservation_id or 0,
         required=True,
-        description='A number that will be needed in order to activate the creditor.',
+        data_key='reservationId',
         type='integer',
         format='int64',
+        description='A number that will be needed in order to activate the creditor.',
         example=12345,
     )
-    creditorId = fields.Function(
+    creditor_id = fields.Function(
         lambda obj: str(i64_to_u64(obj.creditor_id)),
         required=True,
+        data_key='creditorId',
         type='string',
         pattern='^[0-9A-Za-z_=-]{1,64}$',
         description='The reserved creditor ID.',
         example='1',
     )
-    validUntil = fields.Method(
+    valid_until = fields.Method(
         'get_valid_until_string',
         required=True,
+        data_key='validUntil',
         type='string',
         format='date-time',
         description='The moment at which the reservation will expire.',
