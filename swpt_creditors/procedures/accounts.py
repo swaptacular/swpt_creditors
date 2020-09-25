@@ -140,11 +140,11 @@ def update_account_config(
         return data
 
     deletion_was_safe_before_the_update = data.is_deletion_safe
+    perform_update()
+    data.config_latest_update_ts = current_ts
     data.last_config_ts = current_ts
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     data.is_config_effectual = False
-    data.config_latest_update_ts = current_ts
-    perform_update()
 
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
@@ -215,8 +215,8 @@ def update_account_display(
             raise errors.DebtorNameConflict()
 
     with db.retry_on_integrity_error():
-        display.latest_update_ts = current_ts
         perform_update()
+        display.latest_update_ts = current_ts
 
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
@@ -258,8 +258,8 @@ def update_account_knowledge(
     except errors.AlreadyUpToDate:
         return knowledge
 
-    knowledge.latest_update_ts = current_ts
     perform_update()
+    knowledge.latest_update_ts = current_ts
 
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
@@ -317,8 +317,8 @@ def update_account_exchange(
     if peg_debtor_id is not None and not has_account(creditor_id, peg_debtor_id):
         raise errors.PegDoesNotExist()
 
-    exchange.latest_update_ts = current_ts
     perform_update()
+    exchange.latest_update_ts = current_ts
 
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
