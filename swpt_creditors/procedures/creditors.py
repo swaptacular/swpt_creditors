@@ -225,15 +225,19 @@ def _delete_creditor_running_transfers(creditor_id: int) -> None:
 
 
 def _get_agent_config() -> AgentConfig:
-    return AgentConfig.query.one()
+    try:
+        return AgentConfig.query.one()
+    except exc.NoResultFound:  # pragma: no cover
+        raise errors.MisconfiguredAgent() from None
 
 
 def _is_correct_creditor_id(creditor_id: int) -> bool:
     try:
         config = _get_agent_config()
-        if not config.min_creditor_id <= creditor_id <= config.max_creditor_id:
-            raise ValueError()
-    except (exc.NoResultFound, ValueError):
+    except errors.MisconfiguredAgent:  # pragma: no cover
+        return False
+
+    if not config.min_creditor_id <= creditor_id <= config.max_creditor_id:
         return False
 
     return True

@@ -1,3 +1,7 @@
+class MisconfiguredAgent(Exception):
+    """The agent is misconfigured."""
+
+
 class UpdateConflict(Exception):
     """A conflict occurred while trying to update a resource."""
 
