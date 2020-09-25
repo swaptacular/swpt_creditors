@@ -10,7 +10,6 @@ from swpt_creditors.models import AccountData, LogEntry, PendingLogEntry, Runnin
     CommittedTransfer, PrepareTransferSignal, FinalizeTransferSignal, PendingLedgerUpdate, \
     SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR, MAX_INT32, MIN_INT64, MAX_INT64, \
     TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX
-from .common import get_paths_and_types
 from .creditors import get_active_creditor
 from . import errors
 
@@ -62,12 +61,7 @@ def initiate_running_transfer(
         min_interest_rate: float = -100.0,
         locked_amount: int = 0) -> RunningTransfer:
 
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert 0 <= amount <= MAX_INT64
-    assert min_interest_rate >= -100.0
-    assert 0 <= locked_amount <= MAX_INT64
     current_ts = datetime.now(tz=timezone.utc)
-
     creditor = get_active_creditor(creditor_id)
     if creditor is None:
         raise errors.CreditorDoesNotExist()

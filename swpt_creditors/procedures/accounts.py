@@ -197,11 +197,7 @@ def update_account_display(
         hide: bool,
         latest_update_id: int) -> AccountDisplay:
 
-    assert amount_divisor > 0.0
-    assert MIN_INT32 <= decimal_places <= MAX_INT32
-    assert 1 <= latest_update_id <= MAX_INT64
     current_ts = datetime.now(tz=timezone.utc)
-
     display = get_account_display(creditor_id, debtor_id, lock=True)
     if display is None:
         raise errors.AccountDoesNotExist()
@@ -302,7 +298,6 @@ def update_account_exchange(
         latest_update_id: int) -> AccountKnowledge:
 
     current_ts = datetime.now(tz=timezone.utc)
-
     exchange = get_account_exchange(creditor_id, debtor_id, lock=True)
     if exchange is None:
         raise errors.AccountDoesNotExist()
@@ -363,10 +358,6 @@ def get_account_ledger_entries(
         prev: int,
         stop: int = 0,
         count: int = 1) -> List[LedgerEntry]:
-
-    assert 0 <= prev <= MAX_INT64
-    assert 0 <= stop <= MAX_INT64
-    assert count >= 1
 
     return LedgerEntry.query.\
         filter(

@@ -42,15 +42,15 @@ def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
 @atomic
 def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Optional[int]]:
     assert MIN_INT64 <= start_from <= MAX_INT64
-    assert count >= 1
 
     query = db.session.\
         query(Creditor.creditor_id).\
         filter(Creditor.creditor_id >= start_from).\
         filter(Creditor.status.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
-        order_by(Creditor.creditor_id)
+        order_by(Creditor.creditor_id).\
+        limit(count)
 
-    creditor_ids = [t[0] for t in query.limit(count).all()]
+    creditor_ids = [t[0] for t in query.all()]
     if len(creditor_ids) > 0:
         next_creditor_id = creditor_ids[-1] + 1
     else:
@@ -115,9 +115,6 @@ def get_active_creditor(creditor_id: int, lock: bool = False) -> Optional[Credit
 
 @atomic
 def get_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple[List[LogEntry], int]:
-    assert count >= 1
-    assert 0 <= prev <= MAX_INT64
-
     last_log_entry_id = db.session.\
         query(Creditor.last_log_entry_id).\
         filter(Creditor.creditor_id == creditor_id).\
