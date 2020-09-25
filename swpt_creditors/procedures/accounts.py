@@ -397,8 +397,6 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
     db.session.add(account)
 
     paths, types = get_paths_and_types()
-    creditor.accounts_list_latest_update_id += 1
-    creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(
         creditor,
         object_type=types.account,
@@ -406,6 +404,9 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
         object_update_id=1,
         added_at=current_ts,
     )
+
+    creditor.accounts_list_latest_update_id += 1
+    creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(
         creditor,
         object_type=types.accounts_list,
@@ -419,10 +420,10 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
 
 def _log_account_deletion(creditor: Creditor, debtor_id: int, current_ts: datetime) -> None:
     creditor_id = creditor.creditor_id
-    creditor.accounts_list_latest_update_id += 1
-    creditor.accounts_list_latest_update_ts = current_ts
     paths, types = get_paths_and_types()
 
+    creditor.accounts_list_latest_update_id += 1
+    creditor.accounts_list_latest_update_ts = current_ts
     _add_log_entry(
         creditor,
         object_type=types.accounts_list,
@@ -450,9 +451,9 @@ def _log_account_deletion(creditor: Creditor, debtor_id: int, current_ts: dateti
 
 
 def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetime) -> None:
+    paths, types = get_paths_and_types()
     data.info_latest_update_id += 1
     data.info_latest_update_ts = current_ts
-    paths, types = get_paths_and_types()
 
     db.session.add(PendingLogEntry(
         creditor_id=data.creditor_id,
