@@ -20,7 +20,7 @@ EPS = 1e-5
 
 
 @atomic
-def get_account_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -> List[int]:
+def get_account_debtor_ids(creditor_id: int, *, count: int = 1, prev: int = None) -> List[int]:
     query = db.session.\
         query(Account.debtor_id).\
         filter(Account.creditor_id == creditor_id).\

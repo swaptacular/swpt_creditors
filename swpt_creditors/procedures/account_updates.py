@@ -190,7 +190,7 @@ def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
 
 
 @atomic
-def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: int, max_delay: timedelta) -> bool:
+def process_pending_ledger_update(creditor_id: int, debtor_id: int, *, max_count: int, max_delay: timedelta) -> bool:
     """Try to add pending committed transfers to the account's ledger.
 
     This function will not process more than `max_count`

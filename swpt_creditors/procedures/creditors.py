@@ -23,7 +23,7 @@ def generate_new_creditor_id() -> int:
 
 
 @atomic
-def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
+def configure_agent(min_creditor_id: int, max_creditor_id: int) -> None:
     assert MIN_INT64 <= min_creditor_id <= MAX_INT64
     assert MIN_INT64 <= max_creditor_id <= MAX_INT64
     assert min_creditor_id <= max_creditor_id
