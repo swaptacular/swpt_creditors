@@ -331,7 +331,7 @@ class AccountScanner(TableScanner):
         last_heartbeat_ts_cutoff = current_ts - self.max_heartbeat_delay
         last_config_ts_cutoff = current_ts - self.max_config_delay
 
-        def has_config_problem(row) -> bool:
+        def has_unreported_config_problem(row) -> bool:
             return (
                 (
                     not row[c.is_config_effectual]
@@ -344,7 +344,7 @@ class AccountScanner(TableScanner):
                 and row[c.last_config_ts] < last_config_ts_cutoff
             )
 
-        pks_to_set = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if has_config_problem(row)]
+        pks_to_set = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if has_unreported_config_problem(row)]
         if pks_to_set:
             info_update_pending_log_entries = []
 
