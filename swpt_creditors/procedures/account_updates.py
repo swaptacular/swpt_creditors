@@ -32,10 +32,8 @@ def process_rejected_config_signal(
         config_flags: int,
         rejection_code: str) -> None:
 
-    if config != '':
-        return
-
     current_ts = datetime.now(tz=timezone.utc)
+
     data = AccountData.query.\
         filter_by(
             creditor_id=creditor_id,
@@ -43,6 +41,7 @@ def process_rejected_config_signal(
             last_config_ts=config_ts,
             last_config_seqnum=config_seqnum,
             config_flags=config_flags,
+            config=config,
             config_error=None,
         ).\
         filter(func.abs(AccountData.negligible_amount - negligible_amount) <= EPS * negligible_amount).\
@@ -306,7 +305,6 @@ def _update_ledger(
         principal=principal,
         current_ts=current_ts,
     )
-
     if acquired_amount != 0:
         data.ledger_last_entry_id += 1
         db.session.add(LedgerEntry(
