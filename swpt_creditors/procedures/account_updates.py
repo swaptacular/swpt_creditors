@@ -6,8 +6,7 @@ from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     LogEntry, PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
-    TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS, \
-    MIN_INT64, MAX_INT64
+    HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS, MIN_INT64, MAX_INT64
 from .common import ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
     LOAD_ONLY_INFO_RELATED_COLUMNS
 from .common import contain_principal_overflow
@@ -33,8 +32,6 @@ def process_rejected_config_signal(
         config: str,
         config_flags: int,
         rejection_code: str) -> None:
-
-    assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
 
     if config != '':
         return
@@ -83,10 +80,6 @@ def process_account_update_signal(
         last_transfer_committed_at: datetime,
         ts: datetime,
         ttl: int) -> None:
-
-    assert 0 <= transfer_note_max_bytes <= TRANSFER_NOTE_MAX_BYTES
-    assert account_id == '' or len(account_id) <= 100 and account_id.encode('ascii')
-    assert len(debtor_info_iri) <= 200
 
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - ts).total_seconds() > ttl:

@@ -1,9 +1,14 @@
+import re
 import iso8601
 from datetime import date, timedelta
 from flask import current_app
 from swpt_creditors.extensions import broker, APP_QUEUE_NAME
 from swpt_creditors import procedures
-from swpt_creditors.models import CT_DIRECT
+from swpt_creditors.models import CT_DIRECT, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, \
+    TRANSFER_NOTE_FORMAT_REGEX
+
+CONFIG_MAX_BYTES = 1000
+RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
@@ -18,6 +23,8 @@ def on_rejected_config_signal(
         rejection_code: str,
         ts: str,
         *args, **kwargs) -> None:
+
+    assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
 
     procedures.process_rejected_config_signal(
         debtor_id,
@@ -58,6 +65,10 @@ def on_account_update_signal(
         account_id: str,
         debtor_info_iri: str,
         *args, **kwargs) -> None:
+
+    assert 0 <= transfer_note_max_bytes <= TRANSFER_NOTE_MAX_BYTES
+    assert account_id == '' or len(account_id) <= 100 and account_id.encode('ascii')
+    assert len(debtor_info_iri) <= 200
 
     procedures.process_account_update_signal(
         debtor_id,
@@ -118,6 +129,19 @@ def on_account_transfer_signal(
         previous_transfer_number: int,
         *args, **kwargs) -> None:
 
+    assert 0 < transfer_number <= MAX_INT64
+    assert coordinator_type == '' or len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
+    assert sender == '' or len(sender) <= 100 and coordinator_type.encode('ascii')
+    assert recipient == '' or len(recipient) <= 100 and coordinator_type.encode('ascii')
+    assert acquired_amount != 0
+    assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
+    assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
+    assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
+    assert MIN_INT64 <= acquired_amount <= MAX_INT64
+    assert MIN_INT64 <= principal <= MAX_INT64
+    assert 0 <= previous_transfer_number <= MAX_INT64
+    assert previous_transfer_number < transfer_number
+
     procedures.process_account_transfer_signal(
         debtor_id,
         creditor_id,
@@ -151,6 +175,9 @@ def on_rejected_direct_transfer_signal(
         *args, **kwargs) -> None:
 
     assert coordinator_type == CT_DIRECT
+    assert status_code == '' or len(status_code) <= 30 and status_code.encode('ascii')
+    assert 0 <= total_locked_amount <= MAX_INT64
+
     procedures.process_rejected_direct_transfer_signal(
         coordinator_id,
         coordinator_request_id,
@@ -178,6 +205,7 @@ def on_prepared_direct_transfer_signal(
         *args, **kwargs) -> None:
 
     assert coordinator_type == CT_DIRECT
+
     procedures.process_prepared_direct_transfer_signal(
         debtor_id,
         creditor_id,
@@ -206,6 +234,9 @@ def on_finalized_direct_transfer_signal(
         *args, **kwargs) -> None:
 
     assert coordinator_type == CT_DIRECT
+    assert status_code == '' or len(status_code) <= 30 and status_code.encode('ascii')
+    assert 0 <= total_locked_amount <= MAX_INT64
+
     procedures.process_finalized_direct_transfer_signal(
         debtor_id,
         creditor_id,

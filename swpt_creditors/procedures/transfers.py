@@ -1,4 +1,3 @@
-import re
 from uuid import UUID
 from math import floor
 from datetime import datetime, timezone, date, timedelta
@@ -8,15 +7,13 @@ from sqlalchemy.dialects import postgresql
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, LogEntry, PendingLogEntry, RunningTransfer, \
     CommittedTransfer, PrepareTransferSignal, FinalizeTransferSignal, PendingLedgerUpdate, \
-    SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR, MAX_INT32, MIN_INT64, MAX_INT64, \
-    TRANSFER_NOTE_MAX_BYTES, TRANSFER_NOTE_FORMAT_REGEX
+    SC_OK, SC_CANCELED_BY_THE_SENDER, SC_UNEXPECTED_ERROR, MAX_INT32, MIN_INT64, MAX_INT64
 from .creditors import get_active_creditor
 from . import errors
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
-RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
 
 
@@ -180,19 +177,6 @@ def process_account_transfer_signal(
         previous_transfer_number: int,
         retention_interval: timedelta) -> None:
 
-    assert 0 < transfer_number <= MAX_INT64
-    assert coordinator_type == '' or len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
-    assert sender == '' or len(sender) <= 100 and coordinator_type.encode('ascii')
-    assert recipient == '' or len(recipient) <= 100 and coordinator_type.encode('ascii')
-    assert acquired_amount != 0
-    assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
-    assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
-    assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
-    assert MIN_INT64 <= acquired_amount <= MAX_INT64
-    assert MIN_INT64 <= principal <= MAX_INT64
-    assert 0 <= previous_transfer_number <= MAX_INT64
-    assert previous_transfer_number < transfer_number
-
     current_ts = datetime.now(tz=timezone.utc)
     if (current_ts - min(ts, committed_at)) > retention_interval:
         return
@@ -267,9 +251,6 @@ def process_rejected_direct_transfer_signal(
         debtor_id: int,
         creditor_id: int) -> None:
 
-    assert status_code == '' or len(status_code) <= 30 and status_code.encode('ascii')
-    assert 0 <= total_locked_amount <= MAX_INT64
-
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
     if rt and not rt.is_finalized:
         if status_code != SC_OK and rt.debtor_id == debtor_id and rt.creditor_id == creditor_id:
@@ -287,13 +268,6 @@ def process_prepared_direct_transfer_signal(
         coordinator_request_id: int,
         locked_amount: int,
         recipient: str) -> None:
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= transfer_id <= MAX_INT64
-    assert MIN_INT64 <= coordinator_id <= MAX_INT64
-    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
-    assert 0 <= locked_amount <= MAX_INT64
 
     def dismiss_prepared_transfer():
         db.session.add(FinalizeTransferSignal(
@@ -314,6 +288,7 @@ def process_prepared_direct_transfer_signal(
         and rt.debtor_id == debtor_id
         and rt.creditor_id == creditor_id
         and rt.recipient == recipient
+        and rt.locked_amount <= locked_amount
     )
     if the_signal_matches_the_transfer:
         assert rt is not None
@@ -347,9 +322,6 @@ def process_finalized_direct_transfer_signal(
         recipient: str,
         status_code: str,
         total_locked_amount: int) -> None:
-
-    assert 0 <= len(status_code.encode('ascii')) <= 30
-    assert 0 <= total_locked_amount <= MAX_INT64
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
 
