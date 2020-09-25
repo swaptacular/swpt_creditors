@@ -18,7 +18,7 @@ ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_
 
 @atomic
 def generate_new_creditor_id() -> int:
-    agent_config = AgentConfig.query.one()
+    agent_config = _get_agent_config()
     return randint(agent_config.min_creditor_id, agent_config.max_creditor_id)
 
 
@@ -54,7 +54,7 @@ def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Option
     if len(creditor_ids) > 0:
         next_creditor_id = creditor_ids[-1] + 1
     else:
-        next_creditor_id = AgentConfig.query.one().max_creditor_id + 1
+        next_creditor_id = _get_agent_config().max_creditor_id + 1
 
     if next_creditor_id > MAX_INT64 or next_creditor_id <= start_from:
         next_creditor_id = None
@@ -224,9 +224,13 @@ def _delete_creditor_running_transfers(creditor_id: int) -> None:
         delete(synchronize_session=False)
 
 
+def _get_agent_config() -> AgentConfig:
+    return AgentConfig.query.one()
+
+
 def _is_correct_creditor_id(creditor_id: int) -> bool:
     try:
-        config = AgentConfig.query.one()
+        config = _get_agent_config()
         if not config.min_creditor_id <= creditor_id <= config.max_creditor_id:
             raise ValueError()
     except (exc.NoResultFound, ValueError):
