@@ -615,11 +615,11 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 0
 
-    assert p.process_pending_ledger_update(2222, D_ID, max_count=max_count)
-    assert p.process_pending_ledger_update(C_ID, 1111, max_count=max_count)
+    assert p.process_pending_ledger_update(2222, D_ID, max_count=max_count, max_delay=timedelta(days=10000))
+    assert p.process_pending_ledger_update(C_ID, 1111, max_count=max_count, max_delay=timedelta(days=10000))
 
     n = 0
-    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count):
+    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)):
         x = len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000))
         assert x > n
         n = x
@@ -635,7 +635,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     p.process_account_transfer_signal(**params)
 
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
-    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count):
+    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)):
         pass
     assert get_ledger_update_entries_count() > lue_count
     assert p.get_pending_ledger_updates() == []

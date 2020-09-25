@@ -8,8 +8,8 @@ from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     LogEntry, PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
     TRANSFER_NOTE_MAX_BYTES, HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS, \
     MIN_INT64, MAX_INT64
-from .common import get_paths_and_types, ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, \
-    LOAD_ONLY_CONFIG_RELATED_COLUMNS, LOAD_ONLY_INFO_RELATED_COLUMNS
+from .common import ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
+    LOAD_ONLY_INFO_RELATED_COLUMNS
 from .common import contain_principal_overflow
 from .creditors import _is_correct_creditor_id
 from .accounts import _insert_info_update_pending_log_entry
@@ -192,18 +192,18 @@ def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
 
 
 @atomic
-def process_pending_ledger_update(
-        creditor_id: int,
-        debtor_id: int,
-        *,
-        max_count: int = None,
-        max_delay: timedelta = HUGE_INTERVAL) -> bool:
+def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: int, max_delay: timedelta) -> bool:
+    """Add pending committed transfers to the account's ledger.
 
-    """Returns `False` if some legible committed transfers remained unprocessed.
+    This function will not process more than `max_count`
+    transfers. When some legible committed transfers remained
+    unprocessed, `False` will be returned. In this case the function
+    should be called again, and again, until it returns `True`.
 
-    Note that when an `AccountTransfer` message has been lost, the
-    account's ledger is able to automatically "repair" after some
-    time.
+    When one or more `AccountTransfer` messages have been lost, after
+    some time (determined by the `max_delay` attribute), the account's
+    ledger will be automatically "repaired", and the lost transfers
+    skipped.
 
     """
 
