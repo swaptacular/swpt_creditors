@@ -296,7 +296,6 @@ class AccountScanner(TableScanner):
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
 
-        paths, types = get_paths_and_types()
         return PendingLogEntry(
             creditor_id=creditor_id,
             added_at=current_ts,

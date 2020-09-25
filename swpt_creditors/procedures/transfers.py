@@ -98,7 +98,6 @@ def initiate_running_transfer(
     with db.retry_on_integrity_error():
         db.session.add(new_running_transfer)
 
-    paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at=current_ts,
@@ -144,7 +143,6 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
         raise errors.TransferDoesNotExist()
 
     assert number_of_deleted_rows == 1
-    paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at=datetime.now(tz=timezone.utc),
@@ -245,7 +243,6 @@ def process_account_transfer_signal(
             previous_transfer_number=previous_transfer_number,
         ))
 
-    paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at=current_ts,
@@ -393,7 +390,6 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
         rt.error_code = error_code
         rt.total_locked_amount = total_locked_amount
 
-        paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
             creditor_id=rt.creditor_id,
             added_at=current_ts,
