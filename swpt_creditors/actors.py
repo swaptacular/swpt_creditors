@@ -27,14 +27,14 @@ def on_rejected_config_signal(
     assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
 
     procedures.process_rejected_config_signal(
-        debtor_id,
-        creditor_id,
-        iso8601.parse_date(config_ts),
-        config_seqnum,
-        negligible_amount,
-        config,
-        config_flags,
-        rejection_code,
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        config_ts=iso8601.parse_date(config_ts),
+        config_seqnum=config_seqnum,
+        negligible_amount=negligible_amount,
+        config=config,
+        config_flags=config_flags,
+        rejection_code=rejection_code,
     )
 
 
@@ -71,28 +71,28 @@ def on_account_update_signal(
     assert len(debtor_info_iri) <= 200
 
     procedures.process_account_update_signal(
-        debtor_id,
-        creditor_id,
-        iso8601.parse_date(creation_date).date(),
-        iso8601.parse_date(last_change_ts),
-        last_change_seqnum,
-        principal,
-        interest,
-        interest_rate,
-        iso8601.parse_date(last_interest_rate_change_ts),
-        transfer_note_max_bytes,
-        status_flags,
-        iso8601.parse_date(last_config_ts),
-        last_config_seqnum,
-        negligible_amount,
-        config_flags,
-        config,
-        account_id,
-        debtor_info_iri,
-        last_transfer_number,
-        iso8601.parse_date(last_transfer_committed_at),
-        iso8601.parse_date(ts),
-        ttl,
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        creation_date=iso8601.parse_date(creation_date).date(),
+        last_change_ts=iso8601.parse_date(last_change_ts),
+        last_change_seqnum=last_change_seqnum,
+        principal=principal,
+        interest=interest,
+        interest_rate=interest_rate,
+        last_interest_rate_change_ts=iso8601.parse_date(last_interest_rate_change_ts),
+        transfer_note_max_bytes=transfer_note_max_bytes,
+        status_flags=status_flags,
+        last_config_ts=iso8601.parse_date(last_config_ts),
+        last_config_seqnum=last_config_seqnum,
+        negligible_amount=negligible_amount,
+        config_flags=config_flags,
+        config=config,
+        account_id=account_id,
+        debtor_info_iri=debtor_info_iri,
+        last_transfer_number=last_transfer_number,
+        last_transfer_committed_at=iso8601.parse_date(last_transfer_committed_at),
+        ts=iso8601.parse_date(ts),
+        ttl=ttl,
     )
 
 
@@ -105,9 +105,9 @@ def on_account_purge_signal(
         *args, **kwargs) -> None:
 
     procedures.process_account_purge_signal(
-        debtor_id,
-        creditor_id,
-        date.fromisoformat(creation_date),
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        creation_date=date.fromisoformat(creation_date),
     )
 
 
@@ -143,21 +143,21 @@ def on_account_transfer_signal(
     assert previous_transfer_number < transfer_number
 
     procedures.process_account_transfer_signal(
-        debtor_id,
-        creditor_id,
-        date.fromisoformat(creation_date),
-        transfer_number,
-        coordinator_type,
-        sender,
-        recipient,
-        acquired_amount,
-        transfer_note_format,
-        transfer_note,
-        iso8601.parse_date(committed_at),
-        principal,
-        iso8601.parse_date(ts),
-        previous_transfer_number,
-        timedelta(days=int(current_app.config['APP_LOG_RETENTION_DAYS'])),
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        creation_date=date.fromisoformat(creation_date),
+        transfer_number=transfer_number,
+        coordinator_type=coordinator_type,
+        sender=sender,
+        recipient=recipient,
+        acquired_amount=acquired_amount,
+        transfer_note_format=transfer_note_format,
+        transfer_note=transfer_note,
+        committed_at=iso8601.parse_date(committed_at),
+        principal=principal,
+        ts=iso8601.parse_date(ts),
+        previous_transfer_number=previous_transfer_number,
+        retention_interval=timedelta(days=int(current_app.config['APP_LOG_RETENTION_DAYS'])),
     )
 
 
@@ -179,12 +179,12 @@ def on_rejected_direct_transfer_signal(
     assert 0 <= total_locked_amount <= MAX_INT64
 
     procedures.process_rejected_direct_transfer_signal(
-        coordinator_id,
-        coordinator_request_id,
-        status_code,
-        total_locked_amount,
-        debtor_id,
-        creditor_id,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+        status_code=status_code,
+        total_locked_amount=total_locked_amount,
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
     )
 
 
@@ -207,13 +207,13 @@ def on_prepared_direct_transfer_signal(
     assert coordinator_type == CT_DIRECT
 
     procedures.process_prepared_direct_transfer_signal(
-        debtor_id,
-        creditor_id,
-        transfer_id,
-        coordinator_id,
-        coordinator_request_id,
-        locked_amount,
-        recipient,
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        transfer_id=transfer_id,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+        locked_amount=locked_amount,
+        recipient=recipient,
     )
 
 
@@ -238,13 +238,13 @@ def on_finalized_direct_transfer_signal(
     assert 0 <= total_locked_amount <= MAX_INT64
 
     procedures.process_finalized_direct_transfer_signal(
-        debtor_id,
-        creditor_id,
-        transfer_id,
-        coordinator_id,
-        coordinator_request_id,
-        committed_amount,
-        recipient,
-        status_code,
-        total_locked_amount,
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        transfer_id=transfer_id,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+        committed_amount=committed_amount,
+        recipient=recipient,
+        status_code=status_code,
+        total_locked_amount=total_locked_amount,
     )
