@@ -193,7 +193,7 @@ def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
 
 @atomic
 def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: int, max_delay: timedelta) -> bool:
-    """Add pending committed transfers to the account's ledger.
+    """Try to add pending committed transfers to the account's ledger.
 
     This function will not process more than `max_count`
     transfers. When some legible committed transfers remained
@@ -208,7 +208,6 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
     """
 
     current_ts = datetime.now(tz=timezone.utc)
-
     query = db.session.\
         query(PendingLedgerUpdate, AccountData).\
         join(PendingLedgerUpdate.account_data).\
@@ -237,7 +236,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
         ) or log_entry
     else:
         data.ledger_pending_transfer_ts = None
-        is_done = max_count is None or len(transfers) < max_count
+        is_done = len(transfers) < max_count
 
     if is_done:
         log_entry = _fix_missing_last_transfer_if_necessary(data, max_delay, current_ts) or log_entry
@@ -249,8 +248,8 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, max_count: i
     return is_done
 
 
-def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> List[Tuple]:
-    transfer_numbers_query = db.session.\
+def _get_sorted_pending_transfers(data: AccountData, max_count: int) -> List[Tuple]:
+    return db.session.\
         query(
             CommittedTransfer.previous_transfer_number,
             CommittedTransfer.transfer_number,
@@ -264,12 +263,9 @@ def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> L
             CommittedTransfer.creation_date == data.creation_date,
             CommittedTransfer.transfer_number > data.ledger_last_transfer_number,
         ).\
-        order_by(CommittedTransfer.transfer_number)
-
-    if max_count is not None:
-        transfer_numbers_query = transfer_numbers_query.limit(max_count)
-
-    return transfer_numbers_query.all()
+        order_by(CommittedTransfer.transfer_number).\
+        limit(max_count).\
+        all()
 
 
 def _fix_missing_last_transfer_if_necessary(
