@@ -59,6 +59,7 @@ def initiate_running_transfer(
         locked_amount: int = 0) -> RunningTransfer:
 
     current_ts = datetime.now(tz=timezone.utc)
+
     creditor = get_active_creditor(creditor_id)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
@@ -348,6 +349,7 @@ def _find_running_transfer(coordinator_id: int, coordinator_request_id: int) -> 
 def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, total_locked_amount: int = None) -> None:
     if not rt.is_finalized:
         current_ts = datetime.now(tz=timezone.utc)
+
         rt.latest_update_id += 1
         rt.latest_update_ts = current_ts
         rt.finalized_at = current_ts

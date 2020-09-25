@@ -6,8 +6,7 @@ from swpt_lib.utils import increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import Account, AccountData, ConfigureAccountSignal, \
     AccountDisplay, AccountKnowledge, AccountExchange, LedgerEntry, PendingLogEntry, \
-    Creditor, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, DEFAULT_NEGLIGIBLE_AMOUNT, \
-    DEFAULT_CONFIG_FLAGS
+    Creditor, DEFAULT_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS
 from .common import allow_update, get_paths_and_types, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
     LOAD_ONLY_INFO_RELATED_COLUMNS, LOAD_ONLY_LEDGER_RELATED_COLUMNS
 from .creditors import get_active_creditor, _get_creditor, _add_log_entry
@@ -54,6 +53,7 @@ def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
 @atomic
 def create_new_account(creditor_id: int, debtor_id: int) -> Account:
     current_ts = datetime.now(tz=timezone.utc)
+
     creditor = get_active_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()
@@ -193,6 +193,7 @@ def update_account_display(
         latest_update_id: int) -> AccountDisplay:
 
     current_ts = datetime.now(tz=timezone.utc)
+
     display = get_account_display(creditor_id, debtor_id, lock=True)
     if display is None:
         raise errors.AccountDoesNotExist()
@@ -247,6 +248,7 @@ def update_account_knowledge(
         data: dict) -> AccountKnowledge:
 
     current_ts = datetime.now(tz=timezone.utc)
+
     knowledge = get_account_knowledge(creditor_id, debtor_id, lock=True)
     if knowledge is None:
         raise errors.AccountDoesNotExist()
@@ -293,6 +295,7 @@ def update_account_exchange(
         latest_update_id: int) -> AccountKnowledge:
 
     current_ts = datetime.now(tz=timezone.utc)
+
     exchange = get_account_exchange(creditor_id, debtor_id, lock=True)
     if exchange is None:
         raise errors.AccountDoesNotExist()
@@ -416,9 +419,10 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
 
 def _log_account_deletion(creditor: Creditor, debtor_id: int, current_ts: datetime) -> None:
     creditor_id = creditor.creditor_id
-    paths, types = get_paths_and_types()
     creditor.accounts_list_latest_update_id += 1
     creditor.accounts_list_latest_update_ts = current_ts
+    paths, types = get_paths_and_types()
+
     _add_log_entry(
         creditor,
         object_type=types.accounts_list,
@@ -449,6 +453,7 @@ def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetim
     data.info_latest_update_id += 1
     data.info_latest_update_ts = current_ts
     paths, types = get_paths_and_types()
+
     db.session.add(PendingLogEntry(
         creditor_id=data.creditor_id,
         added_at=current_ts,
