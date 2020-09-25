@@ -42,7 +42,7 @@ class PrepareTransferSignal(Signal):
         min_account_balance = fields.Constant(0)
         min_interest_rate = fields.Float()
         max_commit_delay = fields.Integer()
-        inserted_at_ts = fields.DateTime(data_key='ts')
+        inserted_at = fields.DateTime(data_key='ts')
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
@@ -68,7 +68,7 @@ class FinalizeTransferSignal(Signal):
         transfer_note_format = fields.String()
         transfer_note = fields.String()
         finalization_flags = fields.Constant(0)
-        inserted_at_ts = fields.DateTime(data_key='ts')
+        inserted_at = fields.DateTime(data_key='ts')
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)

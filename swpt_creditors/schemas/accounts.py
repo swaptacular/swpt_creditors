@@ -130,7 +130,7 @@ class LedgerEntrySchema(Schema):
                     'be equal to the ID of the previous ledger entry plus one.',
         example=12345,
     )
-    added_at_ts = fields.DateTime(
+    added_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='addedAt',
@@ -806,7 +806,7 @@ class AccountSchema(MutableResourceSchema):
         description="Account's `DebtorIdentity`.",
         example={'type': 'DebtorIdentity', 'uri': 'swpt:1'},
     )
-    created_at_ts = fields.DateTime(
+    created_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='createdAt',

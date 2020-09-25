@@ -20,7 +20,7 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         description='The type of this object.',
         example='Creditor',
     )
-    created_at_ts = fields.DateTime(
+    created_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='createdAt',
@@ -278,7 +278,7 @@ class LogEntrySchema(Schema):
                     'be equal to the ID of the previous log entry plus one.',
         example=12345,
     )
-    added_at_ts = fields.DateTime(
+    added_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='addedAt',

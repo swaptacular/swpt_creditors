@@ -154,7 +154,7 @@ def update_account_config(
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type=types.account_config,
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
@@ -229,7 +229,7 @@ def update_account_display(
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type=types.account_display,
         object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
@@ -271,7 +271,7 @@ def update_account_knowledge(
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type=types.account_knowledge,
         object_uri=paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
@@ -330,7 +330,7 @@ def update_account_exchange(
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type=types.account_exchange,
         object_uri=paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
@@ -398,7 +398,7 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
     account = Account(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
-        created_at_ts=current_ts,
+        created_at=current_ts,
         knowledge=AccountKnowledge(latest_update_ts=current_ts),
         exchange=AccountExchange(latest_update_ts=current_ts),
         display=AccountDisplay(latest_update_ts=current_ts),
@@ -415,14 +415,14 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
         object_type=types.account,
         object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=1,
-        added_at_ts=current_ts,
+        added_at=current_ts,
     )
     _add_log_entry(
         creditor,
         object_type=types.accounts_list,
         object_uri=paths.accounts_list(creditorId=creditor_id),
         object_update_id=creditor.accounts_list_latest_update_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
     )
 
     return account
@@ -438,7 +438,7 @@ def _log_account_deletion(creditor: Creditor, debtor_id: int, current_ts: dateti
         object_type=types.accounts_list,
         object_uri=paths.accounts_list(creditorId=creditor_id),
         object_update_id=creditor.accounts_list_latest_update_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
     )
 
     for object_type, object_uri in [
@@ -454,7 +454,7 @@ def _log_account_deletion(creditor: Creditor, debtor_id: int, current_ts: dateti
             creditor,
             object_type=object_type,
             object_uri=object_uri,
-            added_at_ts=current_ts,
+            added_at=current_ts,
             is_deleted=True,
         )
 
@@ -465,7 +465,7 @@ def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetim
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=data.creditor_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type=types.account_info,
         object_uri=paths.account_info(creditorId=data.creditor_id, debtorId=data.debtor_id),
         object_update_id=data.info_latest_update_id,

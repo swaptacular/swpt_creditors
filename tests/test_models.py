@@ -31,7 +31,7 @@ def test_log_entry(db_session, current_ts):
     le = m.LogEntry(
         creditor_id=1,
         entry_id=2,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type='Object',
         object_uri='/object/1',
         object_update_id=1,

@@ -493,7 +493,7 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
         'acquired_amount': 100,
         'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
-        'committed_at_ts': current_ts,
+        'committed_at': current_ts,
         'principal': 1000,
         'ts': current_ts - timedelta(days=6),
         'previous_transfer_number': 0,
@@ -517,7 +517,7 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
     assert ct.acquired_amount == 100
     assert ct.transfer_note_format == params['transfer_note_format']
     assert ct.transfer_note == params['transfer_note']
-    assert ct.committed_at_ts == current_ts
+    assert ct.committed_at == current_ts
     assert ct.principal == 1000
     assert ct.previous_transfer_number == 0
     assert get_committed_tranfer_entries_count() == 1
@@ -566,7 +566,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
         'acquired_amount': 1000,
         'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
-        'committed_at_ts': current_ts,
+        'committed_at': current_ts,
         'principal': 1100,
         'ts': current_ts,
         'previous_transfer_number': 0,
@@ -722,8 +722,8 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert rt.recipient == '666'
     assert rt.transfer_note_format == 'json'
     assert rt.transfer_note == '{}'
-    assert isinstance(rt.initiated_at_ts, datetime)
-    assert rt.finalized_at_ts is None
+    assert isinstance(rt.initiated_at, datetime)
+    assert rt.finalized_at is None
     assert rt.error_code is None
     assert rt.total_locked_amount is None
     assert rt.deadline == current_ts + timedelta(seconds=1000)
@@ -751,8 +751,8 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert rt.recipient == '666'
     assert rt.transfer_note_format == 'json'
     assert rt.transfer_note == '{}'
-    assert isinstance(rt.initiated_at_ts, datetime)
-    assert rt.finalized_at_ts is not None
+    assert isinstance(rt.initiated_at, datetime)
+    assert rt.finalized_at is not None
     assert rt.error_code == 'TEST_ERROR'
     assert rt.total_locked_amount == 600
     assert rt.deadline == current_ts + timedelta(seconds=1000)
@@ -765,7 +765,7 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     p.process_pending_log_entries(C_ID)
     le = LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_TRANSFER).filter(LogEntry.object_update_id > 1).one()
     assert le.data is None
-    assert le.data_finalized_at_ts == rt.finalized_at_ts
+    assert le.data_finalized_at == rt.finalized_at
     assert le.data_error_code == rt.error_code
 
 
@@ -779,7 +779,7 @@ def test_process_rejected_direct_transfer_unexpected_error(db_session, account, 
     assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
-    assert rt.finalized_at_ts is not None
+    assert rt.finalized_at is not None
     assert rt.error_code == models.SC_UNEXPECTED_ERROR
     assert rt.total_locked_amount is None
     assert rt.transfer_id is None
@@ -811,13 +811,13 @@ def test_successful_transfer(db_session, account, current_ts):
     assert fts.transfer_note_format == 'json'
     assert fts.transfer_note == '{}'
     rt = RunningTransfer.query.one()
-    assert rt.finalized_at_ts is None
+    assert rt.finalized_at is None
     assert rt.transfer_id == 123
     assert rt.error_code is None
     assert rt.total_locked_amount is None
     p.process_finalized_direct_transfer_signal(
         D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 1000, '666', 'OK', 100)
-    assert rt.finalized_at_ts is not None
+    assert rt.finalized_at is not None
     assert rt.transfer_id == 123
     assert rt.error_code is None
     assert rt.total_locked_amount is None
@@ -825,7 +825,7 @@ def test_successful_transfer(db_session, account, current_ts):
     p.process_pending_log_entries(C_ID)
     le = LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_TRANSFER).filter(LogEntry.object_update_id > 1).one()
     assert le.data is None
-    assert le.data_finalized_at_ts == rt.finalized_at_ts
+    assert le.data_finalized_at == rt.finalized_at
     assert le.data_error_code is None
 
 
@@ -838,14 +838,14 @@ def test_unsuccessful_transfer(db_session, account, current_ts):
         p.cancel_running_transfer(C_ID, TEST_UUID)
 
     rt = RunningTransfer.query.one()
-    assert rt.finalized_at_ts is None
+    assert rt.finalized_at is None
     assert rt.transfer_id == 123
     assert rt.error_code is None
     assert rt.total_locked_amount is None
     p.process_finalized_direct_transfer_signal(
         D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 0, '666', 'TEST_ERROR', 100)
     rt = RunningTransfer.query.one()
-    assert rt.finalized_at_ts is not None
+    assert rt.finalized_at is not None
     assert rt.transfer_id == 123
     assert rt.error_code == 'TEST_ERROR'
     assert rt.total_locked_amount == 100
@@ -859,7 +859,7 @@ def test_unsuccessful_transfer_unexpected_error(db_session, account, current_ts)
     p.process_finalized_direct_transfer_signal(
         D_ID, C_ID, 123, C_ID, rt.coordinator_request_id, 999, '666', 'TEST_ERROR', 100)
     rt = RunningTransfer.query.one()
-    assert rt.finalized_at_ts is not None
+    assert rt.finalized_at is not None
     assert rt.transfer_id == 123
     assert rt.error_code == models.SC_UNEXPECTED_ERROR
     assert rt.total_locked_amount is None

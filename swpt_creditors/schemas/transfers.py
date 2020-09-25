@@ -120,7 +120,7 @@ class TransferResultSchema(Schema):
         description='The type of this object.',
         example='TransferResult',
     )
-    finalized_at_ts = fields.DateTime(
+    finalized_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='finalizedAt',
@@ -255,13 +255,13 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         dump_only=True,
         description="Transfer's `TransferOptions`.",
     )
-    initiated_at_ts = fields.DateTime(
+    initiated_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='initiatedAt',
         description='The moment at which the transfer was initiated.',
     )
-    checkup_at_ts = fields.Method(
+    checkup_at = fields.Method(
         'get_checkup_at_string',
         type='string',
         format='date-time',
@@ -296,8 +296,8 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         if obj.deadline is not None:
             obj.options['optional_deadline'] = obj.deadline
 
-        if obj.finalized_at_ts:
-            result = {'finalized_at_ts': obj.finalized_at_ts}
+        if obj.finalized_at:
+            result = {'finalized_at': obj.finalized_at}
 
             error_code = obj.error_code
             if error_code is None:
@@ -311,11 +311,11 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         return obj
 
     def get_checkup_at_string(self, obj):
-        if obj.finalized_at_ts:
+        if obj.finalized_at:
             return missing
 
         calc_checkup_datetime = self.context['calc_checkup_datetime']
-        return calc_checkup_datetime(obj.debtor_id, obj.initiated_at_ts).isoformat()
+        return calc_checkup_datetime(obj.debtor_id, obj.initiated_at).isoformat()
 
 
 class TransferCancelationRequestSchema(Schema):
@@ -400,7 +400,7 @@ class CommittedTransferSchema(Schema):
                     'recipient (and the sender) to see. Can be an empty string.',
         example='',
     )
-    committed_at_ts = fields.DateTime(
+    committed_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='committedAt',

@@ -165,7 +165,7 @@ def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> No
         object_type=entry.object_type,
         object_uri=entry.object_uri,
         object_update_id=entry.object_update_id,
-        added_at_ts=entry.added_at_ts,
+        added_at=entry.added_at,
         is_deleted=entry.is_deleted,
         data=entry.data,
         **aux_fields,
@@ -179,21 +179,21 @@ def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> No
         # at the time the running transfer was created/deleted, the
         # correct value of the `object_update_id` field had been
         # unknown (a lock on creditor's table row would be required).
-        _add_transfers_list_update_log_entry(creditor, entry.added_at_ts)
+        _add_transfers_list_update_log_entry(creditor, entry.added_at)
 
     db.session.delete(entry)
 
 
-def _add_transfers_list_update_log_entry(creditor: Creditor, added_at_ts: datetime) -> None:
+def _add_transfers_list_update_log_entry(creditor: Creditor, added_at: datetime) -> None:
     paths, types = get_paths_and_types()
     creditor.transfers_list_latest_update_id += 1
-    creditor.transfers_list_latest_update_ts = added_at_ts
+    creditor.transfers_list_latest_update_ts = added_at
     _add_log_entry(
         creditor,
         object_type=types.transfers_list,
         object_uri=paths.transfers_list(creditorId=creditor.creditor_id),
         object_update_id=creditor.transfers_list_latest_update_id,
-        added_at_ts=creditor.transfers_list_latest_update_ts,
+        added_at=creditor.transfers_list_latest_update_ts,
     )
 
 

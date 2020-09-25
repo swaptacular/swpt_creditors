@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: af6d7a301637
+Revision ID: ed7a6341e1f7
 Revises: 8d8c816257ce
-Create Date: 2020-09-25 15:33:31.952125
+Create Date: 2020-09-25 16:05:26.978375
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'af6d7a301637'
+revision = 'ed7a6341e1f7'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -38,7 +38,7 @@ def upgrade():
     sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
-    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('acquired_amount != 0'),
@@ -48,7 +48,7 @@ def upgrade():
     )
     op.create_index('idx_committed_transfer_pk', 'committed_transfer', ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], unique=True)
     op.create_table('configure_account_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -61,7 +61,7 @@ def upgrade():
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is activated, 2 - is deactivated."),
-    sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('reservation_id', sa.BigInteger(), server_default=sa.text("nextval('creditor_reservation_id_seq')"), nullable=True),
     sa.Column('last_log_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_latest_update_id', sa.BigInteger(), nullable=False),
@@ -70,7 +70,7 @@ def upgrade():
     sa.Column('accounts_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('transfers_list_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('transfers_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('deactivated_at_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. To be deactivated, the creditor must be activated first. Once deactivated, a creditor stays deactivated until it is deleted. A `NULL` value for this column means either that the creditor has not been deactivated yet, or that the deactivation date is unknown.'),
+    sa.Column('deactivation_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. To be deactivated, the creditor must be activated first. Once deactivated, a creditor stays deactivated until it is deleted. A `NULL` value for this column means either that the creditor has not been deactivated yet, or that the deactivation date is unknown.'),
     sa.CheckConstraint('(status & 2) = 0 OR (status & 1) != 0'),
     sa.CheckConstraint('accounts_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
@@ -79,7 +79,7 @@ def upgrade():
     )
     op.create_index('idx_creditor_pk', 'creditor', ['creditor_id'], unique=True)
     op.create_table('finalize_transfer_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -99,14 +99,14 @@ def upgrade():
     sa.Column('transfer_number', sa.BigInteger(), nullable=True),
     sa.Column('aquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('added_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('creation_date IS NULL AND transfer_number IS NULL OR creation_date IS NOT NULL AND transfer_number IS NOT NULL'),
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('transfer_number > 0')
     )
     op.create_index('idx_ledger_entry_pk', 'ledger_entry', ['creditor_id', 'debtor_id', 'entry_id'], unique=True)
     op.create_table('log_entry',
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('added_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('object_type', sa.String(), nullable=True),
     sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
@@ -119,7 +119,7 @@ def upgrade():
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=True),
     sa.Column('data_principal', sa.BigInteger(), nullable=True),
     sa.Column('data_next_entry_id', sa.BigInteger(), nullable=True),
-    sa.Column('data_finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('data_finalized_at', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('data_error_code', sa.String(), nullable=True),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('entry_id', sa.BigInteger(), nullable=False),
@@ -130,7 +130,7 @@ def upgrade():
     )
     op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
     op.create_table('prepare_transfer_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -143,7 +143,7 @@ def upgrade():
     op.create_table('account',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('created_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('latest_update_id > 0'),
@@ -151,7 +151,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'debtor_id')
     )
     op.create_table('pending_log_entry',
-    sa.Column('added_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('added_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('object_type', sa.String(), nullable=True),
     sa.Column('object_uri', sa.String(), nullable=True),
     sa.Column('object_update_id', sa.BigInteger(), nullable=True),
@@ -164,7 +164,7 @@ def upgrade():
     sa.Column('transfer_uuid', postgresql.UUID(as_uuid=True), nullable=True),
     sa.Column('data_principal', sa.BigInteger(), nullable=True),
     sa.Column('data_next_entry_id', sa.BigInteger(), nullable=True),
-    sa.Column('data_finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('data_finalized_at', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('data_error_code', sa.String(), nullable=True),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('pending_entry_id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -184,8 +184,8 @@ def upgrade():
     sa.Column('recipient', sa.String(), nullable=False),
     sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
-    sa.Column('initiated_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('initiated_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('finalized_at', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('error_code', sa.String(), nullable=True),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=True),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=True),
@@ -196,7 +196,7 @@ def upgrade():
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount >= 0'),
-    sa.CheckConstraint('error_code IS NULL OR finalized_at_ts IS NOT NULL'),
+    sa.CheckConstraint('error_code IS NULL OR finalized_at IS NOT NULL'),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('min_interest_rate >= -100.0'),

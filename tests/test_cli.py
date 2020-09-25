@@ -53,7 +53,7 @@ def test_process_ledger_entries(app, db_session, current_ts):
         'acquired_amount': 200,
         'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
-        'committed_at_ts': current_ts,
+        'committed_at': current_ts,
         'principal': 200,
         'ts': current_ts,
         'previous_transfer_number': 0,

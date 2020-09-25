@@ -223,9 +223,9 @@ def process_pending_ledger_update(
     log_entry = None
     committed_at_cutoff = current_ts - max_delay
     transfers = _get_sorted_pending_transfers(data, max_count)
-    for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at_ts in transfers:
-        if previous_transfer_number != data.ledger_last_transfer_number and committed_at_ts >= committed_at_cutoff:
-            data.ledger_pending_transfer_ts = committed_at_ts
+    for previous_transfer_number, transfer_number, acquired_amount, principal, committed_at in transfers:
+        if previous_transfer_number != data.ledger_last_transfer_number and committed_at >= committed_at_cutoff:
+            data.ledger_pending_transfer_ts = committed_at
             is_done = True
             break
         log_entry = _update_ledger(
@@ -256,7 +256,7 @@ def _get_sorted_pending_transfers(data: AccountData, max_count: int = None) -> L
             CommittedTransfer.transfer_number,
             CommittedTransfer.acquired_amount,
             CommittedTransfer.principal,
-            CommittedTransfer.committed_at_ts,
+            CommittedTransfer.committed_at,
         ).\
         filter(
             CommittedTransfer.creditor_id == data.creditor_id,
@@ -328,7 +328,7 @@ def _update_ledger(
             entry_id=data.ledger_last_entry_id,
             aquired_amount=acquired_amount,
             principal=principal,
-            added_at_ts=current_ts,
+            added_at=current_ts,
             creation_date=data.creation_date,
             transfer_number=transfer_number,
         ))
@@ -346,7 +346,7 @@ def _update_ledger(
 
         return PendingLogEntry(
             creditor_id=data.creditor_id,
-            added_at_ts=current_ts,
+            added_at=current_ts,
             object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER,
             debtor_id=data.debtor_id,
             object_update_id=data.ledger_latest_update_id,
@@ -382,7 +382,7 @@ def _make_correcting_ledger_entry_if_necessary(
                 entry_id=data.ledger_last_entry_id,
                 aquired_amount=safe_correction_amount,
                 principal=ledger_principal,
-                added_at_ts=current_ts,
+                added_at=current_ts,
             ))
             made_correcting_ledger_entry = True
 

@@ -21,7 +21,7 @@ class CommittedTransfer(db.Model):
     acquired_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_number = db.Column(db.BigInteger, nullable=False)
     __mapper_args__ = {
@@ -33,7 +33,7 @@ class CommittedTransfer(db.Model):
         db.CheckConstraint(previous_transfer_number >= 0),
         db.CheckConstraint(previous_transfer_number < transfer_number),
 
-        # TODO: `acquired_amount`, `principal`, `committed_at_ts`, and
+        # TODO: `acquired_amount`, `principal`, `committed_at`, and
         #       `previous_transfer_number` columns are not be part of
         #       the primary key, but should be included in the primary
         #       key index to allow index-only scans. Because
@@ -72,8 +72,8 @@ class RunningTransfer(db.Model):
     recipient = db.Column(db.String, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
-    initiated_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True))
+    initiated_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    finalized_at = db.Column(db.TIMESTAMP(timezone=True))
     error_code = db.Column(db.String)
     total_locked_amount = db.Column(db.BigInteger)
     deadline = db.Column(db.TIMESTAMP(timezone=True))
@@ -91,7 +91,7 @@ class RunningTransfer(db.Model):
         db.CheckConstraint(min_interest_rate >= -100.0),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(latest_update_id > 0),
-        db.CheckConstraint(or_(error_code == null(), finalized_at_ts != null())),
+        db.CheckConstraint(or_(error_code == null(), finalized_at != null())),
         db.Index('idx_coordinator_request_id', creditor_id, coordinator_request_id, unique=True),
         {
             'comment': 'Represents an initiated direct transfer. A new row is inserted when '
@@ -102,7 +102,7 @@ class RunningTransfer(db.Model):
 
     @property
     def is_finalized(self):
-        return bool(self.finalized_at_ts)
+        return bool(self.finalized_at)
 
     @property
     def is_settled(self):

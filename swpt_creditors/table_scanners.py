@@ -22,7 +22,7 @@ class CreditorScanner(TableScanner):
     """Garbage-collects inactive creditors."""
 
     table = Creditor.__table__
-    columns = [Creditor.creditor_id, Creditor.created_at_ts, Creditor.status, Creditor.deactivated_at_date]
+    columns = [Creditor.creditor_id, Creditor.created_at, Creditor.status, Creditor.deactivation_date]
     pk = tuple_(table.c.creditor_id,)
 
     def __init__(self):
@@ -52,7 +52,7 @@ class CreditorScanner(TableScanner):
         def not_activated_for_long_time(row) -> bool:
             return (
                 row[c.status] & activated_flag == 0
-                and row[c.created_at_ts] < inactive_cutoff_ts
+                and row[c.created_at] < inactive_cutoff_ts
             )
 
         ids_to_delete = [row[c.creditor_id] for row in rows if not_activated_for_long_time(row)]
@@ -60,7 +60,7 @@ class CreditorScanner(TableScanner):
             to_delete = Creditor.query.\
                 filter(Creditor.creditor_id.in_(ids_to_delete)).\
                 filter(Creditor.status.op('&')(activated_flag) == 0).\
-                filter(Creditor.created_at_ts < inactive_cutoff_ts).\
+                filter(Creditor.created_at < inactive_cutoff_ts).\
                 with_for_update(skip_locked=True).\
                 all()
 
@@ -76,8 +76,8 @@ class CreditorScanner(TableScanner):
             return (
                 row[c.status] & deactivated_flag != 0
                 and (
-                    row[c.deactivated_at_date] is None
-                    or row[c.deactivated_at_date] < deactivated_cutoff_date
+                    row[c.deactivation_date] is None
+                    or row[c.deactivation_date] < deactivated_cutoff_date
                 )
             )
 
@@ -87,8 +87,8 @@ class CreditorScanner(TableScanner):
                 filter(Creditor.creditor_id.in_(ids_to_delete)).\
                 filter(Creditor.status.op('&')(deactivated_flag) != 0).\
                 filter(or_(
-                    Creditor.deactivated_at_date == null(),
-                    Creditor.deactivated_at_date < deactivated_cutoff_date),
+                    Creditor.deactivation_date == null(),
+                    Creditor.deactivation_date < deactivated_cutoff_date),
                 ).\
                 with_for_update(skip_locked=True).\
                 all()
@@ -101,7 +101,7 @@ class LogEntryScanner(TableScanner):
     """Garbage-collects staled log entries."""
 
     table = LogEntry.__table__
-    columns = [LogEntry.creditor_id, LogEntry.entry_id, LogEntry.added_at_ts]
+    columns = [LogEntry.creditor_id, LogEntry.entry_id, LogEntry.added_at]
     pk = tuple_(table.c.creditor_id, table.c.entry_id)
 
     def __init__(self):
@@ -128,7 +128,7 @@ class LedgerEntryScanner(TableScanner):
     """Garbage-collects staled ledger entries."""
 
     table = LedgerEntry.__table__
-    columns = [LedgerEntry.creditor_id, LedgerEntry.debtor_id, LedgerEntry.entry_id, LedgerEntry.added_at_ts]
+    columns = [LedgerEntry.creditor_id, LedgerEntry.debtor_id, LedgerEntry.entry_id, LedgerEntry.added_at]
     pk = tuple_(table.c.creditor_id, table.c.debtor_id, table.c.entry_id)
 
     def __init__(self):
@@ -160,7 +160,7 @@ class CommittedTransferScanner(TableScanner):
         CommittedTransfer.debtor_id,
         CommittedTransfer.creation_date,
         CommittedTransfer.transfer_number,
-        CommittedTransfer.committed_at_ts,
+        CommittedTransfer.committed_at,
     ]
     pk = tuple_(
         table.c.creditor_id,
@@ -287,7 +287,7 @@ class AccountScanner(TableScanner):
                 entry_id=ledger_last_entry_id,
                 aquired_amount=safe_correction_amount,
                 principal=ledger_principal,
-                added_at_ts=current_ts,
+                added_at=current_ts,
             ))
 
         data.ledger_last_entry_id = ledger_last_entry_id
@@ -299,7 +299,7 @@ class AccountScanner(TableScanner):
         paths, types = get_paths_and_types()
         return PendingLogEntry(
             creditor_id=creditor_id,
-            added_at_ts=current_ts,
+            added_at=current_ts,
             object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER,
             debtor_id=debtor_id,
             object_update_id=data.ledger_latest_update_id,
@@ -377,7 +377,7 @@ class AccountScanner(TableScanner):
         paths, types = get_paths_and_types()
         return PendingLogEntry(
             creditor_id=data.creditor_id,
-            added_at_ts=current_ts,
+            added_at=current_ts,
             object_type=types.account_info,
             object_uri=paths.account_info(creditorId=data.creditor_id, debtorId=data.debtor_id),
             object_update_id=data.info_latest_update_id,

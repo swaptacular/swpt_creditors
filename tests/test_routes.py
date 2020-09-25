@@ -1053,7 +1053,7 @@ def test_get_committed_transfer(client, account, current_ts):
         'acquired_amount': 100,
         'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
-        'committed_at_ts': current_ts,
+        'committed_at': current_ts,
         'principal': 1000,
         'ts': current_ts,
         'previous_transfer_number': 0,

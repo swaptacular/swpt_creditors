@@ -40,7 +40,7 @@ class Creditor(db.Model):
                 f"{STATUS_IS_ACTIVATED_FLAG} - is activated, "
                 f"{STATUS_IS_DEACTIVATED_FLAG} - is deactivated.",
     )
-    created_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    created_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     reservation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
@@ -49,7 +49,7 @@ class Creditor(db.Model):
     accounts_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     transfers_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     transfers_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    deactivated_at_date = db.Column(
+    deactivation_date = db.Column(
         db.DATE,
         comment='The date on which the creditor was deactivated. When a creditor gets '
                 'deactivated, all its belonging objects (account, transfers, etc.) are '
@@ -94,7 +94,7 @@ class Creditor(db.Model):
 
     def deactivate(self):
         self.status |= Creditor.STATUS_IS_DEACTIVATED_FLAG
-        self.deactivated_at_date = datetime.now(tz=timezone.utc).date()
+        self.deactivation_date = datetime.now(tz=timezone.utc).date()
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1
@@ -109,7 +109,7 @@ class BaseLogEntry(db.Model):
     OTH_COMMITTED_TRANSFER = 2
     OTH_ACCOUNT_LEDGER = 3
 
-    added_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    added_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     object_type = db.Column(db.String)
     object_uri = db.Column(db.String)
     object_update_id = db.Column(db.BigInteger)
@@ -145,12 +145,12 @@ class BaseLogEntry(db.Model):
         # dictionary.
         'data_principal': 'principal',
         'data_next_entry_id': 'nextEntryId',
-        'data_finalized_at_ts': 'finalizedAt',
+        'data_finalized_at': 'finalizedAt',
         'data_error_code': 'errorCode',
     }
     data_principal = db.Column(db.BigInteger)
     data_next_entry_id = db.Column(db.BigInteger)
-    data_finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True))
+    data_finalized_at = db.Column(db.TIMESTAMP(timezone=True))
     data_error_code = db.Column(db.String)
 
     @property

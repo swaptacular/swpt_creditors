@@ -26,18 +26,18 @@ def test_scan_creditors(app_unsafe_session, current_ts):
     _create_new_creditor(5, activate=True)
     _create_new_creditor(6, activate=True)
     m.Creditor.query.filter_by(creditor_id=1).update({
-        'created_at_ts': current_ts - timedelta(days=30),
+        'created_at': current_ts - timedelta(days=30),
     })
     p.deactivate_creditor(3)
     p.deactivate_creditor(4)
     p.deactivate_creditor(6)
     m.Creditor.query.filter_by(creditor_id=3).update({
-        'created_at_ts': current_ts - timedelta(days=3000),
-        'deactivated_at_date': (current_ts - timedelta(days=3000)).date(),
+        'created_at': current_ts - timedelta(days=3000),
+        'deactivation_date': (current_ts - timedelta(days=3000)).date(),
     })
     m.Creditor.query.filter_by(creditor_id=4).update({
-        'created_at_ts': current_ts - timedelta(days=3000),
-        'deactivated_at_date': (current_ts - timedelta(days=3000)).date(),
+        'created_at': current_ts - timedelta(days=3000),
+        'deactivation_date': (current_ts - timedelta(days=3000)).date(),
     })
     db.session.commit()
     app = app_unsafe_session
@@ -102,17 +102,17 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     assert le.transfer_number is None
     assert le.aquired_amount == 1000
     assert le.principal == 1000
-    assert le.added_at_ts >= current_ts
+    assert le.added_at >= current_ts
 
     ple = m.PendingLogEntry.query.filter_by(object_type_hint=m.LogEntry.OTH_ACCOUNT_LEDGER).one()
     assert ple.creditor_id == C_ID
-    assert ple.added_at_ts >= current_ts
+    assert ple.added_at >= current_ts
     assert ple.object_update_id == 2
     assert not ple.is_deleted
 
     ple = m.PendingLogEntry.query.filter_by(object_type='AccountInfo').one()
     assert ple.creditor_id == C_ID
-    assert ple.added_at_ts >= current_ts
+    assert ple.added_at >= current_ts
     assert ple.object_update_id == 2
     assert not ple.is_deleted
 
@@ -158,7 +158,7 @@ def test_scan_log_entries(app_unsafe_session, current_ts):
         object_type='Creditor',
         object_uri='/creditors/1/',
         object_update_id=creditor.creditor_latest_update_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
     ))
     creditor.creditor_latest_update_id += 1
     db.session.add(m.LogEntry(
@@ -167,7 +167,7 @@ def test_scan_log_entries(app_unsafe_session, current_ts):
         object_type='Creditor',
         object_uri='/creditors/1/',
         object_update_id=creditor.creditor_latest_update_id,
-        added_at_ts=current_ts - timedelta(days=1000),
+        added_at=current_ts - timedelta(days=1000),
     ))
     db.session.commit()
     assert len(m.LogEntry.query.all()) == 2
@@ -179,7 +179,7 @@ def test_scan_log_entries(app_unsafe_session, current_ts):
     assert result.exit_code == 0
     assert len(m.LogEntry.query.all()) == 1
     le = m.LogEntry.query.one()
-    assert le.added_at_ts == current_ts
+    assert le.added_at == current_ts
 
     m.Creditor.query.delete()
     m.LogEntry.query.delete()
@@ -211,7 +211,7 @@ def test_scan_ledger_entries(app_unsafe_session, current_ts):
     assert result.exit_code == 0
     assert len(m.LedgerEntry.query.all()) == 1
     le = m.LedgerEntry.query.one()
-    assert le.added_at_ts == current_ts
+    assert le.added_at == current_ts
 
     m.Creditor.query.delete()
     m.LogEntry.query.delete()
@@ -241,14 +241,14 @@ def test_scan_committed_transfers(app_unsafe_session, current_ts):
         'acquired_amount': 100,
         'transfer_note_format': 'json',
         'transfer_note': '{"message": "test"}',
-        'committed_at_ts': current_ts - timedelta(days=1000),
+        'committed_at': current_ts - timedelta(days=1000),
         'principal': 1000,
         'ts': current_ts - timedelta(days=1000),
         'previous_transfer_number': 0,
         'retention_interval': timedelta(days=2000),
     }
     p.process_account_transfer_signal(**params)
-    params['committed_at_ts'] = current_ts
+    params['committed_at'] = current_ts
     params['ts'] = current_ts
     params['transfer_number'] = 2
     p.process_account_transfer_signal(**params)

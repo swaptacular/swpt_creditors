@@ -71,4 +71,4 @@ class Signal(db.Model):
         )
         broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
 
-    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)

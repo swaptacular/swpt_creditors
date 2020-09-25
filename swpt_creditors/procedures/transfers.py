@@ -101,7 +101,7 @@ def initiate_running_transfer(
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type_hint=LogEntry.OTH_TRANSFER,
         transfer_uuid=transfer_uuid,
         object_update_id=1,
@@ -115,7 +115,7 @@ def initiate_running_transfer(
         locked_amount=locked_amount,
         min_interest_rate=min_interest_rate,
         max_commit_delay=_calc_max_commit_delay(current_ts, deadline),
-        inserted_at_ts=current_ts,
+        inserted_at=current_ts,
     ))
 
     return new_running_transfer
@@ -147,7 +147,7 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=datetime.now(tz=timezone.utc),
+        added_at=datetime.now(tz=timezone.utc),
         object_type_hint=LogEntry.OTH_TRANSFER,
         transfer_uuid=transfer_uuid,
         is_deleted=True,
@@ -182,7 +182,7 @@ def process_account_transfer_signal(
         acquired_amount: int,
         transfer_note_format: str,
         transfer_note: str,
-        committed_at_ts: datetime,
+        committed_at: datetime,
         principal: int,
         ts: datetime,
         previous_transfer_number: int,
@@ -202,7 +202,7 @@ def process_account_transfer_signal(
     assert previous_transfer_number < transfer_number
 
     current_ts = datetime.now(tz=timezone.utc)
-    if (current_ts - min(ts, committed_at_ts)) > retention_interval:
+    if (current_ts - min(ts, committed_at)) > retention_interval:
         return
 
     committed_transfer_query = CommittedTransfer.query.filter_by(
@@ -240,7 +240,7 @@ def process_account_transfer_signal(
             acquired_amount=acquired_amount,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
-            committed_at_ts=committed_at_ts,
+            committed_at=committed_at,
             principal=principal,
             previous_transfer_number=previous_transfer_number,
         ))
@@ -248,7 +248,7 @@ def process_account_transfer_signal(
     paths, types = get_paths_and_types()
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
-        added_at_ts=current_ts,
+        added_at=current_ts,
         object_type_hint=LogEntry.OTH_COMMITTED_TRANSFER,
         debtor_id=debtor_id,
         creation_date=creation_date,
@@ -389,18 +389,18 @@ def _finalize_running_transfer(rt: RunningTransfer, error_code: str = None, tota
         current_ts = datetime.now(tz=timezone.utc)
         rt.latest_update_id += 1
         rt.latest_update_ts = current_ts
-        rt.finalized_at_ts = current_ts
+        rt.finalized_at = current_ts
         rt.error_code = error_code
         rt.total_locked_amount = total_locked_amount
 
         paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
             creditor_id=rt.creditor_id,
-            added_at_ts=current_ts,
+            added_at=current_ts,
             object_type_hint=LogEntry.OTH_TRANSFER,
             transfer_uuid=rt.transfer_uuid,
             object_update_id=rt.latest_update_id,
-            data_finalized_at_ts=current_ts,
+            data_finalized_at=current_ts,
             data_error_code=error_code,
         ))
 

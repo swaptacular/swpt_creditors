@@ -44,7 +44,7 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         description='The type of this object.',
         example='CreditorReservation',
     )
-    created_at_ts = fields.DateTime(
+    created_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='createdAt',
@@ -76,7 +76,7 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
 
     def get_valid_until_string(self, obj) -> str:
         calc_reservation_deadline = self.context['calc_reservation_deadline']
-        return calc_reservation_deadline(obj.created_at_ts).isoformat()
+        return calc_reservation_deadline(obj.created_at).isoformat()
 
 
 class CreditorActivationRequestSchema(ValidateTypeMixin, Schema):

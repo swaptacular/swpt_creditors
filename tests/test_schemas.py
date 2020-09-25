@@ -17,9 +17,9 @@ C_ID = 1
 def test_serialize_creditor(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_ts=datetime(2019, 11, 30),
+        created_at=datetime(2019, 11, 30),
         status=0,
-        deactivated_at_date=None,
+        deactivation_date=None,
         last_log_entry_id=1,
         creditor_latest_update_id=1,
         creditor_latest_update_ts=datetime(2020, 1, 1),
@@ -65,9 +65,9 @@ def test_deserialize_creditor(app):
 def test_serialize_wallet(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_ts=datetime(2019, 11, 30),
+        created_at=datetime(2019, 11, 30),
         status=0,
-        deactivated_at_date=None,
+        deactivation_date=None,
         last_log_entry_id=12345,
     )
     ws = schemas.WalletSchema(context=context)
@@ -95,7 +95,7 @@ def test_serialize_log_entry(app):
     le = models.LogEntry(
         creditor_id=C_ID,
         entry_id=12345,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
         object_type='Account',
         object_uri='/creditors/1/accounts/123/',
         object_update_id=777,
@@ -127,19 +127,19 @@ def test_serialize_log_entry(app):
     }
 
     current_ts = datetime.now(tz=timezone.utc)
-    le.data_finalized_at_ts = current_ts
+    le.data_finalized_at = current_ts
     assert les.dump(le)['data'] == le.data
 
     le.data = None
     assert les.dump(le)['data'] == {'finalizedAt': current_ts.isoformat()}
 
-    le.data_finalized_at_ts = None
+    le.data_finalized_at = None
     assert 'data' not in les.dump(le)
 
     transfer_le = models.LogEntry(
         creditor_id=C_ID,
         entry_id=12345,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
         object_type_hint=models.LogEntry.OTH_TRANSFER,
         transfer_uuid=UUID('123e4567-e89b-12d3-a456-426655440000'),
         object_update_id=777,
@@ -159,7 +159,7 @@ def test_serialize_log_entry(app):
     committed_transfer_le = models.LogEntry(
         creditor_id=C_ID,
         entry_id=12345,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
         object_type_hint=models.LogEntry.OTH_COMMITTED_TRANSFER,
         debtor_id=D_ID,
         creation_date=date(1970, 1, 2),
@@ -181,7 +181,7 @@ def test_serialize_log_entry(app):
     account_ledger_le = models.LogEntry(
         creditor_id=C_ID,
         entry_id=12345,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
         object_type_hint=models.LogEntry.OTH_ACCOUNT_LEDGER,
         debtor_id=D_ID,
         object_update_id=777,
@@ -201,7 +201,7 @@ def test_serialize_log_entry(app):
     messed_up_le = models.LogEntry(
         creditor_id=C_ID,
         entry_id=12345,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
         object_update_id=777,
         is_deleted=True,
         data=None,
@@ -221,7 +221,7 @@ def test_serialize_log_entries_page(app):
     le = models.LogEntry(
         creditor_id=C_ID,
         entry_id=12345,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
         object_type='Account',
         object_uri='/creditors/1/accounts/123/',
         is_deleted=True,
@@ -255,9 +255,9 @@ def test_serialize_log_entries_page(app):
 def test_serialize_accounts_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_ts=datetime(2019, 11, 30),
+        created_at=datetime(2019, 11, 30),
         status=0,
-        deactivated_at_date=None,
+        deactivation_date=None,
         last_log_entry_id=1,
         accounts_list_latest_update_id=1,
         accounts_list_latest_update_ts=datetime(2020, 1, 1),
@@ -277,9 +277,9 @@ def test_serialize_accounts_list(app):
 def test_serialize_transfers_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_ts=datetime(2019, 11, 30),
+        created_at=datetime(2019, 11, 30),
         status=0,
-        deactivated_at_date=None,
+        deactivation_date=None,
         last_log_entry_id=1,
         transfers_list_latest_update_id=1,
         transfers_list_latest_update_ts=datetime(2020, 1, 1),
@@ -589,14 +589,14 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({
         'type': 'AccountKnowledge',
         'latestUpdateId': 1,
-        'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
+        'xxx_yyy_zzz': '1970-01-01T00:00:00Z',
         'unknownField': {'innerField': n * 'Ш'},
     })
     assert data == {
         'type': 'AccountKnowledge',
         'latest_update_id': 1,
         'data': {
-            'interest_rate_changed_at_ts': '1970-01-01T00:00:00Z',
+            'xxx_yyy_zzz': '1970-01-01T00:00:00Z',
             'unknownField': {'innerField': n * 'Ш'},
         }
     }
@@ -883,7 +883,7 @@ def test_serialize_account(db_session):
         'type': 'Account',
         'uri': '/creditors/1/accounts/18446744073709551615/',
         'accountsList': {'uri': '/creditors/1/accounts-list'},
-        'createdAt': account.created_at_ts.isoformat(),
+        'createdAt': account.created_at.isoformat(),
         'latestUpdateId': account.latest_update_id,
         'latestUpdateAt': account.latest_update_ts.isoformat(),
         'debtor': {'type': 'DebtorIdentity', 'uri': 'swpt:18446744073709551615'},
@@ -1043,7 +1043,7 @@ def test_serialize_ledger_entry(app):
         transfer_number=666,
         aquired_amount=1000,
         principal=3000,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
     )
     les = schemas.LedgerEntrySchema(context=context)
     assert les.dump(le) == {
@@ -1115,7 +1115,7 @@ def test_serialize_ledger_entries_page(app):
         transfer_number=666,
         aquired_amount=1000,
         principal=3000,
-        added_at_ts=datetime(2020, 1, 2),
+        added_at=datetime(2020, 1, 2),
     )
     lep = {
         'uri': '/test',
@@ -1238,7 +1238,7 @@ def test_serialize_committed_transfer(app):
         creation_date=date(1970, 1, 5),
         transfer_number=666,
         coordinator_type='direct',
-        committed_at_ts=datetime(2020, 1, 1),
+        committed_at=datetime(2020, 1, 1),
         acquired_amount=1000,
         transfer_note_format='json',
         transfer_note=NOTE,
@@ -1492,7 +1492,7 @@ def test_serialize_transfer_result(app):
 
     tr = {
         'type': 'TransferResult',
-        'finalized_at_ts': datetime(2020, 1, 1),
+        'finalized_at': datetime(2020, 1, 1),
         'committed_amount': 1000,
         'error': {
             'type': 'TransferError',
@@ -1536,8 +1536,8 @@ def test_serialize_transfer(app):
         'locked_amount': 1000,
         'latest_update_id': 2,
         'latest_update_ts': datetime(2020, 1, 2),
-        'initiated_at_ts': models.TS0,
-        'finalized_at_ts': datetime(2020, 1, 4),
+        'initiated_at': models.TS0,
+        'finalized_at': datetime(2020, 1, 4),
         'error_code': models.SC_INSUFFICIENT_AVAILABLE_AMOUNT,
         'total_locked_amount': 5,
     }
@@ -1607,7 +1607,7 @@ def test_serialize_transfer(app):
         "latestUpdateId": 2,
     }
 
-    dt.finalized_at_ts = None
+    dt.finalized_at = None
     data = ts.dump(dt)
     assert iso8601.parse_date(data.pop('checkupAt'))
     assert data == {
@@ -1636,10 +1636,10 @@ def test_serialize_transfer(app):
 def test_serialize_creditor_reservation(app):
     c = models.Creditor(
         creditor_id=C_ID,
-        created_at_ts=datetime(2020, 1, 1),
+        created_at=datetime(2020, 1, 1),
         reservation_id=2,
         status=0,
-        deactivated_at_date=None,
+        deactivation_date=None,
     )
     crs = schemas.CreditorReservationSchema(context=context)
     assert crs.dump(c) == {
