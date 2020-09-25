@@ -41,8 +41,6 @@ def configure_agent(*, min_creditor_id: int, max_creditor_id: int) -> None:
 
 @atomic
 def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Optional[int]]:
-    assert MIN_INT64 <= start_from <= MAX_INT64
-
     query = db.session.\
         query(Creditor.creditor_id).\
         filter(Creditor.creditor_id >= start_from).\

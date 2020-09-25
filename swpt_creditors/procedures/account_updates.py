@@ -19,7 +19,6 @@ atomic: Callable[[T], T] = db.atomic
 
 EPS = 1e-5
 HUGE_INTERVAL = timedelta(days=500000)
-assert 0 < EPS <= 0.01
 
 
 @atomic
@@ -282,8 +281,7 @@ def _fix_missing_last_transfer_if_necessary(
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
     if _is_correct_creditor_id(creditor_id):
         scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        safely_huge_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT
-        assert safely_huge_amount < HUGE_NEGLIGIBLE_AMOUNT
+        safely_huge_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT  # slightly smaller than `HUGE_NEGLIGIBLE_AMOUNT`
         if not (config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_amount):
             db.session.add(ConfigureAccountSignal(
                 creditor_id=creditor_id,
@@ -349,8 +347,6 @@ def _make_correcting_ledger_entry_if_necessary(
         principal: int,
         current_ts: datetime) -> bool:
 
-    assert MIN_INT64 <= acquired_amount <= MAX_INT64
-    assert MIN_INT64 <= principal <= MAX_INT64
     made_correcting_ledger_entry = False
 
     previous_principal = principal - acquired_amount

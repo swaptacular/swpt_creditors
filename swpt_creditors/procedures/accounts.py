@@ -21,9 +21,6 @@ EPS = 1e-5
 
 @atomic
 def get_account_debtor_ids(creditor_id: int, count: int = 1, prev: int = None) -> List[int]:
-    assert count >= 1
-    assert prev is None or MIN_INT64 <= prev <= MAX_INT64
-
     query = db.session.\
         query(Account.debtor_id).\
         filter(Account.creditor_id == creditor_id).\
@@ -56,9 +53,7 @@ def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
 
 @atomic
 def create_new_account(creditor_id: int, debtor_id: int) -> Account:
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
     current_ts = datetime.now(tz=timezone.utc)
-
     creditor = get_active_creditor(creditor_id, lock=True)
     if creditor is None:
         raise errors.CreditorDoesNotExist()

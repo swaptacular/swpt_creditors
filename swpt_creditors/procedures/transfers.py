@@ -145,9 +145,6 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
 
 @atomic
 def get_creditor_transfer_uuids(creditor_id: int, count: int = 1, prev: UUID = None) -> List[UUID]:
-    assert count >= 1
-    assert prev is None or isinstance(prev, UUID)
-
     query = db.session.\
         query(RunningTransfer.transfer_uuid).\
         filter(RunningTransfer.creditor_id == creditor_id).\
@@ -236,9 +233,6 @@ def process_account_transfer_signal(
 
 @atomic
 def ensure_pending_ledger_update(creditor_id: int, debtor_id: int) -> None:
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-
     db.session.execute(ENSURE_PENDING_LEDGER_UPDATE_STATEMENT.values(creditor_id=creditor_id, debtor_id=debtor_id))
 
 
