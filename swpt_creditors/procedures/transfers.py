@@ -92,8 +92,8 @@ def initiate_running_transfer(
         db.session.add(new_running_transfer)
 
     # NOTE: The log event that informs about the change in the
-    # creditor's `TransferList` will be added later, when this pending
-    # log entry is processed.
+    # creditor's `TransfersList` will be added later, when this
+    # pending log entry is processed.
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at=current_ts,
@@ -141,8 +141,8 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
     assert number_of_deleted_rows == 1
 
     # NOTE: The log event that informs about the change in the
-    # creditor's `TransferList` will be added later, when this pending
-    # log entry is processed.
+    # creditor's `TransfersList` will be added later, when this
+    # pending log entry is processed.
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at=datetime.now(tz=timezone.utc),
