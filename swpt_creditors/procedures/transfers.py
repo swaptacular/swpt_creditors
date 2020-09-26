@@ -91,7 +91,7 @@ def initiate_running_transfer(
     with db.retry_on_integrity_error():
         db.session.add(new_running_transfer)
 
-    # NOTE: The log event that informs about the change in the
+    # NOTE: The log entry that informs about the change in the
     # creditor's `TransfersList` will be added later, when this
     # pending log entry is processed.
     db.session.add(PendingLogEntry(
@@ -140,7 +140,7 @@ def delete_running_transfer(creditor_id: int, transfer_uuid: UUID) -> None:
 
     assert number_of_deleted_rows == 1
 
-    # NOTE: The log event that informs about the change in the
+    # NOTE: The log entry that informs about the change in the
     # creditor's `TransfersList` will be added later, when this
     # pending log entry is processed.
     db.session.add(PendingLogEntry(
