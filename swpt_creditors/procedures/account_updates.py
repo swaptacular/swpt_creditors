@@ -151,6 +151,7 @@ def process_account_update_signal(
         if log_entry:
             db.session.add(log_entry)
 
+        data.ledger_pending_transfer_ts = None
         ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
 
 
@@ -336,7 +337,6 @@ def _update_ledger(
     assert should_insert_ledger_update_log_entry or data.ledger_principal == principal
     data.ledger_principal = principal
     data.ledger_last_transfer_number = transfer_number
-    data.ledger_pending_transfer_ts = None
 
     if should_insert_ledger_update_log_entry:
         data.ledger_latest_update_id += 1
