@@ -2,9 +2,6 @@ from __future__ import annotations
 from typing import Optional
 from datetime import datetime, timezone
 import dramatiq
-from sqlalchemy.sql.expression import FunctionElement
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.types import DateTime
 from swpt_creditors.extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT16 = -1 << 15
@@ -25,15 +22,6 @@ CT_DIRECT = 'direct'
 
 def get_now_utc():
     return datetime.now(tz=timezone.utc)
-
-
-class utcnow(FunctionElement):
-    type = DateTime()
-
-
-@compiles(utcnow, 'postgresql')
-def pg_utcnow(element, compiler, **kw):  # pragma: no cover
-    return "TIMEZONE('utc', CURRENT_TIMESTAMP)"
 
 
 class Signal(db.Model):
