@@ -101,6 +101,8 @@ def process_account_update_signal(
     if this_event <= prev_event:
         return
 
+    assert creation_date >= data.creation_date
+    is_new_server_account = creation_date > data.creation_date
     is_config_effectual = (
         last_config_ts == data.last_config_ts
         and last_config_seqnum == data.last_config_seqnum
@@ -109,7 +111,6 @@ def process_account_update_signal(
         and abs(data.negligible_amount - negligible_amount) <= EPS * negligible_amount
     )
     config_error = None if is_config_effectual else data.config_error
-    is_new_server_account = creation_date > data.creation_date
     is_info_updated = (
         data.is_deletion_safe
         or data.account_id != account_id
