@@ -142,7 +142,7 @@ def update_account_config(
     deletion_was_safe_before_the_update = data.is_deletion_safe
     perform_update()
     data.config_latest_update_ts = current_ts
-    data.last_config_ts = current_ts
+    data.last_config_ts = max(current_ts, data.last_config_ts)
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     data.is_config_effectual = False
 
