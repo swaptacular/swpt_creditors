@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1d7bf033fcc3
+Revision ID: be015715dd97
 Revises: 8d8c816257ce
-Create Date: 2020-09-25 16:44:01.063896
+Create Date: 2020-09-26 15:07:16.862505
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1d7bf033fcc3'
+revision = 'be015715dd97'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -239,7 +239,7 @@ def upgrade():
     sa.Column('ledger_principal', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_entry_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('ledger_pending_transfer_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('ledger_pending_transfer_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='When there is a committed transfer that can not be added to the ledger, because a preceding transfer has not been received yet, this column will contain the the `committed_at` field of the pending committed transfer. This column is used to identify "broken" ledgers that can be "repaired". A NULL means that the account has no pending committed transfers which the system knows of.'),
     sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('config_latest_update_id > 0'),

@@ -296,7 +296,6 @@ class AccountScanner(TableScanner):
 
         data.ledger_last_entry_id = ledger_last_entry_id
         data.ledger_principal = principal
-        data.ledger_pending_transfer_ts = None
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
 

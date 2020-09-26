@@ -73,7 +73,15 @@ class AccountData(db.Model):
     ledger_principal = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
     ledger_last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    ledger_pending_transfer_ts = db.Column(db.TIMESTAMP(timezone=True))
+    ledger_pending_transfer_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        comment='When there is a committed transfer that can not be added to the ledger, '
+                'because a preceding transfer has not been received yet, this column will '
+                'contain the the `committed_at` field of the pending committed '
+                'transfer. This column is used to identify "broken" ledgers that can be '
+                '"repaired". A NULL means that the account has no pending committed '
+                'transfers which the system knows of.',
+    )
     ledger_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
