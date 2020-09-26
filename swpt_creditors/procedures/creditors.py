@@ -189,8 +189,7 @@ def _add_transfers_list_update_log_entry(creditor: Creditor, added_at: datetime)
 
     _add_log_entry(
         creditor,
-        object_type=types.transfers_list,
-        object_uri=paths.transfers_list(creditorId=creditor.creditor_id),
+        object_type_hint=LogEntry.OTH_TRANSFERS_LIST,
         object_update_id=creditor.transfers_list_latest_update_id,
         added_at=creditor.transfers_list_latest_update_ts,
     )

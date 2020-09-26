@@ -106,8 +106,9 @@ class BaseLogEntry(db.Model):
 
     # Object type hints:
     OTH_TRANSFER = 1
-    OTH_COMMITTED_TRANSFER = 2
-    OTH_ACCOUNT_LEDGER = 3
+    OTH_TRANSFERS_LIST = 2
+    OTH_COMMITTED_TRANSFER = 3
+    OTH_ACCOUNT_LEDGER = 4
 
     added_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     object_type = db.Column(db.String)
@@ -166,6 +167,8 @@ class BaseLogEntry(db.Model):
 
         if object_type_hint == self.OTH_TRANSFER:
             return types.transfer
+        elif object_type_hint == self.OTH_TRANSFERS_LIST:
+            return types.transfers_list
         elif object_type_hint == self.OTH_COMMITTED_TRANSFER:
             return types.committed_transfer
         elif object_type_hint == self.OTH_ACCOUNT_LEDGER:
@@ -189,6 +192,8 @@ class BaseLogEntry(db.Model):
                     creditorId=self.creditor_id,
                     transferUuid=transfer_uuid,
                 )
+        elif object_type_hint == self.OTH_TRANSFERS_LIST:
+            return paths.transfers_list(creditorId=self.creditor_id)
         elif object_type_hint == self.OTH_COMMITTED_TRANSFER:
             debtor_id = self.debtor_id
             creation_date = self.creation_date
