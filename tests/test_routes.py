@@ -58,7 +58,7 @@ def _get_all_pages(client, url, page_type, streaming=False):
 
 
 def test_auto_genereate_creditor_id(client):
-    r = client.post('/creditors-reserve', json={})
+    r = client.post('/creditor-reserve', json={})
     assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'CreditorReservation'

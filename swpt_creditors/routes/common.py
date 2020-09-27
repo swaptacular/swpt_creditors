@@ -56,9 +56,9 @@ class path_builder:
         return staticmethod(partial(url_for, name, _external=False))
 
     creditors_list = _url_for('admin.CreditorsListEndpoint')
-    enumerate_creditors = _url_for('admin.EnumerateCreditorsEndpoint')
-    wallet = _url_for('creditors.WalletEndpoint')
+    creditor_enumerate = _url_for('admin.CreditorEnumerateEndpoint')
     creditor = _url_for('creditors.CreditorEndpoint')
+    wallet = _url_for('creditors.WalletEndpoint')
     log_entries = _url_for('creditors.LogEntriesEndpoint')
     debtor_lookup = _url_for('accounts.DebtorLookupEndpoint')
     account_lookup = _url_for('accounts.AccountLookupEndpoint')
