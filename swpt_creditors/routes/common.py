@@ -1,7 +1,9 @@
 from functools import partial
 from typing import Tuple
 from datetime import date, timedelta, datetime, timezone
-from flask import url_for, current_app
+from flask import url_for, current_app, request
+from flask_smorest import abort
+from swpt_lib.utils import u64_to_i64
 from swpt_creditors.models import MAX_INT64, DATE0
 from swpt_creditors.schemas import type_registry
 
@@ -40,6 +42,12 @@ def calc_log_retention_days(creditor_id: int) -> int:
 
 def calc_reservation_deadline(created_at: datetime) -> datetime:
     return created_at + timedelta(days=current_app.config['APP_INACTIVE_CREDITOR_RETENTION_DAYS'])
+
+
+def verify_creditor_id():
+    creditor_id = request.headers.get('X-Swpt-Creditor-Id')
+    if creditor_id and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
+        abort(401)
 
 
 class path_builder:

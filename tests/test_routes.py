@@ -1180,3 +1180,26 @@ def test_create_transfer(client, account):
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', None, True),
         ('TransfersList', '/creditors/2/transfers-list', 3, False),
     ]
+
+
+def test_unauthorized_creditor_id(creditor, client):
+    r = client.get('/creditors/2/')
+    assert r.status_code == 200
+
+    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': ''})
+    assert r.status_code == 200
+
+    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': '2'})
+    assert r.status_code == 200
+
+    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': '1'})
+    assert r.status_code == 401
+
+    r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '18446744073709551615'})
+    assert r.status_code == 403
+
+    with pytest.raises(ValueError):
+        r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '18446744073709551616'})
+
+    with pytest.raises(ValueError):
+        r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '-1'})

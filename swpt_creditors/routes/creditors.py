@@ -4,7 +4,7 @@ from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
     LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema
 from swpt_creditors import procedures
-from .common import context
+from .common import context, verify_creditor_id
 from .specs import CID
 
 
@@ -14,6 +14,7 @@ creditors_api = Blueprint(
     url_prefix='/creditors',
     description="Get information about creditors, create new creditors.",
 )
+creditors_api.before_request(verify_creditor_id)
 
 
 @creditors_api.route('/<i64:creditorId>/', parameters=[CID])
