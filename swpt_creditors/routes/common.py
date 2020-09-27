@@ -45,8 +45,10 @@ def calc_reservation_deadline(created_at: datetime) -> datetime:
 
 
 def verify_creditor_id():
-    creditor_id = request.headers.get('X-Swpt-Creditor-Id')
-    if creditor_id and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
+    ADMIN = '*'
+
+    creditor_id = request.headers.get('X-Swpt-Creditor-Id', ADMIN)
+    if creditor_id != ADMIN and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
         abort(401)
 
 

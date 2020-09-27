@@ -1186,7 +1186,7 @@ def test_unauthorized_creditor_id(creditor, client):
     r = client.get('/creditors/2/')
     assert r.status_code == 200
 
-    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': ''})
+    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': '*'})
     assert r.status_code == 200
 
     r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': '2'})
