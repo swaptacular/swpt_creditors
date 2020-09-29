@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc
 from swpt_creditors.extensions import db
-from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Account, \
+from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Pin, Account, \
     RunningTransfer, MIN_INT64, MAX_INT64
 from .common import get_paths_and_types
 from . import errors
@@ -46,7 +46,7 @@ def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Option
     query = db.session.\
         query(Creditor.creditor_id).\
         filter(Creditor.creditor_id >= start_from).\
-        filter(Creditor.status.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
+        filter(Creditor.status_flags.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
         order_by(Creditor.creditor_id).\
         limit(count)
     creditor_ids = [t[0] for t in query.all()]
@@ -86,13 +86,15 @@ def reserve_creditor(creditor_id, verify_correctness=True) -> Creditor:
 @atomic
 def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
     creditor = _get_creditor(creditor_id, lock=True)
-
-    creditor_can_be_activated = creditor and (creditor.is_activated or reservation_id == creditor.reservation_id)
-    if not creditor_can_be_activated:
+    if creditor is None:
         raise errors.InvalidReservationId()
 
-    assert creditor is not None
-    creditor.activate()
+    if not creditor.is_activated:
+        if reservation_id != creditor.reservation_id:
+            raise errors.InvalidReservationId()
+
+        creditor.activate()
+        db.session.add(Pin(creditor_id=creditor_id))
 
     return creditor
 
@@ -102,6 +104,7 @@ def deactivate_creditor(creditor_id: int) -> None:
     creditor = get_active_creditor(creditor_id, lock=True)
     if creditor:
         creditor.deactivate()
+        _delete_creditor_pin(creditor_id)
         _delete_creditor_accounts(creditor_id)
         _delete_creditor_running_transfers(creditor_id)
 
@@ -209,6 +212,12 @@ def _add_log_entry(creditor: Creditor, **kwargs) -> None:
         entry_id=creditor.generate_log_entry_id(),
         **kwargs,
     ))
+
+
+def _delete_creditor_pin(creditor_id: int) -> None:
+    Pin.query.\
+        filter_by(creditor_id=creditor_id).\
+        delete(synchronize_session=False)
 
 
 def _delete_creditor_accounts(creditor_id: int) -> None:

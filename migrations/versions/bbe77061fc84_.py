@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: be015715dd97
+Revision ID: bbe77061fc84
 Revises: 8d8c816257ce
-Create Date: 2020-09-26 15:07:16.862505
+Create Date: 2020-09-29 16:59:29.058372
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'be015715dd97'
+revision = 'bbe77061fc84'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -60,7 +60,7 @@ def upgrade():
     )
     op.create_table('creditor',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('status', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is activated, 2 - is deactivated."),
+    sa.Column('status_flags', sa.SmallInteger(), nullable=False, comment="Creditor's status bits: 1 - is activated, 2 - is deactivated."),
     sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('reservation_id', sa.BigInteger(), server_default=sa.text("nextval('creditor_reservation_id_seq')"), nullable=True),
     sa.Column('last_log_entry_id', sa.BigInteger(), nullable=False),
@@ -71,7 +71,7 @@ def upgrade():
     sa.Column('transfers_list_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('transfers_list_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('deactivation_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. To be deactivated, the creditor must be activated first. Once deactivated, a creditor stays deactivated until it is deleted. A `NULL` value for this column means either that the creditor has not been deactivated yet, or that the deactivation date is unknown.'),
-    sa.CheckConstraint('(status & 2) = 0 OR (status & 1) != 0'),
+    sa.CheckConstraint('(status_flags & 2) = 0 OR (status_flags & 1) != 0'),
     sa.CheckConstraint('accounts_list_latest_update_id > 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
     sa.CheckConstraint('last_log_entry_id >= 0'),
@@ -174,6 +174,21 @@ def upgrade():
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id'),
     comment="Represents a log entry that should be added to the log. Adding entries to the creditor's log requires a lock on the `creditor` table row. To avoid obtaining the lock too often, log entries are queued to this table, allowing many log entries for one creditor to be added to the log in a single database transaction, thus reducing the lock contention."
+    )
+    op.create_table('pin',
+    sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
+    sa.Column('status', sa.SmallInteger(), nullable=False, comment="PIN's status: 0 - off, 1 - on, 2 - blocked."),
+    sa.Column('secret', sa.String(), nullable=True),
+    sa.Column('failed_attempts', sa.SmallInteger(), nullable=False),
+    sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
+    sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('failed_attempts >= 0'),
+    sa.CheckConstraint('latest_update_id > 0'),
+    sa.CheckConstraint('status != 1 OR secret IS NOT NULL'),
+    sa.CheckConstraint('status >= 0 AND status < 3'),
+    sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('creditor_id'),
+    comment="Represents creditor's Personal Identification Number"
     )
     op.create_table('running_transfer',
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -320,6 +335,7 @@ def downgrade():
     op.drop_table('account_data')
     op.drop_index('idx_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
+    op.drop_table('pin')
     op.drop_table('pending_log_entry')
     op.drop_table('account')
     op.drop_table('prepare_transfer_signal')

@@ -18,7 +18,7 @@ def test_serialize_creditor(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=1,
         creditor_latest_update_id=1,
@@ -66,7 +66,7 @@ def test_serialize_wallet(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=12345,
     )
@@ -256,7 +256,7 @@ def test_serialize_accounts_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=1,
         accounts_list_latest_update_id=1,
@@ -278,7 +278,7 @@ def test_serialize_transfers_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=1,
         transfers_list_latest_update_id=1,
@@ -1638,7 +1638,7 @@ def test_serialize_creditor_reservation(app):
         creditor_id=C_ID,
         created_at=datetime(2020, 1, 1),
         reservation_id=2,
-        status=0,
+        status_flags=0,
         deactivation_date=None,
     )
     crs = schemas.CreditorReservationSchema(context=context)

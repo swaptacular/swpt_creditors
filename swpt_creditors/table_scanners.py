@@ -22,7 +22,7 @@ class CreditorScanner(TableScanner):
     """Garbage-collects inactive creditors."""
 
     table = Creditor.__table__
-    columns = [Creditor.creditor_id, Creditor.created_at, Creditor.status, Creditor.deactivation_date]
+    columns = [Creditor.creditor_id, Creditor.created_at, Creditor.status_flags, Creditor.deactivation_date]
     pk = tuple_(table.c.creditor_id,)
 
     def __init__(self):
@@ -51,7 +51,7 @@ class CreditorScanner(TableScanner):
 
         def not_activated_for_long_time(row) -> bool:
             return (
-                row[c.status] & activated_flag == 0
+                row[c.status_flags] & activated_flag == 0
                 and row[c.created_at] < inactive_cutoff_ts
             )
 
@@ -59,7 +59,7 @@ class CreditorScanner(TableScanner):
         if ids_to_delete:
             to_delete = Creditor.query.\
                 filter(Creditor.creditor_id.in_(ids_to_delete)).\
-                filter(Creditor.status.op('&')(activated_flag) == 0).\
+                filter(Creditor.status_flags.op('&')(activated_flag) == 0).\
                 filter(Creditor.created_at < inactive_cutoff_ts).\
                 with_for_update(skip_locked=True).\
                 all()
@@ -74,7 +74,7 @@ class CreditorScanner(TableScanner):
 
         def deactivated_long_time_ago(row) -> bool:
             return (
-                row[c.status] & deactivated_flag != 0
+                row[c.status_flags] & deactivated_flag != 0
                 and (
                     row[c.deactivation_date] is None
                     or row[c.deactivation_date] < deactivated_cutoff_date
@@ -85,7 +85,7 @@ class CreditorScanner(TableScanner):
         if ids_to_delete:
             to_delete = Creditor.query.\
                 filter(Creditor.creditor_id.in_(ids_to_delete)).\
-                filter(Creditor.status.op('&')(deactivated_flag) != 0).\
+                filter(Creditor.status_flags.op('&')(deactivated_flag) != 0).\
                 filter(or_(
                     Creditor.deactivation_date == null(),
                     Creditor.deactivation_date < deactivated_cutoff_date),
