@@ -48,7 +48,7 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
 
-class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema):
+class PinStateSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema):
     STATUS_NAMES = Pin.PIN_STATUS_NAMES
 
     uri = fields.String(
@@ -59,10 +59,10 @@ class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSche
         example='/creditors/2/pin',
     )
     type = fields.String(
-        missing=type_registry.pin_status,
-        default=type_registry.pin_status,
+        missing=type_registry.pin_state,
+        default=type_registry.pin_state,
         description='The type of this object.',
-        example='PinStatus',
+        example='PinState',
     )
     status_name = fields.String(
         required=True,
@@ -102,7 +102,7 @@ class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSche
         assert isinstance(obj, models.Pin)
         paths = self.context['paths']
         obj = copy(obj)
-        obj.uri = paths.pin_status(creditorId=obj.creditor_id)
+        obj.uri = paths.pin_state(creditorId=obj.creditor_id)
         obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.latest_update_id = obj.latest_update_id
         obj.latest_update_ts = obj.latest_update_ts
@@ -293,12 +293,12 @@ class WalletSchema(Schema):
                     "the response will be empty (response code 204).",
         example={'uri': '/creditors/2/debtor-lookup'},
     )
-    pin_status = fields.Nested(
+    pin_state = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        data_key='pinStatus',
-        description="The URI of the creditor's `PinStatus` (*Personal Identification Number*).",
+        data_key='pinState',
+        description="The URI of creditor's `PinState`.",
         example={'uri': '/creditors/2/pin'},
     )
     require_pin = fields.Boolean(
@@ -331,7 +331,7 @@ class WalletSchema(Schema):
         obj.debtor_lookup = {'uri': paths.debtor_lookup(creditorId=obj.creditor_id)}
         obj.create_account = {'uri': paths.accounts(creditorId=obj.creditor_id)}
         obj.create_transfer = {'uri': paths.transfers(creditorId=obj.creditor_id)}
-        obj.pin_status = {'uri': paths.pin_status(creditorId=obj.creditor_id)}
+        obj.pin_state = {'uri': paths.pin_state(creditorId=obj.creditor_id)}
         obj.require_pin = calc_require_pin(obj.pin)
         log_path = paths.log_entries(creditorId=obj.creditor_id)
         obj.log = {

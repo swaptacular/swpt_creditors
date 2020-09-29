@@ -149,8 +149,8 @@ def update_pin(creditor_id: int, *, status: int, value: Optional[str], latest_up
     db.session.add(PendingLogEntry(
         creditor_id=creditor_id,
         added_at=current_ts,
-        object_type=types.pin_status,
-        object_uri=paths.pin_status(creditorId=creditor_id),
+        object_type=types.pin_state,
+        object_uri=paths.pin_state(creditorId=creditor_id),
         object_update_id=latest_update_id,
     ))
 

@@ -2,7 +2,7 @@ from flask import current_app, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
-    LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema, PinStatusSchema
+    LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema, PinStateSchema
 from swpt_creditors import procedures
 from .common import context, verify_creditor_id
 from .specs import CID
@@ -16,16 +16,6 @@ creditors_api = Blueprint(
     description="Get information about creditors, create new creditors.",
 )
 creditors_api.before_request(verify_creditor_id)
-
-
-@creditors_api.route('/<i64:creditorId>/', parameters=[CID])
-class CreditorEndpoint(MethodView):
-    @creditors_api.response(CreditorSchema(context=context))
-    @creditors_api.doc(operationId='getCreditor')
-    def get(self, creditorId):
-        """Return a creditor."""
-
-        return procedures.get_active_creditor(creditorId) or abort(403)
 
 
 @creditors_api.route('/<i64:creditorId>/wallet', parameters=[CID])
@@ -44,21 +34,31 @@ class WalletEndpoint(MethodView):
         return procedures.get_active_creditor(creditorId, join_pin=True) or abort(404)
 
 
-@creditors_api.route('/<i64:creditorId>/pin', parameters=[CID])
-class PinStatusEndpoint(MethodView):
-    @creditors_api.response(PinStatusSchema(context=context))
-    @creditors_api.doc(operationId='getPinStatus')
+@creditors_api.route('/<i64:creditorId>/', parameters=[CID])
+class CreditorEndpoint(MethodView):
+    @creditors_api.response(CreditorSchema(context=context))
+    @creditors_api.doc(operationId='getCreditor')
     def get(self, creditorId):
-        """Return creditor's PIN status."""
+        """Return a creditor."""
+
+        return procedures.get_active_creditor(creditorId) or abort(403)
+
+
+@creditors_api.route('/<i64:creditorId>/pin', parameters=[CID])
+class PinStateEndpoint(MethodView):
+    @creditors_api.response(PinStateSchema(context=context))
+    @creditors_api.doc(operationId='getPinState')
+    def get(self, creditorId):
+        """Return creditor's PIN state."""
 
         return procedures.get_pin(creditorId) or abort(404)
 
-    @creditors_api.arguments(PinStatusSchema)
-    @creditors_api.response(PinStatusSchema(context=context))
-    @creditors_api.doc(operationId='updatePinStatus',
+    @creditors_api.arguments(PinStateSchema)
+    @creditors_api.response(PinStateSchema(context=context))
+    @creditors_api.doc(operationId='updatePinState',
                        responses={409: specs.UPDATE_CONFLICT})
-    def patch(self, pin_status, creditorId):
-        """Update creditor's PIN status.
+    def patch(self, pin_state, creditorId):
+        """Update creditor's PIN state.
 
         **Note:** This is an idempotent operation.
 
@@ -67,9 +67,9 @@ class PinStatusEndpoint(MethodView):
         try:
             pin = procedures.update_pin(
                 creditor_id=creditorId,
-                status=PinStatusSchema.STATUS_NAMES.index(pin_status['status_name']),
-                value=pin_status.get('optional_value'),
-                latest_update_id=pin_status['latest_update_id'],
+                status=PinStateSchema.STATUS_NAMES.index(pin_state['status_name']),
+                value=pin_state.get('optional_value'),
+                latest_update_id=pin_state['latest_update_id'],
             )
         except procedures.CreditorDoesNotExist:
             abort(404)

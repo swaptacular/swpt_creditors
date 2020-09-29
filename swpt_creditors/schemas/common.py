@@ -30,7 +30,7 @@ class type_registry:
     creditor_creation_request = 'CreditorCreationRequest'
     creditors_list = 'CreditorsList'
     creditor = 'Creditor'
-    pin_status = 'PinStatus'
+    pin_state = 'PinState'
     log_entries_page = 'LogEntriesPage'
     log_entry = 'LogEntry'
     accounts_list = 'AccountsList'
@@ -266,10 +266,11 @@ class MutableResourceSchema(Schema):
 
 
 class PinProtectedSchema(Schema):
-    pin = fields.String(
+    optional_pin = fields.String(
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
-        description='Optional PIN *(Personal Identification Number)*.'
+        data_key='pin',
+        description='Optional PIN (Personal Identification Number).'
                     '\n\n'
                     '**Important note:** This field must be passed when the attempted operation '
                     'is potentially dangerous, and the PIN is required for potentially dangerous '
