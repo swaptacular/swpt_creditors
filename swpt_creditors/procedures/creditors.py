@@ -126,7 +126,7 @@ def get_pin(creditor_id: int, lock=False) -> Optional[Pin]:
 
 
 @atomic
-def update_pin(creditor_id: int, *, status: int, value: Optional[str], latest_update_id: int) -> Pin:
+def update_pin(creditor_id: int, *, status: int, new_pin: Optional[str], latest_update_id: int) -> Pin:
     current_ts = datetime.now(tz=timezone.utc)
 
     pin = get_pin(creditor_id, lock=True)
@@ -136,7 +136,7 @@ def update_pin(creditor_id: int, *, status: int, value: Optional[str], latest_up
     try:
         perform_update = allow_update(pin, 'latest_update_id', latest_update_id, {
             'status': status,
-            'value': value,
+            'value': new_pin,
         })
     except errors.AlreadyUpToDate:
         return pin

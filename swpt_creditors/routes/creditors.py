@@ -68,7 +68,7 @@ class PinInfoEndpoint(MethodView):
             pin = procedures.update_pin(
                 creditor_id=creditorId,
                 status=PinInfoSchema.STATUS_NAMES.index(pin_info['status_name']),
-                value=pin_info.get('optional_value'),
+                new_pin=pin_info.get('optional_new_pin'),
                 latest_update_id=pin_info['latest_update_id'],
             )
         except procedures.CreditorDoesNotExist:

@@ -1679,13 +1679,13 @@ def test_deserialize_pin_info(app):
 
     data = pss.load({
         'status': 'on',
-        'value': '1234',
+        'newPin': '1234',
         'latestUpdateId': 2,
     })
     assert data == {
         'type': 'PinInfo',
         'status_name': 'on',
-        'optional_value': '1234',
+        'optional_new_pin': '1234',
         'latest_update_id': 2,
     }
 
@@ -1705,10 +1705,10 @@ def test_deserialize_pin_info(app):
         pss.load({'type': 'PinInfo', 'status': ' on', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match='String does not match expected pattern'):
-        pss.load({'type': 'PinInfo', 'status': 'on', 'value': 'INVALID', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'status': 'on', 'newPin': 'INVALID', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match='String does not match expected pattern'):
-        pss.load({'type': 'PinInfo', 'status': 'on', 'value': 1000 * '1', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'status': 'on', 'newPin': 1000 * '1', 'latestUpdateId': 2})
 
-    with pytest.raises(ValidationError, match="When the PIN is on, PIN's value is requred"):
+    with pytest.raises(ValidationError, match="When the PIN is on, newPin is requred"):
         pss.load({'type': 'PinInfo', 'status': 'on', 'latestUpdateId': 2})

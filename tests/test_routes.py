@@ -202,14 +202,14 @@ def test_change_pin(client, creditor):
 
     r = client.patch('/creditors/1/pin', json={
         'status': 'on',
-        'value': '1234',
+        'newPin': '1234',
         'latestUpdateId': 2,
     })
     assert r.status_code == 404
 
     r = client.patch('/creditors/2/pin', json={
         'status': 'on',
-        'value': '1234',
+        'newPin': '1234',
         'latestUpdateId': 2,
     })
     assert r.status_code == 200
@@ -222,7 +222,7 @@ def test_change_pin(client, creditor):
 
     r = client.patch('/creditors/2/pin', json={
         'status': 'on',
-        'value': '1234',
+        'newPin': '1234',
         'latestUpdateId': 2,
     })
     assert r.status_code == 200

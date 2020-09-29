@@ -70,18 +70,20 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
         data_key='status',
         description='The status of the PIN.'
                     '\n\n'
-                    '* `"off"` means that the PIN is not required for potentially dangerous operations.\n'
-                    '* `"on"` means that the PIN is required for potentially dangerous operations.\n'
+                    '* `"off"` means that the PIN is not required for potentially '
+                    '  dangerous operations.\n'
+                    '* `"on"` means that the PIN is required for potentially dangerous '
+                    '  operations.\n'
                     '* `"blocked"` means that the PIN has been blocked.',
         example='on',
     )
-    optional_value = fields.String(
+    optional_new_pin = fields.String(
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
-        data_key='value',
-        description='The value of the new PIN. When `status` is `"on"`, this field must be '
-                    'present. Note that when changing the PIN, the `pin` field would contain the '
-                    'old PIN, and the `value` field would contain the new PIN.',
+        data_key='newPin',
+        description='The new PIN. When `status` is `"on"`, this field must be present. Note '
+                    'that when changing the PIN, the `pin` field should contain the old '
+                    'PIN, and the `newPin` field should contain the new PIN.',
         example='5678',
     )
     wallet = fields.Nested(
@@ -95,8 +97,8 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
     @validates_schema
     def validate_value(self, data, **kwargs):
         is_on = data['status_name'] == self.STATUS_NAMES[Pin.STATUS_ON]
-        if is_on and 'optional_value' not in data:
-            raise ValidationError("When the PIN is on, PIN's value is requred.")
+        if is_on and 'optional_new_pin' not in data:
+            raise ValidationError("When the PIN is on, newPin is requred.")
 
     @pre_dump
     def process_pin_instance(self, obj, many):
