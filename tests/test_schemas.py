@@ -1685,7 +1685,7 @@ def test_deserialize_pin_status(app):
     assert data == {
         'type': 'PinStatus',
         'status_name': 'on',
-        'value': '1234',
+        'optional_value': '1234',
         'latest_update_id': 2,
     }
 

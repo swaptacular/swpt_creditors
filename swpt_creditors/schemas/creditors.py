@@ -72,9 +72,10 @@ class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema):
                     'blocked (for example, due to too many failed attempts).',
         example='on',
     )
-    value = fields.String(
+    optional_value = fields.String(
         load_only=True,
         validate=validate.Regexp('^[0-9]{0,10}$'),
+        data_key='value',
         description='The PIN\'s value.'
                     '\n\n'
                     '**Note:** This field is required only when the value of the `status` '
@@ -92,7 +93,7 @@ class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema):
     @validates_schema
     def validate_value(self, data, **kwargs):
         is_on = data['status_name'] == self.STATUS_NAMES[Pin.STATUS_ON]
-        if is_on and 'value' not in data:
+        if is_on and 'optional_value' not in data:
             raise ValidationError("When the PIN is on, PIN's value is requred.")
 
     @pre_dump
