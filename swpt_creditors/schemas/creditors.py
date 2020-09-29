@@ -79,8 +79,9 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
         data_key='value',
-        description='The value of the new PIN. This field must be present when the value of the '
-                    '`status` field is `"on"`.',
+        description='The value of the new PIN. When `status` is `"on"`, this field must be '
+                    'present. Note that when changing the PIN, the `pin` field would contain the '
+                    'old PIN, and the `value` field would contain the new PIN.',
         example='5678',
     )
     wallet = fields.Nested(
