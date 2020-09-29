@@ -188,12 +188,12 @@ def test_change_pin(client, creditor):
     assert r.status_code == 200
     data = r.get_json()
     assert data['requirePin'] is False
-    assert data['pinState'] == {'uri': '/creditors/2/pin'}
+    assert data['pinInfo'] == {'uri': '/creditors/2/pin'}
 
     r = client.get('/creditors/2/pin')
     assert r.status_code == 200
     data = r.get_json()
-    assert data['type'] == 'PinState'
+    assert data['type'] == 'PinInfo'
     assert data['uri'] == '/creditors/2/pin'
     assert data['status'] == 'off'
     assert data['latestUpdateId'] == 1
@@ -214,7 +214,7 @@ def test_change_pin(client, creditor):
     })
     assert r.status_code == 200
     data = r.get_json()
-    assert data['type'] == 'PinState'
+    assert data['type'] == 'PinInfo'
     assert data['status'] == 'on'
     assert data['latestUpdateId'] == 2
     assert iso8601.parse_date(data['latestUpdateAt'])
@@ -237,7 +237,7 @@ def test_change_pin(client, creditor):
     assert r.status_code == 200
     data = r.get_json()
     assert data['requirePin'] is True
-    assert data['pinState'] == {'uri': '/creditors/2/pin'}
+    assert data['pinInfo'] == {'uri': '/creditors/2/pin'}
 
     r = client.get('/creditors/2/wallet', headers={'X-Swpt-Require-Pin': 'false'})
     assert r.status_code == 200
@@ -259,7 +259,7 @@ def test_get_wallet(client, creditor):
     data = r.get_json()
     assert data['type'] == 'Wallet'
     assert data['uri'] == '/creditors/2/wallet'
-    assert data['pinState'] == {'uri': '/creditors/2/pin'}
+    assert data['pinInfo'] == {'uri': '/creditors/2/pin'}
     assert data['requirePin'] is False
     assert data['creditor'] == {'uri': '/creditors/2/'}
     log = data['log']

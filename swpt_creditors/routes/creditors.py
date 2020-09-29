@@ -2,7 +2,7 @@ from flask import current_app, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
-    LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema, PinStateSchema
+    LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema, PinInfoSchema
 from swpt_creditors import procedures
 from .common import context, verify_creditor_id
 from .specs import CID
@@ -45,20 +45,20 @@ class CreditorEndpoint(MethodView):
 
 
 @creditors_api.route('/<i64:creditorId>/pin', parameters=[CID])
-class PinStateEndpoint(MethodView):
-    @creditors_api.response(PinStateSchema(context=context))
-    @creditors_api.doc(operationId='getPinState')
+class PinInfoEndpoint(MethodView):
+    @creditors_api.response(PinInfoSchema(context=context))
+    @creditors_api.doc(operationId='getPinInfo')
     def get(self, creditorId):
-        """Return creditor's PIN state."""
+        """Return creditor's PIN information."""
 
         return procedures.get_pin(creditorId) or abort(404)
 
-    @creditors_api.arguments(PinStateSchema)
-    @creditors_api.response(PinStateSchema(context=context))
-    @creditors_api.doc(operationId='updatePinState',
+    @creditors_api.arguments(PinInfoSchema)
+    @creditors_api.response(PinInfoSchema(context=context))
+    @creditors_api.doc(operationId='updatePinInfo',
                        responses={409: specs.UPDATE_CONFLICT})
-    def patch(self, pin_state, creditorId):
-        """Update creditor's PIN state.
+    def patch(self, pin_info, creditorId):
+        """Update creditor's PIN information.
 
         **Note:** This is an idempotent operation.
 
@@ -67,9 +67,9 @@ class PinStateEndpoint(MethodView):
         try:
             pin = procedures.update_pin(
                 creditor_id=creditorId,
-                status=PinStateSchema.STATUS_NAMES.index(pin_state['status_name']),
-                value=pin_state.get('optional_value'),
-                latest_update_id=pin_state['latest_update_id'],
+                status=PinInfoSchema.STATUS_NAMES.index(pin_info['status_name']),
+                value=pin_info.get('optional_value'),
+                latest_update_id=pin_info['latest_update_id'],
             )
         except procedures.CreditorDoesNotExist:
             abort(404)

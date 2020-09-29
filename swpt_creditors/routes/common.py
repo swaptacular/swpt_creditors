@@ -76,7 +76,7 @@ class path_builder:
     creditors_list = _url_for('admin.CreditorsListEndpoint')
     creditor_enumerate = _url_for('admin.CreditorEnumerateEndpoint')
     creditor = _url_for('creditors.CreditorEndpoint')
-    pin_state = _url_for('creditors.PinStateEndpoint')
+    pin_info = _url_for('creditors.PinInfoEndpoint')
     wallet = _url_for('creditors.WalletEndpoint')
     log_entries = _url_for('creditors.LogEntriesEndpoint')
     debtor_lookup = _url_for('accounts.DebtorLookupEndpoint')

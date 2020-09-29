@@ -81,7 +81,7 @@ def test_serialize_wallet(app):
         'debtorLookup': {'uri': '/creditors/1/debtor-lookup'},
         'createAccount': {'uri': '/creditors/1/accounts/'},
         'createTransfer': {'uri': '/creditors/1/transfers/'},
-        'pinState': {'uri': '/creditors/1/pin'},
+        'pinInfo': {'uri': '/creditors/1/pin'},
         'requirePin': False,
         'logRetentionDays': 31,
         'log': {
@@ -1661,11 +1661,11 @@ def test_serialize_pin(app):
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
-    pss = schemas.PinStateSchema(context=context)
+    pss = schemas.PinInfoSchema(context=context)
     for status_id, status_name in enumerate(models.Pin.PIN_STATUS_NAMES):
         p.status = status_id
         assert pss.dump(p) == {
-            'type': 'PinState',
+            'type': 'PinInfo',
             'uri': '/creditors/1/pin',
             'wallet': {'uri': '/creditors/1/wallet'},
             'status': status_name,
@@ -1674,8 +1674,8 @@ def test_serialize_pin(app):
         }
 
 
-def test_deserialize_pin_state(app):
-    pss = schemas.PinStateSchema(context=context)
+def test_deserialize_pin_info(app):
+    pss = schemas.PinInfoSchema(context=context)
 
     data = pss.load({
         'status': 'on',
@@ -1683,7 +1683,7 @@ def test_deserialize_pin_state(app):
         'latestUpdateId': 2,
     })
     assert data == {
-        'type': 'PinState',
+        'type': 'PinInfo',
         'status_name': 'on',
         'optional_value': '1234',
         'latest_update_id': 2,
@@ -1693,22 +1693,22 @@ def test_deserialize_pin_state(app):
         pss.load({'type': 'WrongType', 'status': 'off', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match='Missing data for required field'):
-        pss.load({'type': 'PinState', 'status': 'off'})
+        pss.load({'type': 'PinInfo', 'status': 'off'})
 
     with pytest.raises(ValidationError, match='Missing data for required field'):
-        pss.load({'type': 'PinState', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match='String does not match expected pattern'):
-        pss.load({'type': 'PinState', 'status': 'INVALID_STATUS', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'status': 'INVALID_STATUS', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match='String does not match expected pattern'):
-        pss.load({'type': 'PinState', 'status': ' on', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'status': ' on', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match='String does not match expected pattern'):
-        pss.load({'type': 'PinState', 'status': 'on', 'value': 'INVALID', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'status': 'on', 'value': 'INVALID', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match='String does not match expected pattern'):
-        pss.load({'type': 'PinState', 'status': 'on', 'value': 1000 * '1', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'status': 'on', 'value': 1000 * '1', 'latestUpdateId': 2})
 
     with pytest.raises(ValidationError, match="When the PIN is on, PIN's value is requred"):
-        pss.load({'type': 'PinState', 'status': 'on', 'latestUpdateId': 2})
+        pss.load({'type': 'PinInfo', 'status': 'on', 'latestUpdateId': 2})
