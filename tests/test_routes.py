@@ -183,6 +183,73 @@ def test_get_creditors_list(client):
     ]
 
 
+def test_change_pin(client, creditor):
+    r = client.get('/creditors/2/wallet', headers={'X-Swpt-Require-Pin': 'true'})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['requirePin'] is False
+    assert data['pinStatus'] == {'uri': '/creditors/2/pin'}
+
+    r = client.get('/creditors/2/pin')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'PinStatus'
+    assert data['uri'] == '/creditors/2/pin'
+    assert data['status'] == 'off'
+    assert data['latestUpdateId'] == 1
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['wallet'] == {'uri': '/creditors/2/wallet'}
+
+    r = client.patch('/creditors/1/pin', json={
+        'status': 'on',
+        'value': '1234',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 404
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'on',
+        'value': '1234',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['type'] == 'PinStatus'
+    assert data['status'] == 'on'
+    assert data['latestUpdateId'] == 2
+    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert data['wallet'] == {'uri': '/creditors/2/wallet'}
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'on',
+        'value': '1234',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'off',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 409
+
+    r = client.get('/creditors/2/wallet', headers={'X-Swpt-Require-Pin': 'true'})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['requirePin'] is True
+    assert data['pinStatus'] == {'uri': '/creditors/2/pin'}
+
+    r = client.get('/creditors/2/wallet', headers={'X-Swpt-Require-Pin': 'false'})
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['requirePin'] is False
+
+    r = client.get('/creditors/2/wallet')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['requirePin'] is False
+
+
 def test_get_wallet(client, creditor):
     r = client.get('/creditors/2222/wallet')
     assert r.status_code == 404
@@ -193,6 +260,7 @@ def test_get_wallet(client, creditor):
     assert data['type'] == 'Wallet'
     assert data['uri'] == '/creditors/2/wallet'
     assert data['pinStatus'] == {'uri': '/creditors/2/pin'}
+    assert data['requirePin'] is False
     assert data['creditor'] == {'uri': '/creditors/2/'}
     log = data['log']
     assert log['type'] == 'PaginatedStream'

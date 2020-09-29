@@ -4,7 +4,7 @@ from datetime import date, timedelta, datetime, timezone
 from flask import url_for, current_app, request
 from flask_smorest import abort
 from swpt_lib.utils import u64_to_i64
-from swpt_creditors.models import MAX_INT64, DATE0
+from swpt_creditors.models import MAX_INT64, DATE0, Pin
 from swpt_creditors.schemas import type_registry
 
 
@@ -42,6 +42,14 @@ def calc_log_retention_days(creditor_id: int) -> int:
 
 def calc_reservation_deadline(created_at: datetime) -> datetime:
     return created_at + timedelta(days=current_app.config['APP_INACTIVE_CREDITOR_RETENTION_DAYS'])
+
+
+def calc_require_pin(pin: Pin) -> bool:
+    NOT_REQUIED = 'false'
+
+    x_swpt_require_pin = request.headers.get('X-Swpt-Require-Pin', NOT_REQUIED)
+    is_in_pin_reset_mode = x_swpt_require_pin == NOT_REQUIED
+    return not is_in_pin_reset_mode and pin.is_required
 
 
 def verify_creditor_id():
@@ -95,4 +103,5 @@ context = {
     'calc_checkup_datetime': calc_checkup_datetime,
     'calc_log_retention_days': calc_log_retention_days,
     'calc_reservation_deadline': calc_reservation_deadline,
+    'calc_require_pin': calc_require_pin,
 }

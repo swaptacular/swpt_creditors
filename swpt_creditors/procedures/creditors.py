@@ -1,13 +1,13 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from random import randint
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, joinedload
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Pin, Account, \
     RunningTransfer, MIN_INT64, MAX_INT64
-from .common import get_paths_and_types
+from .common import get_paths_and_types, allow_update
 from . import errors
 
 T = TypeVar('T')
@@ -114,6 +114,47 @@ def get_active_creditor(creditor_id: int, lock: bool = False, join_pin: bool = F
     creditor = _get_creditor(creditor_id, lock=lock, join_pin=join_pin)
     if creditor and creditor.is_activated and not creditor.is_deactivated:
         return creditor
+
+
+@atomic
+def get_pin(creditor_id: int, lock=False) -> Optional[Pin]:
+    query = Pin.query.filter_by(creditor_id=creditor_id)
+    if lock:
+        query = query.with_for_update()
+
+    return query.one_or_none()
+
+
+@atomic
+def update_pin(creditor_id: int, *, status: int, value: Optional[str], latest_update_id: int) -> Pin:
+    current_ts = datetime.now(tz=timezone.utc)
+
+    pin = get_pin(creditor_id, lock=True)
+    if pin is None:
+        raise errors.CreditorDoesNotExist()
+
+    try:
+        perform_update = allow_update(pin, 'latest_update_id', latest_update_id, {
+            'status': status,
+            'value': value,
+        })
+    except errors.AlreadyUpToDate:
+        return pin
+
+    perform_update()
+    pin.latest_update_ts = current_ts
+    pin.failed_attempts = 0
+
+    paths, types = get_paths_and_types()
+    db.session.add(PendingLogEntry(
+        creditor_id=creditor_id,
+        added_at=current_ts,
+        object_type=types.pin_status,
+        object_uri=paths.pin_status(creditorId=creditor_id),
+        object_update_id=latest_update_id,
+    ))
+
+    return pin
 
 
 @atomic

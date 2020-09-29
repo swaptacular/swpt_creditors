@@ -147,17 +147,6 @@ class Pin(db.Model):
     def status_name(self) -> str:
         return self.PIN_STATUS_NAMES[self.status]
 
-    def set(self, value: str):
-        assert value is not None
-        self.status = self.STATUS_ON
-        self.value = value
-        self.failed_attempts = 0
-
-    def clear(self):
-        self.status = self.STATUS_OFF
-        self.value = None
-        self.failed_attempts = 0
-
     def block(self):
         self.status = self.STATUS_BLOCKED
         self.value = None

@@ -6,6 +6,7 @@ from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEn
 from swpt_creditors import procedures
 from .common import context, verify_creditor_id
 from .specs import CID
+from . import specs
 
 
 creditors_api = Blueprint(
@@ -46,7 +47,7 @@ class WalletEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/pin', parameters=[CID])
 class PinStatusEndpoint(MethodView):
     @creditors_api.response(PinStatusSchema(context=context))
-    @creditors_api.doc(operationId='getPin')
+    @creditors_api.doc(operationId='getPinStatus')
     def get(self, creditorId):
         """Return creditor's PIN status."""
 
@@ -54,7 +55,8 @@ class PinStatusEndpoint(MethodView):
 
     @creditors_api.arguments(PinStatusSchema)
     @creditors_api.response(PinStatusSchema(context=context))
-    @creditors_api.doc(operationId='updatePin')
+    @creditors_api.doc(operationId='updatePinStatus',
+                       responses={409: specs.UPDATE_CONFLICT})
     def patch(self, pin_status, creditorId):
         """Update creditor's PIN status.
 
@@ -73,8 +75,6 @@ class PinStatusEndpoint(MethodView):
             abort(404)
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
-        # except procedures.DebtorNameConflict:
-        #     abort(422, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
 
         return pin
 

@@ -82,6 +82,7 @@ def test_serialize_wallet(app):
         'createAccount': {'uri': '/creditors/1/accounts/'},
         'createTransfer': {'uri': '/creditors/1/transfers/'},
         'pinStatus': {'uri': '/creditors/1/pin'},
+        'requirePin': False,
         'logRetentionDays': 31,
         'log': {
             'type': 'PaginatedStream',

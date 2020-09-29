@@ -299,6 +299,13 @@ class WalletSchema(Schema):
         description="The URI of the creditor's `PinStatus` (*Personal Identification Number*).",
         example={'uri': '/creditors/2/pin'},
     )
+    require_pin = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='requirePin',
+        description="Whether PIN is required for potentially dangerous operations.",
+        example=True,
+    )
 
     def get_log_retention_days(self, obj):
         calc_log_retention_days = self.context['calc_log_retention_days']
@@ -310,6 +317,7 @@ class WalletSchema(Schema):
     def process_creditor_instance(self, obj, many):
         assert isinstance(obj, models.Creditor)
         paths = self.context['paths']
+        calc_require_pin = self.context['calc_require_pin']
         obj = copy(obj)
         obj.uri = paths.wallet(creditorId=obj.creditor_id)
         obj.creditor = {'uri': paths.creditor(creditorId=obj.creditor_id)}
@@ -320,6 +328,7 @@ class WalletSchema(Schema):
         obj.create_account = {'uri': paths.accounts(creditorId=obj.creditor_id)}
         obj.create_transfer = {'uri': paths.transfers(creditorId=obj.creditor_id)}
         obj.pin_status = {'uri': paths.pin_status(creditorId=obj.creditor_id)}
+        obj.require_pin = calc_require_pin(obj.pin)
         log_path = paths.log_entries(creditorId=obj.creditor_id)
         obj.log = {
             'items_type': type_registry.log_entry,
