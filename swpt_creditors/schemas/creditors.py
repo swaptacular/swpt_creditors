@@ -79,10 +79,8 @@ class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSche
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
         data_key='value',
-        description='The value of the new PIN.'
-                    '\n\n'
-                    '**Note:** This field is required only when the value of the `status` '
-                    'field is `"on"`.',
+        description='The value of the new PIN. This field must be present when the value of the '
+                    '`status` field is `"on"`.',
         example='1234',
     )
     wallet = fields.Nested(

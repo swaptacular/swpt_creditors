@@ -271,9 +271,9 @@ class PinProtectedSchema(Schema):
         validate=validate.Regexp(PIN_REGEX),
         description='Optional PIN *(Personal Identification Number)*.'
                     '\n\n'
-                    '**Important note:** This field should be passed when the attempted operation '
-                    'is potentially dangerous, and a PIN is required for potentially dangerous '
-                    'operations. In such cases, when the passed value is incorrect, the operation '
+                    '**Important note:** This field must be passed when the attempted operation '
+                    'is potentially dangerous, and the PIN is required for potentially dangerous '
+                    'operations. In such cases, if the passed value is incorrect, the operation '
                     'will fail. After several such failed attempts, the creditor\'s PIN will be '
                     'blocked.',
         example='1234',
