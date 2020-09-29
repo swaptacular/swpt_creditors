@@ -10,6 +10,8 @@ there are no remaining items, this field will not be present. If this field \
 is present, there might be remaining items, even when the `items` array is \
 empty. This can be a relative URI.'
 
+PIN_REGEX = r'^[0-9]{0,10}$'
+
 
 class type_registry:
     paginated_list = 'PaginatedList'
@@ -260,4 +262,19 @@ class MutableResourceSchema(Schema):
         description='The moment of the latest update on this object. The value is the same as '
                     'the value of the `addedAt` field in the latest `LogEntry` for this object '
                     'in the log.',
+    )
+
+
+class PinProtectedSchema(Schema):
+    pin = fields.String(
+        load_only=True,
+        validate=validate.Regexp(PIN_REGEX),
+        description='Optional PIN *(Personal Identification Number)*.'
+                    '\n\n'
+                    '**Important note:** This field should be passed when the attempted operation '
+                    'is potentially dangerous, and a PIN is required for potentially dangerous '
+                    'operations. In such cases, when the passed value is incorrect, the operation '
+                    'will fail. After several such failed attempts, the creditor\'s PIN will be '
+                    'blocked.',
+        example='1234',
     )

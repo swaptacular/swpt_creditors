@@ -3,7 +3,8 @@ from marshmallow import Schema, ValidationError, fields, validate, validates_sch
 from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64, Pin
 from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
-    MutableResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
+    MutableResourceSchema, PinProtectedSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, \
+    PAGE_NEXT_DESCRIPTION, PIN_REGEX
 
 
 class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
@@ -47,7 +48,7 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
 
-class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema):
+class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema):
     STATUS_NAMES = Pin.PIN_STATUS_NAMES
 
     uri = fields.String(
@@ -67,16 +68,18 @@ class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema):
         required=True,
         validate=validate.Regexp(f'^({"|".join(STATUS_NAMES)})$'),
         data_key='status',
-        description='The status of the PIN. `"off"` means that the PIN is not required, `"on"` '
-                    'means that the PIN is required, `"blocked"` means that the PIN has been '
-                    'blocked (for example, due to too many failed attempts).',
+        description='The status of the PIN.'
+                    '\n\n'
+                    '* `"off"` means that the PIN is not required for potentially dangerous operations.\n'
+                    '* `"on"` means that the PIN is required for potentially dangerous operations.\n'
+                    '* `"blocked"` means that the PIN has been blocked.',
         example='on',
     )
     optional_value = fields.String(
         load_only=True,
-        validate=validate.Regexp('^[0-9]{0,10}$'),
+        validate=validate.Regexp(PIN_REGEX),
         data_key='value',
-        description='The PIN\'s value.'
+        description='The value of the new PIN.'
                     '\n\n'
                     '**Note:** This field is required only when the value of the `status` '
                     'field is `"on"`.',
