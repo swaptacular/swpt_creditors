@@ -81,7 +81,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
         data_key='value',
         description='The value of the new PIN. This field must be present when the value of the '
                     '`status` field is `"on"`.',
-        example='1234',
+        example='5678',
     )
     wallet = fields.Nested(
         ObjectReferenceSchema,
