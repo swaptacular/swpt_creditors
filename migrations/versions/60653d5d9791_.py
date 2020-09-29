@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: bbe77061fc84
+Revision ID: 60653d5d9791
 Revises: 8d8c816257ce
-Create Date: 2020-09-29 16:59:29.058372
+Create Date: 2020-09-29 18:56:35.021094
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'bbe77061fc84'
+revision = '60653d5d9791'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -178,13 +178,13 @@ def upgrade():
     op.create_table('pin',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="PIN's status: 0 - off, 1 - on, 2 - blocked."),
-    sa.Column('secret', sa.String(), nullable=True),
+    sa.Column('value', sa.String(), nullable=True),
     sa.Column('failed_attempts', sa.SmallInteger(), nullable=False),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('failed_attempts >= 0'),
     sa.CheckConstraint('latest_update_id > 0'),
-    sa.CheckConstraint('status != 1 OR secret IS NOT NULL'),
+    sa.CheckConstraint('status != 1 OR value IS NOT NULL'),
     sa.CheckConstraint('status >= 0 AND status < 3'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id'),

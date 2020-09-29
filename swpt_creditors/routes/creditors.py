@@ -2,7 +2,7 @@ from flask import current_app, request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
-    LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema
+    LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema, PinStatusSchema
 from swpt_creditors import procedures
 from .common import context, verify_creditor_id
 from .specs import CID
@@ -40,7 +40,43 @@ class WalletEndpoint(MethodView):
 
         """
 
-        return procedures.get_active_creditor(creditorId) or abort(404)
+        return procedures.get_active_creditor(creditorId, join_pin=True) or abort(404)
+
+
+@creditors_api.route('/<i64:creditorId>/pin', parameters=[CID])
+class PinStatusEndpoint(MethodView):
+    @creditors_api.response(PinStatusSchema(context=context))
+    @creditors_api.doc(operationId='getPin')
+    def get(self, creditorId):
+        """Return creditor's PIN status."""
+
+        return procedures.get_pin(creditorId) or abort(404)
+
+    @creditors_api.arguments(PinStatusSchema)
+    @creditors_api.response(PinStatusSchema(context=context))
+    @creditors_api.doc(operationId='updatePin')
+    def patch(self, pin_status, creditorId):
+        """Update creditor's PIN status.
+
+        **Note:** This is an idempotent operation.
+
+        """
+
+        try:
+            pin = procedures.update_pin(
+                creditor_id=creditorId,
+                status=PinStatusSchema.STATUS_NAMES.index(pin_status['status_name']),
+                value=pin_status.get('value'),
+                latest_update_id=pin_status['latest_update_id'],
+            )
+        except procedures.CreditorDoesNotExist:
+            abort(404)
+        except procedures.UpdateConflict:
+            abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
+        # except procedures.DebtorNameConflict:
+        #     abort(422, errors={'json': {'debtorName': ['Another account with the same debtorName already exist.']}})
+
+        return pin
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])

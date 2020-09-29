@@ -1,7 +1,7 @@
 from copy import copy
-from marshmallow import Schema, fields, validate, pre_dump, post_dump
+from marshmallow import Schema, ValidationError, fields, validate, validates_schema, pre_dump, post_dump
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64
+from swpt_creditors.models import MAX_INT64, Pin
 from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
     MutableResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
 
@@ -43,6 +43,67 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.latest_update_id = obj.creditor_latest_update_id
         obj.latest_update_ts = obj.creditor_latest_update_ts
+
+        return obj
+
+
+class PinStatusSchema(ValidateTypeMixin, MutableResourceSchema):
+    STATUS_NAMES = Pin.PIN_STATUS_NAMES
+
+    uri = fields.String(
+        required=True,
+        dump_only=True,
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/pin',
+    )
+    type = fields.String(
+        missing=type_registry.pin_status,
+        default=type_registry.pin_status,
+        description='The type of this object.',
+        example='PinStatus',
+    )
+    status_name = fields.String(
+        required=True,
+        validate=validate.Regexp(f'^({"|".join(STATUS_NAMES)})$'),
+        data_key='status',
+        description='The status of the PIN. `"off"` means that the PIN is not required, `"on"` '
+                    'means that the PIN is required, `"blocked"` means that the PIN has been '
+                    'blocked (for example, due to too many failed attempts).',
+        example='on',
+    )
+    value = fields.String(
+        load_only=True,
+        validate=validate.Regexp('^[0-9]{0,10}$'),
+        description='The PIN\'s value.'
+                    '\n\n'
+                    '**Note:** This field is required only when the value of the `status` '
+                    'field is `"on"`.',
+        example='1234',
+    )
+    wallet = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the creditor's `Wallet`.",
+        example={'uri': '/creditors/2/wallet'},
+    )
+
+    @validates_schema
+    def validate_value(self, data, **kwargs):
+        is_on = data['status_name'] == self.STATUS_NAMES[Pin.STATUS_ON]
+        if is_on and 'value' not in data:
+            raise ValidationError("When the PIN is on, PIN's value is requred.")
+
+    @pre_dump
+    def process_pin_instance(self, obj, many):
+        assert isinstance(obj, models.Pin)
+        paths = self.context['paths']
+        obj = copy(obj)
+        obj.uri = paths.pin_status(creditorId=obj.creditor_id)
+        obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
+        obj.latest_update_id = obj.latest_update_id
+        obj.latest_update_ts = obj.latest_update_ts
 
         return obj
 
@@ -230,6 +291,14 @@ class WalletSchema(Schema):
                     "the response will be empty (response code 204).",
         example={'uri': '/creditors/2/debtor-lookup'},
     )
+    pin_status = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        data_key='pinStatus',
+        description="The URI of the creditor's `PinStatus` (*Personal Identification Number*).",
+        example={'uri': '/creditors/2/pin'},
+    )
 
     def get_log_retention_days(self, obj):
         calc_log_retention_days = self.context['calc_log_retention_days']
@@ -250,6 +319,7 @@ class WalletSchema(Schema):
         obj.debtor_lookup = {'uri': paths.debtor_lookup(creditorId=obj.creditor_id)}
         obj.create_account = {'uri': paths.accounts(creditorId=obj.creditor_id)}
         obj.create_transfer = {'uri': paths.transfers(creditorId=obj.creditor_id)}
+        obj.pin_status = {'uri': paths.pin_status(creditorId=obj.creditor_id)}
         log_path = paths.log_entries(creditorId=obj.creditor_id)
         obj.log = {
             'items_type': type_registry.log_entry,

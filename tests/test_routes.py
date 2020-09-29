@@ -192,6 +192,7 @@ def test_get_wallet(client, creditor):
     data = r.get_json()
     assert data['type'] == 'Wallet'
     assert data['uri'] == '/creditors/2/wallet'
+    assert data['pinStatus'] == {'uri': '/creditors/2/pin'}
     assert data['creditor'] == {'uri': '/creditors/2/'}
     log = data['log']
     assert log['type'] == 'PaginatedStream'

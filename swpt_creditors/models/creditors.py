@@ -80,6 +80,8 @@ class Creditor(db.Model):
         db.Index('idx_creditor_pk', creditor_id, unique=True),
     )
 
+    pin = db.relationship('Pin', uselist=False, cascade='all', passive_deletes=True)
+
     @property
     def is_activated(self):
         return bool(self.status_flags & Creditor.STATUS_IS_ACTIVATED_FLAG)
@@ -106,6 +108,8 @@ class Pin(db.Model):
     STATUS_ON = 1
     STATUS_BLOCKED = 2
 
+    PIN_STATUS_NAMES = ['off', 'on', 'blocked']
+
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     status = db.Column(
         db.SmallInteger,
@@ -116,14 +120,14 @@ class Pin(db.Model):
                 f"{STATUS_ON} - on, "
                 f"{STATUS_BLOCKED} - blocked.",
     )
-    secret = db.Column(db.String)
+    value = db.Column(db.String)
     failed_attempts = db.Column(db.SmallInteger, nullable=False, default=0)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(and_(status >= 0, status < 3)),
-        db.CheckConstraint(or_(status != STATUS_ON, secret != null())),
+        db.CheckConstraint(or_(status != STATUS_ON, value != null())),
         db.CheckConstraint(failed_attempts >= 0),
         db.CheckConstraint(latest_update_id > 0),
         {
@@ -139,26 +143,30 @@ class Pin(db.Model):
     def is_blocked(self):
         return self.status == self.STATUS_BLOCKED
 
-    def set(self, secret: str):
-        assert secret is not None
+    @property
+    def status_name(self) -> str:
+        return self.PIN_STATUS_NAMES[self.status]
+
+    def set(self, value: str):
+        assert value is not None
         self.status = self.STATUS_ON
-        self.secret = secret
+        self.value = value
         self.failed_attempts = 0
 
     def clear(self):
         self.status = self.STATUS_OFF
-        self.secret = None
+        self.value = None
         self.failed_attempts = 0
 
     def block(self):
         self.status = self.STATUS_BLOCKED
-        self.secret = None
+        self.value = None
 
-    def try_secret(self, secret: Optional[str], max_failed_attempts: int) -> bool:
+    def try_value(self, value: Optional[str], max_failed_attempts: int) -> bool:
         if self.is_blocked:
             return False
 
-        if self.is_required and secret != self.secret:
+        if self.is_required and value != self.value:
             self.failed_attempts += 1
             if self.failed_attempts >= max_failed_attempts:
                 self.block()

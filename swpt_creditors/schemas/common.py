@@ -28,6 +28,7 @@ class type_registry:
     creditor_creation_request = 'CreditorCreationRequest'
     creditors_list = 'CreditorsList'
     creditor = 'Creditor'
+    pin_status = 'PinStatus'
     log_entries_page = 'LogEntriesPage'
     log_entry = 'LogEntry'
     accounts_list = 'AccountsList'

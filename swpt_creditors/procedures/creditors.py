@@ -3,7 +3,7 @@ from random import randint
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
-from sqlalchemy.orm import exc
+from sqlalchemy.orm import exc, joinedload
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Pin, Account, \
     RunningTransfer, MIN_INT64, MAX_INT64
@@ -110,8 +110,8 @@ def deactivate_creditor(creditor_id: int) -> None:
 
 
 @atomic
-def get_active_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
-    creditor = _get_creditor(creditor_id, lock=lock)
+def get_active_creditor(creditor_id: int, lock: bool = False, join_pin: bool = False) -> Optional[Creditor]:
+    creditor = _get_creditor(creditor_id, lock=lock, join_pin=join_pin)
     if creditor and creditor.is_activated and not creditor.is_deactivated:
         return creditor
 
@@ -198,10 +198,12 @@ def _add_transfers_list_update_log_entry(creditor: Creditor, added_at: datetime)
     )
 
 
-def _get_creditor(creditor_id: int, lock=False) -> Optional[Creditor]:
+def _get_creditor(creditor_id: int, lock: bool = False, join_pin: bool = False) -> Optional[Creditor]:
     query = Creditor.query.filter_by(creditor_id=creditor_id)
     if lock:
         query = query.with_for_update()
+    if join_pin:
+        query = query.options(joinedload(Creditor.pin, innerjoin=True))
 
     return query.one_or_none()
 
