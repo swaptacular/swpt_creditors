@@ -277,9 +277,9 @@ class WalletSchema(Schema):
         dump_only=True,
         data_key='accountLookup',
         description="A URI to which the recipient account's `AccountIdentity` can be POST-ed, "
-                    "trying to find a matching sender account. If a matching sender account "
-                    "is found, the response will contain an `ObjectReference` to the "
-                    "`Account`. Otherwise, the response will be empty (response code 204).",
+                    "trying to find the identify of the account's debtor. If the debtor has "
+                    "been identified successfully, the response will contain the debtor's "
+                    "`DebtorIdentity`. Otherwise, the response code will be 422.",
         example={'uri': '/creditors/2/account-lookup'},
     )
     debtor_lookup = fields.Nested(
@@ -289,7 +289,7 @@ class WalletSchema(Schema):
         data_key='debtorLookup',
         description="A URI to which a `DebtorIdentity` object can be POST-ed, trying to find an "
                     "existing account with this debtor. If an existing account is found, the "
-                    "response will contain an `ObjectReference` to the `Account`. Otherwise, "
+                    "response will redirect to the `Account` (response code 303). Otherwise, "
                     "the response will be empty (response code 204).",
         example={'uri': '/creditors/2/debtor-lookup'},
     )
@@ -305,7 +305,9 @@ class WalletSchema(Schema):
         required=True,
         dump_only=True,
         data_key='requirePin',
-        description="Whether PIN is required for potentially dangerous operations.",
+        description="Whether the PIN is required for potentially dangerous operations."
+                    "\n\n"
+                    "**Important note:** The PIN will never be required when in \"PIN reset\" mode.",
         example=True,
     )
 
