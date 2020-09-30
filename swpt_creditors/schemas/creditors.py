@@ -3,7 +3,7 @@ from marshmallow import Schema, ValidationError, fields, validate, validates_sch
 from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64, Pin
 from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
-    MutableResourceSchema, PinProtectedSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, \
+    MutableResourceSchema, PinProtectedResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, \
     PAGE_NEXT_DESCRIPTION, PIN_REGEX
 
 
@@ -48,7 +48,7 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
 
-class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema):
+class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
@@ -64,24 +64,25 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
     )
     status_name = fields.String(
         required=True,
-        validate=validate.Regexp(f'^({"|".join(Pin.PIN_STATUS_NAMES)})$'),
+        validate=validate.Regexp(f'^({"|".join(Pin.STATUS_NAMES)})$'),
         data_key='status',
         description='The status of the PIN.'
                     '\n\n'
-                    '* `"off"` means that the PIN is not required for potentially '
-                    '  dangerous operations.\n'
-                    '* `"on"` means that the PIN is required for potentially dangerous '
-                    '  operations.\n'
-                    '* `"blocked"` means that the PIN has been blocked.',
-        example='on',
+                    f'* `"{Pin.STATUS_NAME_OFF}"` means that the PIN is not required for '
+                    '  potentially dangerous operations.\n'
+                    f'* `"{Pin.STATUS_NAME_ON}"` means that the PIN is required for '
+                    '  potentially dangerous operations.\n'
+                    f'* `"{Pin.STATUS_NAME_BLOCKED}"` means that the PIN has been blocked.',
+        example=f'{Pin.STATUS_NAME_ON}',
     )
     optional_new_pin = fields.String(
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
         data_key='newPin',
-        description='The new PIN. When `status` is `"on"`, this field must be present. Note '
-                    'that when changing the PIN, the `pin` field should contain the old '
-                    'PIN, and the `newPin` field should contain the new PIN.',
+        description=f'The new PIN. When `status` is `"{Pin.STATUS_NAME_ON}"`, this field '
+                    'must be present. Note that when changing the PIN, the `pin` field '
+                    'should contain the old PIN, and the `newPin` field should contain '
+                    'the new PIN.',
         example='5678',
     )
     wallet = fields.Nested(
@@ -94,7 +95,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
 
     @validates_schema
     def validate_value(self, data, **kwargs):
-        is_on = data['status_name'] == Pin.PIN_STATUS_NAMES[Pin.STATUS_ON]
+        is_on = data['status_name'] == Pin.STATUS_NAME_ON
         if is_on and 'optional_new_pin' not in data:
             raise ValidationError("When the PIN is on, newPin is requred.")
 

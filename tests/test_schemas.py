@@ -1664,7 +1664,7 @@ def test_serialize_pin(app):
         latest_update_ts=datetime(2020, 1, 1),
     )
     pss = schemas.PinInfoSchema(context=context)
-    for status_id, status_name in enumerate(models.Pin.PIN_STATUS_NAMES):
+    for status_id, status_name in enumerate(models.Pin.STATUS_NAMES):
         p.status = status_id
         assert pss.dump(p) == {
             'type': 'PinInfo',

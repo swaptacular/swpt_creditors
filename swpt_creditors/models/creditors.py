@@ -108,7 +108,11 @@ class Pin(db.Model):
     STATUS_ON = 1
     STATUS_BLOCKED = 2
 
-    PIN_STATUS_NAMES = ['off', 'on', 'blocked']
+    STATUS_NAME_OFF = 'off'
+    STATUS_NAME_ON = 'on'
+    STATUS_NAME_BLOCKED = 'blocked'
+
+    STATUS_NAMES = [STATUS_NAME_OFF, STATUS_NAME_ON, STATUS_NAME_BLOCKED]
 
     creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     status = db.Column(
@@ -145,11 +149,11 @@ class Pin(db.Model):
 
     @property
     def status_name(self) -> str:
-        return self.PIN_STATUS_NAMES[self.status]
+        return self.STATUS_NAMES[self.status]
 
     @status_name.setter
     def status_name(self, value):
-        self.status = self.PIN_STATUS_NAMES.index(value)
+        self.status = self.STATUS_NAMES.index(value)
 
     def block(self):
         self.status = self.STATUS_BLOCKED

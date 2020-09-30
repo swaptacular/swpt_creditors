@@ -265,7 +265,7 @@ class MutableResourceSchema(Schema):
     )
 
 
-class PinProtectedSchema(Schema):
+class PinProtectedResourceSchema(Schema):
     optional_pin = fields.String(
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
