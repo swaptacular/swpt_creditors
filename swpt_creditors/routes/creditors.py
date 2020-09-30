@@ -70,6 +70,8 @@ class PinInfoEndpoint(MethodView):
 
         try:
             if not g.pin_reset_mode:
+                # TODO: Solve the problem with repeated PIN change requests.
+
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
                     value=pin_info.get('optional_pin'),

@@ -278,6 +278,15 @@ def test_change_pin(client, creditor):
     assert data['status'] == 'off'
     assert data['latestUpdateId'] == 3
 
+    p.process_pending_log_entries(2)
+    entries = _get_all_pages(client, '/creditors/2/log', page_type='LogEntriesPage', streaming=True)
+    assert len(entries) == 2
+    assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
+            for e in entries] == [
+        ('PinInfo', '/creditors/2/pin', 2, False),
+        ('PinInfo', '/creditors/2/pin', 3, False),
+    ]
+
 
 def test_get_wallet(client, creditor):
     r = client.get('/creditors/2222/wallet')
@@ -657,6 +666,7 @@ def test_account_config(client, account):
     assert data['account'] == {'uri': '/creditors/2/accounts/1/'}
 
     request_data = {
+        'pin': '1234',
         'negligibleAmount': 100.0,
         'allowUnsafeDeletion': True,
         'scheduledForDeletion': True,
@@ -693,6 +703,15 @@ def test_account_config(client, account):
         ('AccountConfig', '/creditors/2/accounts/1/config'),
     ]
 
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'blocked',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+
+    r = client.patch('/creditors/2/accounts/1/config', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
+
 
 def test_account_display(client, account):
     r = client.get('/creditors/2/accounts/1111/display')
@@ -721,6 +740,7 @@ def test_account_display(client, account):
         'unit': 'USD',
         'hide': True,
         'latestUpdateId': 2,
+        'pin': '1234',
     }
     orig_request_data = request_data.copy()
 
@@ -792,6 +812,15 @@ def test_account_display(client, account):
         ('AccountDisplay', '/creditors/2/accounts/11/display', 2),
     ]
     assert all([entries[i]['entryId'] - entries[i - 1]['entryId'] == 1 for i in range(1, len(entries))])
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'blocked',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+
+    r = client.patch('/creditors/2/accounts/1/display', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
 
 
 def test_account_exchange(client, account):
@@ -940,6 +969,15 @@ def test_account_exchange(client, account):
         ('AccountExchange', '/creditors/2/accounts/1/exchange', 3),
         ('AccountExchange', '/creditors/2/accounts/1/exchange', 4),
     ]
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'blocked',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+
+    r = client.patch('/creditors/2/accounts/1/exchange', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
 
 
 def test_account_knowledge(client, account):
@@ -1202,6 +1240,7 @@ def test_create_transfer(client, account):
             'deadline': '2009-08-24T14:15:22+00:00',
             'lockedAmount': 1000,
         },
+        'pin': '1234',
     }
 
     r = client.post('/creditors/2222/transfers/', json=request_data)
@@ -1278,6 +1317,33 @@ def test_create_transfer(client, account):
         ('Transfer', '/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000', None, True),
         ('TransfersList', '/creditors/2/transfers-list', 3, False),
     ]
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'on',
+        'newPin': '5678',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+
+    for i in range(2):
+        r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+        assert r.status_code == 403
+
+    r = client.get('/creditors/2/pin')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['status'] == 'on'
+
+    r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
+
+    r = client.get('/creditors/2/pin')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['status'] == 'blocked'
+
+    r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
 
 
 def test_unauthorized_creditor_id(creditor, client):

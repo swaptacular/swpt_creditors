@@ -7,7 +7,7 @@ from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64, CT_DIRECT, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX, SC_INSUFFICIENT_AVAILABLE_AMOUNT
 from .common import ObjectReferenceSchema, AccountIdentitySchema, ValidateTypeMixin, \
-    MutableResourceSchema, type_registry, URI_DESCRIPTION
+    MutableResourceSchema, PinProtectedResourceSchema, type_registry, URI_DESCRIPTION
 
 
 _TRANSFER_NOTE_DESCRIPTION = '\
@@ -150,7 +150,7 @@ class TransferResultSchema(Schema):
         return obj
 
 
-class TransferCreationRequestSchema(ValidateTypeMixin, Schema):
+class TransferCreationRequestSchema(ValidateTypeMixin, PinProtectedResourceSchema):
     type = fields.String(
         missing=type_registry.transfer_creation_request,
         default=type_registry.transfer_creation_request,

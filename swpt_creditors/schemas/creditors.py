@@ -308,7 +308,7 @@ class WalletSchema(Schema):
         data_key='requirePin',
         description="Whether the PIN is required for potentially dangerous operations."
                     "\n\n"
-                    "**Important note:** The PIN will never be required when in \"PIN reset\" mode.",
+                    "**Note:** The PIN will never be required when in \"PIN reset\" mode.",
         example=True,
     )
 
