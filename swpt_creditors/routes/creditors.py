@@ -77,8 +77,6 @@ class PinInfoEndpoint(MethodView):
                 )
             pin = procedures.update_pin(
                 creditor_id=creditorId,
-                pin_reset_mode=g.pin_reset_mode,
-                pin=pin_info.get('optional_pin'),
                 status_name=pin_info['status_name'],
                 new_pin=pin_info.get('optional_new_pin'),
                 latest_update_id=pin_info['latest_update_id'],

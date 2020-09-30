@@ -144,10 +144,6 @@ class Pin(db.Model):
         return self.status != self.STATUS_OFF
 
     @property
-    def is_blocked(self):
-        return self.status == self.STATUS_BLOCKED
-
-    @property
     def status_name(self) -> str:
         return self.STATUS_NAMES[self.status]
 
@@ -163,7 +159,7 @@ class Pin(db.Model):
         if value is None:
             return False
 
-        if self.is_blocked:
+        if self.status == self.STATUS_BLOCKED:
             return False
 
         if self.is_required and value != self.value:

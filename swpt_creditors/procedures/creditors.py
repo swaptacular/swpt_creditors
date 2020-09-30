@@ -135,8 +135,6 @@ def get_pin(creditor_id: int, lock=False) -> Optional[Pin]:
 def update_pin(
         creditor_id: int,
         *,
-        pin_reset_mode: bool,
-        pin: Optional[str],
         status_name: str,
         new_pin: Optional[str],
         latest_update_id: int) -> Pin:
