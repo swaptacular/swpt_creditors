@@ -62,7 +62,7 @@ class PinInfoEndpoint(MethodView):
         """Update creditor's PIN information.
 
         **Note:** This is a potentially dangerous operation which may
-        require PIN. Also, normally this is an idempotent operation,
+        require a PIN. Also, normally this is an idempotent operation,
         but when an incorrect PIN is supplied, repeating the operation
         may result in the creditor's PIN being blocked.
 
