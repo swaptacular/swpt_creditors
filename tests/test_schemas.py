@@ -1656,15 +1656,15 @@ def test_serialize_creditor_reservation(app):
 
 
 def test_serialize_pin(app):
-    p = models.Pin(
+    p = models.PinInfo(
         creditor_id=C_ID,
         value='123',
-        status=models.Pin.STATUS_ON,
+        status=models.PinInfo.STATUS_ON,
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
     pss = schemas.PinInfoSchema(context=context)
-    for status_id, status_name in enumerate(models.Pin.STATUS_NAMES):
+    for status_id, status_name in enumerate(models.PinInfo.STATUS_NAMES):
         p.status = status_id
         assert pss.dump(p) == {
             'type': 'PinInfo',

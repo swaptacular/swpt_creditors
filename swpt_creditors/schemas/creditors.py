@@ -1,7 +1,7 @@
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, validates_schema, pre_dump, post_dump
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64, Pin
+from swpt_creditors.models import MAX_INT64, PinInfo
 from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
     MutableResourceSchema, PinProtectedResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, \
     PAGE_NEXT_DESCRIPTION, PIN_REGEX
@@ -64,7 +64,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
     )
     status_name = fields.String(
         required=True,
-        validate=validate.Regexp(f'^({"|".join(Pin.STATUS_NAMES)})$'),
+        validate=validate.Regexp(f'^({"|".join(PinInfo.STATUS_NAMES)})$'),
         data_key='status',
         description='The status of the PIN.'
                     '\n\n'
@@ -73,7 +73,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
                     '* `"on"` means that the PIN is required for potentially dangerous '
                     '  operations.\n'
                     '* `"blocked"` means that the PIN has been blocked.',
-        example=f'{Pin.STATUS_NAME_ON}',
+        example=f'{PinInfo.STATUS_NAME_ON}',
     )
     optional_new_pin_value = fields.String(
         load_only=True,
@@ -94,13 +94,13 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
 
     @validates_schema
     def validate_value(self, data, **kwargs):
-        is_on = data['status_name'] == Pin.STATUS_NAME_ON
+        is_on = data['status_name'] == PinInfo.STATUS_NAME_ON
         if is_on and 'optional_new_pin_value' not in data:
             raise ValidationError('When the PIN is "on", newPin is requred.')
 
     @pre_dump
     def process_pin_instance(self, obj, many):
-        assert isinstance(obj, models.Pin)
+        assert isinstance(obj, models.PinInfo)
         paths = self.context['paths']
         obj = copy(obj)
         obj.uri = paths.pin_info(creditorId=obj.creditor_id)
@@ -294,7 +294,7 @@ class WalletSchema(Schema):
                     "the response will be empty (response code 204).",
         example={'uri': '/creditors/2/debtor-lookup'},
     )
-    pin_info = fields.Nested(
+    pin_info_reference = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
@@ -332,8 +332,8 @@ class WalletSchema(Schema):
         obj.debtor_lookup = {'uri': paths.debtor_lookup(creditorId=obj.creditor_id)}
         obj.create_account = {'uri': paths.accounts(creditorId=obj.creditor_id)}
         obj.create_transfer = {'uri': paths.transfers(creditorId=obj.creditor_id)}
-        obj.pin_info = {'uri': paths.pin_info(creditorId=obj.creditor_id)}
-        obj.require_pin = calc_require_pin(obj.pin)
+        obj.pin_info_reference = {'uri': paths.pin_info(creditorId=obj.creditor_id)}
+        obj.require_pin = calc_require_pin(obj.pin_info)
         log_path = paths.log_entries(creditorId=obj.creditor_id)
         obj.log = {
             'items_type': type_registry.log_entry,

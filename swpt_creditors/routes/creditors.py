@@ -51,7 +51,7 @@ class PinInfoEndpoint(MethodView):
     def get(self, creditorId):
         """Return creditor's PIN information."""
 
-        return procedures.get_pin(creditorId) or abort(404)
+        return procedures.get_pin_info(creditorId) or abort(404)
 
     @creditors_api.arguments(PinInfoSchema)
     @creditors_api.response(PinInfoSchema(context=context))
@@ -69,7 +69,7 @@ class PinInfoEndpoint(MethodView):
         """
 
         try:
-            pin = procedures.update_pin(
+            pin_info = procedures.update_pin_info(
                 creditor_id=creditorId,
                 status_name=pin_info['status_name'],
                 new_pin_value=pin_info.get('optional_new_pin_value'),
@@ -83,7 +83,7 @@ class PinInfoEndpoint(MethodView):
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
 
-        return pin or abort(403)
+        return pin_info or abort(403)
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])

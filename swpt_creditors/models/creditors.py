@@ -80,7 +80,7 @@ class Creditor(db.Model):
         db.Index('idx_creditor_pk', creditor_id, unique=True),
     )
 
-    pin = db.relationship('Pin', uselist=False, cascade='all', passive_deletes=True)
+    pin_info = db.relationship('PinInfo', uselist=False, cascade='all', passive_deletes=True)
 
     @property
     def is_activated(self):
@@ -103,7 +103,7 @@ class Creditor(db.Model):
         return self.last_log_entry_id
 
 
-class Pin(db.Model):
+class PinInfo(db.Model):
     STATUS_OFF = 0
     STATUS_ON = 1
     STATUS_BLOCKED = 2

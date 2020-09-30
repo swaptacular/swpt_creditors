@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 60653d5d9791
+Revision ID: f6494c218dc3
 Revises: 8d8c816257ce
-Create Date: 2020-09-29 18:56:35.021094
+Create Date: 2020-09-30 19:31:49.627934
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '60653d5d9791'
+revision = 'f6494c218dc3'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -175,7 +175,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('creditor_id', 'pending_entry_id'),
     comment="Represents a log entry that should be added to the log. Adding entries to the creditor's log requires a lock on the `creditor` table row. To avoid obtaining the lock too often, log entries are queued to this table, allowing many log entries for one creditor to be added to the log in a single database transaction, thus reducing the lock contention."
     )
-    op.create_table('pin',
+    op.create_table('pin_info',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="PIN's status: 0 - off, 1 - on, 2 - blocked."),
     sa.Column('value', sa.String(), nullable=True),
@@ -335,7 +335,7 @@ def downgrade():
     op.drop_table('account_data')
     op.drop_index('idx_coordinator_request_id', table_name='running_transfer')
     op.drop_table('running_transfer')
-    op.drop_table('pin')
+    op.drop_table('pin_info')
     op.drop_table('pending_log_entry')
     op.drop_table('account')
     op.drop_table('prepare_transfer_signal')

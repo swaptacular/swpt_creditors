@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, joinedload
 from swpt_creditors.extensions import db
-from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Pin, Account, \
+from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, PinInfo, Account, \
     RunningTransfer, MIN_INT64, MAX_INT64
 from .common import get_paths_and_types
 from . import errors
@@ -100,7 +100,7 @@ def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
             raise errors.InvalidReservationId()
 
         creditor.activate()
-        db.session.add(Pin(creditor_id=creditor_id))
+        db.session.add(PinInfo(creditor_id=creditor_id))
 
     return creditor
 
@@ -110,7 +110,7 @@ def deactivate_creditor(creditor_id: int) -> None:
     creditor = get_active_creditor(creditor_id, lock=True)
     if creditor:
         creditor.deactivate()
-        _delete_creditor_pin(creditor_id)
+        _delete_creditor_pin_info(creditor_id)
         _delete_creditor_accounts(creditor_id)
         _delete_creditor_running_transfers(creditor_id)
 
@@ -123,8 +123,8 @@ def get_active_creditor(creditor_id: int, lock: bool = False, join_pin: bool = F
 
 
 @atomic
-def get_pin(creditor_id: int, lock: bool = False) -> Optional[Pin]:
-    query = Pin.query.filter_by(creditor_id=creditor_id)
+def get_pin_info(creditor_id: int, lock: bool = False) -> Optional[PinInfo]:
+    query = PinInfo.query.filter_by(creditor_id=creditor_id)
     if lock:
         query = query.with_for_update()
 
@@ -132,7 +132,7 @@ def get_pin(creditor_id: int, lock: bool = False) -> Optional[Pin]:
 
 
 @atomic
-def update_pin(
+def update_pin_info(
         creditor_id: int,
         *,
         status_name: str,
@@ -140,11 +140,11 @@ def update_pin(
         latest_update_id: int,
         pin_reset_mode: bool,
         pin_value: Optional[str],
-        max_failed_attempts: int) -> Optional[Pin]:
+        max_failed_attempts: int) -> Optional[PinInfo]:
 
     current_ts = datetime.now(tz=timezone.utc)
 
-    pin = get_pin(creditor_id, lock=True)
+    pin = get_pin_info(creditor_id, lock=True)
     if pin is None:
         raise errors.CreditorDoesNotExist()
 
@@ -171,7 +171,7 @@ def update_pin(
 
 @atomic
 def try_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> bool:
-    pin = get_pin(creditor_id)
+    pin = get_pin_info(creditor_id)
     if pin is None:
         raise errors.CreditorDoesNotExist()
 
@@ -265,7 +265,7 @@ def _get_creditor(creditor_id: int, lock: bool = False, join_pin: bool = False) 
     if lock:
         query = query.with_for_update()
     if join_pin:
-        query = query.options(joinedload(Creditor.pin, innerjoin=True))
+        query = query.options(joinedload(Creditor.pin_info, innerjoin=True))
 
     return query.one_or_none()
 
@@ -278,8 +278,8 @@ def _add_log_entry(creditor: Creditor, **kwargs) -> None:
     ))
 
 
-def _delete_creditor_pin(creditor_id: int) -> None:
-    Pin.query.\
+def _delete_creditor_pin_info(creditor_id: int) -> None:
+    PinInfo.query.\
         filter_by(creditor_id=creditor_id).\
         delete(synchronize_session=False)
 
