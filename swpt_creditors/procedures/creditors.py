@@ -96,7 +96,7 @@ def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
         raise errors.InvalidReservationId()
 
     if not creditor.is_activated:
-        if reservation_id != creditor.reservation_id:
+        if reservation_id != creditor.reservation_id or creditor.is_deactivated:
             raise errors.InvalidReservationId()
 
         creditor.activate()
@@ -144,19 +144,19 @@ def update_pin_info(
 
     current_ts = datetime.now(tz=timezone.utc)
 
-    pin = get_pin_info(creditor_id, lock=True)
-    if pin is None:
+    pin_info = get_pin_info(creditor_id, lock=True)
+    if pin_info is None:
         raise errors.CreditorDoesNotExist()
 
-    if latest_update_id != pin.latest_update_id + 1:
+    if latest_update_id != pin_info.latest_update_id + 1:
         raise errors.UpdateConflict()
 
-    if pin_reset_mode or pin.try_value(pin_value, max_failed_attempts):
-        pin.status_name = status_name
-        pin.value = new_pin_value
-        pin.latest_update_id = latest_update_id
-        pin.latest_update_ts = current_ts
-        pin.failed_attempts = 0
+    if pin_reset_mode or pin_info.try_value(pin_value, max_failed_attempts):
+        pin_info.status_name = status_name
+        pin_info.value = new_pin_value
+        pin_info.latest_update_id = latest_update_id
+        pin_info.latest_update_ts = current_ts
+        pin_info.failed_attempts = 0
 
         paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
@@ -166,16 +166,16 @@ def update_pin_info(
             object_uri=paths.pin_info(creditorId=creditor_id),
             object_update_id=latest_update_id,
         ))
-        return pin
+        return pin_info
 
 
 @atomic
 def try_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> bool:
-    pin = get_pin_info(creditor_id)
-    if pin is None:
+    pin_info = get_pin_info(creditor_id)
+    if pin_info is None:
         raise errors.CreditorDoesNotExist()
 
-    return pin.try_value(pin_value, max_failed_attempts)
+    return pin_info.try_value(pin_value, max_failed_attempts)
 
 
 @atomic
