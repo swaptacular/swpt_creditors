@@ -159,11 +159,15 @@ class PinInfo(db.Model):
         if self.status == self.STATUS_BLOCKED:
             return False
 
-        if self.is_required and value != self.value:
-            self.failed_attempts += 1
-            if self.failed_attempts >= max_failed_attempts:
-                self.block()
-            return False
+        if self.is_required:
+            if value is None:
+                return False
+
+            if value != self.value:
+                self.failed_attempts += 1
+                if self.failed_attempts >= max_failed_attempts:
+                    self.block()
+                return False
 
         return True
 

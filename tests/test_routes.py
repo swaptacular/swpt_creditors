@@ -246,6 +246,13 @@ def test_change_pin(client, creditor):
     })
     assert r.status_code == 403
 
+    for i in range(10):
+        r = client.patch('/creditors/2/pin', headers={'X-Swpt-Require-Pin': 'true'}, json={
+            'status': 'off',
+            'latestUpdateId': 3,
+        })
+        assert r.status_code == 403
+
     r = client.get('/creditors/2/wallet', headers={'X-Swpt-Require-Pin': 'true'})
     assert r.status_code == 200
     data = r.get_json()

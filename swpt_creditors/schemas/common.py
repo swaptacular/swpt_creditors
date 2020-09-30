@@ -272,10 +272,9 @@ class PinProtectedResourceSchema(Schema):
         data_key='pin',
         description='Optional PIN (Personal Identification Number).'
                     '\n\n'
-                    '**Note:** This field must be passed when the attempted operation is '
-                    'potentially dangerous, and the PIN is required for potentially dangerous '
-                    'operations. In such cases, if the passed value is incorrect, the operation '
-                    'will fail. After several such failed attempts, the creditor\'s PIN will be '
-                    'blocked.',
+                    '**Note:** This field must be present when the PIN is required for '
+                    'potentially dangerous operations. In such cases, if the passed value '
+                    'is incorrect, the operation will fail. After several such failed '
+                    'attempts, the creditor\'s PIN will be blocked.',
         example='1234',
     )
