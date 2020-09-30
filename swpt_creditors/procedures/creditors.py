@@ -246,12 +246,7 @@ def verify_pin_value_helper(creditor_id: int, *, pin_value: Optional[str], max_f
     if pin_info is None:
         raise errors.CreditorDoesNotExist()
 
-    is_pin_value_ok = pin_info.try_value(pin_value, max_failed_attempts)
-
-    if is_pin_value_ok and pin_info.failed_attempts > 0:
-        pin_info.failed_attempts = 0
-
-    return is_pin_value_ok
+    return pin_info.try_value(pin_value, max_failed_attempts)
 
 
 def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> None:
