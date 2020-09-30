@@ -68,21 +68,20 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
         data_key='status',
         description='The status of the PIN.'
                     '\n\n'
-                    f'* `"{Pin.STATUS_NAME_OFF}"` means that the PIN is not required for '
-                    '  potentially dangerous operations.\n'
-                    f'* `"{Pin.STATUS_NAME_ON}"` means that the PIN is required for '
-                    '  potentially dangerous operations.\n'
-                    f'* `"{Pin.STATUS_NAME_BLOCKED}"` means that the PIN has been blocked.',
+                    '* `"off"` means that the PIN is not required for potentially '
+                    '  dangerous operations.\n'
+                    '* `"on"` means that the PIN is required for potentially dangerous '
+                    '  operations.\n'
+                    '* `"blocked"` means that the PIN has been blocked.',
         example=f'{Pin.STATUS_NAME_ON}',
     )
     optional_new_pin = fields.String(
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
         data_key='newPin',
-        description=f'The new PIN. When `status` is `"{Pin.STATUS_NAME_ON}"`, this field '
-                    'must be present. Note that when changing the PIN, the `pin` field '
-                    'should contain the old PIN, and the `newPin` field should contain '
-                    'the new PIN.',
+        description='The new PIN. When `status` is "on", this field must be present. Note '
+                    'that when changing the PIN, the `pin` field should contain the old '
+                    'PIN, and the `newPin` field should contain the new PIN.',
         example='5678',
     )
     wallet = fields.Nested(
@@ -97,7 +96,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
     def validate_value(self, data, **kwargs):
         is_on = data['status_name'] == Pin.STATUS_NAME_ON
         if is_on and 'optional_new_pin' not in data:
-            raise ValidationError(f'When the PIN is "{Pin.STATUS_NAME_ON}", newPin is requred.')
+            raise ValidationError('When the PIN is "on", newPin is requred.')
 
     @pre_dump
     def process_pin_instance(self, obj, many):
