@@ -160,6 +160,7 @@ class PinInfo(db.Model):
             return False
 
         if self.is_required:
+            assert self.value is not None
             if value is None:
                 return False
 
