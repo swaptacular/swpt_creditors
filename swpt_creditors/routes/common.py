@@ -48,7 +48,7 @@ def calc_require_pin(pin: Pin) -> bool:
     return not g.pin_reset_mode and pin.is_required
 
 
-def verify_creditor_id():
+def verify_headers():
     ADMIN = '*'
     creditor_id = request.headers.get('X-Swpt-Creditor-Id', ADMIN)
     if creditor_id != ADMIN and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:

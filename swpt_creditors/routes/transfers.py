@@ -7,7 +7,7 @@ from swpt_creditors.schemas import examples, TransferCreationRequestSchema, Tran
     TransfersPaginationParamsSchema
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
-from .common import context, parse_transfer_slug, verify_creditor_id
+from .common import context, parse_transfer_slug, verify_headers
 from .specs import DID, CID, TID, TRANSFER_UUID
 from . import specs
 
@@ -18,7 +18,7 @@ transfers_api = Blueprint(
     url_prefix='/creditors',
     description="Make transfers from one account to another account.",
 )
-transfers_api.before_request(verify_creditor_id)
+transfers_api.before_request(verify_headers)
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
