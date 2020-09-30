@@ -17,9 +17,38 @@ ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_
 
 
 def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> None:
-    is_correct = try_pin_value(creditor_id, pin_value=pin_value, max_failed_attempts=max_failed_attempts)
-    if not is_correct:
+    is_pin_value_ok = verify_pin_value_helper(
+        creditor_id,
+        pin_value=pin_value,
+        max_failed_attempts=max_failed_attempts,
+    )
+    if not is_pin_value_ok:
         raise errors.WrongPinValue()
+
+
+def update_pin_info(
+        creditor_id: int,
+        *,
+        status_name: str,
+        new_pin_value: Optional[str],
+        latest_update_id: int,
+        pin_reset_mode: bool,
+        pin_value: Optional[str],
+        max_failed_attempts: int) -> Optional[PinInfo]:
+
+    is_pin_value_ok, pin_info = update_pin_info_helper(
+        creditor_id=creditor_id,
+        status_name=status_name,
+        new_pin_value=new_pin_value,
+        latest_update_id=latest_update_id,
+        pin_reset_mode=pin_reset_mode,
+        pin_value=pin_value,
+        max_failed_attempts=max_failed_attempts,
+    )
+    if not is_pin_value_ok:
+        raise errors.WrongPinValue()
+
+    return pin_info
 
 
 @atomic
@@ -132,7 +161,7 @@ def get_pin_info(creditor_id: int, lock: bool = False) -> Optional[PinInfo]:
 
 
 @atomic
-def update_pin_info(
+def update_pin_info_helper(
         creditor_id: int,
         *,
         status_name: str,
@@ -140,9 +169,10 @@ def update_pin_info(
         latest_update_id: int,
         pin_reset_mode: bool,
         pin_value: Optional[str],
-        max_failed_attempts: int) -> Optional[PinInfo]:
+        max_failed_attempts: int) -> Tuple[bool, PinInfo]:
 
     current_ts = datetime.now(tz=timezone.utc)
+    is_pin_value_ok = False
 
     pin_info = get_pin_info(creditor_id, lock=True)
     if pin_info is None:
@@ -166,16 +196,9 @@ def update_pin_info(
             object_uri=paths.pin_info(creditorId=creditor_id),
             object_update_id=latest_update_id,
         ))
-        return pin_info
+        is_pin_value_ok = True
 
-
-@atomic
-def try_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> bool:
-    pin_info = get_pin_info(creditor_id)
-    if pin_info is None:
-        raise errors.CreditorDoesNotExist()
-
-    return pin_info.try_value(pin_value, max_failed_attempts)
+    return is_pin_value_ok, pin_info
 
 
 @atomic
@@ -216,6 +239,15 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
         for entry in pending_log_entries:
             _process_pending_log_entry(creditor, entry)
+
+
+@atomic
+def verify_pin_value_helper(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> bool:
+    pin_info = get_pin_info(creditor_id)
+    if pin_info is None:
+        raise errors.CreditorDoesNotExist()
+
+    return pin_info.try_value(pin_value, max_failed_attempts)
 
 
 def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> None:

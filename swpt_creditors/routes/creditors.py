@@ -69,7 +69,7 @@ class PinInfoEndpoint(MethodView):
         """
 
         try:
-            info = procedures.update_pin_info(
+            return procedures.update_pin_info(
                 creditor_id=creditorId,
                 status_name=pin_info['status_name'],
                 new_pin_value=pin_info.get('optional_new_pin_value'),
@@ -78,12 +78,12 @@ class PinInfoEndpoint(MethodView):
                 pin_value=pin_info.get('optional_pin'),
                 max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
             )
+        except procedures.WrongPinValue:
+            abort(403)
         except procedures.CreditorDoesNotExist:
             abort(404)
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
-
-        return info or abort(403)
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])
