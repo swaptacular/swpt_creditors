@@ -1371,3 +1371,67 @@ def test_unauthorized_creditor_id(creditor, client):
 
     with pytest.raises(ValueError):
         r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '-1'})
+
+
+def test_pin_failed_attempts_rest(client, creditor, account):
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'on',
+        'newPin': '1234',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'on',
+        'newPin': '1234',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 409
+
+    request_data = {
+        'type': 'TransferCreationRequest',
+        'transferUuid': '123e4567-e89b-12d3-a456-426655440000',
+        'recipient': {'uri': 'swpt:1/2222'},
+        'amount': 1000,
+        'noteFormat': 'json',
+        'note': '{"message": "test"}',
+        'options': {
+            'type': 'TransferOptions',
+            'minInterestRate': -10,
+            'deadline': '2009-08-24T14:15:22+00:00',
+            'lockedAmount': 1000,
+        },
+        'pin': '5678',
+    }
+
+    r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
+
+    r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
+
+    r = client.post(
+        '/creditors/2/transfers/',
+        headers={'X-Swpt-Require-Pin': 'true'},
+        json={**request_data, 'pin': '1234'},
+    )
+    assert r.status_code == 201
+
+    r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
+
+    r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
+
+    r = client.get('/creditors/2/pin')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['status'] == 'on'
+
+    r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 403
+
+    r = client.get('/creditors/2/pin')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['status'] == 'blocked'
