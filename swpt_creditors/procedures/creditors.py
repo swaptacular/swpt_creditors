@@ -7,7 +7,7 @@ from sqlalchemy.orm import exc, joinedload
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Pin, Account, \
     RunningTransfer, MIN_INT64, MAX_INT64
-from .common import get_paths_and_types, allow_update
+from .common import get_paths_and_types
 from . import errors
 
 T = TypeVar('T')
@@ -16,9 +16,9 @@ atomic: Callable[[T], T] = db.atomic
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
 
 
-def verify_pin_value(creditor_id: int, *, value: Optional[str], max_failed_attempts: int) -> None:
-    is_correct_pin_value = try_pin_value(creditor_id, value=value, max_failed_attempts=max_failed_attempts)
-    if not is_correct_pin_value:
+def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int) -> None:
+    is_correct = try_pin_value(creditor_id, pin_value=pin_value, max_failed_attempts=max_failed_attempts)
+    if not is_correct:
         raise errors.WrongPinValue()
 
 
@@ -136,8 +136,11 @@ def update_pin(
         creditor_id: int,
         *,
         status_name: str,
-        new_pin: Optional[str],
-        latest_update_id: int) -> Pin:
+        new_pin_value: Optional[str],
+        latest_update_id: int,
+        pin_reset_mode: bool,
+        pin_value: Optional[str],
+        max_failed_attempts: int) -> Optional[Pin]:
 
     current_ts = datetime.now(tz=timezone.utc)
 
@@ -145,37 +148,34 @@ def update_pin(
     if pin is None:
         raise errors.CreditorDoesNotExist()
 
-    try:
-        perform_update = allow_update(pin, 'latest_update_id', latest_update_id, {
-            'status_name': status_name,
-            'value': new_pin,
-        })
-    except errors.AlreadyUpToDate:
+    if latest_update_id != pin.latest_update_id + 1:
+        raise errors.UpdateConflict()
+
+    if pin_reset_mode or pin.try_value(pin_value, max_failed_attempts):
+        pin.status_name = status_name
+        pin.value = new_pin_value
+        pin.latest_update_id = latest_update_id
+        pin.latest_update_ts = current_ts
+        pin.failed_attempts = 0
+
+        paths, types = get_paths_and_types()
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at=current_ts,
+            object_type=types.pin_info,
+            object_uri=paths.pin_info(creditorId=creditor_id),
+            object_update_id=latest_update_id,
+        ))
         return pin
-
-    perform_update()
-    pin.latest_update_ts = current_ts
-    pin.failed_attempts = 0
-
-    paths, types = get_paths_and_types()
-    db.session.add(PendingLogEntry(
-        creditor_id=creditor_id,
-        added_at=current_ts,
-        object_type=types.pin_info,
-        object_uri=paths.pin_info(creditorId=creditor_id),
-        object_update_id=latest_update_id,
-    ))
-
-    return pin
 
 
 @atomic
-def try_pin_value(creditor_id: int, *, value: Optional[str], max_failed_attempts: int) -> bool:
+def try_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int) -> bool:
     pin = get_pin(creditor_id)
     if pin is None:
         raise errors.CreditorDoesNotExist()
 
-    return pin.try_value(value, max_failed_attempts)
+    return pin.try_value(pin_value, max_failed_attempts)
 
 
 @atomic

@@ -262,7 +262,7 @@ class AccountConfigEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
-                    value=account_config.get('optional_pin'),
+                    pin_value=account_config.get('optional_pin'),
                     max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
                 )
             config = procedures.update_account_config(
@@ -312,7 +312,7 @@ class AccountDisplayEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
-                    value=account_display.get('optional_pin'),
+                    pin_value=account_display.get('optional_pin'),
                     max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
                 )
             display = procedures.update_account_display(
@@ -366,7 +366,7 @@ class AccountExchangeEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
-                    value=account_exchange.get('optional_pin'),
+                    pin_value=account_exchange.get('optional_pin'),
                     max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
                 )
             exchange = procedures.update_account_exchange(

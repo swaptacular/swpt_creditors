@@ -69,28 +69,19 @@ class PinInfoEndpoint(MethodView):
         """
 
         try:
-            if not g.pin_reset_mode:
-                # TODO: Solve the problem with repeated PIN change requests.
-
-                procedures.verify_pin_value(
-                    creditor_id=creditorId,
-                    value=pin_info.get('optional_pin'),
-                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
-                )
-            pin = procedures.update_pin(
+            return procedures.update_pin(
                 creditor_id=creditorId,
                 status_name=pin_info['status_name'],
-                new_pin=pin_info.get('optional_new_pin'),
+                new_pin_value=pin_info.get('optional_new_pin_value'),
                 latest_update_id=pin_info['latest_update_id'],
-            )
-        except procedures.WrongPinValue:
-            abort(403)
+                pin_reset_mode=g.pin_reset_mode,
+                pin_value=pin_info.get('optional_pin'),
+                max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+            ) or abort(403)
         except procedures.CreditorDoesNotExist:
             abort(404)
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
-
-        return pin
 
 
 @creditors_api.route('/<i64:creditorId>/log', parameters=[CID])

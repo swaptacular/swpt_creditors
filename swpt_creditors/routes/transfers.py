@@ -83,7 +83,7 @@ class TransfersEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
-                    value=transfer_creation_request.get('optional_pin'),
+                    pin_value=transfer_creation_request.get('optional_pin'),
                     max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
                 )
             transfer = procedures.initiate_running_transfer(

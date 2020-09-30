@@ -75,7 +75,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
                     '* `"blocked"` means that the PIN has been blocked.',
         example=f'{Pin.STATUS_NAME_ON}',
     )
-    optional_new_pin = fields.String(
+    optional_new_pin_value = fields.String(
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
         data_key='newPin',
@@ -95,7 +95,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
     @validates_schema
     def validate_value(self, data, **kwargs):
         is_on = data['status_name'] == Pin.STATUS_NAME_ON
-        if is_on and 'optional_new_pin' not in data:
+        if is_on and 'optional_new_pin_value' not in data:
             raise ValidationError('When the PIN is "on", newPin is requred.')
 
     @pre_dump

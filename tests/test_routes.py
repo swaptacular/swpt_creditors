@@ -225,19 +225,13 @@ def test_change_pin(client, creditor):
         'newPin': '1234',
         'latestUpdateId': 2,
     })
-    assert r.status_code == 200
+    assert r.status_code == 409
 
     r = client.patch('/creditors/1/pin', headers={'X-Swpt-Require-Pin': 'true'}, json={
         'status': 'off',
         'latestUpdateId': 2,
     })
     assert r.status_code == 404
-
-    r = client.patch('/creditors/2/pin', json={
-        'status': 'off',
-        'latestUpdateId': 2,
-    })
-    assert r.status_code == 409
 
     r = client.patch('/creditors/2/pin', headers={'X-Swpt-Require-Pin': 'true'}, json={
         'status': 'off',
@@ -1344,6 +1338,9 @@ def test_create_transfer(client, account):
 
     r = client.post('/creditors/2/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
     assert r.status_code == 403
+
+    r = client.post('/creditors/1/transfers/', headers={'X-Swpt-Require-Pin': 'true'}, json=request_data)
+    assert r.status_code == 404
 
 
 def test_unauthorized_creditor_id(creditor, client):
