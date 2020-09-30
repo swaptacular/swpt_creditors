@@ -97,7 +97,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
     def validate_value(self, data, **kwargs):
         is_on = data['status_name'] == Pin.STATUS_NAME_ON
         if is_on and 'optional_new_pin' not in data:
-            raise ValidationError("When the PIN is on, newPin is requred.")
+            raise ValidationError(f'When the PIN is "{Pin.STATUS_NAME_ON}", newPin is requred.')
 
     @pre_dump
     def process_pin_instance(self, obj, many):
