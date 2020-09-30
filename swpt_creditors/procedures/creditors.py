@@ -16,7 +16,7 @@ atomic: Callable[[T], T] = db.atomic
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
 
 
-def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int) -> None:
+def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> None:
     is_correct = try_pin_value(creditor_id, pin_value=pin_value, max_failed_attempts=max_failed_attempts)
     if not is_correct:
         raise errors.WrongPinValue()
@@ -123,7 +123,7 @@ def get_active_creditor(creditor_id: int, lock: bool = False, join_pin: bool = F
 
 
 @atomic
-def get_pin(creditor_id: int, lock=False) -> Optional[Pin]:
+def get_pin(creditor_id: int, lock: bool = False) -> Optional[Pin]:
     query = Pin.query.filter_by(creditor_id=creditor_id)
     if lock:
         query = query.with_for_update()
@@ -170,7 +170,7 @@ def update_pin(
 
 
 @atomic
-def try_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int) -> bool:
+def try_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> bool:
     pin = get_pin(creditor_id)
     if pin is None:
         raise errors.CreditorDoesNotExist()
