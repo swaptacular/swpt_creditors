@@ -1,11 +1,11 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from random import randint
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
-from sqlalchemy.orm import exc
+from sqlalchemy.orm import exc, joinedload
 from swpt_creditors.extensions import db
-from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, Account, \
+from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, PinInfo, Account, \
     RunningTransfer, MIN_INT64, MAX_INT64
 from .common import get_paths_and_types
 from . import errors
@@ -14,6 +14,41 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
+
+
+def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> None:
+    is_pin_value_ok = verify_pin_value_helper(
+        creditor_id,
+        pin_value=pin_value,
+        max_failed_attempts=max_failed_attempts,
+    )
+    if not is_pin_value_ok:
+        raise errors.WrongPinValue()
+
+
+def update_pin_info(
+        creditor_id: int,
+        *,
+        status_name: str,
+        new_pin_value: Optional[str],
+        latest_update_id: int,
+        pin_reset_mode: bool,
+        pin_value: Optional[str],
+        max_failed_attempts: int) -> Optional[PinInfo]:
+
+    is_pin_value_ok, pin_info = update_pin_info_helper(
+        creditor_id=creditor_id,
+        status_name=status_name,
+        new_pin_value=new_pin_value,
+        latest_update_id=latest_update_id,
+        pin_reset_mode=pin_reset_mode,
+        pin_value=pin_value,
+        max_failed_attempts=max_failed_attempts,
+    )
+    if not is_pin_value_ok:
+        raise errors.WrongPinValue()
+
+    return pin_info
 
 
 @atomic
@@ -46,7 +81,7 @@ def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Option
     query = db.session.\
         query(Creditor.creditor_id).\
         filter(Creditor.creditor_id >= start_from).\
-        filter(Creditor.status.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
+        filter(Creditor.status_flags.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
         order_by(Creditor.creditor_id).\
         limit(count)
     creditor_ids = [t[0] for t in query.all()]
@@ -86,13 +121,15 @@ def reserve_creditor(creditor_id, verify_correctness=True) -> Creditor:
 @atomic
 def activate_creditor(creditor_id: int, reservation_id: int) -> Creditor:
     creditor = _get_creditor(creditor_id, lock=True)
-
-    creditor_can_be_activated = creditor and (creditor.is_activated or reservation_id == creditor.reservation_id)
-    if not creditor_can_be_activated:
+    if creditor is None:
         raise errors.InvalidReservationId()
 
-    assert creditor is not None
-    creditor.activate()
+    if not creditor.is_activated:
+        if reservation_id != creditor.reservation_id or creditor.is_deactivated:
+            raise errors.InvalidReservationId()
+
+        creditor.activate()
+        db.session.add(PinInfo(creditor_id=creditor_id))
 
     return creditor
 
@@ -102,15 +139,65 @@ def deactivate_creditor(creditor_id: int) -> None:
     creditor = get_active_creditor(creditor_id, lock=True)
     if creditor:
         creditor.deactivate()
+        _delete_creditor_pin_info(creditor_id)
         _delete_creditor_accounts(creditor_id)
         _delete_creditor_running_transfers(creditor_id)
 
 
 @atomic
-def get_active_creditor(creditor_id: int, lock: bool = False) -> Optional[Creditor]:
-    creditor = _get_creditor(creditor_id, lock=lock)
+def get_active_creditor(creditor_id: int, lock: bool = False, join_pin: bool = False) -> Optional[Creditor]:
+    creditor = _get_creditor(creditor_id, lock=lock, join_pin=join_pin)
     if creditor and creditor.is_activated and not creditor.is_deactivated:
         return creditor
+
+
+@atomic
+def get_pin_info(creditor_id: int, lock: bool = False) -> Optional[PinInfo]:
+    query = PinInfo.query.filter_by(creditor_id=creditor_id)
+    if lock:
+        query = query.with_for_update()
+
+    return query.one_or_none()
+
+
+@atomic
+def update_pin_info_helper(
+        creditor_id: int,
+        *,
+        status_name: str,
+        new_pin_value: Optional[str],
+        latest_update_id: int,
+        pin_reset_mode: bool,
+        pin_value: Optional[str],
+        max_failed_attempts: int) -> Tuple[bool, PinInfo]:
+
+    current_ts = datetime.now(tz=timezone.utc)
+
+    pin_info = get_pin_info(creditor_id, lock=True)
+    if pin_info is None:
+        raise errors.CreditorDoesNotExist()
+
+    if latest_update_id != pin_info.latest_update_id + 1:
+        raise errors.UpdateConflict()
+
+    is_pin_value_ok = pin_reset_mode or pin_info.try_value(pin_value, max_failed_attempts)
+    if is_pin_value_ok:
+        pin_info.status_name = status_name
+        pin_info.value = new_pin_value
+        pin_info.latest_update_id = latest_update_id
+        pin_info.latest_update_ts = current_ts
+        pin_info.failed_attempts = 0
+
+        paths, types = get_paths_and_types()
+        db.session.add(PendingLogEntry(
+            creditor_id=creditor_id,
+            added_at=current_ts,
+            object_type=types.pin_info,
+            object_uri=paths.pin_info(creditorId=creditor_id),
+            object_update_id=latest_update_id,
+        ))
+
+    return is_pin_value_ok, pin_info
 
 
 @atomic
@@ -151,6 +238,15 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
         for entry in pending_log_entries:
             _process_pending_log_entry(creditor, entry)
+
+
+@atomic
+def verify_pin_value_helper(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> bool:
+    pin_info = get_pin_info(creditor_id)
+    if pin_info is None:
+        raise errors.CreditorDoesNotExist()
+
+    return pin_info.try_value(pin_value, max_failed_attempts)
 
 
 def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> None:
@@ -195,10 +291,12 @@ def _add_transfers_list_update_log_entry(creditor: Creditor, added_at: datetime)
     )
 
 
-def _get_creditor(creditor_id: int, lock=False) -> Optional[Creditor]:
+def _get_creditor(creditor_id: int, lock: bool = False, join_pin: bool = False) -> Optional[Creditor]:
     query = Creditor.query.filter_by(creditor_id=creditor_id)
     if lock:
         query = query.with_for_update()
+    if join_pin:
+        query = query.options(joinedload(Creditor.pin_info, innerjoin=True))
 
     return query.one_or_none()
 
@@ -209,6 +307,12 @@ def _add_log_entry(creditor: Creditor, **kwargs) -> None:
         entry_id=creditor.generate_log_entry_id(),
         **kwargs,
     ))
+
+
+def _delete_creditor_pin_info(creditor_id: int) -> None:
+    PinInfo.query.\
+        filter_by(creditor_id=creditor_id).\
+        delete(synchronize_session=False)
 
 
 def _delete_creditor_accounts(creditor_id: int) -> None:

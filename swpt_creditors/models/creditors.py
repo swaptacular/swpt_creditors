@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Optional
 from datetime import datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import true, or_
+from sqlalchemy.sql.expression import true, null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc
 
@@ -32,7 +32,7 @@ class Creditor(db.Model):
     _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
 
     creditor_id = db.Column(db.BigInteger, nullable=False)
-    status = db.Column(
+    status_flags = db.Column(
         db.SmallInteger,
         nullable=False,
         default=DEFAULT_CREDITOR_STATUS,
@@ -68,37 +68,109 @@ class Creditor(db.Model):
         db.CheckConstraint(accounts_list_latest_update_id > 0),
         db.CheckConstraint(transfers_list_latest_update_id > 0),
         db.CheckConstraint(or_(
-            status.op('&')(STATUS_IS_DEACTIVATED_FLAG) == 0,
-            status.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0,
+            status_flags.op('&')(STATUS_IS_DEACTIVATED_FLAG) == 0,
+            status_flags.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0,
         )),
 
-        # TODO: The `status` column is not be part of the primary key,
-        #       but should be included in the primary key index to
-        #       allow index-only scans. Because SQLAlchemy does not
-        #       support this yet (2020-01-11), temporarily, there are
-        #       no index-only scans.
+        # TODO: The `status_flags` column is not be part of the
+        #       primary key, but should be included in the primary key
+        #       index to allow index-only scans. Because SQLAlchemy
+        #       does not support this yet (2020-01-11), temporarily,
+        #       there are no index-only scans.
         db.Index('idx_creditor_pk', creditor_id, unique=True),
     )
 
+    pin_info = db.relationship('PinInfo', uselist=False, cascade='all', passive_deletes=True)
+
     @property
     def is_activated(self):
-        return bool(self.status & Creditor.STATUS_IS_ACTIVATED_FLAG)
+        return bool(self.status_flags & Creditor.STATUS_IS_ACTIVATED_FLAG)
 
     @property
     def is_deactivated(self):
-        return bool(self.status & Creditor.STATUS_IS_DEACTIVATED_FLAG)
+        return bool(self.status_flags & Creditor.STATUS_IS_DEACTIVATED_FLAG)
 
     def activate(self):
-        self.status |= Creditor.STATUS_IS_ACTIVATED_FLAG
+        self.status_flags |= Creditor.STATUS_IS_ACTIVATED_FLAG
         self.reservation_id = None
 
     def deactivate(self):
-        self.status |= Creditor.STATUS_IS_DEACTIVATED_FLAG
+        self.status_flags |= Creditor.STATUS_IS_DEACTIVATED_FLAG
         self.deactivation_date = datetime.now(tz=timezone.utc).date()
 
     def generate_log_entry_id(self):
         self.last_log_entry_id += 1
         return self.last_log_entry_id
+
+
+class PinInfo(db.Model):
+    STATUS_OFF = 0
+    STATUS_ON = 1
+    STATUS_BLOCKED = 2
+
+    STATUS_NAME_OFF = 'off'
+    STATUS_NAME_ON = 'on'
+    STATUS_NAME_BLOCKED = 'blocked'
+
+    STATUS_NAMES = [STATUS_NAME_OFF, STATUS_NAME_ON, STATUS_NAME_BLOCKED]
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    status = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=STATUS_OFF,
+        comment="PIN's status: "
+                f"{STATUS_OFF} - off, "
+                f"{STATUS_ON} - on, "
+                f"{STATUS_BLOCKED} - blocked.",
+    )
+    value = db.Column(db.String)
+    failed_attempts = db.Column(db.SmallInteger, nullable=False, default=0)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    __table_args__ = (
+        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
+        db.CheckConstraint(and_(status >= 0, status < 3)),
+        db.CheckConstraint(or_(status != STATUS_ON, value != null())),
+        db.CheckConstraint(failed_attempts >= 0),
+        db.CheckConstraint(latest_update_id > 0),
+        {
+            'comment': "Represents creditor's Personal Identification Number",
+        }
+    )
+
+    @property
+    def is_required(self):
+        return self.status != self.STATUS_OFF
+
+    @property
+    def status_name(self) -> str:
+        return self.STATUS_NAMES[self.status]
+
+    @status_name.setter
+    def status_name(self, value: str):
+        self.status = self.STATUS_NAMES.index(value)
+
+    def block(self):
+        self.status = self.STATUS_BLOCKED
+        self.value = None
+
+    def try_value(self, value: Optional[str], max_failed_attempts: int) -> bool:
+        if self.status == self.STATUS_BLOCKED:
+            return False
+
+        if self.is_required:
+            assert self.value is not None
+            if value is None:
+                return False
+
+            if value != self.value:
+                self.failed_attempts += 1
+                if self.failed_attempts >= max_failed_attempts:
+                    self.block()
+                return False
+
+        return True
 
 
 class BaseLogEntry(db.Model):

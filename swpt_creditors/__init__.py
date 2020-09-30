@@ -89,6 +89,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_MAX_HEARTBEAT_DELAY_DAYS = 365
     APP_MAX_TRANSFER_DELAY_DAYS = 14
     APP_MAX_CONFIG_DELAY_HOURS = 24
+    APP_PIN_MAX_FAILED_ATTEMPTS = 3
 
 
 def create_app(config_dict={}):

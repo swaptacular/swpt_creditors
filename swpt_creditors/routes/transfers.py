@@ -1,4 +1,4 @@
-from flask import redirect, url_for, request, current_app
+from flask import redirect, url_for, request, current_app, g
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib.swpt_uris import parse_account_uri
@@ -7,7 +7,7 @@ from swpt_creditors.schemas import examples, TransferCreationRequestSchema, Tran
     TransfersPaginationParamsSchema
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
-from .common import context, parse_transfer_slug, verify_creditor_id
+from .common import context, parse_transfer_slug, process_headers
 from .specs import DID, CID, TID, TRANSFER_UUID
 from . import specs
 
@@ -18,7 +18,7 @@ transfers_api = Blueprint(
     url_prefix='/creditors',
     description="Make transfers from one account to another account.",
 )
-transfers_api.before_request(verify_creditor_id)
+transfers_api.before_request(process_headers)
 
 
 @transfers_api.route('/<i64:creditorId>/transfers/', parameters=[CID])
@@ -58,12 +58,15 @@ class TransfersEndpoint(MethodView):
     @transfers_api.response(TransferSchema(context=context), code=201, headers=specs.LOCATION_HEADER)
     @transfers_api.doc(operationId='createTransfer',
                        responses={303: specs.TRANSFER_EXISTS,
-                                  403: specs.DENIED_TRANSFER,
+                                  403: specs.FORBIDDEN_OPERATION,
                                   409: specs.TRANSFER_CONFLICT})
     def post(self, transfer_creation_request, creditorId):
         """Initiate a transfer.
 
-        **Note:** This is an idempotent operation.
+        **Note:** This is a potentially dangerous operation which may
+        require a PIN. Also, normally this is an idempotent operation,
+        but when an incorrect PIN is supplied, repeating the operation
+        may result in the creditor's PIN being blocked.
 
         """
 
@@ -77,6 +80,12 @@ class TransfersEndpoint(MethodView):
         location = url_for('transfers.TransferEndpoint', _external=True, creditorId=creditorId, transferUuid=uuid)
         try:
             inspect_ops.allow_transfer_creation(creditorId, debtorId)
+            if not g.pin_reset_mode:
+                procedures.verify_pin_value(
+                    creditor_id=creditorId,
+                    pin_value=transfer_creation_request.get('optional_pin'),
+                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                )
             transfer = procedures.initiate_running_transfer(
                 creditor_id=creditorId,
                 transfer_uuid=uuid,
@@ -90,7 +99,7 @@ class TransfersEndpoint(MethodView):
                 deadline=transfer_creation_request['options'].get('optional_deadline'),
                 locked_amount=transfer_creation_request['options']['locked_amount'],
             )
-        except inspect_ops.ForbiddenOperation:  # pragma: no cover
+        except (inspect_ops.ForbiddenOperation, procedures.WrongPinValue):
             abort(403)
         except procedures.CreditorDoesNotExist:
             abort(404)

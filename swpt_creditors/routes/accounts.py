@@ -1,6 +1,6 @@
 from urllib.parse import urlsplit, urljoin
 from werkzeug.routing import NotFound, RequestRedirect, MethodNotAllowed
-from flask import current_app, redirect, url_for, request
+from flask import current_app, redirect, url_for, request, g
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_lib.utils import i64_to_u64, u64_to_i64
@@ -11,7 +11,7 @@ from swpt_creditors.schemas import examples, DebtorIdentitySchema, AccountIdenti
     AccountsPaginationParamsSchema, LedgerEntriesPaginationParamsSchema, LedgerEntriesPageSchema
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
-from .common import context, verify_creditor_id
+from .common import context, process_headers
 from .specs import DID, CID
 from . import specs
 
@@ -45,7 +45,7 @@ accounts_api = Blueprint(
     url_prefix='/creditors',
     description="Create, view, update, and delete accounts, view account's transaction history.",
 )
-accounts_api.before_request(verify_creditor_id)
+accounts_api.before_request(process_headers)
 
 
 @accounts_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])
@@ -140,7 +140,7 @@ class AccountsEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=context), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
-                                 403: specs.FORBIDDEN_ACCOUNT_OPERATION})
+                                 403: specs.FORBIDDEN_OPERATION})
     def post(self, debtor_identity, creditorId):
         """Create account.
 
@@ -245,17 +245,26 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=context))
     @accounts_api.doc(operationId='updateAccountConfig',
-                      responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION,
+                      responses={403: specs.FORBIDDEN_OPERATION,
                                  409: specs.UPDATE_CONFLICT})
     def patch(self, account_config, creditorId, debtorId):
         """Update account's configuration.
 
-        **Note:** This is an idempotent operation.
+        **Note:** This is a potentially dangerous operation which may
+        require a PIN. Also, normally this is an idempotent operation,
+        but when an incorrect PIN is supplied, repeating the operation
+        may result in the creditor's PIN being blocked.
 
         """
 
         try:
             inspect_ops.allow_account_reconfig(creditorId, debtorId)
+            if not g.pin_reset_mode:
+                procedures.verify_pin_value(
+                    creditor_id=creditorId,
+                    pin_value=account_config.get('optional_pin'),
+                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                )
             config = procedures.update_account_config(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
@@ -264,9 +273,9 @@ class AccountConfigEndpoint(MethodView):
                 allow_unsafe_deletion=account_config['allow_unsafe_deletion'],
                 latest_update_id=account_config['latest_update_id'],
             )
-        except inspect_ops.ForbiddenOperation:  # pragma: no cover
+        except (inspect_ops.ForbiddenOperation, procedures.WrongPinValue):
             abort(403)
-        except procedures.AccountDoesNotExist:
+        except (procedures.CreditorDoesNotExist, procedures.AccountDoesNotExist):
             abort(404)
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
@@ -287,15 +296,25 @@ class AccountDisplayEndpoint(MethodView):
     @accounts_api.arguments(AccountDisplaySchema)
     @accounts_api.response(AccountDisplaySchema(context=context))
     @accounts_api.doc(operationId='updateAccountDisplay',
-                      responses={409: specs.UPDATE_CONFLICT})
+                      responses={403: specs.FORBIDDEN_OPERATION,
+                                 409: specs.UPDATE_CONFLICT})
     def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings.
 
-        **Note:** This is an idempotent operation.
+        **Note:** This is a potentially dangerous operation which may
+        require a PIN. Also, normally this is an idempotent operation,
+        but when an incorrect PIN is supplied, repeating the operation
+        may result in the creditor's PIN being blocked.
 
         """
 
         try:
+            if not g.pin_reset_mode:
+                procedures.verify_pin_value(
+                    creditor_id=creditorId,
+                    pin_value=account_display.get('optional_pin'),
+                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                )
             display = procedures.update_account_display(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
@@ -306,7 +325,9 @@ class AccountDisplayEndpoint(MethodView):
                 hide=account_display['hide'],
                 latest_update_id=account_display['latest_update_id'],
             )
-        except procedures.AccountDoesNotExist:
+        except procedures.WrongPinValue:
+            abort(403)
+        except (procedures.CreditorDoesNotExist, procedures.AccountDoesNotExist):
             abort(404)
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})
@@ -328,16 +349,26 @@ class AccountExchangeEndpoint(MethodView):
     @accounts_api.arguments(AccountExchangeSchema)
     @accounts_api.response(AccountExchangeSchema(context=context))
     @accounts_api.doc(operationId='updateAccountExchange',
-                      responses={409: specs.UPDATE_CONFLICT})
+                      responses={403: specs.FORBIDDEN_OPERATION,
+                                 409: specs.UPDATE_CONFLICT})
     def patch(self, account_exchange, creditorId, debtorId):
         """Update account's exchange settings.
 
-        **Note:** This is an idempotent operation.
+        **Note:** This is a potentially dangerous operation which may
+        require a PIN. Also, normally this is an idempotent operation,
+        but when an incorrect PIN is supplied, repeating the operation
+        may result in the creditor's PIN being blocked.
 
         """
 
         optional_peg = account_exchange.get('optional_peg')
         try:
+            if not g.pin_reset_mode:
+                procedures.verify_pin_value(
+                    creditor_id=creditorId,
+                    pin_value=account_exchange.get('optional_pin'),
+                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                )
             exchange = procedures.update_account_exchange(
                 creditor_id=creditorId,
                 debtor_id=debtorId,
@@ -352,7 +383,9 @@ class AccountExchangeEndpoint(MethodView):
                 ),
                 latest_update_id=account_exchange['latest_update_id'],
             )
-        except procedures.AccountDoesNotExist:
+        except procedures.WrongPinValue:
+            abort(403)
+        except (procedures.CreditorDoesNotExist, procedures.AccountDoesNotExist):
             abort(404)
         except procedures.UpdateConflict:
             abort(409, errors={'json': {'latestUpdateId': ['Incorrect value.']}})

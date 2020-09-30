@@ -2,6 +2,7 @@ import pytest
 import math
 from uuid import UUID
 import iso8601
+from flask import g
 from marshmallow import ValidationError
 from datetime import date, datetime, timezone
 from swpt_lib.utils import i64_to_u64
@@ -18,7 +19,7 @@ def test_serialize_creditor(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=1,
         creditor_latest_update_id=1,
@@ -63,10 +64,11 @@ def test_deserialize_creditor(app):
 
 
 def test_serialize_wallet(app):
+    g.pin_reset_mode = True
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=12345,
     )
@@ -81,6 +83,8 @@ def test_serialize_wallet(app):
         'debtorLookup': {'uri': '/creditors/1/debtor-lookup'},
         'createAccount': {'uri': '/creditors/1/accounts/'},
         'createTransfer': {'uri': '/creditors/1/transfers/'},
+        'pinInfo': {'uri': '/creditors/1/pin'},
+        'requirePin': False,
         'logRetentionDays': 31,
         'log': {
             'type': 'PaginatedStream',
@@ -256,7 +260,7 @@ def test_serialize_accounts_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=1,
         accounts_list_latest_update_id=1,
@@ -278,7 +282,7 @@ def test_serialize_transfers_list(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
-        status=0,
+        status_flags=0,
         deactivation_date=None,
         last_log_entry_id=1,
         transfers_list_latest_update_id=1,
@@ -1638,7 +1642,7 @@ def test_serialize_creditor_reservation(app):
         creditor_id=C_ID,
         created_at=datetime(2020, 1, 1),
         reservation_id=2,
-        status=0,
+        status_flags=0,
         deactivation_date=None,
     )
     crs = schemas.CreditorReservationSchema(context=context)
@@ -1649,3 +1653,64 @@ def test_serialize_creditor_reservation(app):
         'reservationId': 2,
         'validUntil': '2020-01-15T00:00:00',
     }
+
+
+def test_serialize_pin(app):
+    p = models.PinInfo(
+        creditor_id=C_ID,
+        value='123',
+        status=models.PinInfo.STATUS_ON,
+        latest_update_id=1,
+        latest_update_ts=datetime(2020, 1, 1),
+    )
+    pss = schemas.PinInfoSchema(context=context)
+    for status_id, status_name in enumerate(models.PinInfo.STATUS_NAMES):
+        p.status = status_id
+        assert pss.dump(p) == {
+            'type': 'PinInfo',
+            'uri': '/creditors/1/pin',
+            'wallet': {'uri': '/creditors/1/wallet'},
+            'status': status_name,
+            'latestUpdateId': 1,
+            'latestUpdateAt': '2020-01-01T00:00:00',
+        }
+
+
+def test_deserialize_pin_info(app):
+    pss = schemas.PinInfoSchema(context=context)
+
+    data = pss.load({
+        'status': 'on',
+        'newPin': '1234',
+        'latestUpdateId': 2,
+    })
+    assert data == {
+        'type': 'PinInfo',
+        'status_name': 'on',
+        'optional_new_pin_value': '1234',
+        'latest_update_id': 2,
+    }
+
+    with pytest.raises(ValidationError, match='Invalid type'):
+        pss.load({'type': 'WrongType', 'status': 'off', 'latestUpdateId': 2})
+
+    with pytest.raises(ValidationError, match='Missing data for required field'):
+        pss.load({'type': 'PinInfo', 'status': 'off'})
+
+    with pytest.raises(ValidationError, match='Missing data for required field'):
+        pss.load({'type': 'PinInfo', 'latestUpdateId': 2})
+
+    with pytest.raises(ValidationError, match='String does not match expected pattern'):
+        pss.load({'type': 'PinInfo', 'status': 'INVALID_STATUS', 'latestUpdateId': 2})
+
+    with pytest.raises(ValidationError, match='String does not match expected pattern'):
+        pss.load({'type': 'PinInfo', 'status': ' on', 'latestUpdateId': 2})
+
+    with pytest.raises(ValidationError, match='String does not match expected pattern'):
+        pss.load({'type': 'PinInfo', 'status': 'on', 'newPin': 'INVALID', 'latestUpdateId': 2})
+
+    with pytest.raises(ValidationError, match='String does not match expected pattern'):
+        pss.load({'type': 'PinInfo', 'status': 'on', 'newPin': 1000 * '1', 'latestUpdateId': 2})
+
+    with pytest.raises(ValidationError, match='When the PIN is "on", newPin is requred'):
+        pss.load({'type': 'PinInfo', 'status': 'on', 'latestUpdateId': 2})

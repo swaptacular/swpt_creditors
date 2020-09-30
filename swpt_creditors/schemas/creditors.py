@@ -1,9 +1,10 @@
 from copy import copy
-from marshmallow import Schema, fields, validate, pre_dump, post_dump
+from marshmallow import Schema, ValidationError, fields, validate, validates_schema, pre_dump, post_dump
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64
+from swpt_creditors.models import MAX_INT64, PinInfo
 from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
-    MutableResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
+    MutableResourceSchema, PinProtectedResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, \
+    PAGE_NEXT_DESCRIPTION, PIN_REGEX
 
 
 class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
@@ -43,6 +44,69 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
         obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
         obj.latest_update_id = obj.creditor_latest_update_id
         obj.latest_update_ts = obj.creditor_latest_update_ts
+
+        return obj
+
+
+class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResourceSchema):
+    uri = fields.String(
+        required=True,
+        dump_only=True,
+        format='uri-reference',
+        description=URI_DESCRIPTION,
+        example='/creditors/2/pin',
+    )
+    type = fields.String(
+        missing=type_registry.pin_info,
+        default=type_registry.pin_info,
+        description='The type of this object.',
+        example='PinInfo',
+    )
+    status_name = fields.String(
+        required=True,
+        validate=validate.Regexp(f'^({"|".join(PinInfo.STATUS_NAMES)})$'),
+        data_key='status',
+        description='The status of the PIN.'
+                    '\n\n'
+                    '* `"off"` means that the PIN is not required for potentially '
+                    '  dangerous operations.\n'
+                    '* `"on"` means that the PIN is required for potentially dangerous '
+                    '  operations.\n'
+                    '* `"blocked"` means that the PIN has been blocked.',
+        example=f'{PinInfo.STATUS_NAME_ON}',
+    )
+    optional_new_pin_value = fields.String(
+        load_only=True,
+        validate=validate.Regexp(PIN_REGEX),
+        data_key='newPin',
+        description='The new PIN. When `status` is "on", this field must be present. Note '
+                    'that when changing the PIN, the `pin` field should contain the old '
+                    'PIN, and the `newPin` field should contain the new PIN.',
+        example='5678',
+    )
+    wallet = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        description="The URI of the creditor's `Wallet`.",
+        example={'uri': '/creditors/2/wallet'},
+    )
+
+    @validates_schema
+    def validate_value(self, data, **kwargs):
+        is_on = data['status_name'] == PinInfo.STATUS_NAME_ON
+        if is_on and 'optional_new_pin_value' not in data:
+            raise ValidationError('When the PIN is "on", newPin is requred.')
+
+    @pre_dump
+    def process_pin_instance(self, obj, many):
+        assert isinstance(obj, models.PinInfo)
+        paths = self.context['paths']
+        obj = copy(obj)
+        obj.uri = paths.pin_info(creditorId=obj.creditor_id)
+        obj.wallet = {'uri': paths.wallet(creditorId=obj.creditor_id)}
+        obj.latest_update_id = obj.latest_update_id
+        obj.latest_update_ts = obj.latest_update_ts
 
         return obj
 
@@ -214,9 +278,9 @@ class WalletSchema(Schema):
         dump_only=True,
         data_key='accountLookup',
         description="A URI to which the recipient account's `AccountIdentity` can be POST-ed, "
-                    "trying to find a matching sender account. If a matching sender account "
-                    "is found, the response will contain an `ObjectReference` to the "
-                    "`Account`. Otherwise, the response will be empty (response code 204).",
+                    "trying to find the identify of the account's debtor. If the debtor has "
+                    "been identified successfully, the response will contain the debtor's "
+                    "`DebtorIdentity`. Otherwise, the response code will be 422.",
         example={'uri': '/creditors/2/account-lookup'},
     )
     debtor_lookup = fields.Nested(
@@ -226,9 +290,26 @@ class WalletSchema(Schema):
         data_key='debtorLookup',
         description="A URI to which a `DebtorIdentity` object can be POST-ed, trying to find an "
                     "existing account with this debtor. If an existing account is found, the "
-                    "response will contain an `ObjectReference` to the `Account`. Otherwise, "
+                    "response will redirect to the `Account` (response code 303). Otherwise, "
                     "the response will be empty (response code 204).",
         example={'uri': '/creditors/2/debtor-lookup'},
+    )
+    pin_info_reference = fields.Nested(
+        ObjectReferenceSchema,
+        required=True,
+        dump_only=True,
+        data_key='pinInfo',
+        description="The URI of creditor's `PinInfo`.",
+        example={'uri': '/creditors/2/pin'},
+    )
+    require_pin = fields.Boolean(
+        required=True,
+        dump_only=True,
+        data_key='requirePin',
+        description="Whether the PIN is required for potentially dangerous operations."
+                    "\n\n"
+                    "**Note:** The PIN will never be required when in \"PIN reset\" mode.",
+        example=True,
     )
 
     def get_log_retention_days(self, obj):
@@ -241,6 +322,7 @@ class WalletSchema(Schema):
     def process_creditor_instance(self, obj, many):
         assert isinstance(obj, models.Creditor)
         paths = self.context['paths']
+        calc_require_pin = self.context['calc_require_pin']
         obj = copy(obj)
         obj.uri = paths.wallet(creditorId=obj.creditor_id)
         obj.creditor = {'uri': paths.creditor(creditorId=obj.creditor_id)}
@@ -250,6 +332,8 @@ class WalletSchema(Schema):
         obj.debtor_lookup = {'uri': paths.debtor_lookup(creditorId=obj.creditor_id)}
         obj.create_account = {'uri': paths.accounts(creditorId=obj.creditor_id)}
         obj.create_transfer = {'uri': paths.transfers(creditorId=obj.creditor_id)}
+        obj.pin_info_reference = {'uri': paths.pin_info(creditorId=obj.creditor_id)}
+        obj.require_pin = calc_require_pin(obj.pin_info)
         log_path = paths.log_entries(creditorId=obj.creditor_id)
         obj.log = {
             'items_type': type_registry.log_entry,

@@ -1,10 +1,10 @@
 from functools import partial
 from typing import Tuple
 from datetime import date, timedelta, datetime, timezone
-from flask import url_for, current_app, request
+from flask import url_for, current_app, request, g
 from flask_smorest import abort
 from swpt_lib.utils import u64_to_i64
-from swpt_creditors.models import MAX_INT64, DATE0
+from swpt_creditors.models import MAX_INT64, DATE0, PinInfo
 from swpt_creditors.schemas import type_registry
 
 
@@ -44,12 +44,19 @@ def calc_reservation_deadline(created_at: datetime) -> datetime:
     return created_at + timedelta(days=current_app.config['APP_INACTIVE_CREDITOR_RETENTION_DAYS'])
 
 
-def verify_creditor_id():
-    ADMIN = '*'
+def calc_require_pin(pin_info: PinInfo) -> bool:
+    return not g.pin_reset_mode and pin_info.is_required
 
+
+def process_headers():
+    ADMIN = '*'
     creditor_id = request.headers.get('X-Swpt-Creditor-Id', ADMIN)
     if creditor_id != ADMIN and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
         abort(401)
+
+    NOT_REQUIED = 'false'
+    x_swpt_require_pin = request.headers.get('X-Swpt-Require-Pin', NOT_REQUIED)
+    g.pin_reset_mode = x_swpt_require_pin == NOT_REQUIED
 
 
 class path_builder:
@@ -68,6 +75,7 @@ class path_builder:
     creditors_list = _url_for('admin.CreditorsListEndpoint')
     creditor_enumerate = _url_for('admin.CreditorEnumerateEndpoint')
     creditor = _url_for('creditors.CreditorEndpoint')
+    pin_info = _url_for('creditors.PinInfoEndpoint')
     wallet = _url_for('creditors.WalletEndpoint')
     log_entries = _url_for('creditors.LogEntriesEndpoint')
     debtor_lookup = _url_for('accounts.DebtorLookupEndpoint')
@@ -94,4 +102,5 @@ context = {
     'calc_checkup_datetime': calc_checkup_datetime,
     'calc_log_retention_days': calc_log_retention_days,
     'calc_reservation_deadline': calc_reservation_deadline,
+    'calc_require_pin': calc_require_pin,
 }

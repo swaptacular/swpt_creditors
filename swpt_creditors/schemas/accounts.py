@@ -7,7 +7,8 @@ from swpt_lib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES
 from .common import ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, \
-    type_registry, MutableResourceSchema, ValidateTypeMixin, URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
+    PinProtectedResourceSchema, MutableResourceSchema, ValidateTypeMixin, type_registry, \
+    URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
 
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
@@ -514,7 +515,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         }
 
 
-class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
+class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
@@ -584,7 +585,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
 
-class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
+class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
@@ -680,7 +681,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema):
         return obj
 
 
-class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema):
+class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,

@@ -69,9 +69,11 @@ def test_create_account(db_session, creditor):
 def test_deactivate_creditor(db_session, creditor, account):
     assert p.get_active_creditor(C_ID)
     assert len(models.Account.query.all()) == 1
+    assert len(models.PinInfo.query.all()) == 1
     p.deactivate_creditor(C_ID)
     assert p.get_active_creditor(C_ID) is None
     assert len(models.Account.query.all()) == 0
+    assert len(models.PinInfo.query.all()) == 0
 
 
 def test_delete_account(db_session, account, current_ts):

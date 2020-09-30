@@ -96,18 +96,13 @@ TRANSFER_CANCELLATION_FAILURE = {
     'content': ERROR_CONTENT,
 }
 
-DENIED_TRANSFER = {
-    'description': 'The transfer is forbidden.',
-    'content': ERROR_CONTENT,
-}
-
 TRANSFER_EXISTS = {
     'description': 'The same transfer entry already exists.',
     'headers': LOCATION_HEADER,
 }
 
-FORBIDDEN_ACCOUNT_OPERATION = {
-    'description': 'Forbidden account operation.',
+FORBIDDEN_OPERATION = {
+    'description': 'Forbidden operation.',
     'content': ERROR_CONTENT,
 }
 

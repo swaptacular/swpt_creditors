@@ -64,3 +64,7 @@ class InvalidReservationId(Exception):
 
 class DebtorNameConflict(Exception):
     """Another account with this debtorName already exist."""
+
+
+class WrongPinValue(Exception):
+    """A wrong PIN has been entered."""
