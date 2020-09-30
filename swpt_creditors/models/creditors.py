@@ -152,7 +152,7 @@ class Pin(db.Model):
         return self.STATUS_NAMES[self.status]
 
     @status_name.setter
-    def status_name(self, value):
+    def status_name(self, value: str):
         self.status = self.STATUS_NAMES.index(value)
 
     def block(self):
