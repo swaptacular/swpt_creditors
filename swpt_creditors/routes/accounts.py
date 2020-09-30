@@ -140,7 +140,7 @@ class AccountsEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=context), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
                       responses={303: specs.ACCOUNT_EXISTS,
-                                 403: specs.FORBIDDEN_ACCOUNT_OPERATION})
+                                 403: specs.FORBIDDEN_OPERATION})
     def post(self, debtor_identity, creditorId):
         """Create account.
 
@@ -245,7 +245,7 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=context))
     @accounts_api.doc(operationId='updateAccountConfig',
-                      responses={403: specs.FORBIDDEN_ACCOUNT_OPERATION,
+                      responses={403: specs.FORBIDDEN_OPERATION,
                                  409: specs.UPDATE_CONFLICT})
     def patch(self, account_config, creditorId, debtorId):
         """Update account's configuration.

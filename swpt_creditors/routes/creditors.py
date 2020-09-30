@@ -56,7 +56,7 @@ class PinInfoEndpoint(MethodView):
     @creditors_api.arguments(PinInfoSchema)
     @creditors_api.response(PinInfoSchema(context=context))
     @creditors_api.doc(operationId='updatePinInfo',
-                       responses={403: specs.WRONG_PIN_VALUE,
+                       responses={403: specs.FORBIDDEN_OPERATION,
                                   409: specs.UPDATE_CONFLICT})
     def patch(self, pin_info, creditorId):
         """Update creditor's PIN information.

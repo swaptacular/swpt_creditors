@@ -106,8 +106,8 @@ TRANSFER_EXISTS = {
     'headers': LOCATION_HEADER,
 }
 
-FORBIDDEN_ACCOUNT_OPERATION = {
-    'description': 'Forbidden account operation.',
+FORBIDDEN_OPERATION = {
+    'description': 'Forbidden operation.',
     'content': ERROR_CONTENT,
 }
 
@@ -128,11 +128,6 @@ FORBIDDEN_ACCOUNT_DELETION = {
 
 PEG_ACCOUNT_DELETION = {
     'description': 'The account acts as a currency peg.',
-    'content': ERROR_CONTENT,
-}
-
-WRONG_PIN_VALUE = {
-    'description': 'A wrong PIN has been entered.',
     'content': ERROR_CONTENT,
 }
 
