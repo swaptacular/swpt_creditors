@@ -172,7 +172,6 @@ def update_pin_info_helper(
         max_failed_attempts: int) -> Tuple[bool, PinInfo]:
 
     current_ts = datetime.now(tz=timezone.utc)
-    is_pin_value_ok = False
 
     pin_info = get_pin_info(creditor_id, lock=True)
     if pin_info is None:
@@ -181,7 +180,8 @@ def update_pin_info_helper(
     if latest_update_id != pin_info.latest_update_id + 1:
         raise errors.UpdateConflict()
 
-    if pin_reset_mode or pin_info.try_value(pin_value, max_failed_attempts):
+    is_pin_value_ok = pin_reset_mode or pin_info.try_value(pin_value, max_failed_attempts)
+    if is_pin_value_ok:
         pin_info.status_name = status_name
         pin_info.value = new_pin_value
         pin_info.latest_update_id = latest_update_id
@@ -196,7 +196,6 @@ def update_pin_info_helper(
             object_uri=paths.pin_info(creditorId=creditor_id),
             object_update_id=latest_update_id,
         ))
-        is_pin_value_ok = True
 
     return is_pin_value_ok, pin_info
 
