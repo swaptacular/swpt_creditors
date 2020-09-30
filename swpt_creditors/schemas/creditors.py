@@ -49,8 +49,6 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
 
 
 class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema):
-    STATUS_NAMES = Pin.PIN_STATUS_NAMES
-
     uri = fields.String(
         required=True,
         dump_only=True,
@@ -66,7 +64,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
     )
     status_name = fields.String(
         required=True,
-        validate=validate.Regexp(f'^({"|".join(STATUS_NAMES)})$'),
+        validate=validate.Regexp(f'^({"|".join(Pin.PIN_STATUS_NAMES)})$'),
         data_key='status',
         description='The status of the PIN.'
                     '\n\n'
@@ -96,7 +94,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedSchema
 
     @validates_schema
     def validate_value(self, data, **kwargs):
-        is_on = data['status_name'] == self.STATUS_NAMES[Pin.STATUS_ON]
+        is_on = data['status_name'] == Pin.PIN_STATUS_NAMES[Pin.STATUS_ON]
         if is_on and 'optional_new_pin' not in data:
             raise ValidationError("When the PIN is on, newPin is requred.")
 

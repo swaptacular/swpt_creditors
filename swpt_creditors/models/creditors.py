@@ -147,6 +147,10 @@ class Pin(db.Model):
     def status_name(self) -> str:
         return self.PIN_STATUS_NAMES[self.status]
 
+    @status_name.setter
+    def status_name(self, value):
+        self.status = self.PIN_STATUS_NAMES.index(value)
+
     def block(self):
         self.status = self.STATUS_BLOCKED
         self.value = None

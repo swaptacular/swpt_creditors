@@ -1,4 +1,4 @@
-from flask import current_app, request
+from flask import current_app, request, g
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
@@ -67,7 +67,9 @@ class PinInfoEndpoint(MethodView):
         try:
             pin = procedures.update_pin(
                 creditor_id=creditorId,
-                status=PinInfoSchema.STATUS_NAMES.index(pin_info['status_name']),
+                pin_reset_mode=g.pin_reset_mode,
+                pin=pin_info.get('optional_pin'),
+                status_name=pin_info['status_name'],
                 new_pin=pin_info.get('optional_new_pin'),
                 latest_update_id=pin_info['latest_update_id'],
             )

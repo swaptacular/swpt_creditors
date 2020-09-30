@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Tuple
 from datetime import date, timedelta, datetime, timezone
-from flask import url_for, current_app, request
+from flask import url_for, current_app, request, g
 from flask_smorest import abort
 from swpt_lib.utils import u64_to_i64
 from swpt_creditors.models import MAX_INT64, DATE0, Pin
@@ -45,19 +45,18 @@ def calc_reservation_deadline(created_at: datetime) -> datetime:
 
 
 def calc_require_pin(pin: Pin) -> bool:
-    NOT_REQUIED = 'false'
-
-    x_swpt_require_pin = request.headers.get('X-Swpt-Require-Pin', NOT_REQUIED)
-    is_in_pin_reset_mode = x_swpt_require_pin == NOT_REQUIED
-    return not is_in_pin_reset_mode and pin.is_required
+    return not g.pin_reset_mode and pin.is_required
 
 
 def verify_creditor_id():
     ADMIN = '*'
-
     creditor_id = request.headers.get('X-Swpt-Creditor-Id', ADMIN)
     if creditor_id != ADMIN and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
         abort(401)
+
+    NOT_REQUIED = 'false'
+    x_swpt_require_pin = request.headers.get('X-Swpt-Require-Pin', NOT_REQUIED)
+    g.pin_reset_mode = x_swpt_require_pin == NOT_REQUIED
 
 
 class path_builder:

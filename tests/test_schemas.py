@@ -2,6 +2,7 @@ import pytest
 import math
 from uuid import UUID
 import iso8601
+from flask import g
 from marshmallow import ValidationError
 from datetime import date, datetime, timezone
 from swpt_lib.utils import i64_to_u64
@@ -63,6 +64,7 @@ def test_deserialize_creditor(app):
 
 
 def test_serialize_wallet(app):
+    g.pin_reset_mode = True
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2019, 11, 30),
