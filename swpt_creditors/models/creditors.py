@@ -160,6 +160,9 @@ class Pin(db.Model):
         self.value = None
 
     def try_value(self, value: Optional[str], max_failed_attempts: int) -> bool:
+        if value is None:
+            return False
+
         if self.is_blocked:
             return False
 

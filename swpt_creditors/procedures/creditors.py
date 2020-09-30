@@ -16,6 +16,12 @@ atomic: Callable[[T], T] = db.atomic
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
 
 
+def verify_pin_value(creditor_id: int, *, value: Optional[str], max_failed_attempts: int) -> None:
+    is_correct_pin_value = try_pin_value(creditor_id, value=value, max_failed_attempts=max_failed_attempts)
+    if not is_correct_pin_value:
+        raise errors.WrongPinValue()
+
+
 @atomic
 def generate_new_creditor_id() -> int:
     agent_config = _get_agent_config()
@@ -163,6 +169,15 @@ def update_pin(
     ))
 
     return pin
+
+
+@atomic
+def try_pin_value(creditor_id: int, *, value: Optional[str], max_failed_attempts: int) -> bool:
+    pin = get_pin(creditor_id)
+    if pin is None:
+        raise errors.CreditorDoesNotExist()
+
+    return pin.try_value(value, max_failed_attempts)
 
 
 @atomic

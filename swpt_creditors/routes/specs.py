@@ -131,6 +131,11 @@ PEG_ACCOUNT_DELETION = {
     'content': ERROR_CONTENT,
 }
 
+WRONG_PIN_VALUE = {
+    'description': 'A wrong PIN has been entered.',
+    'content': ERROR_CONTENT,
+}
+
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
     "description": "Account does not exist.",
 }

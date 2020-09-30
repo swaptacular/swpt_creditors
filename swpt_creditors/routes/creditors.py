@@ -56,15 +56,25 @@ class PinInfoEndpoint(MethodView):
     @creditors_api.arguments(PinInfoSchema)
     @creditors_api.response(PinInfoSchema(context=context))
     @creditors_api.doc(operationId='updatePinInfo',
-                       responses={409: specs.UPDATE_CONFLICT})
+                       responses={403: specs.WRONG_PIN_VALUE,
+                                  409: specs.UPDATE_CONFLICT})
     def patch(self, pin_info, creditorId):
         """Update creditor's PIN information.
 
-        **Note:** This is an idempotent operation.
+        **Note:** This is a potentially dangerous operation which may
+        require PIN. Also, normally this is an idempotent operation,
+        but when an incorrect PIN is supplied, repeating the operation
+        may result in the creditor's PIN being blocked.
 
         """
 
         try:
+            if not g.pin_reset_mode:
+                procedures.verify_pin_value(
+                    creditor_id=creditorId,
+                    value=pin_info.get('optional_pin'),
+                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                )
             pin = procedures.update_pin(
                 creditor_id=creditorId,
                 pin_reset_mode=g.pin_reset_mode,
@@ -73,6 +83,8 @@ class PinInfoEndpoint(MethodView):
                 new_pin=pin_info.get('optional_new_pin'),
                 latest_update_id=pin_info['latest_update_id'],
             )
+        except procedures.WrongPinValue:
+            abort(403)
         except procedures.CreditorDoesNotExist:
             abort(404)
         except procedures.UpdateConflict:

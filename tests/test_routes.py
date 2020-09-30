@@ -227,11 +227,30 @@ def test_change_pin(client, creditor):
     })
     assert r.status_code == 200
 
+    r = client.patch('/creditors/1/pin', headers={'X-Swpt-Require-Pin': 'true'}, json={
+        'status': 'off',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 404
+
     r = client.patch('/creditors/2/pin', json={
         'status': 'off',
         'latestUpdateId': 2,
     })
     assert r.status_code == 409
+
+    r = client.patch('/creditors/2/pin', headers={'X-Swpt-Require-Pin': 'true'}, json={
+        'status': 'off',
+        'latestUpdateId': 3,
+    })
+    assert r.status_code == 403
+
+    r = client.patch('/creditors/2/pin', headers={'X-Swpt-Require-Pin': 'true'}, json={
+        'status': 'off',
+        'pin': '1111',
+        'latestUpdateId': 3,
+    })
+    assert r.status_code == 403
 
     r = client.get('/creditors/2/wallet', headers={'X-Swpt-Require-Pin': 'true'})
     assert r.status_code == 200
@@ -248,6 +267,16 @@ def test_change_pin(client, creditor):
     assert r.status_code == 200
     data = r.get_json()
     assert data['requirePin'] is False
+
+    r = client.patch('/creditors/2/pin', headers={'X-Swpt-Require-Pin': 'true'}, json={
+        'status': 'off',
+        'pin': '1234',
+        'latestUpdateId': 3,
+    })
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['status'] == 'off'
+    assert data['latestUpdateId'] == 3
 
 
 def test_get_wallet(client, creditor):
