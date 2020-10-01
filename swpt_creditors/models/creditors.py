@@ -124,15 +124,31 @@ class PinInfo(db.Model):
                 f"{STATUS_ON} - on, "
                 f"{STATUS_BLOCKED} - blocked.",
     )
+    cfa = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment='The number of consecutive failed attempts. It gets reset to zero when either '
+                'of those events occur: 1) a correct PIN is entered; 2) the PIN is changed.',
+    )
+    afa = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment='The number of accumulated failed attempts. It gets reset to zero when either '
+                'of those events occur: 1) some time has passed since the previous reset; 2) the '
+                'PIN is blocked.',
+    )
+    afa_last_reset_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     value = db.Column(db.String)
-    failed_attempts = db.Column(db.SmallInteger, nullable=False, default=0)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(and_(status >= 0, status < 3)),
         db.CheckConstraint(or_(status != STATUS_ON, value != null())),
-        db.CheckConstraint(failed_attempts >= 0),
+        db.CheckConstraint(cfa >= 0),
+        db.CheckConstraint(afa >= 0),
         db.CheckConstraint(latest_update_id > 0),
         {
             'comment': "Represents creditor's Personal Identification Number",
@@ -153,6 +169,8 @@ class PinInfo(db.Model):
 
     def block(self):
         self.status = self.STATUS_BLOCKED
+        self.afa = 0
+        self.afa_last_reset_ts = datetime.now(tz=timezone.utc)
         self.value = None
 
     def try_value(self, value: Optional[str], max_failed_attempts: int) -> bool:
@@ -165,8 +183,9 @@ class PinInfo(db.Model):
                 return False
 
             if value != self.value:
-                self.failed_attempts += 1
-                if self.failed_attempts >= max_failed_attempts:
+                self.cfa += 1
+                self.afa += 1
+                if self.cfa >= max_failed_attempts:
                     self.block()
                 return False
 

@@ -186,7 +186,7 @@ def update_pin_info_helper(
         pin_info.value = new_pin_value
         pin_info.latest_update_id = latest_update_id
         pin_info.latest_update_ts = current_ts
-        pin_info.failed_attempts = 0
+        pin_info.cfa = 0
 
         paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
@@ -246,7 +246,11 @@ def verify_pin_value_helper(creditor_id: int, *, pin_value: Optional[str], max_f
     if pin_info is None:
         raise errors.CreditorDoesNotExist()
 
-    return pin_info.try_value(pin_value, max_failed_attempts)
+    is_pin_value_ok = pin_info.try_value(pin_value, max_failed_attempts)
+    if is_pin_value_ok:
+        pin_info.cfa = 0
+
+    return is_pin_value_ok
 
 
 def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> None:
