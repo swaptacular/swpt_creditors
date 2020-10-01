@@ -1,10 +1,10 @@
 from copy import copy
 from marshmallow import Schema, ValidationError, fields, validate, validates_schema, pre_dump, post_dump
 from swpt_creditors import models
-from swpt_creditors.models import MAX_INT64, PinInfo
+from swpt_creditors.models import MAX_INT64, PinInfo, PIN_REGEX
 from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
     MutableResourceSchema, PinProtectedResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, \
-    PAGE_NEXT_DESCRIPTION, PIN_REGEX
+    PAGE_NEXT_DESCRIPTION
 
 
 class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):

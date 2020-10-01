@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, validate, validates, post_dump, ValidationError
-from swpt_creditors.models import MAX_INT64
+from swpt_creditors.models import MAX_INT64, PIN_REGEX
 
 URI_DESCRIPTION = '\
 The URI of this object. Can be a relative URI.'
@@ -9,8 +9,6 @@ An URI of another `{type}` object which contains more items. When \
 there are no remaining items, this field will not be present. If this field \
 is present, there might be remaining items, even when the `items` array is \
 empty. This can be a relative URI.'
-
-PIN_REGEX = r'^[0-9]{0,10}$'
 
 
 class type_registry:
