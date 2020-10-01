@@ -1,3 +1,4 @@
+from datetime import timedelta
 from flask import current_app, request, g
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
@@ -76,7 +77,7 @@ class PinInfoEndpoint(MethodView):
                 latest_update_id=pin_info['latest_update_id'],
                 pin_reset_mode=g.pin_reset_mode,
                 pin_value=pin_info.get('optional_pin'),
-                max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
             )
         except procedures.WrongPinValue:
             abort(403)

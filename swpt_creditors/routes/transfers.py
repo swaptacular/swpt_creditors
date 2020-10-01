@@ -1,3 +1,4 @@
+from datetime import timedelta
 from flask import redirect, url_for, request, current_app, g
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
@@ -84,7 +85,7 @@ class TransfersEndpoint(MethodView):
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
                     pin_value=transfer_creation_request.get('optional_pin'),
-                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                    pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )
             transfer = procedures.initiate_running_transfer(
                 creditor_id=creditorId,

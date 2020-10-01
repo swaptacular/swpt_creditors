@@ -1,6 +1,6 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from random import randint
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, joinedload
@@ -16,11 +16,11 @@ atomic: Callable[[T], T] = db.atomic
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
 
 
-def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> None:
+def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], pin_failures_reset_interval: timedelta) -> None:
     is_pin_value_ok = verify_pin_value_helper(
         creditor_id,
         pin_value=pin_value,
-        max_failed_attempts=max_failed_attempts,
+        pin_failures_reset_interval=pin_failures_reset_interval,
     )
     if not is_pin_value_ok:
         raise errors.WrongPinValue()
@@ -34,7 +34,7 @@ def update_pin_info(
         latest_update_id: int,
         pin_reset_mode: bool,
         pin_value: Optional[str],
-        max_failed_attempts: int) -> Optional[PinInfo]:
+        pin_failures_reset_interval: timedelta) -> Optional[PinInfo]:
 
     is_pin_value_ok, pin_info = update_pin_info_helper(
         creditor_id=creditor_id,
@@ -43,7 +43,7 @@ def update_pin_info(
         latest_update_id=latest_update_id,
         pin_reset_mode=pin_reset_mode,
         pin_value=pin_value,
-        max_failed_attempts=max_failed_attempts,
+        pin_failures_reset_interval=pin_failures_reset_interval,
     )
     if not is_pin_value_ok:
         raise errors.WrongPinValue()
@@ -169,7 +169,7 @@ def update_pin_info_helper(
         latest_update_id: int,
         pin_reset_mode: bool,
         pin_value: Optional[str],
-        max_failed_attempts: int) -> Tuple[bool, PinInfo]:
+        pin_failures_reset_interval: timedelta) -> Tuple[bool, PinInfo]:
 
     current_ts = datetime.now(tz=timezone.utc)
 
@@ -180,13 +180,13 @@ def update_pin_info_helper(
     if latest_update_id != pin_info.latest_update_id + 1:
         raise errors.UpdateConflict()
 
-    is_pin_value_ok = pin_reset_mode or pin_info.try_value(pin_value, max_failed_attempts)
+    is_pin_value_ok = pin_reset_mode or pin_info.try_value(pin_value, pin_failures_reset_interval)
     if is_pin_value_ok:
         pin_info.status_name = status_name
         pin_info.value = new_pin_value
         pin_info.latest_update_id = latest_update_id
         pin_info.latest_update_ts = current_ts
-        pin_info.failed_attempts = 0
+        pin_info.cfa = 0
 
         paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
@@ -241,12 +241,21 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
 
 @atomic
-def verify_pin_value_helper(creditor_id: int, *, pin_value: Optional[str], max_failed_attempts: int = 1) -> bool:
+def verify_pin_value_helper(
+        creditor_id: int,
+        *,
+        pin_value: Optional[str],
+        pin_failures_reset_interval: timedelta) -> bool:
+
     pin_info = get_pin_info(creditor_id)
     if pin_info is None:
         raise errors.CreditorDoesNotExist()
 
-    return pin_info.try_value(pin_value, max_failed_attempts)
+    is_pin_value_ok = pin_info.try_value(pin_value, pin_failures_reset_interval)
+    if is_pin_value_ok:
+        pin_info.cfa = 0
+
+    return is_pin_value_ok
 
 
 def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> None:

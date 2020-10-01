@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f6494c218dc3
+Revision ID: f691aa98bc9b
 Revises: 8d8c816257ce
-Create Date: 2020-09-30 19:31:49.627934
+Create Date: 2020-10-01 14:54:14.784131
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f6494c218dc3'
+revision = 'f691aa98bc9b'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -178,11 +178,14 @@ def upgrade():
     op.create_table('pin_info',
     sa.Column('creditor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment="PIN's status: 0 - off, 1 - on, 2 - blocked."),
+    sa.Column('cfa', sa.SmallInteger(), nullable=False, comment='The number of consecutive failed attempts. It gets reset to zero when either of those events occur: 1) a correct PIN is entered; 2) the PIN is changed.'),
+    sa.Column('afa', sa.SmallInteger(), nullable=False, comment='The number of accumulated failed attempts. It gets reset to zero when either of those events occur: 1) some time has passed since the previous reset; 2) the PIN is blocked.'),
+    sa.Column('afa_last_reset_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('value', sa.String(), nullable=True),
-    sa.Column('failed_attempts', sa.SmallInteger(), nullable=False),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('failed_attempts >= 0'),
+    sa.CheckConstraint('afa >= 0'),
+    sa.CheckConstraint('cfa >= 0'),
     sa.CheckConstraint('latest_update_id > 0'),
     sa.CheckConstraint('status != 1 OR value IS NOT NULL'),
     sa.CheckConstraint('status >= 0 AND status < 3'),
