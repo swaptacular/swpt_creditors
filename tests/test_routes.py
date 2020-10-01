@@ -1373,7 +1373,7 @@ def test_unauthorized_creditor_id(creditor, client):
         r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '-1'})
 
 
-def test_pin_failed_attempts_rest(client, creditor, account):
+def test_pin_cfa_reset(client, creditor, account):
     r = client.patch('/creditors/2/pin', json={
         'status': 'on',
         'newPin': '1234',
@@ -1435,3 +1435,58 @@ def test_pin_failed_attempts_rest(client, creditor, account):
     assert r.status_code == 200
     data = r.get_json()
     assert data['status'] == 'blocked'
+
+
+@pytest.fixture(params=[10, -10])
+def reset_days(request):
+    return request.param
+
+
+def test_pin_afa_reset(app, client, creditor, account, reset_days):
+    app.config['APP_PIN_FAILURES_RESET_DAYS'] = reset_days
+
+    r = client.patch('/creditors/2/pin', json={
+        'status': 'on',
+        'newPin': '1234',
+        'latestUpdateId': 2,
+    })
+    assert r.status_code == 200
+
+    request_data = {
+        'type': 'TransferCreationRequest',
+        'transferUuid': '123e4567-e89b-12d3-a456-426655440000',
+        'recipient': {'uri': 'swpt:1/2222'},
+        'amount': 1000,
+        'noteFormat': 'json',
+        'note': '{"message": "test"}',
+        'options': {
+            'type': 'TransferOptions',
+            'minInterestRate': -10,
+            'deadline': '2009-08-24T14:15:22+00:00',
+            'lockedAmount': 1000,
+        },
+    }
+
+    correct_pin = {**request_data, 'pin': '1234'}
+    incorrect_pin = {**request_data, 'pin': '5678'}
+    headers = {'X-Swpt-Require-Pin': 'true'}
+
+    for i in range(9):
+        r = client.post('/creditors/2/transfers/', headers=headers, json=incorrect_pin)
+        assert r.status_code == 403
+
+        r = client.post('/creditors/2/transfers/', headers=headers, json=correct_pin)
+        assert r.status_code in [201, 303]
+
+    r = client.get('/creditors/2/pin')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['status'] == 'on'
+
+    r = client.post('/creditors/2/transfers/', headers=headers, json=incorrect_pin)
+    assert r.status_code == 403
+
+    r = client.get('/creditors/2/pin')
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['status'] == 'blocked' if reset_days >= 1 else 'on'

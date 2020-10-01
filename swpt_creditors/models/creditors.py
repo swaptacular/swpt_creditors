@@ -175,10 +175,18 @@ class PinInfo(db.Model):
 
     def _get_max_cfa(self) -> int:
         n = len(self.value) if self.value else 0
+
+        # NOTE: This is more or less an arbitrary linear
+        # dependency. For `n` between 4 and 10, it generate the
+        # sequence [3, 4, 6, 7, 9, 10, 12].
         return int(1.5 * n - 3)
 
     def _get_max_afa(self) -> int:
         n = len(self.value) if self.value else 0
+
+        # NOTE: This is more or less an arbitrary exponential
+        # dependency. For `n` between 4 and 10, it generate the
+        # sequence [10, 31 , 100, 316, 1000, 3162, 10000].
         return int(exp(1.1513 * (n - 2)))
 
     def _reset_afa(self, current_ts: datetime) -> None:
