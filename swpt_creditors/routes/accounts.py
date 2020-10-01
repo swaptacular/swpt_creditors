@@ -1,4 +1,5 @@
 from urllib.parse import urlsplit, urljoin
+from datetime import timedelta
 from werkzeug.routing import NotFound, RequestRedirect, MethodNotAllowed
 from flask import current_app, redirect, url_for, request, g
 from flask.views import MethodView
@@ -263,7 +264,7 @@ class AccountConfigEndpoint(MethodView):
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
                     pin_value=account_config.get('optional_pin'),
-                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                    pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )
             config = procedures.update_account_config(
                 creditor_id=creditorId,
@@ -313,7 +314,7 @@ class AccountDisplayEndpoint(MethodView):
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
                     pin_value=account_display.get('optional_pin'),
-                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                    pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )
             display = procedures.update_account_display(
                 creditor_id=creditorId,
@@ -367,7 +368,7 @@ class AccountExchangeEndpoint(MethodView):
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
                     pin_value=account_exchange.get('optional_pin'),
-                    max_failed_attempts=int(current_app.config['APP_PIN_MAX_FAILED_ATTEMPTS']),
+                    pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )
             exchange = procedures.update_account_exchange(
                 creditor_id=creditorId,
