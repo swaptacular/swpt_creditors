@@ -72,6 +72,9 @@ def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 403
 
+    r = client.post('/creditors/2/reserve', headers={'X-Swpt-Creditor-Id': '2'}, json={})
+    assert r.status_code == 401
+
     r = client.post('/creditors/2/reserve', json={})
     assert r.status_code == 200
     data = r.get_json()

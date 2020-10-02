@@ -12,7 +12,7 @@ from swpt_creditors.schemas import examples, DebtorIdentitySchema, AccountIdenti
     AccountsPaginationParamsSchema, LedgerEntriesPaginationParamsSchema, LedgerEntriesPageSchema
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
-from .common import context, process_headers
+from .common import context, verify_creditor_permissions
 from .specs import DID, CID
 from . import specs
 
@@ -46,7 +46,7 @@ accounts_api = Blueprint(
     url_prefix='/creditors',
     description="Create, view, update, and delete accounts, view account's transaction history.",
 )
-accounts_api.before_request(process_headers)
+accounts_api.before_request(verify_creditor_permissions)
 
 
 @accounts_api.route('/<i64:creditorId>/account-lookup', parameters=[CID])

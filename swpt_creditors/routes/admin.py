@@ -7,7 +7,7 @@ from swpt_creditors.schemas import examples, CreditorSchema, CreditorReservation
 from swpt_creditors import procedures
 from swpt_creditors.schemas import type_registry, CreditorsListSchema
 from swpt_creditors.models import MIN_INT64
-from .common import context, path_builder
+from .common import context, path_builder, ensure_admin
 from .specs import CID
 from . import specs
 
@@ -18,6 +18,7 @@ admin_api = Blueprint(
     url_prefix='/',
     description="View creditors list, create new creditors.",
 )
+admin_api.before_request(ensure_admin)
 
 
 @admin_api.route('/creditor-reserve')

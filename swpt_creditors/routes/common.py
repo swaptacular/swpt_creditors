@@ -7,6 +7,8 @@ from swpt_lib.utils import u64_to_i64
 from swpt_creditors.models import MAX_INT64, DATE0, PinInfo
 from swpt_creditors.schemas import type_registry
 
+ADMIN_ID = '*'
+
 
 def make_transfer_slug(creation_date: date, transfer_number: int) -> str:
     epoch = (creation_date - DATE0).days
@@ -48,10 +50,19 @@ def calc_require_pin(pin_info: PinInfo) -> bool:
     return not g.pin_reset_mode and pin_info.is_required
 
 
-def process_headers():
-    ADMIN = '*'
-    creditor_id = request.headers.get('X-Swpt-Creditor-Id', ADMIN)
-    if creditor_id != ADMIN and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
+def ensure_admin():
+    creditor_id = request.headers.get('X-Swpt-Creditor-Id', ADMIN_ID)
+    if creditor_id != ADMIN_ID:
+        abort(401)
+
+
+def verify_creditor_permissions():
+    creditor_id = request.headers.get('X-Swpt-Creditor-Id', ADMIN_ID)
+
+    # NOTE: Here we make sure that a creditor can access only its own
+    # resources. The "admin" is an exception, and is allowed to access
+    # every creditor's resources.
+    if creditor_id != ADMIN_ID and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
         abort(401)
 
     NOT_REQUIED = 'false'
