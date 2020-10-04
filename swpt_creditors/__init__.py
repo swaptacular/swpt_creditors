@@ -90,6 +90,9 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_MAX_TRANSFER_DELAY_DAYS = 14
     APP_MAX_CONFIG_DELAY_HOURS = 24
     APP_PIN_FAILURES_RESET_DAYS = 7
+    APP_SUPERUSER_SUBJECT_REGEX = '^creditors:superuser$'
+    APP_SUPERVISOR_SUBJECT_REGEX = '^creditors:supervisor$'
+    APP_CREDITOR_SUBJECT_REGEX = '^creditors:([0-9]+)$'
 
 
 def create_app(config_dict={}):

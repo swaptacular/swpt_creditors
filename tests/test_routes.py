@@ -72,8 +72,8 @@ def test_create_creditor(client):
     r = client.get('/creditors/2/')
     assert r.status_code == 403
 
-    r = client.post('/creditors/2/reserve', headers={'X-Swpt-Creditor-Id': '2'}, json={})
-    assert r.status_code == 401
+    r = client.post('/creditors/2/reserve', headers={'X-Swpt-User-Id': 'creditors:2'}, json={})
+    assert r.status_code == 403
 
     r = client.post('/creditors/2/reserve', json={})
     assert r.status_code == 200
@@ -146,6 +146,15 @@ def test_create_creditor(client):
 
     r = client.get('/creditors/3/')
     assert r.status_code == 200
+
+    r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors:3'}, json={})
+    assert r.status_code == 403
+
+    r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors:supervisor'}, json={})
+    assert r.status_code == 403
+
+    r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors:superuser'}, json={})
+    assert r.status_code == 204
 
     r = client.post('/creditors/3/deactivate', json={})
     assert r.status_code == 204
@@ -601,6 +610,15 @@ def test_get_account(client, account):
 
 
 def test_delete_account(client, account):
+    r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors:supervisor'})
+    assert r.status_code == 403
+
+    r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors:superuser'})
+    assert r.status_code == 204
+
+    r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors:2'})
+    assert r.status_code == 204
+
     r = client.delete('/creditors/2/accounts/1111/')
     assert r.status_code == 204
 
@@ -1357,23 +1375,23 @@ def test_unauthorized_creditor_id(creditor, client):
     r = client.get('/creditors/2/')
     assert r.status_code == 200
 
-    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': '*'})
+    r = client.get('/creditors/2/', headers={'X-Swpt-User-Id': 'creditors:supervisor'})
     assert r.status_code == 200
 
-    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': '2'})
+    r = client.get('/creditors/2/', headers={'X-Swpt-User-Id': 'creditors:2'})
     assert r.status_code == 200
 
-    r = client.get('/creditors/2/', headers={'X-Swpt-Creditor-Id': '1'})
-    assert r.status_code == 401
+    r = client.get('/creditors/2/', headers={'X-Swpt-User-Id': 'creditors:1'})
+    assert r.status_code == 403
 
-    r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '18446744073709551615'})
+    r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-User-Id': 'creditors:18446744073709551615'})
+    assert r.status_code == 403
+
+    r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-User-Id': 'INVALID_USER_ID'})
     assert r.status_code == 403
 
     with pytest.raises(ValueError):
-        r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '18446744073709551616'})
-
-    with pytest.raises(ValueError):
-        r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-Creditor-Id': '-1'})
+        r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-User-Id': 'creditors:18446744073709551616'})
 
 
 def test_pin_cfa_reset(client, creditor, account):

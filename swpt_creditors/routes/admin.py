@@ -1,4 +1,4 @@
-from flask import current_app, request
+from flask import current_app, request, g
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import examples, CreditorSchema, CreditorReservationRequestSchema, \
@@ -159,5 +159,8 @@ class CreditorDeactivateEndpoint(MethodView):
     @admin_api.doc(operationId='deactivateCreditor')
     def post(self, creditor_deactivation_request, creditorId):
         """Deactivate a creditor."""
+
+        if not g.superuser:
+            abort(403)
 
         procedures.deactivate_creditor(creditorId)
