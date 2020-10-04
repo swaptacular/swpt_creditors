@@ -10,6 +10,7 @@ from swpt_creditors.models import MAX_INT64, DATE0, PinInfo
 from swpt_creditors.schemas import type_registry
 
 NOT_REQUIED = 'false'
+READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
 class UserType(IntEnum):
@@ -81,7 +82,7 @@ def ensure_creditor_permissions():
     if user_type == UserType.CREDITOR and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
         abort(403)
 
-    if user_type == UserType.SUPERVISOR and request.method != 'GET':
+    if user_type == UserType.SUPERVISOR and request.method not in READ_ONLY_METHODS:
         abort(403)
 
     x_swpt_require_pin = request.headers.get('X-Swpt-Require-Pin', NOT_REQUIED)
