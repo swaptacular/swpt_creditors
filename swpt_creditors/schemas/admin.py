@@ -9,7 +9,7 @@ class CreditorsListSchema(PaginatedListSchema):
         dump_only=True,
         format='uri-reference',
         description=URI_DESCRIPTION,
-        example='/creditors-list',
+        example='/creditors/.list',
     )
     type = fields.Function(
         lambda obj: type_registry.creditors_list,

@@ -58,7 +58,7 @@ def _get_all_pages(client, url, page_type, streaming=False):
 
 
 def test_auto_genereate_creditor_id(client):
-    r = client.post('/creditor-reserve', json={})
+    r = client.post('/creditors/.creditor-reserve', json={})
     assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'CreditorReservation'
@@ -178,11 +178,11 @@ def test_get_creditors_list(client):
     r = client.post('/creditors/18446744073709551615/activate', json={})
     assert r.status_code == 200
 
-    r = client.get('/creditors-list')
+    r = client.get('/creditors/.list')
     assert r.status_code == 200
     data = r.get_json()
     assert data['type'] == 'CreditorsList'
-    assert data['uri'] == '/creditors-list'
+    assert data['uri'] == '/creditors/.list'
     assert data['itemsType'] == 'ObjectReference'
     assert data['first'] == '/creditors/9223372036854775808/enumerate'
 

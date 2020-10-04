@@ -85,7 +85,7 @@ TRANSFERS_LIST_EXAMPLE = {
 
 CREDITORS_LIST_EXAMPLE = {
     'type': 'CreditorsList',
-    'uri': '/creditors-list',
+    'uri': '/creditors/.list',
     'itemsType': 'ObjectReference',
     'first': '/creditors/9223372036854775808/enumerate',
 }

@@ -15,13 +15,13 @@ from . import specs
 admin_api = Blueprint(
     'admin',
     __name__,
-    url_prefix='/',
+    url_prefix='/creditors',
     description="View creditors list, create new creditors.",
 )
 admin_api.before_request(ensure_admin)
 
 
-@admin_api.route('/creditor-reserve')
+@admin_api.route('/.creditor-reserve')
 class RandomCreditorReserveEndpoint(MethodView):
     @admin_api.arguments(CreditorReservationRequestSchema)
     @admin_api.response(CreditorReservationSchema(context=context))
@@ -48,7 +48,7 @@ class RandomCreditorReserveEndpoint(MethodView):
         return creditor
 
 
-@admin_api.route('/creditors-list')
+@admin_api.route('/.list')
 class CreditorsListEndpoint(MethodView):
     @admin_api.response(CreditorsListSchema, example=examples.CREDITORS_LIST_EXAMPLE)
     @admin_api.doc(operationId='getCreditorsList')
@@ -62,7 +62,7 @@ class CreditorsListEndpoint(MethodView):
         }
 
 
-@admin_api.route('/creditors/<i64:creditorId>/enumerate', parameters=[CID])
+@admin_api.route('/<i64:creditorId>/enumerate', parameters=[CID])
 class CreditorEnumerateEndpoint(MethodView):
     @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.CREDITOR_LINKS_EXAMPLE)
     @admin_api.doc(operationId='getCreditorsPage')
@@ -100,7 +100,7 @@ class CreditorEnumerateEndpoint(MethodView):
         }
 
 
-@admin_api.route('/creditors/<i64:creditorId>/reserve', parameters=[CID])
+@admin_api.route('/<i64:creditorId>/reserve', parameters=[CID])
 class CreditorReserveEndpoint(MethodView):
     @admin_api.arguments(CreditorReservationRequestSchema)
     @admin_api.response(CreditorReservationSchema(context=context))
@@ -127,7 +127,7 @@ class CreditorReserveEndpoint(MethodView):
         return creditor
 
 
-@admin_api.route('/creditors/<i64:creditorId>/activate', parameters=[CID])
+@admin_api.route('/<i64:creditorId>/activate', parameters=[CID])
 class CreditorActivateEndpoint(MethodView):
     @admin_api.arguments(CreditorActivationRequestSchema)
     @admin_api.response(CreditorSchema(context=context))
@@ -152,7 +152,7 @@ class CreditorActivateEndpoint(MethodView):
         return creditor
 
 
-@admin_api.route('/creditors/<i64:creditorId>/deactivate', parameters=[CID])
+@admin_api.route('/<i64:creditorId>/deactivate', parameters=[CID])
 class CreditorDeactivateEndpoint(MethodView):
     @admin_api.arguments(CreditorDeactivationRequestSchema)
     @admin_api.response(code=204)
