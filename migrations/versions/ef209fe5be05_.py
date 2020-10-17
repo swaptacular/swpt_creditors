@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b5ffc41bde81
+Revision ID: ef209fe5be05
 Revises: 8d8c816257ce
-Create Date: 2020-10-17 20:23:27.443795
+Create Date: 2020-10-17 21:58:44.456272
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b5ffc41bde81'
+revision = 'ef209fe5be05'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -254,6 +254,8 @@ def upgrade():
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.Column('account_id', sa.String(), nullable=False),
     sa.Column('debtor_info_iri', sa.String(), nullable=True),
+    sa.Column('debtor_info_content_type', sa.String(), nullable=True),
+    sa.Column('debtor_info_sha256', sa.LargeBinary(), nullable=True),
     sa.Column('info_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('info_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('ledger_principal', sa.BigInteger(), nullable=False),
@@ -263,6 +265,7 @@ def upgrade():
     sa.Column('ledger_latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('ledger_latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('config_latest_update_id > 0'),
+    sa.CheckConstraint('debtor_info_sha256 IS NULL OR octet_length(debtor_info_sha256) = 32'),
     sa.CheckConstraint('info_latest_update_id > 0'),
     sa.CheckConstraint('interest_rate >= -100.0'),
     sa.CheckConstraint('last_transfer_number >= 0'),

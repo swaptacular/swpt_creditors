@@ -72,6 +72,8 @@ def test_on_account_update_signal(db_session):
         ttl=10000,
         account_id=str(C_ID),
         debtor_info_iri='http://example.com',
+        debtor_info_content_type='text/plain',
+        debtor_info_sha256=32 * 'FF',
     )
 
 

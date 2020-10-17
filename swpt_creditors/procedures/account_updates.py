@@ -75,7 +75,9 @@ def process_account_update_signal(
         config_flags: int,
         config: str,
         account_id: str,
-        debtor_info_iri: str,
+        debtor_info_iri: Optional[str],
+        debtor_info_content_type: Optional[str],
+        debtor_info_sha256: Optional[bytes],
         last_transfer_number: int,
         last_transfer_committed_at: datetime,
         ts: datetime,
@@ -118,6 +120,8 @@ def process_account_update_signal(
         or data.last_interest_rate_change_ts != last_interest_rate_change_ts
         or data.transfer_note_max_bytes != transfer_note_max_bytes
         or data.debtor_info_iri != debtor_info_iri
+        or data.debtor_info_content_type != debtor_info_content_type
+        or data.debtor_info_sha256 != debtor_info_sha256
         or data.config_error != config_error
     )
 
@@ -133,6 +137,8 @@ def process_account_update_signal(
     data.status_flags = status_flags
     data.account_id = account_id
     data.debtor_info_iri = debtor_info_iri
+    data.debtor_info_content_type = debtor_info_content_type
+    data.debtor_info_sha256 = debtor_info_sha256
     data.last_transfer_number = last_transfer_number,
     data.last_transfer_committed_at = last_transfer_committed_at
     data.is_config_effectual = is_config_effectual

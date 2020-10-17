@@ -101,7 +101,9 @@ def test_delete_account(db_session, account, current_ts):
         'account_id': str(C_ID),
         'config': '',
         'config_flags': 0,
-        'debtor_info_iri': '',
+        'debtor_info_iri': 'http://example.com',
+        'debtor_info_content_type': None,
+        'debtor_info_sha256': None,
         'transfer_note_max_bytes': 500,
     }
 
@@ -175,6 +177,8 @@ def test_process_account_update_signal(db_session, account):
         'config': '',
         'account_id': str(C_ID),
         'debtor_info_iri': 'http://example.com',
+        'debtor_info_content_type': 'text/plain',
+        'debtor_info_sha256': 32 * b'\xff',
         'last_transfer_number': 22,
         'last_transfer_committed_at': current_ts - timedelta(days=2),
         'ts': current_ts,
@@ -206,6 +210,8 @@ def test_process_account_update_signal(db_session, account):
     assert ad.last_config_seqnum == last_seqnum
     assert ad.account_id == str(C_ID)
     assert ad.debtor_info_iri == 'http://example.com'
+    assert ad.debtor_info_content_type == 'text/plain'
+    assert ad.debtor_info_sha256 == 32 * b'\xff'
     assert ad.last_transfer_number == 22
     assert ad.last_transfer_committed_at == current_ts - timedelta(days=2)
     assert ad.config_error is None
@@ -414,6 +420,8 @@ def test_update_account_config(account, current_ts):
         'config': '',
         'account_id': str(C_ID),
         'debtor_info_iri': 'http://example.com',
+        'debtor_info_content_type': None,
+        'debtor_info_sha256': None,
         'last_transfer_number': 0,
         'last_transfer_committed_at': models.TS0,
         'ts': current_ts,
@@ -477,6 +485,8 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
         config='',
         account_id=str(C_ID),
         debtor_info_iri='http://example.com',
+        debtor_info_content_type=None,
+        debtor_info_sha256=None,
         last_transfer_number=123,
         last_transfer_committed_at=current_ts - timedelta(days=2),
         ts=current_ts,
@@ -609,6 +619,8 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
         config='',
         account_id=str(C_ID),
         debtor_info_iri='http://example.com',
+        debtor_info_content_type=None,
+        debtor_info_sha256=None,
         last_transfer_number=0,
         last_transfer_committed_at=models.TS0,
         ts=current_ts,
@@ -678,7 +690,9 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
         config='',
         account_id=str(C_ID),
-        debtor_info_iri='http://example.com',
+        debtor_info_iri=None,
+        debtor_info_content_type=None,
+        debtor_info_sha256=None,
         last_transfer_number=3,
         last_transfer_committed_at=current_ts - timedelta(days=20),
         ts=current_ts,

@@ -1,5 +1,6 @@
 import re
 import iso8601
+from base64 import b16decode
 from datetime import date, timedelta
 from flask import current_app
 from swpt_creditors.extensions import broker, APP_QUEUE_NAME
@@ -64,11 +65,16 @@ def on_account_update_signal(
         ttl: int,
         account_id: str,
         debtor_info_iri: str,
+        debtor_info_content_type: str,
+        debtor_info_sha256: str,
         *args, **kwargs) -> None:
 
     assert 0 <= transfer_note_max_bytes <= TRANSFER_NOTE_MAX_BYTES
     assert account_id == '' or len(account_id) <= 100 and account_id.encode('ascii')
     assert len(debtor_info_iri) <= 200
+    assert debtor_info_content_type == '' or (
+        len(debtor_info_content_type) <= 100 and debtor_info_content_type.encode('ascii'))
+    assert debtor_info_sha256 == '' or len(debtor_info_sha256) == 64
 
     procedures.process_account_update_signal(
         debtor_id=debtor_id,
@@ -88,7 +94,9 @@ def on_account_update_signal(
         config_flags=config_flags,
         config=config,
         account_id=account_id,
-        debtor_info_iri=debtor_info_iri,
+        debtor_info_iri=debtor_info_iri or None,
+        debtor_info_content_type=debtor_info_content_type or None,
+        debtor_info_sha256=b16decode(debtor_info_sha256, casefold=True) or None,
         last_transfer_number=last_transfer_number,
         last_transfer_committed_at=iso8601.parse_date(last_transfer_committed_at),
         ts=iso8601.parse_date(ts),

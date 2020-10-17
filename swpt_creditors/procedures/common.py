@@ -53,6 +53,8 @@ ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
     'last_interest_rate_change_ts',
     'transfer_note_max_bytes',
     'debtor_info_iri',
+    'debtor_info_content_type',
+    'debtor_info_sha256',
     'principal',
     'interest',
     'info_latest_update_id',

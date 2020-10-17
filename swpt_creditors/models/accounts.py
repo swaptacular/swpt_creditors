@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 from datetime import datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, or_, and_
+from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, MAX_INT64, MIN_INT64, TS0, DATE0, SECONDS_IN_YEAR
 
@@ -66,6 +66,8 @@ class AccountData(db.Model):
     status_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_STATUS_FLAGS | STATUS_UNREACHABLE_FLAG)
     account_id = db.Column(db.String, nullable=False, default='')
     debtor_info_iri = db.Column(db.String)
+    debtor_info_content_type = db.Column(db.String)
+    debtor_info_sha256 = db.Column(db.LargeBinary)
     info_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     info_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -100,6 +102,7 @@ class AccountData(db.Model):
         db.CheckConstraint(ledger_latest_update_id > 0),
         db.CheckConstraint(config_latest_update_id > 0),
         db.CheckConstraint(info_latest_update_id > 0),
+        db.CheckConstraint(or_(debtor_info_sha256 == null(), func.octet_length(debtor_info_sha256) == 32)),
     )
 
     @property

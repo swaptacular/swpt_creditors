@@ -1,4 +1,5 @@
 import json
+from base64 import b16encode
 from copy import copy
 from marshmallow import Schema, fields, ValidationError, validate, validates_schema, \
     pre_dump, post_dump, post_load, INCLUDE
@@ -403,7 +404,12 @@ class AccountInfoSchema(MutableResourceSchema):
             obj.optional_config_error = obj.config_error
 
         if obj.debtor_info_iri is not None:
-            obj.optional_debtor_info = {'iri': obj.debtor_info_iri}
+            debtor_info = {'iri': obj.debtor_info_iri}
+            if obj.debtor_info_content_type is not None:
+                debtor_info['optional_content_type'] = obj.debtor_info_content_type
+            if obj.debtor_info_sha256 is not None:
+                debtor_info['optional_sha256'] = b16encode(obj.debtor_info_sha256).decode()
+            obj.optional_debtor_info = debtor_info
 
         try:
             obj.optional_identity = {'uri': make_account_uri(obj.debtor_id, obj.account_id)}

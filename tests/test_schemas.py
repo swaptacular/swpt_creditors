@@ -822,6 +822,8 @@ def test_serialize_account_info(app):
         status_flags=0,
         account_id='',
         debtor_info_iri=None,
+        debtor_info_content_type='text/plain',
+        debtor_info_sha256=32 * b'\xff',
         config_error=None,
         is_config_effectual=True,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
@@ -867,7 +869,32 @@ def test_serialize_account_info(app):
         'latestUpdateAt': '2020-01-01T00:00:00',
         'identity': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!bm90IFVSTCBzYWZl'},
         'configError': 'TEST_ERROR',
-        'debtorInfo': {'type': 'DebtorInfo', 'iri': 'https://example.com/debtor'},
+        'debtorInfo': {
+            'type': 'DebtorInfo',
+            'iri': 'https://example.com/debtor',
+            'contentType': 'text/plain',
+            'sha256': 32 * 'FF',
+        },
+    }
+
+    ad.debtor_info_content_type = None
+    ad.debtor_info_sha256 = None
+    assert ais.dump(ad) == {
+        'type': 'AccountInfo',
+        'uri': '/creditors/1/accounts/18446744073709551615/info',
+        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'interestRate': 0.0,
+        'interestRateChangedAt': '2000-01-01T00:00:00',
+        'noteMaxBytes': 500,
+        'safeToDelete': True,
+        'latestUpdateId': 1,
+        'latestUpdateAt': '2020-01-01T00:00:00',
+        'identity': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/!bm90IFVSTCBzYWZl'},
+        'configError': 'TEST_ERROR',
+        'debtorInfo': {
+            'type': 'DebtorInfo',
+            'iri': 'https://example.com/debtor',
+        },
     }
 
 
@@ -988,6 +1015,8 @@ def test_serialize_account_ledger(app):
         status_flags=0,
         account_id='',
         debtor_info_iri=None,
+        debtor_info_content_type=None,
+        debtor_info_sha256=None,
         config_error=None,
         is_config_effectual=True,
         config_flags=models.DEFAULT_CONFIG_FLAGS,

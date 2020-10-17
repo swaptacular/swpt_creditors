@@ -35,6 +35,8 @@ def test_process_ledger_entries(app, db_session, current_ts):
         'config': '',
         'account_id': str(C_ID),
         'debtor_info_iri': 'http://example.com',
+        'debtor_info_content_type': None,
+        'debtor_info_sha256': None,
         'last_transfer_number': 0,
         'last_transfer_committed_at': current_ts,
         'ts': current_ts,
