@@ -56,7 +56,8 @@ def initiate_running_transfer(
         transfer_note: str,
         deadline: datetime = None,
         min_interest_rate: float = -100.0,
-        locked_amount: int = 0) -> RunningTransfer:
+        locked_amount: int = 0,
+        recipient_confirmation: bool = False) -> RunningTransfer:
 
     current_ts = datetime.now(tz=timezone.utc)
 
@@ -64,6 +65,7 @@ def initiate_running_transfer(
     if creditor is None:
         raise errors.CreditorDoesNotExist()
 
+    finalization_flags = RunningTransfer.FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG if recipient_confirmation else 0
     transfer_data = {
         'debtor_id': debtor_id,
         'amount': amount,
@@ -71,6 +73,7 @@ def initiate_running_transfer(
         'recipient': recipient,
         'transfer_note_format': transfer_note_format,
         'transfer_note': transfer_note,
+        'finalization_flags': finalization_flags,
         'deadline': deadline,
         'min_interest_rate': min_interest_rate,
         'locked_amount': locked_amount,
@@ -285,6 +288,7 @@ def process_prepared_direct_transfer_signal(
             committed_amount=0,
             transfer_note_format='',
             transfer_note='',
+            finalization_flags=0,
         ))
 
     rt = _find_running_transfer(coordinator_id, coordinator_request_id)
@@ -312,6 +316,7 @@ def process_prepared_direct_transfer_signal(
                 committed_amount=rt.amount,
                 transfer_note_format=rt.transfer_note_format,
                 transfer_note=rt.transfer_note,
+                finalization_flags=rt.finalization_flags,
             ))
             return
 

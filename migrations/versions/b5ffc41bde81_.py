@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f691aa98bc9b
+Revision ID: b5ffc41bde81
 Revises: 8d8c816257ce
-Create Date: 2020-10-01 14:54:14.784131
+Create Date: 2020-10-17 20:23:27.443795
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f691aa98bc9b'
+revision = 'b5ffc41bde81'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -89,6 +89,7 @@ def upgrade():
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
+    sa.Column('finalization_flags', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('creditor_id', 'signal_id')
     )
     op.create_table('ledger_entry',
@@ -202,6 +203,7 @@ def upgrade():
     sa.Column('recipient', sa.String(), nullable=False),
     sa.Column('transfer_note_format', sa.String(), nullable=False),
     sa.Column('transfer_note', sa.String(), nullable=False),
+    sa.Column('finalization_flags', sa.Integer(), nullable=False),
     sa.Column('initiated_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('finalized_at', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('error_code', sa.String(), nullable=True),

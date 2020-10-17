@@ -99,6 +99,7 @@ class TransfersEndpoint(MethodView):
                 min_interest_rate=transfer_creation_request['options']['min_interest_rate'],
                 deadline=transfer_creation_request['options'].get('optional_deadline'),
                 locked_amount=transfer_creation_request['options']['locked_amount'],
+                recipient_confirmation=transfer_creation_request['options']['recipient_confirmation'],
             )
         except (inspect_ops.ForbiddenOperation, procedures.WrongPinValue):
             abort(403)

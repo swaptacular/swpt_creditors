@@ -1261,6 +1261,7 @@ def test_create_transfer(client, account):
             'minInterestRate': -10,
             'deadline': '2009-08-24T14:15:22+00:00',
             'lockedAmount': 1000,
+            'recipientConfirmation': True,
         },
         'pin': '1234',
     }
@@ -1293,6 +1294,7 @@ def test_create_transfer(client, account):
         'minInterestRate': -10.0,
         'deadline': '2009-08-24T14:15:22+00:00',
         'lockedAmount': 1000,
+        'recipientConfirmation': True,
     }
 
     r = client.post('/creditors/2/transfers/', json=request_data)

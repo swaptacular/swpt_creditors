@@ -110,6 +110,12 @@ class TransferOptionsSchema(Schema):
                     "be a non-negative number.",
         example=0,
     )
+    recipient_confirmation = fields.Boolean(
+        missing=False,
+        data_key='recipientConfirmation',
+        description='Whether a confirmation from the recipient is required.',
+        example=False,
+    )
 
 
 class TransferResultSchema(Schema):
@@ -291,7 +297,11 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         obj.uri = paths.transfer(creditorId=obj.creditor_id, transferUuid=obj.transfer_uuid)
         obj.transfers_list = {'uri': paths.transfers_list(creditorId=obj.creditor_id)}
         obj.recipient_identity = {'uri': obj.recipient_uri}
-        obj.options = {'min_interest_rate': obj.min_interest_rate, 'locked_amount': obj.locked_amount}
+        obj.options = {
+            'min_interest_rate': obj.min_interest_rate,
+            'locked_amount': obj.locked_amount,
+            'recipient_confirmation': bool(obj.finalization_flags & obj.FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG),
+        }
 
         if obj.deadline is not None:
             obj.options['optional_deadline'] = obj.deadline

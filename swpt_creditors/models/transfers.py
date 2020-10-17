@@ -62,6 +62,8 @@ class PendingLedgerUpdate(db.Model):
 
 
 class RunningTransfer(db.Model):
+    FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG = 1
+
     _cr_seq = db.Sequence('coordinator_request_id_seq', metadata=db.Model.metadata)
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -72,6 +74,7 @@ class RunningTransfer(db.Model):
     recipient = db.Column(db.String, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
+    finalization_flags = db.Column(db.Integer, nullable=False)
     initiated_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     finalized_at = db.Column(db.TIMESTAMP(timezone=True))
     error_code = db.Column(db.String)
