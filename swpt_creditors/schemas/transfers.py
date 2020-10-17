@@ -42,6 +42,8 @@ class TransferErrorSchema(Schema):
                     '  does not exist.\n'
                     '* `"RECIPIENT_IS_UNREACHABLE"` signifies that the recipient\'s'
                     '  account does not exist, or does not accept incoming transfers.\n'
+                    '* `"NO_RECIPIENT_CONFIRMATION"` signifies that a confirmation from '
+                    '  the recipient is required, but has not been obtained.\n'
                     '* `"TRANSFER_NOTE_IS_TOO_LONG"` signifies that the transfer has been '
                     '  rejected because the byte-length of the transfer note is too big.\n'
                     '* `"INSUFFICIENT_AVAILABLE_AMOUNT"` signifies that the transfer '
