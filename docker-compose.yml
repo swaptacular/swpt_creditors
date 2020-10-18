@@ -12,8 +12,8 @@ services:
       - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
     ports:
       - $POSTGRES_LOCAL_PORT:5432
-    # volumes:
-    #   - pg-data-volume:/var/lib/postgresql/data
+    volumes:
+      - pg-data-volume:/var/lib/postgresql/data
 
 
   pg-create-users:
@@ -74,6 +74,12 @@ services:
       - OAUTH2_ISSUER_URL=http://$BROWSER_HYDRA_HOST:4444
       - OAUTH2_SHARE_ERROR_DEBUG=1
       - HYDRA_ADMIN_URL=http://hydra:4445
+      - SERVE_PUBLIC_CORS_ENABLED=true
+      - SERVE_PUBLIC_CORS_DEBUG=true
+      - SERVE_PUBLIC_CORS_ALLOWED_ORIGINS=*
+      - SERVE_PUBLIC_CORS_ALLOWED_HEADERS=Authorization,Content-Type,X-Requested-With
+      - CORS_ALLOWED_ORIGINS=*
+      - LOG_LEAK_SENSITIVE_VALUES=true
     depends_on:
       - hydra-migrate
     restart: on-failure
@@ -135,6 +141,16 @@ services:
       - login-migrate
 
 
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    environment:
+      - SWAGGER_JSON=/etc/swagger-config/openapi.json
+    volumes:
+      - './docker/swagger-ui:/etc/swagger-config'
+    ports:
+      - 8080:8080
+
+
   server:
     build:
       context: .
@@ -188,5 +204,5 @@ services:
       - pg
 
 
-# volumes:
-#   pg-data-volume:
+volumes:
+  pg-data-volume:

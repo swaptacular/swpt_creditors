@@ -2,7 +2,7 @@
   "client_id": "clients:swagger-ui",
   "description": "This client is used by Swagger-UI.",
   "client_secret": "swagger-ui",
-  "scope": "openid offline articles.read",
+  "scope": "access access.modify disable_pin",
   "grant_types": [
     "authorization_code",
     "refresh_token"
@@ -13,6 +13,7 @@
   ],
   "token_endpoint_auth_method": "client_secret_post",
   "redirect_uris": [
-    "http://localhost:4488/login/success"
+    "http://localhost:8080/oauth2-redirect.html",
+    "http://localhost:8004/docs/swagger-ui"
   ]
 }
