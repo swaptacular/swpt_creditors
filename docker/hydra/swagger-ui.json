@@ -1,0 +1,18 @@
+{
+  "client_id": "clients:swagger-ui",
+  "description": "This client is used by Swagger-UI.",
+  "client_secret": "swagger-ui",
+  "scope": "openid offline articles.read",
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code",
+    "d_token"
+  ],
+  "token_endpoint_auth_method": "client_secret_post",
+  "redirect_uris": [
+    "http://localhost:4488/login/success"
+  ]
+}

@@ -15,6 +15,7 @@ services:
     # volumes:
     #   - pg-data-volume:/var/lib/postgresql/data
 
+
   pg-create-users:
     build:
       context: ./docker/pg
@@ -26,6 +27,113 @@ services:
     depends_on:
       - pg
     restart: on-failure
+
+
+  redis:
+    image: redis
+    # ports:
+    #   # This may be useful during development to access the DB.
+    #   - 6379:6379
+
+
+  mail:
+    image: mailhog/mailhog
+    ports:
+      # This may be useful during development to send and read emails.
+      - 1025:1025
+      - 8025:8025
+
+
+  hydra-migrate:
+    image: oryd/hydra:$HYDRA_VERSION
+    environment:
+      - LOG_LEVEL=debug
+    command:
+      migrate sql postgres://hydra:hydra@pg/${POSTGRES_DB}?sslmode=disable --yes
+    depends_on:
+      - pg
+    restart: on-failure
+
+
+  hydra:
+    image: oryd/hydra:$HYDRA_VERSION
+    ports:
+      # This is the public Oauth2 endpoint.
+      - 4444:4444
+      # This may be useful during development to access the admin API.
+      - 4445:4445
+    command:
+      serve all --dangerous-force-http
+    environment:
+      - LOG_LEVEL=debug
+      - DISABLE_TELEMETRY=1
+      - SECRETS_SYSTEM=$HYDRA_SYSTEM_SECRET
+      - DATABASE_URL=postgres://hydra:hydra@pg/${POSTGRES_DB}?sslmode=disable
+      - OAUTH2_CONSENT_URL=http://$BROWSER_IDP_HOST:4488/consent
+      - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:4488/login
+      - OAUTH2_ISSUER_URL=http://$BROWSER_HYDRA_HOST:4444
+      - OAUTH2_SHARE_ERROR_DEBUG=1
+      - HYDRA_ADMIN_URL=http://hydra:4445
+    depends_on:
+      - hydra-migrate
+    restart: on-failure
+
+
+  hydra-config:
+    image: oryd/hydra:$HYDRA_VERSION
+    environment:
+      - LOG_LEVEL=debug
+      - HYDRA_ADMIN_URL=http://hydra:4445
+    volumes:
+      - './docker/hydra:/etc/hydra-config'
+    command:
+      clients import /etc/hydra-config/swagger-ui.json
+    depends_on:
+      - hydra
+    restart: on-failure
+
+
+  login-migrate:
+    build:
+      context: ./submodules/swpt_login
+      dockerfile: docker_flask/Dockerfile
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}
+    command: db upgrade
+    depends_on:
+      - pg
+    restart: on-failure
+
+
+  login:
+    build:
+      context: ./submodules/swpt_login
+      dockerfile: docker_flask/Dockerfile
+    ports:
+      # This is the public endpoint for login and consent pages.
+      - 4488:4488
+    environment:
+      - PORT=4488
+      - SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379/0
+      - MAIL_SERVER=mail
+      - MAIL_PORT=1025
+      - MAIL_DEFAULT_SENDER=Login Test Site <no-reply@hydra-login2f.com>
+      - HYDRA_ADMIN_URL=http://hydra:4445
+    command:
+      ##############################################################################
+      # Change "develop" to "serve" in production, or remove the "command" setting #
+      # altogether. Also, make sure that you always use SSL/TLS in production.     #
+      ##############################################################################
+      develop
+    depends_on:
+      - pg
+      - redis
+      - mail
+      - hydra
+      - hydra-config
+      - login-migrate
+
 
   server:
     build:
