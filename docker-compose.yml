@@ -3,13 +3,29 @@ version: '3.6'
 services:
 
   pg:
-    image: postgres:10.5
+    build:
+      context: ./docker/pg
+      dockerfile: Dockerfile
     environment:
       - POSTGRES_DB=$POSTGRES_DB
       - POSTGRES_USER=$POSTGRES_USER
       - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
     ports:
       - $POSTGRES_LOCAL_PORT:5432
+    # volumes:
+    #   - pg-data-volume:/var/lib/postgresql/data
+
+  pg-create-users:
+    build:
+      context: ./docker/pg
+      dockerfile: Dockerfile
+    environment:
+      - PGPASSWORD=$POSTGRES_PASSWORD
+    command:
+      psql -h pg -d "$POSTGRES_DB" -U "$POSTGRES_USER" -f /docker-entrypoint-initdb.d/create-users.sql
+    depends_on:
+      - pg
+    restart: on-failure
 
   server:
     build:
@@ -24,7 +40,7 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONBREAKPOINT=web_pdb.set_trace
-      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+      - SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}
     command: develop-run-flask
     depends_on:
       - pg
@@ -41,7 +57,7 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONBREAKPOINT=web_pdb.set_trace
-      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+      - SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}
     command: develop-run-tasks --watch '/usr/src/app/swpt_creditors' tasks:broker
     depends_on:
       - pg
@@ -58,7 +74,11 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONBREAKPOINT=web_pdb.set_trace
-      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+      - SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}
     command: supervisord
     depends_on:
       - pg
+
+
+# volumes:
+#   pg-data-volume:
