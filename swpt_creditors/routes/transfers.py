@@ -26,7 +26,7 @@ transfers_api.before_request(ensure_creditor_permissions)
 class TransfersEndpoint(MethodView):
     @transfers_api.arguments(TransfersPaginationParamsSchema, location='query')
     @transfers_api.response(ObjectReferencesPageSchema(context=context), example=examples.TRANSFER_LINKS_EXAMPLE)
-    @transfers_api.doc(operationId='getTransfersPage')
+    @transfers_api.doc(operationId='getTransfersPage', security=specs.SCOPE_ACCESS)
     def get(self, params, creditorId):
         """Return a collection of transfers, initiated by a given creditor.
 
@@ -58,6 +58,7 @@ class TransfersEndpoint(MethodView):
     @transfers_api.arguments(TransferCreationRequestSchema)
     @transfers_api.response(TransferSchema(context=context), code=201, headers=specs.LOCATION_HEADER)
     @transfers_api.doc(operationId='createTransfer',
+                       security=specs.SCOPE_ACCESS_MODIFY,
                        responses={303: specs.TRANSFER_EXISTS,
                                   403: specs.FORBIDDEN_OPERATION,
                                   409: specs.TRANSFER_CONFLICT})
@@ -117,7 +118,7 @@ class TransfersEndpoint(MethodView):
 @transfers_api.route('/<i64:creditorId>/transfers/<uuid:transferUuid>', parameters=[CID, TRANSFER_UUID])
 class TransferEndpoint(MethodView):
     @transfers_api.response(TransferSchema(context=context))
-    @transfers_api.doc(operationId='getTransfer')
+    @transfers_api.doc(operationId='getTransfer', security=specs.SCOPE_ACCESS)
     def get(self, creditorId, transferUuid):
         """Return a transfer."""
 
@@ -126,6 +127,7 @@ class TransferEndpoint(MethodView):
     @transfers_api.arguments(TransferCancelationRequestSchema)
     @transfers_api.response(TransferSchema(context=context))
     @transfers_api.doc(operationId='cancelTransfer',
+                       security=specs.SCOPE_ACCESS_MODIFY,
                        responses={403: specs.TRANSFER_CANCELLATION_FAILURE})
     def post(self, cancel_transfer_request, creditorId, transferUuid):
         """Try to cancel a transfer.
@@ -144,7 +146,7 @@ class TransferEndpoint(MethodView):
         return transfer
 
     @transfers_api.response(code=204)
-    @transfers_api.doc(operationId='deleteTransfer')
+    @transfers_api.doc(operationId='deleteTransfer', security=specs.SCOPE_ACCESS_MODIFY)
     def delete(self, creditorId, transferUuid):
         """Delete a transfer.
 
@@ -171,7 +173,7 @@ class TransferEndpoint(MethodView):
 @transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<transferId>', parameters=[CID, DID, TID])
 class CommittedTransferEndpoint(MethodView):
     @transfers_api.response(CommittedTransferSchema(context=context))
-    @transfers_api.doc(operationId='getCommittedTransfer')
+    @transfers_api.doc(operationId='getCommittedTransfer', security=specs.SCOPE_ACCESS)
     def get(self, creditorId, debtorId, transferId):
         """Return information about sent or received transfer."""
 

@@ -129,3 +129,24 @@ PEG_ACCOUNT_DELETION = {
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
     "description": "Account does not exist.",
 }
+
+
+SCOPE_ACCESS = [
+    {'oauth2': ['access']},
+]
+
+SCOPE_ACCESS_MODIFY = [
+    {'oauth2': ['access.modify']},
+]
+
+SCOPE_DISABLE_PIN = [
+    {'oauth2': ['disable_pin']},
+]
+
+SCOPE_ACTIVATE = [
+    {'oauth2': ['activate']},
+]
+
+SCOPE_DEACTIVATE = [
+    {'oauth2': ['deactivate']},
+]
