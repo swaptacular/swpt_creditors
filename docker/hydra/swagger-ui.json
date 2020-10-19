@@ -1,5 +1,5 @@
 {
-  "client_id": "clients:swagger-ui",
+  "client_id": "swagger-ui",
   "description": "This client is used by Swagger-UI.",
   "client_secret": "swagger-ui",
   "scope": "access access.modify disable_pin",

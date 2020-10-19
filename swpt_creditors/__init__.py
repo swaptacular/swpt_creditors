@@ -121,10 +121,10 @@ def generate_api_spec_options(authorizationUrl, tokenUrl, refreshUrl):
                                 'access': 'read data',
                                 'access.modify': 'access and modify data',
                                 'disable_pin': 'disable PIN',
-                                'activate': 'create new creditors',
+                                'activate': 'activate new creditors',
                                 'deactivate': 'deactivate existing creditors',
                             },
-                        }
+                        },
                     },
                 },
             },
