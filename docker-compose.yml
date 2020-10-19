@@ -142,19 +142,25 @@ services:
 
 
   swagger-ui:
-    image: swaggerapi/swagger-ui
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: swagger-ui-image
     environment:
-      - SWAGGER_JSON=/etc/swagger-config/openapi.json
-    volumes:
-      - './docker/swagger-ui:/etc/swagger-config'
+      - OAUTH2_AUTHORIZATION_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/auth
+      - OAUTH2_TOKEN_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/token
+      - OAUTH2_REFRESH_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/token
+      - SWAGGER_JSON=/openapi.json
     ports:
       - 8080:8080
-
+    depends_on:
+      - login
 
   server:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app-image
     volumes:
       - './swpt_creditors:/usr/src/app/swpt_creditors'
     ports:
@@ -173,6 +179,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app-image
     volumes:
       - './swpt_creditors:/usr/src/app/swpt_creditors'
     ports:
@@ -190,6 +197,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app-image
     volumes:
       - './swpt_creditors:/usr/src/app/swpt_creditors'
     ports:

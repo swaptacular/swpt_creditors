@@ -45,6 +45,44 @@ class Configuration(metaclass=MetaFlaskEnv):
     DRAMATIQ_BROKER_URL = 'amqp://guest:guest@localhost:5672'
     API_TITLE = 'Creditors API'
     API_VERSION = 'v1'
+    API_SPEC_OPTIONS = {
+        'info': {
+            'description': API_DESCRIPTION,
+        },
+        'consumes': ['application/json'],
+        'produces': ['application/json'],
+        'components': {
+            'securitySchemes': {
+                'oauth2': {
+                    'type': 'oauth2',
+                    'description': 'This API uses OAuth 2. [More info](https://oauth.net/2/).',
+                    'flows': {
+                        'authorizationCode': {
+                            'authorizationUrl': '$OAUTH2_AUTHORIZATION_URL',
+                            'tokenUrl': '$OAUTH2_TOKEN_URL',
+                            'refreshUrl': '$OAUTH2_REFRESH_URL',
+                            'scopes': {
+                                'access': 'read data',
+                                'access.modify': 'access and modify data',
+                                'disable_pin': 'disable PIN',
+                            },
+                        },
+                        'clientCredentials': {
+                            'tokenUrl': '$OAUTH2_TOKEN_URL',
+                            'refreshUrl': '$OAUTH2_REFRESH_URL',
+                            'scopes': {
+                                'access': 'read data',
+                                'access.modify': 'access and modify data',
+                                'disable_pin': 'disable PIN',
+                                'activate': 'activate new creditors',
+                                'deactivate': 'deactivate existing creditors',
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
     OPENAPI_VERSION = '3.0.2'
     OPENAPI_URL_PREFIX = '/docs'
     OPENAPI_REDOC_PATH = 'redoc'
@@ -86,50 +124,6 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_SUPERUSER_SUBJECT_REGEX = '^creditors:superuser$'
     APP_SUPERVISOR_SUBJECT_REGEX = '^creditors:supervisor$'
     APP_CREDITOR_SUBJECT_REGEX = '^creditors:([0-9]+)$'
-    APP_OAUTH2_AUTHORIZATION_URL = '/oauth2/auth'
-    APP_OAUTH2_TOKEN_URL = '/oauth2/token'
-    APP_OAUTH2_REFRESH_URL = '/oauth2/token'
-
-
-def generate_api_spec_options(authorizationUrl, tokenUrl, refreshUrl):
-    return {
-        'info': {
-            'description': API_DESCRIPTION,
-        },
-        'consumes': ['application/json'],
-        'produces': ['application/json'],
-        'components': {
-            'securitySchemes': {
-                'oauth2': {
-                    'type': 'oauth2',
-                    'description': 'This API uses OAuth 2. [More info](https://oauth.net/2/).',
-                    'flows': {
-                        'authorizationCode': {
-                            'authorizationUrl': authorizationUrl,
-                            'tokenUrl': tokenUrl,
-                            'refreshUrl': refreshUrl,
-                            'scopes': {
-                                'access': 'read data',
-                                'access.modify': 'access and modify data',
-                                'disable_pin': 'disable PIN',
-                            },
-                        },
-                        'clientCredentials': {
-                            'tokenUrl': tokenUrl,
-                            'refreshUrl': refreshUrl,
-                            'scopes': {
-                                'access': 'read data',
-                                'access.modify': 'access and modify data',
-                                'disable_pin': 'disable PIN',
-                                'activate': 'activate new creditors',
-                                'deactivate': 'deactivate existing creditors',
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    }
 
 
 def create_app(config_dict={}):
@@ -146,11 +140,6 @@ def create_app(config_dict={}):
     app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
-    app.config['API_SPEC_OPTIONS'] = generate_api_spec_options(
-        authorizationUrl=app.config['APP_OAUTH2_AUTHORIZATION_URL'],
-        tokenUrl=app.config['APP_OAUTH2_TOKEN_URL'],
-        refreshUrl=app.config['APP_OAUTH2_REFRESH_URL'],
-    )
     db.init_app(app)
     migrate.init_app(app, db)
     broker.init_app(app)
