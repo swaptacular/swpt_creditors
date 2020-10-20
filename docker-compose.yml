@@ -93,7 +93,7 @@ services:
     volumes:
       - './docker/hydra:/etc/hydra-config'
     command:
-      clients import /etc/hydra-config/swagger-ui.json
+      clients import /etc/hydra-config/creditors-supervisor.json /etc/hydra-config/swagger-ui.json
     depends_on:
       - hydra
     restart: on-failure
