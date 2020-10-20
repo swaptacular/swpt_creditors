@@ -147,6 +147,7 @@ services:
       dockerfile: Dockerfile
       target: swagger-ui-image
     environment:
+      - SERVER_BASE_URL=http://localhost:$PORT/
       - OAUTH2_AUTHORIZATION_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/auth
       - OAUTH2_TOKEN_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/token
       - OAUTH2_REFRESH_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/token

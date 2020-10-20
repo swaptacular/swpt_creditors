@@ -49,6 +49,10 @@ class Configuration(metaclass=MetaFlaskEnv):
         'info': {
             'description': API_DESCRIPTION,
         },
+        'servers': [
+            {'url': '/'},
+            {'url': '$SERVER_BASE_URL', 'description': 'Production server (uses live data)'},
+        ],
         'consumes': ['application/json'],
         'produces': ['application/json'],
         'components': {
