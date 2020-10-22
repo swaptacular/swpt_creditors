@@ -137,8 +137,6 @@ services:
       - redis
       - mail
       - hydra
-      - hydra-config
-      - login-migrate
 
 
   swagger-ui:
@@ -155,7 +153,8 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - login
+      - hydra
+      - oathkeeper
 
   oathkeeper:
     build:
@@ -168,9 +167,11 @@ services:
     command:
       serve --config=/config.yaml
     restart: on-failure
+    depends_on:
+      - resource-server
 
 
-  server:
+  resource-server:
     build:
       context: .
       dockerfile: Dockerfile
