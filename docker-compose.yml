@@ -141,6 +141,20 @@ services:
       - login-migrate
 
 
+  oathkeeper:
+    build:
+      context: ./docker/oathkeeper
+      dockerfile: Dockerfile
+    ports:
+      # This is port for the proxy.
+      - 4455:4455
+      # This may be useful during development to access the admin API.
+      - 4456:4456
+    command:
+      serve --config=/config.yaml
+    restart: on-failure
+
+
   swagger-ui:
     build:
       context: .
