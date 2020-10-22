@@ -5,6 +5,7 @@ import os.path
 import logging
 import logging.config
 from flask_env import MetaFlaskEnv
+from flask_cors import CORS
 
 # Configure app logging. If the value of "$APP_LOGGING_CONFIG_FILE" is
 # a relative path, the directory of this (__init__.py) file will be
@@ -144,6 +145,7 @@ def create_app(config_dict={}):
     app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
+    CORS(app, vary_header=False, expose_headers=['Location'])
     db.init_app(app)
     migrate.init_app(app, db)
     broker.init_app(app)

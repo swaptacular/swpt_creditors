@@ -125,18 +125,6 @@ version = "1.6.0"
 [package.dependencies]
 prometheus-client = ">=0.2,<0.3"
 
-[package.dependencies.pika]
-optional = true
-version = ">=1.0,<2.0"
-
-[package.dependencies.watchdog]
-optional = true
-version = ">=0.8,<0.9"
-
-[package.dependencies.watchdog_gevent]
-optional = true
-version = "0.1"
-
 [package.extras]
 all = ["redis (>=2.0,<4.0)", "watchdog_gevent (0.1)", "watchdog (>=0.8,<0.9)", "pylibmc (>=1.5,<2.0)", "pika (>=1.0,<2.0)"]
 dev = ["redis (>=2.0,<4.0)", "watchdog_gevent (0.1)", "watchdog (>=0.8,<0.9)", "pylibmc (>=1.5,<2.0)", "pika (>=1.0,<2.0)", "alabaster", "sphinx (<1.8)", "sphinxcontrib-napoleon", "flake8", "flake8-bugbear", "flake8-quotes", "isort", "bumpversion", "hiredis", "twine", "wheel", "pytest (<4)", "pytest-benchmark", "pytest-cov", "tox"]
@@ -149,6 +137,7 @@ watch = ["watchdog (>=0.8,<0.9)", "watchdog_gevent (0.1)"]
 reference = "d45e9f7daee5d95c5789ae4ce95c4a486f040bb9"
 type = "git"
 url = "https://github.com/epandurski/dramatiq.git"
+
 [[package]]
 category = "dev"
 description = "the modular source code checker: pep8 pyflakes and co"
@@ -184,6 +173,18 @@ itsdangerous = ">=0.24"
 dev = ["pytest", "coverage", "tox", "sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-issues"]
 docs = ["sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-issues"]
 dotenv = ["python-dotenv"]
+
+[[package]]
+category = "main"
+description = "A Flask extension adding a decorator for CORS support"
+name = "flask-cors"
+optional = false
+python-versions = "*"
+version = "3.0.9"
+
+[package.dependencies]
+Flask = ">=0.9"
+Six = "*"
 
 [[package]]
 category = "main"
@@ -753,6 +754,7 @@ sqlalchemy = "^1.3"
 reference = "5382564622bf4c558ac1bbb0821fdde2157b3286"
 type = "git"
 url = "https://github.com/epandurski/swpt_lib.git"
+
 [[package]]
 category = "dev"
 description = "a fork of Python 2 and 3 ast modules with type comment support"
@@ -897,7 +899,7 @@ test = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 
 [metadata]
-content-hash = "fe63a817ee26936d6e74e2a0b67f1b4997cc813acb80a246ea428f1dc0dd6acb"
+content-hash = "afcd8cfdd205b160b7c8b9b58980cfd5197a4652efaf2ae39d54874f778d9e12"
 lock-version = "1.0"
 python-versions = "^3.7"
 
@@ -1020,6 +1022,10 @@ flake8 = [
 flask = [
     {file = "Flask-1.1.2-py2.py3-none-any.whl", hash = "sha256:8a4fdd8936eba2512e9c85df320a37e694c93945b33ef33c89946a340a238557"},
     {file = "Flask-1.1.2.tar.gz", hash = "sha256:4efa1ae2d7c9865af48986de8aeb8504bf32c7f3d6fdc9353d34b21f4b127060"},
+]
+flask-cors = [
+    {file = "Flask-Cors-3.0.9.tar.gz", hash = "sha256:6bcfc100288c5d1bcb1dbb854babd59beee622ffd321e444b05f24d6d58466b8"},
+    {file = "Flask_Cors-3.0.9-py2.py3-none-any.whl", hash = "sha256:cee4480aaee421ed029eaa788f4049e3e26d15b5affb6a880dade6bafad38324"},
 ]
 flask-env = [
     {file = "Flask-Env-2.0.0.tar.gz", hash = "sha256:e10ebc8ac8f5d4696f228be8ad528c697c701b706c754fc54c8a5aa784eb73f1"},
