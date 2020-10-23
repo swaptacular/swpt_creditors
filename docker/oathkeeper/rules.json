@@ -1,5 +1,33 @@
 [
   {
+    "id": "options",
+    "version": "v0.36.0-beta.4",
+    "upstream": {
+      "url": "http://resource-server:8080",
+      "preserve_host": true
+    },
+    "match": {
+      "url": "http://localhost:8004/creditors/<.*>",
+      "methods": [
+        "OPTIONS"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "noop"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+
+  {
     "id": "access",
     "version": "v0.36.0-beta.4",
     "upstream": {
@@ -9,12 +37,15 @@
     "match": {
       "url": "http://localhost:8004/creditors/<.*>",
       "methods": [
-        "GET", "HEAD", "OPTIONS", "TRACE"
+        "GET", "HEAD"
       ]
     },
     "authenticators": [
       {
-        "handler": "anonymous"
+        "handler": "oauth2_introspection",
+        "config": {
+          "required_scope": ["access"]
+        }
       }
     ],
     "authorizer": {
@@ -40,14 +71,17 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?!.*\b(reserve|activate|deactivate)$).*>",
+      "url": "http://localhost:8004/creditors/<(?!.*[/-](reserve|activate|deactivate)$).*>",
       "methods": [
         "POST", "PUT", "PATCH", "DELETE"
       ]
     },
     "authenticators": [
       {
-        "handler": "anonymous"
+        "handler": "oauth2_introspection",
+        "config": {
+          "required_scope": ["modify"]
+        }
       }
     ],
     "authorizer": {
@@ -73,14 +107,17 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?=.*\b(reserve|activate)$).*>",
+      "url": "http://localhost:8004/creditors/<(?=.*[/-](reserve|activate)$).*>",
       "methods": [
         "POST"
       ]
     },
     "authenticators": [
       {
-        "handler": "anonymous"
+        "handler": "oauth2_introspection",
+        "config": {
+          "required_scope": ["activate"]
+        }
       }
     ],
     "authorizer": {
@@ -106,14 +143,17 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?=.*\b(deactivate)$).*>",
+      "url": "http://localhost:8004/creditors/<(?=.*[/-](deactivate)$).*>",
       "methods": [
         "POST"
       ]
     },
     "authenticators": [
       {
-        "handler": "anonymous"
+        "handler": "oauth2_introspection",
+        "config": {
+          "required_scope": ["deactivate"]
+        }
       }
     ],
     "authorizer": {

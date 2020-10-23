@@ -9,6 +9,9 @@ access_rules:
   repositories:
     - file:///rules.json
 
+log:
+  level: debug
+
 errors:
   fallback:
     - json
@@ -46,7 +49,23 @@ authorizers:
     enabled: true
 
 authenticators:
+  noop:
+    enabled: true
   anonymous:
     enabled: true
     config:
       subject: guest
+  oauth2_client_credentials:
+    enabled: true
+    config:
+      token_url: http://hydra:4444/oauth2/token
+  oauth2_introspection:
+    enabled: true
+    config:
+      introspection_url: http://hydra:4445/oauth2/introspect
+      scope_strategy: exact
+      # introspection_request_headers:
+      #   x-forwarded-proto: https
+      # cache:
+      #   enabled: true
+      #   ttl: 60s
