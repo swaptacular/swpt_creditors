@@ -145,7 +145,7 @@ def create_app(config_dict={}):
     app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
-    CORS(app, vary_header=False, expose_headers=['Location'])
+    CORS(app, max_age=24 * 60 * 60, vary_header=False, expose_headers=['Location'])
     db.init_app(app)
     migrate.init_app(app, db)
     broker.init_app(app)
