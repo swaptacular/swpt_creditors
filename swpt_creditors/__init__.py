@@ -89,8 +89,8 @@ class Configuration(metaclass=MetaFlaskEnv):
         },
     }
     OPENAPI_VERSION = '3.0.2'
-    OPENAPI_URL_PREFIX = '/docs'
-    OPENAPI_REDOC_PATH = 'redoc'
+    OPENAPI_URL_PREFIX = '/creditors/.docs'
+    OPENAPI_REDOC_PATH = ''
     OPENAPI_REDOC_URL = 'https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js'
     OPENAPI_SWAGGER_UI_PATH = 'swagger-ui'
     OPENAPI_SWAGGER_UI_URL = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'

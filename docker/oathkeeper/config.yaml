@@ -5,6 +5,7 @@ serve:
     port: 4456 # run the api at port 4456
 
 access_rules:
+  matching_strategy: regexp
   repositories:
     - file:///rules.json
 

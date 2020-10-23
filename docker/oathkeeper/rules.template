@@ -7,7 +7,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<.*>",
+      "url": "${API_BASE_URL}<.*>",
       "methods": [
         "GET", "HEAD", "OPTIONS", "TRACE"
       ]
@@ -40,7 +40,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?!.*\b(reserve|activate|deactivate)$).*>",
+      "url": "${API_BASE_URL}<(?!.*\b(reserve|activate|deactivate)$).*>",
       "methods": [
         "POST", "PUT", "PATCH", "DELETE"
       ]
@@ -73,7 +73,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?=.*\b(reserve|activate)$).*>",
+      "url": "${API_BASE_URL}<(?=.*\b(reserve|activate)$).*>",
       "methods": [
         "POST"
       ]
@@ -106,7 +106,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?=.*\b(deactivate)$).*>",
+      "url": "${API_BASE_URL}<(?=.*\b(deactivate)$).*>",
       "methods": [
         "POST"
       ]
