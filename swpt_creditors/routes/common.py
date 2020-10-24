@@ -55,11 +55,11 @@ user_id_pattern_matcher = UserIdPatternMatcher()
 
 def parse_swpt_user_id_header() -> Tuple[UserType, Optional[int]]:
     user_id = request.headers.get('X-Swpt-User-Id')
-    if user_id:
-        user_type, creditor_id = user_id_pattern_matcher.match(user_id)
-    else:
+    if user_id is None:
         user_type = UserType.SUPERUSER
         creditor_id = None
+    else:
+        user_type, creditor_id = user_id_pattern_matcher.match(user_id)
 
     g.superuser = user_type == UserType.SUPERUSER
     return user_type, creditor_id
