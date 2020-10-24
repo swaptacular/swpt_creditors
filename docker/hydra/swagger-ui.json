@@ -2,7 +2,7 @@
   "client_id": "swagger-ui",
   "description": "This client is used by Swagger-UI.",
   "client_secret": "swagger-ui",
-  "scope": "access access.modify disable_pin",
+  "scope": "access access.readonly disable_pin",
   "grant_types": [
     "authorization_code",
     "refresh_token"

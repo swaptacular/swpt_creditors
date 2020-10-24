@@ -4,7 +4,6 @@ import os
 import os.path
 import logging
 import logging.config
-from flask_env import MetaFlaskEnv
 from flask_cors import CORS
 
 # Configure app logging. If the value of "$APP_LOGGING_CONFIG_FILE" is
@@ -31,15 +30,37 @@ cache and data synchronization between two or more clients.
 """
 
 
-class Configuration(metaclass=MetaFlaskEnv):
+class MetaEnvReader(type):
+    def __init__(cls, name, bases, dct):
+        """MetaEnvReader class initializer.
+
+        This function will get called when a new class which utilizes
+        this metaclass is defined, as opposed to when an instance is
+        initialized. This function overrides the default configuration
+        from environment variables.
+
+        """
+
+        super().__init__(name, bases, dct)
+        NoneType = type(None)
+        annotations = dct.get('__annotations__', {})
+        for key, value in os.environ.items():
+            if hasattr(cls, key):
+                target_type = annotations.get(key) or type(getattr(cls, key))
+                if target_type is NoneType:
+                    target_type = str
+                setattr(cls, key, target_type(value))
+
+
+class Configuration(metaclass=MetaEnvReader):
     SECRET_KEY = 'dummy-secret'
     SERVER_NAME = None
     PREFERRED_URL_SCHEME = 'http'
     SQLALCHEMY_DATABASE_URI = ''
-    SQLALCHEMY_POOL_SIZE = None
-    SQLALCHEMY_POOL_TIMEOUT = None
-    SQLALCHEMY_POOL_RECYCLE = None
-    SQLALCHEMY_MAX_OVERFLOW = None
+    SQLALCHEMY_POOL_SIZE: int = None
+    SQLALCHEMY_POOL_TIMEOUT: int = None
+    SQLALCHEMY_POOL_RECYCLE: int = None
+    SQLALCHEMY_MAX_OVERFLOW: int = None
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
     DRAMATIQ_BROKER_CLASS = 'RabbitmqBroker'
@@ -67,18 +88,18 @@ class Configuration(metaclass=MetaFlaskEnv):
                             'tokenUrl': '$OAUTH2_TOKEN_URL',
                             'refreshUrl': '$OAUTH2_REFRESH_URL',
                             'scopes': {
-                                'access': 'read data',
-                                'access.modify': 'access and modify data',
-                                'disable_pin': 'disable PIN',
+                                'access.readonly': 'read-only access',
+                                'access': 'read-write access',
+                                'disable_pin': 'disable the Personal Identification Number',
                             },
                         },
                         'clientCredentials': {
                             'tokenUrl': '$OAUTH2_TOKEN_URL',
                             'refreshUrl': '$OAUTH2_REFRESH_URL',
                             'scopes': {
-                                'access': 'read data',
-                                'access.modify': 'access and modify data',
-                                'disable_pin': 'disable PIN',
+                                'access.readonly': 'read-only access',
+                                'access': 'read-write access',
+                                'disable_pin': 'disable the Personal Identification Number',
                                 'activate': 'activate new creditors',
                                 'deactivate': 'deactivate existing creditors',
                             },
@@ -93,7 +114,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     OPENAPI_REDOC_PATH = ''
     OPENAPI_REDOC_URL = 'https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js'
     OPENAPI_SWAGGER_UI_PATH = 'swagger-ui'
-    OPENAPI_SWAGGER_UI_URL = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
+    OPENAPI_SWAGGER_UI_URL = None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
     APP_PROCESS_LOG_ENTRIES_THREADS = 1
     APP_PROCESS_LEDGER_UPDATES_THREADS = 1
     APP_PROCESS_LEDGER_UPDATES_BURST = 1000

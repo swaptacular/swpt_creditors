@@ -52,7 +52,7 @@ class RandomCreditorReserveEndpoint(MethodView):
 @admin_api.route('/.list')
 class CreditorsListEndpoint(MethodView):
     @admin_api.response(CreditorsListSchema, example=examples.CREDITORS_LIST_EXAMPLE)
-    @admin_api.doc(operationId='getCreditorsList', security=specs.SCOPE_ACCESS)
+    @admin_api.doc(operationId='getCreditorsList', security=specs.SCOPE_ACCESS_READONLY)
     def get(self):
         """Return a paginated list of links to all active creditors."""
 
@@ -66,7 +66,7 @@ class CreditorsListEndpoint(MethodView):
 @admin_api.route('/<i64:creditorId>/enumerate', parameters=[CID])
 class CreditorEnumerateEndpoint(MethodView):
     @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.CREDITOR_LINKS_EXAMPLE)
-    @admin_api.doc(operationId='getCreditorsPage', security=specs.SCOPE_ACCESS)
+    @admin_api.doc(operationId='getCreditorsPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return a collection of active creditors.
 

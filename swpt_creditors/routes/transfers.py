@@ -26,7 +26,7 @@ transfers_api.before_request(ensure_creditor_permissions)
 class TransfersEndpoint(MethodView):
     @transfers_api.arguments(TransfersPaginationParamsSchema, location='query')
     @transfers_api.response(ObjectReferencesPageSchema(context=context), example=examples.TRANSFER_LINKS_EXAMPLE)
-    @transfers_api.doc(operationId='getTransfersPage', security=specs.SCOPE_ACCESS)
+    @transfers_api.doc(operationId='getTransfersPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, params, creditorId):
         """Return a collection of transfers, initiated by a given creditor.
 
@@ -118,7 +118,7 @@ class TransfersEndpoint(MethodView):
 @transfers_api.route('/<i64:creditorId>/transfers/<uuid:transferUuid>', parameters=[CID, TRANSFER_UUID])
 class TransferEndpoint(MethodView):
     @transfers_api.response(TransferSchema(context=context))
-    @transfers_api.doc(operationId='getTransfer', security=specs.SCOPE_ACCESS)
+    @transfers_api.doc(operationId='getTransfer', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, transferUuid):
         """Return a transfer."""
 
@@ -173,7 +173,7 @@ class TransferEndpoint(MethodView):
 @transfers_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/transfers/<transferId>', parameters=[CID, DID, TID])
 class CommittedTransferEndpoint(MethodView):
     @transfers_api.response(CommittedTransferSchema(context=context))
-    @transfers_api.doc(operationId='getCommittedTransfer', security=specs.SCOPE_ACCESS)
+    @transfers_api.doc(operationId='getCommittedTransfer', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId, transferId):
         """Return information about sent or received transfer."""
 

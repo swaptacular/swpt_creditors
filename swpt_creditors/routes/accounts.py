@@ -105,7 +105,7 @@ class DebtorLookupEndpoint(MethodView):
 class AccountsEndpoint(MethodView):
     @accounts_api.arguments(AccountsPaginationParamsSchema, location='query')
     @accounts_api.response(ObjectReferencesPageSchema(context=context))
-    @accounts_api.doc(operationId='getAccountsPage', security=specs.SCOPE_ACCESS)
+    @accounts_api.doc(operationId='getAccountsPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, params, creditorId):
         """Return a collection of accounts belonging to a given creditor.
 
@@ -174,7 +174,7 @@ class AccountsEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[CID, DID])
 class AccountEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=context))
-    @accounts_api.doc(operationId='getAccount', security=specs.SCOPE_ACCESS,)
+    @accounts_api.doc(operationId='getAccount', security=specs.SCOPE_ACCESS_READONLY,)
     def get(self, creditorId, debtorId):
         """Return account.
 
@@ -240,7 +240,7 @@ class AccountEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])
 class AccountConfigEndpoint(MethodView):
     @accounts_api.response(AccountConfigSchema(context=context))
-    @accounts_api.doc(operationId='getAccountConfig', security=specs.SCOPE_ACCESS)
+    @accounts_api.doc(operationId='getAccountConfig', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's configuration."""
 
@@ -292,7 +292,7 @@ class AccountConfigEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/display', parameters=[CID, DID])
 class AccountDisplayEndpoint(MethodView):
     @accounts_api.response(AccountDisplaySchema(context=context))
-    @accounts_api.doc(operationId='getAccountDisplay', security=specs.SCOPE_ACCESS)
+    @accounts_api.doc(operationId='getAccountDisplay', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's display settings."""
 
@@ -346,7 +346,7 @@ class AccountDisplayEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/exchange', parameters=[CID, DID])
 class AccountExchangeEndpoint(MethodView):
     @accounts_api.response(AccountExchangeSchema(context=context))
-    @accounts_api.doc(operationId='getAccountExchange', security=specs.SCOPE_ACCESS)
+    @accounts_api.doc(operationId='getAccountExchange', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's exchange settings."""
 
@@ -408,7 +408,7 @@ class AccountExchangeEndpoint(MethodView):
 class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.response(AccountKnowledgeSchema(context=context))
     @accounts_api.doc(operationId='getAccountKnowledge',
-                      security=specs.SCOPE_ACCESS,
+                      security=specs.SCOPE_ACCESS_READONLY,
                       responses={409: specs.UPDATE_CONFLICT})
     def get(self, creditorId, debtorId):
         """Return account's stored knowledge.
@@ -458,7 +458,7 @@ class AccountKnowledgeEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/info', parameters=[CID, DID])
 class AccountInfoEndpoint(MethodView):
     @accounts_api.response(AccountInfoSchema(context=context))
-    @accounts_api.doc(operationId='getAccountInfo', security=specs.SCOPE_ACCESS)
+    @accounts_api.doc(operationId='getAccountInfo', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's status information."""
 
@@ -468,7 +468,7 @@ class AccountInfoEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/ledger', parameters=[CID, DID])
 class AccountLedgerEndpoint(MethodView):
     @accounts_api.response(AccountLedgerSchema(context=context))
-    @accounts_api.doc(operationId='getAccountLedger', security=specs.SCOPE_ACCESS)
+    @accounts_api.doc(operationId='getAccountLedger', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's ledger."""
 
@@ -479,7 +479,7 @@ class AccountLedgerEndpoint(MethodView):
 class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(LedgerEntriesPaginationParamsSchema, location='query')
     @accounts_api.response(LedgerEntriesPageSchema(context=context), example=examples.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
-    @accounts_api.doc(operationId='getAccountLedgerEntriesPage', security=specs.SCOPE_ACCESS)
+    @accounts_api.doc(operationId='getAccountLedgerEntriesPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, params, creditorId, debtorId):
         """Return a collection of ledger entries for a given account.
 

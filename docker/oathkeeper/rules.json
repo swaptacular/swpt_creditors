@@ -28,14 +28,42 @@
   },
 
   {
-    "id": "access",
+    "id": "docs",
     "version": "v0.36.0-beta.4",
     "upstream": {
       "url": "http://resource-server:8080",
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<.*>",
+      "url": "http://localhost:8004/creditors/<\\.docs(/.*)?$>",
+      "methods": [
+        "GET", "HEAD"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "noop"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+
+  {
+    "id": "access.readonly",
+    "version": "v0.36.0-beta.4",
+    "upstream": {
+      "url": "http://resource-server:8080",
+      "preserve_host": true
+    },
+    "match": {
+      "url": "http://localhost:8004/creditors/<(?!\\.docs(/.*)?$).*>",
       "methods": [
         "GET", "HEAD"
       ]
@@ -44,7 +72,7 @@
       {
         "handler": "oauth2_introspection",
         "config": {
-          "required_scope": ["access"]
+          "required_scope": ["access.readonly"]
         }
       }
     ],
@@ -64,7 +92,7 @@
   },
 
   {
-    "id": "modify",
+    "id": "access",
     "version": "v0.36.0-beta.4",
     "upstream": {
       "url": "http://resource-server:8080",
@@ -80,7 +108,7 @@
       {
         "handler": "oauth2_introspection",
         "config": {
-          "required_scope": ["modify"]
+          "required_scope": ["access"]
         }
       }
     ],

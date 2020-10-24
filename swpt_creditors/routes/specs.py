@@ -131,12 +131,12 @@ NO_ACCOUNT_WITH_THIS_DEBTOR = {
 }
 
 
-SCOPE_ACCESS = [
-    {'oauth2': ['access']},
+SCOPE_ACCESS_READONLY = [
+    {'oauth2': ['access.readonly']},
 ]
 
 SCOPE_ACCESS_MODIFY = [
-    {'oauth2': ['access.modify']},
+    {'oauth2': ['access']},
 ]
 
 SCOPE_DISABLE_PIN = [
