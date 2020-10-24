@@ -44,6 +44,7 @@ class MetaEnvReader(type):
         super().__init__(name, bases, dct)
         NoneType = type(None)
         annotations = dct.get('__annotations__', {})
+        falsy_values = {'false', 'off', 'no', ''}
         for key, value in os.environ.items():
             if hasattr(cls, key):
                 target_type = annotations.get(key) or type(getattr(cls, key))
@@ -51,7 +52,7 @@ class MetaEnvReader(type):
                     target_type = str
 
                 if target_type is bool:
-                    value = value.lower() not in {'false', 'off', 'no', ''}
+                    value = value.lower() not in falsy_values
                 else:
                     value = target_type(value)
 
