@@ -26,8 +26,8 @@ config_dict = {
     'APP_INACTIVE_CREDITOR_RETENTION_DAYS': 14,
     'APP_DEACTIVATED_CREDITOR_RETENTION_DAYS': 1826,
     'APP_PIN_FAILURES_RESET_DAYS': 7,
-    'APP_SUPERUSER_SUBJECT_REGEX': '^creditors:superuser$',
-    'APP_SUPERVISOR_SUBJECT_REGEX': '^creditors:supervisor$',
+    'APP_SUPERUSER_SUBJECT_REGEX': '^creditors-superuser$',
+    'APP_SUPERVISOR_SUBJECT_REGEX': '^creditors-supervisor$',
     'APP_CREDITOR_SUBJECT_REGEX': '^creditors:([0-9]+)$',
 }
 

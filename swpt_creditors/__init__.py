@@ -49,7 +49,13 @@ class MetaEnvReader(type):
                 target_type = annotations.get(key) or type(getattr(cls, key))
                 if target_type is NoneType:
                     target_type = str
-                setattr(cls, key, target_type(value))
+
+                if target_type is bool:
+                    value = value.lower() not in {'false', 'off', 'no', ''}
+                else:
+                    value = target_type(value)
+
+                setattr(cls, key, value)
 
 
 class Configuration(metaclass=MetaEnvReader):
@@ -147,8 +153,8 @@ class Configuration(metaclass=MetaEnvReader):
     APP_MAX_TRANSFER_DELAY_DAYS = 14
     APP_MAX_CONFIG_DELAY_HOURS = 24
     APP_PIN_FAILURES_RESET_DAYS = 7
-    APP_SUPERUSER_SUBJECT_REGEX = '^creditors:superuser$'
-    APP_SUPERVISOR_SUBJECT_REGEX = '^creditors:supervisor$'
+    APP_SUPERUSER_SUBJECT_REGEX = '^creditors-superuser$'
+    APP_SUPERVISOR_SUBJECT_REGEX = '^creditors-supervisor$'
     APP_CREDITOR_SUBJECT_REGEX = '^creditors:([0-9]+)$'
 
 

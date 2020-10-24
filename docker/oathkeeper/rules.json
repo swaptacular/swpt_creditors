@@ -84,7 +84,7 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-User": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}"
           }
         }
       }
@@ -120,7 +120,7 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-User": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}"
           }
         }
       }
@@ -156,7 +156,7 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-User": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}"
           }
         }
       }
@@ -192,7 +192,7 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-User": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}"
           }
         }
       }
