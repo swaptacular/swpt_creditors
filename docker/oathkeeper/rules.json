@@ -107,7 +107,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?=.*[/-](reserve|activate)$).*>",
+      "url": "http://localhost:8004/creditors/<.*[/-](reserve|activate)$>",
       "methods": [
         "POST"
       ]
@@ -143,7 +143,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "http://localhost:8004/creditors/<(?=.*[/-](deactivate)$).*>",
+      "url": "http://localhost:8004/creditors/<.*[/-](deactivate)$>",
       "methods": [
         "POST"
       ]
