@@ -84,7 +84,8 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}",
+            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
           }
         }
       }
@@ -120,7 +121,8 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}",
+            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
           }
         }
       }
@@ -156,7 +158,8 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}",
+            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
           }
         }
       }
@@ -192,7 +195,8 @@
         "handler": "header",
         "config": {
           "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}"
+            "X-Swpt-User-Id": "{{ print .Subject }}",
+            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
           }
         }
       }
