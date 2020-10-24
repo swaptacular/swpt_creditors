@@ -19,17 +19,6 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 
-API_DESCRIPTION = """This API can be used to:
-1. Get information about creditors, create new creditors.
-2. Create, view, update, and delete accounts, view account's transaction history.
-3. Make transfers from one account to another account.
-
-The API allows for efficient client-side caching, as well as efficient
-cache and data synchronization between two or more clients.
-
-"""
-
-
 class MetaEnvReader(type):
     def __init__(cls, name, bases, dct):
         """MetaEnvReader class initializer.
@@ -74,48 +63,6 @@ class Configuration(metaclass=MetaEnvReader):
     DRAMATIQ_BROKER_URL = 'amqp://guest:guest@localhost:5672'
     API_TITLE = 'Creditors API'
     API_VERSION = 'v1'
-    API_SPEC_OPTIONS = {
-        'info': {
-            'description': API_DESCRIPTION,
-        },
-        'servers': [
-            {'url': '/'},
-            {'url': '$API_BASE_URL', 'description': 'Production server (uses live data)'},
-        ],
-        'consumes': ['application/json'],
-        'produces': ['application/json'],
-        'components': {
-            'securitySchemes': {
-                'oauth2': {
-                    'type': 'oauth2',
-                    'description': 'This API uses OAuth 2. [More info](https://oauth.net/2/).',
-                    'flows': {
-                        'authorizationCode': {
-                            'authorizationUrl': '$OAUTH2_AUTHORIZATION_URL',
-                            'tokenUrl': '$OAUTH2_TOKEN_URL',
-                            'refreshUrl': '$OAUTH2_REFRESH_URL',
-                            'scopes': {
-                                'access.readonly': 'read-only access',
-                                'access': 'read-write access',
-                                'disable_pin': 'disable the Personal Identification Number',
-                            },
-                        },
-                        'clientCredentials': {
-                            'tokenUrl': '$OAUTH2_TOKEN_URL',
-                            'refreshUrl': '$OAUTH2_REFRESH_URL',
-                            'scopes': {
-                                'access.readonly': 'read-only access',
-                                'access': 'read-write access',
-                                'disable_pin': 'disable the Personal Identification Number',
-                                'activate': 'activate new creditors',
-                                'deactivate': 'deactivate existing creditors',
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    }
     OPENAPI_VERSION = '3.0.2'
     OPENAPI_URL_PREFIX = '/creditors/.docs'
     OPENAPI_REDOC_PATH = ''
@@ -163,7 +110,7 @@ def create_app(config_dict={}):
     from flask import Flask
     from swpt_lib.utils import Int64Converter
     from .extensions import db, migrate, broker, api
-    from .routes import admin_api, creditors_api, accounts_api, transfers_api, path_builder
+    from .routes import admin_api, creditors_api, accounts_api, transfers_api, path_builder, specs
     from .schemas import type_registry
     from .cli import swpt_creditors
     from . import procedures
@@ -173,6 +120,7 @@ def create_app(config_dict={}):
     app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
+    app.config['API_SPEC_OPTIONS'] = specs.API_SPEC_OPTIONS
     CORS(app, max_age=24 * 60 * 60, vary_header=False, expose_headers=['Location'])
     db.init_app(app)
     migrate.init_app(app, db)
