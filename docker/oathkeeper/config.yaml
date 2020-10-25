@@ -9,9 +9,6 @@ access_rules:
   repositories:
     - file:///usr/src/app/oathkeeper/rules.json
 
-log:
-  level: debug
-
 errors:
   fallback:
     - json
@@ -24,27 +21,6 @@ errors:
       enabled: true
       config:
         to: https://www.ory.sh/docs
-
-mutators:
-  header:
-    enabled: true
-    config:
-      headers:
-        X-Swpt-User-Id: "{{ print .Subject }}"
-        X-Swpt-Require-Pin: "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
-  noop:
-    enabled: true
-  id_token:
-    enabled: true
-    config:
-      issuer_url: http://localhost:4455/
-      jwks_url: file:///usr/src/app/oathkeeper/jwks.json
-
-authorizers:
-  allow:
-    enabled: true
-  deny:
-    enabled: true
 
 authenticators:
   noop:
@@ -59,3 +35,19 @@ authenticators:
       # cache:
       #   enabled: true
       #   ttl: 60s
+
+authorizers:
+  allow:
+    enabled: true
+  deny:
+    enabled: true
+
+mutators:
+  noop:
+    enabled: true
+  header:
+    enabled: true
+    config:
+      headers:
+        X-Swpt-User-Id: "{{ print .Subject }}"
+        X-Swpt-Require-Pin: "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
