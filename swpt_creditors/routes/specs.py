@@ -167,7 +167,7 @@ API_SPEC_OPTIONS = {
     },
     'servers': [
         {'url': '/'},
-        {'url': '$API_BASE_URL', 'description': 'Production server (uses live data)'},
+        {'url': '$API_ROOT', 'description': 'Production server (uses live data)'},
     ],
     'consumes': ['application/json'],
     'produces': ['application/json'],

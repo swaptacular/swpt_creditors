@@ -1,3 +1,5 @@
+FROM oryd/oathkeeper:v0.38.3-beta.1 as oathkeeper-image
+
 FROM python:3.7.8-alpine3.12 AS venv-image
 WORKDIR /usr/src/app
 
@@ -38,9 +40,11 @@ RUN apk add --no-cache \
     libffi \
     postgresql-libs \
     supervisor \
+    gettext \
     && addgroup -S "$FLASK_APP" \
     && adduser -S -D -h "$APP_ROOT_DIR" "$FLASK_APP" "$FLASK_APP"
 
+COPY --from=oathkeeper-image /usr/bin/oathkeeper /usr/bin/oathkeeper
 COPY --from=venv-image /opt/venv /opt/venv
 
 WORKDIR /usr/src/app
@@ -53,6 +57,7 @@ COPY docker/entrypoint.sh \
      tasks.py \
      pytest.ini \
      ./
+COPY docker/oathkeeper/ oathkeeper/
 COPY migrations/ migrations/
 COPY tests/ tests/
 COPY $FLASK_APP/ $FLASK_APP/

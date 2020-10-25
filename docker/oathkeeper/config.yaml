@@ -1,13 +1,13 @@
 serve:
   proxy:
-    port: 4455 # run the proxy at port 4455
+    port: 4455
   api:
-    port: 4456 # run the api at port 4456
+    port: 4456
 
 access_rules:
   matching_strategy: regexp
   repositories:
-    - file:///rules.json
+    - file:///usr/src/app/oathkeeper/rules.json
 
 log:
   level: debug
@@ -30,17 +30,15 @@ mutators:
     enabled: true
     config:
       headers:
-        X-User: "{{ print .Subject }}"
-        # You could add some other headers, for example with data from the
-        # session.
-        # X-Some-Arbitrary-Data: "{{ print .Extra.some.arbitrary.data }}"
+        X-Swpt-User-Id: "{{ print .Subject }}"
+        X-Swpt-Require-Pin: "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
   noop:
     enabled: true
   id_token:
     enabled: true
     config:
       issuer_url: http://localhost:4455/
-      jwks_url: file:///jwks.json
+      jwks_url: file:///usr/src/app/oathkeeper/jwks.json
 
 authorizers:
   allow:
@@ -51,14 +49,6 @@ authorizers:
 authenticators:
   noop:
     enabled: true
-  anonymous:
-    enabled: true
-    config:
-      subject: guest
-  oauth2_client_credentials:
-    enabled: true
-    config:
-      token_url: http://hydra:4444/oauth2/token
   oauth2_introspection:
     enabled: true
     config:

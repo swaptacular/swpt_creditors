@@ -7,7 +7,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "${API_BASE_URL}<.*>",
+      "url": "${API_ROOT}creditors/<.*>",
       "methods": [
         "OPTIONS"
       ]
@@ -35,7 +35,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "${API_BASE_URL}<\\.docs(/.*)?$>",
+      "url": "${API_ROOT}creditors/<\\.docs(/.*)?$>",
       "methods": [
         "GET", "HEAD"
       ]
@@ -63,7 +63,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "${API_BASE_URL}<.*[/-](lookup)$>",
+      "url": "${API_ROOT}creditors/<.*[/-](lookup)$>",
       "methods": [
         "POST"
       ]
@@ -82,12 +82,6 @@
     "mutators": [
       {
         "handler": "header",
-        "config": {
-          "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}",
-            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
-          }
-        }
       }
     ]
   },
@@ -100,7 +94,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "${API_BASE_URL}<(?!\\.docs(/.*)?$).*>",
+      "url": "${API_ROOT}creditors/<(?!\\.docs(/.*)?$).*>",
       "methods": [
         "GET", "HEAD"
       ]
@@ -119,12 +113,6 @@
     "mutators": [
       {
         "handler": "header",
-        "config": {
-          "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}",
-            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
-          }
-        }
       }
     ]
   },
@@ -137,7 +125,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "${API_BASE_URL}<(?!.*[/-](lookup|reserve|activate|deactivate)$).*>",
+      "url": "${API_ROOT}creditors/<(?!.*[/-](lookup|reserve|activate|deactivate)$).*>",
       "methods": [
         "POST", "PUT", "PATCH", "DELETE"
       ]
@@ -156,12 +144,6 @@
     "mutators": [
       {
         "handler": "header",
-        "config": {
-          "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}",
-            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
-          }
-        }
       }
     ]
   },
@@ -174,7 +156,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "${API_BASE_URL}<.*[/-](reserve|activate)$>",
+      "url": "${API_ROOT}creditors/<.*[/-](reserve|activate)$>",
       "methods": [
         "POST"
       ]
@@ -193,12 +175,6 @@
     "mutators": [
       {
         "handler": "header",
-        "config": {
-          "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}",
-            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
-          }
-        }
       }
     ]
   },
@@ -211,7 +187,7 @@
       "preserve_host": true
     },
     "match": {
-      "url": "${API_BASE_URL}<.*[/-](deactivate)$>",
+      "url": "${API_ROOT}creditors/<.*[/-](deactivate)$>",
       "methods": [
         "POST"
       ]
@@ -230,12 +206,6 @@
     "mutators": [
       {
         "handler": "header",
-        "config": {
-          "headers": {
-            "X-Swpt-User-Id": "{{ print .Subject }}",
-            "X-Swpt-Require-Pin": "{{ print .Extra.scope | splitList \" \" | has \"disable_pin\" | not }}"
-          }
-        }
       }
     ]
   }
