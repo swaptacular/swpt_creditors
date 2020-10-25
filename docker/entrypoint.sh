@@ -75,7 +75,7 @@ case $1 in
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
     oathkeeper)
-        envsubst '$API_ROOT' < "$APP_ROOT_DIR/oathkeeper/rules.template" > "$APP_ROOT_DIR/oathkeeper/rules.json"
+        envsubst '$RESOURCE_SERVER' < "$APP_ROOT_DIR/oathkeeper/rules.template" > "$APP_ROOT_DIR/oathkeeper/rules.json"
         exec oathkeeper serve --config="$APP_ROOT_DIR/oathkeeper/config.yaml"
         ;;
     tasks)

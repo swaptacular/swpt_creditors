@@ -3,11 +3,11 @@
     "id": "options",
     "version": "v0.36.0-beta.4",
     "upstream": {
-      "url": "http://resource-server:8080",
+      "url": "$RESOURCE_SERVER",
       "preserve_host": true
     },
     "match": {
-      "url": "${API_ROOT}creditors/<.*>",
+      "url": "<https?://[^/]+/creditors/.*>",
       "methods": [
         "OPTIONS"
       ]
@@ -31,11 +31,11 @@
     "id": "docs",
     "version": "v0.36.0-beta.4",
     "upstream": {
-      "url": "http://resource-server:8080",
+      "url": "$RESOURCE_SERVER",
       "preserve_host": true
     },
     "match": {
-      "url": "${API_ROOT}creditors/<\\.docs(/.*)?$>",
+      "url": "<https?://[^/]+/creditors/\\.docs(/.*)?$>",
       "methods": [
         "GET", "HEAD"
       ]
@@ -59,11 +59,11 @@
     "id": "access.lookup",
     "version": "v0.36.0-beta.4",
     "upstream": {
-      "url": "http://resource-server:8080",
+      "url": "$RESOURCE_SERVER",
       "preserve_host": true
     },
     "match": {
-      "url": "${API_ROOT}creditors/<.*[/-](lookup)$>",
+      "url": "<https?://[^/]+/creditors/.*[./-](lookup)$>",
       "methods": [
         "POST"
       ]
@@ -90,11 +90,11 @@
     "id": "access.get",
     "version": "v0.36.0-beta.4",
     "upstream": {
-      "url": "http://resource-server:8080",
+      "url": "$RESOURCE_SERVER",
       "preserve_host": true
     },
     "match": {
-      "url": "${API_ROOT}creditors/<(?!\\.docs(/.*)?$).*>",
+      "url": "<https?://[^/]+/creditors/(?!\\.docs(/.*)?$).*>",
       "methods": [
         "GET", "HEAD"
       ]
@@ -121,11 +121,11 @@
     "id": "access.modify",
     "version": "v0.36.0-beta.4",
     "upstream": {
-      "url": "http://resource-server:8080",
+      "url": "$RESOURCE_SERVER",
       "preserve_host": true
     },
     "match": {
-      "url": "${API_ROOT}creditors/<(?!.*[/-](lookup|reserve|activate|deactivate)$).*>",
+      "url": "<https?://[^/]+/creditors/(?!.*[./-](lookup|reserve|activate|deactivate)$).*>",
       "methods": [
         "POST", "PUT", "PATCH", "DELETE"
       ]
@@ -152,11 +152,11 @@
     "id": "activate",
     "version": "v0.36.0-beta.4",
     "upstream": {
-      "url": "http://resource-server:8080",
+      "url": "$RESOURCE_SERVER",
       "preserve_host": true
     },
     "match": {
-      "url": "${API_ROOT}creditors/<.*[/-](reserve|activate)$>",
+      "url": "<https?://[^/]+/creditors/.*[./-](reserve|activate)$>",
       "methods": [
         "POST"
       ]
@@ -183,11 +183,11 @@
     "id": "deactivate",
     "version": "v0.36.0-beta.4",
     "upstream": {
-      "url": "http://resource-server:8080",
+      "url": "$RESOURCE_SERVER",
       "preserve_host": true
     },
     "match": {
-      "url": "${API_ROOT}creditors/<.*[/-](deactivate)$>",
+      "url": "<https?://[^/]+/creditors/.*[./-](deactivate)$>",
       "methods": [
         "POST"
       ]
