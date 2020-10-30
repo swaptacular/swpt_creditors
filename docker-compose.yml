@@ -127,6 +127,14 @@ services:
       - 'MAIL_DEFAULT_SENDER=Login Test Site <no-reply@hydra-login2f.com>'
       - 'HYDRA_ADMIN_URL=http://hydra:4445'
       - 'SUBJECT_PREFIX=creditors:'
+      - 'SUPERVISOR_CLIENT_ID=creditors-supervisor'
+      - 'SUPERVISOR_CLIENT_SECRET=creditors-supervisor'
+      - 'API_AUTH2_TOKEN_URL=http://hydra:4444/oauth2/token'
+      - 'API_RESOURCE_SERVER=http://resource-server:8080'
+      - 'API_RESERVE_USER_ID_PATH=/creditors/.creditor-reserve'
+      - 'API_USER_ID_FIELD_NAME=creditorId'
+      - 'API_TIMEOUT_SECONDS=5'
+      - 'OAUTHLIB_INSECURE_TRANSPORT=1'
     command:
       ##############################################################################
       # Change "develop" to "serve" in production, or remove the "command" setting #
