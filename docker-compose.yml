@@ -136,7 +136,7 @@ services:
       - 'API_TIMEOUT_SECONDS=5'
       - 'OAUTHLIB_INSECURE_TRANSPORT=1'
     command:
-      serve
+      supervisord
     depends_on:
       - pg
       - redis
