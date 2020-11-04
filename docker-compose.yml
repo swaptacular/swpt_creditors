@@ -102,10 +102,10 @@ services:
   login-migrate:
     build:
       context: ./submodules/swpt_login
-      dockerfile: docker_flask/Dockerfile
+      dockerfile: Dockerfile
     environment:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
-    command: db upgrade
+    command: configure
     depends_on:
       - pg
     restart: on-failure
@@ -114,7 +114,7 @@ services:
   login:
     build:
       context: ./submodules/swpt_login
-      dockerfile: docker_flask/Dockerfile
+      dockerfile: Dockerfile
     ports:
       # This is the public endpoint for login and consent pages.
       - 4488:4488
@@ -136,11 +136,7 @@ services:
       - 'API_TIMEOUT_SECONDS=5'
       - 'OAUTHLIB_INSECURE_TRANSPORT=1'
     command:
-      ##############################################################################
-      # Change "develop" to "serve" in production, or remove the "command" setting #
-      # altogether. Also, make sure that you always use SSL/TLS in production.     #
-      ##############################################################################
-      develop
+      serve
     depends_on:
       - pg
       - redis
