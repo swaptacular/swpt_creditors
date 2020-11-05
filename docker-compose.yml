@@ -85,18 +85,6 @@ services:
     restart: on-failure
 
 
-  login-migrate:
-    build:
-      context: ./submodules/swpt_login
-      dockerfile: Dockerfile
-    environment:
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
-    command: configure
-    depends_on:
-      - pg
-    restart: on-failure
-
-
   login:
     build:
       context: ./submodules/swpt_login
@@ -127,6 +115,18 @@ services:
       - redis
       - mail
       - hydra
+
+
+  login-migrate:
+    build:
+      context: ./submodules/swpt_login
+      dockerfile: Dockerfile
+    environment:
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
+    command: configure
+    depends_on:
+      - pg
+    restart: on-failure
 
 
   resource-server:
