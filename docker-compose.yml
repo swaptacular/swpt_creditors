@@ -146,6 +146,20 @@ services:
       - pg
 
 
+  resource-server-configure:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-image
+    env_file: .env
+    environment:
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
+    command: configure
+    depends_on:
+      - pg
+    restart: on-failure
+
+
   swagger-ui:
     build:
       context: .
