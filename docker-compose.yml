@@ -129,6 +129,23 @@ services:
       - hydra
 
 
+  resource-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-image
+    env_file: .env
+    environment:
+      - 'PORT=8080'
+      - 'RESOURCE_SERVER=http://127.0.0.1:8080'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
+    ports:
+      - $PORT:4455
+    command: supervisord
+    depends_on:
+      - pg
+
+
   swagger-ui:
     build:
       context: .
@@ -144,58 +161,7 @@ services:
       - 8080:8080
     depends_on:
       - hydra
-      - oathkeeper
-
-  oathkeeper:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app-image
-    environment:
-      - 'RESOURCE_SERVER=http://resource-server:8080'
-    ports:
-      - $PORT:4455
-      # This may be useful during development to access the admin API.
-      - 4456:4456
-    command:
-      oathkeeper
-    restart: on-failure
-    depends_on:
       - resource-server
-
-
-  resource-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app-image
-    volumes:
-      - './swpt_creditors:/usr/src/app/swpt_creditors'
-    env_file: .env
-    environment:
-      - 'PORT=8080'
-      - 'PYTHONDONTWRITEBYTECODE=1'
-      - 'PYTHONBREAKPOINT=web_pdb.set_trace'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
-    command: develop-run-flask
-    depends_on:
-      - pg
-
-  tasks:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app-image
-    volumes:
-      - './swpt_creditors:/usr/src/app/swpt_creditors'
-    env_file: .env
-    environment:
-      - 'PYTHONDONTWRITEBYTECODE=1'
-      - 'PYTHONBREAKPOINT=web_pdb.set_trace'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
-    command: develop-run-tasks --watch '/usr/src/app/swpt_creditors' tasks:broker
-    depends_on:
-      - pg
 
 
 volumes:
