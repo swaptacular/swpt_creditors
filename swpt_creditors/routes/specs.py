@@ -129,3 +129,77 @@ PEG_ACCOUNT_DELETION = {
 NO_ACCOUNT_WITH_THIS_DEBTOR = {
     "description": "Account does not exist.",
 }
+
+
+SCOPE_ACCESS_READONLY = [
+    {'oauth2': ['access.readonly']},
+]
+
+SCOPE_ACCESS_MODIFY = [
+    {'oauth2': ['access']},
+]
+
+SCOPE_DISABLE_PIN = [
+    {'oauth2': ['disable_pin']},
+]
+
+SCOPE_ACTIVATE = [
+    {'oauth2': ['activate']},
+]
+
+SCOPE_DEACTIVATE = [
+    {'oauth2': ['deactivate']},
+]
+
+API_DESCRIPTION = """This API can be used to:
+1. Get information about creditors, create new creditors.
+2. Create, view, update, and delete accounts, view account's transaction history.
+3. Make transfers from one account to another account.
+
+The API allows for efficient client-side caching, as well as efficient
+cache and data synchronization between two or more clients.
+
+"""
+
+API_SPEC_OPTIONS = {
+    'info': {
+        'description': API_DESCRIPTION,
+    },
+    'servers': [
+        {'url': '/'},
+        {'url': '$API_ROOT', 'description': 'Production server (uses live data)'},
+    ],
+    'consumes': ['application/json'],
+    'produces': ['application/json'],
+    'components': {
+        'securitySchemes': {
+            'oauth2': {
+                'type': 'oauth2',
+                'description': 'This API uses OAuth 2. [More info](https://oauth.net/2/).',
+                'flows': {
+                    'authorizationCode': {
+                        'authorizationUrl': '$OAUTH2_AUTHORIZATION_URL',
+                        'tokenUrl': '$OAUTH2_TOKEN_URL',
+                        'refreshUrl': '$OAUTH2_REFRESH_URL',
+                        'scopes': {
+                            'access.readonly': 'read-only access',
+                            'access': 'read-write access',
+                            'disable_pin': 'disable the Personal Identification Number',
+                        },
+                    },
+                    'clientCredentials': {
+                        'tokenUrl': '$OAUTH2_TOKEN_URL',
+                        'refreshUrl': '$OAUTH2_REFRESH_URL',
+                        'scopes': {
+                            'access.readonly': 'read-only access',
+                            'access': 'read-write access',
+                            'disable_pin': 'disable the Personal Identification Number',
+                            'activate': 'activate new creditors',
+                            'deactivate': 'deactivate existing creditors',
+                        },
+                    },
+                },
+            },
+        },
+    },
+}

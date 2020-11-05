@@ -150,10 +150,10 @@ def test_create_creditor(client):
     r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors:3'}, json={})
     assert r.status_code == 403
 
-    r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors:supervisor'}, json={})
+    r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors-supervisor'}, json={})
     assert r.status_code == 403
 
-    r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors:superuser'}, json={})
+    r = client.post('/creditors/3/deactivate', headers={'X-Swpt-User-Id': 'creditors-superuser'}, json={})
     assert r.status_code == 204
 
     r = client.post('/creditors/3/deactivate', json={})
@@ -610,10 +610,10 @@ def test_get_account(client, account):
 
 
 def test_delete_account(client, account):
-    r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors:supervisor'})
+    r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors-supervisor'})
     assert r.status_code == 403
 
-    r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors:superuser'})
+    r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors-superuser'})
     assert r.status_code == 204
 
     r = client.delete('/creditors/2/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors:2'})
@@ -1377,7 +1377,7 @@ def test_unauthorized_creditor_id(creditor, client):
     r = client.get('/creditors/2/')
     assert r.status_code == 200
 
-    r = client.get('/creditors/2/', headers={'X-Swpt-User-Id': 'creditors:supervisor'})
+    r = client.get('/creditors/2/', headers={'X-Swpt-User-Id': 'creditors-supervisor'})
     assert r.status_code == 200
 
     r = client.get('/creditors/2/', headers={'X-Swpt-User-Id': 'creditors:2'})

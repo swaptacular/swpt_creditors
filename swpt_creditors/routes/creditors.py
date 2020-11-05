@@ -22,7 +22,7 @@ creditors_api.before_request(ensure_creditor_permissions)
 @creditors_api.route('/<i64:creditorId>/', parameters=[CID])
 class CreditorEndpoint(MethodView):
     @creditors_api.response(CreditorSchema(context=context))
-    @creditors_api.doc(operationId='getCreditor')
+    @creditors_api.doc(operationId='getCreditor', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return a creditor."""
 
@@ -32,7 +32,7 @@ class CreditorEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/wallet', parameters=[CID])
 class WalletEndpoint(MethodView):
     @creditors_api.response(WalletSchema(context=context))
-    @creditors_api.doc(operationId='getWallet')
+    @creditors_api.doc(operationId='getWallet', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return creditor's wallet.
 
@@ -48,7 +48,7 @@ class WalletEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/pin', parameters=[CID])
 class PinInfoEndpoint(MethodView):
     @creditors_api.response(PinInfoSchema(context=context))
-    @creditors_api.doc(operationId='getPinInfo')
+    @creditors_api.doc(operationId='getPinInfo', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return creditor's PIN information."""
 
@@ -57,6 +57,7 @@ class PinInfoEndpoint(MethodView):
     @creditors_api.arguments(PinInfoSchema)
     @creditors_api.response(PinInfoSchema(context=context))
     @creditors_api.doc(operationId='updatePinInfo',
+                       security=specs.SCOPE_ACCESS_MODIFY,
                        responses={403: specs.FORBIDDEN_OPERATION,
                                   409: specs.UPDATE_CONFLICT})
     def patch(self, pin_info, creditorId):
@@ -91,7 +92,7 @@ class PinInfoEndpoint(MethodView):
 class LogEntriesEndpoint(MethodView):
     @creditors_api.arguments(LogPaginationParamsSchema, location='query')
     @creditors_api.response(LogEntriesPageSchema(context=context), example=examples.LOG_ENTRIES_EXAMPLE)
-    @creditors_api.doc(operationId='getLogPage')
+    @creditors_api.doc(operationId='getLogPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, params, creditorId):
         """Return a collection of creditor's recent log entries.
 
@@ -131,7 +132,7 @@ class LogEntriesEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/accounts-list', parameters=[CID])
 class AccountsListEndpoint(MethodView):
     @creditors_api.response(AccountsListSchema(context=context), example=examples.ACCOUNTS_LIST_EXAMPLE)
-    @creditors_api.doc(operationId='getAccountsList')
+    @creditors_api.doc(operationId='getAccountsList', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return a paginated list of links to all accounts belonging to a
         creditor.
@@ -146,7 +147,7 @@ class AccountsListEndpoint(MethodView):
 @creditors_api.route('/<i64:creditorId>/transfers-list', parameters=[CID])
 class TransfersListEndpoint(MethodView):
     @creditors_api.response(TransfersListSchema(context=context), example=examples.TRANSFERS_LIST_EXAMPLE)
-    @creditors_api.doc(operationId='getTransfersList')
+    @creditors_api.doc(operationId='getTransfersList', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return a paginated list of links to all transfers belonging to a
         creditor.

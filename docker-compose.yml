@@ -3,28 +3,195 @@ version: '3.6'
 services:
 
   pg:
-    image: postgres:10.5
+    build:
+      context: ./docker/pg
+      dockerfile: Dockerfile
     environment:
-      - POSTGRES_DB=$POSTGRES_DB
-      - POSTGRES_USER=$POSTGRES_USER
-      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - 'POSTGRES_DB=$POSTGRES_DB'
+      - 'POSTGRES_USER=$POSTGRES_USER'
+      - 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD'
     ports:
       - $POSTGRES_LOCAL_PORT:5432
+    volumes:
+      - pg-data-volume:/var/lib/postgresql/data
 
-  server:
+
+  pg-create-users:
+    build:
+      context: ./docker/pg
+      dockerfile: Dockerfile
+    environment:
+      - 'PGPASSWORD=$POSTGRES_PASSWORD'
+    command:
+      psql -h pg -d "$POSTGRES_DB" -U "$POSTGRES_USER" -f /docker-entrypoint-initdb.d/create-users.sql
+    depends_on:
+      - pg
+    restart: on-failure
+
+
+  redis:
+    image: redis
+    # ports:
+    #   # This may be useful during development to access the DB.
+    #   - 6379:6379
+
+
+  mail:
+    # This is a dummy mail server which is useful for testing.
+    image: mailhog/mailhog
+    ports:
+      - 1025:1025
+      - 8025:8025
+
+
+  hydra-migrate:
+    image: oryd/hydra:$HYDRA_VERSION
+    environment:
+      - 'LOG_LEVEL=debug'
+    command:
+      migrate sql postgres://hydra:hydra@pg/${POSTGRES_DB}?sslmode=disable --yes
+    depends_on:
+      - pg
+    restart: on-failure
+
+
+  hydra:
+    image: oryd/hydra:$HYDRA_VERSION
+    ports:
+      # This is the public Oauth2 endpoint.
+      - 4444:4444
+      # This may be useful during development to access the admin API.
+      - 4445:4445
+    command:
+      serve all --dangerous-force-http
+    environment:
+      - 'LOG_LEVEL=debug'
+      - 'DISABLE_TELEMETRY=1'
+      - 'SECRETS_SYSTEM=$HYDRA_SYSTEM_SECRET'
+      - 'DATABASE_URL=postgres://hydra:hydra@pg/${POSTGRES_DB}?sslmode=disable'
+      - 'OAUTH2_CONSENT_URL=http://$BROWSER_IDP_HOST:4488/consent'
+      - 'OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:4488/login'
+      - 'OAUTH2_ISSUER_URL=http://$BROWSER_HYDRA_HOST:4444'
+      - 'OAUTH2_SHARE_ERROR_DEBUG=1'
+      - 'HYDRA_ADMIN_URL=http://hydra:4445'
+      - 'SERVE_PUBLIC_CORS_ENABLED=true'
+      - 'SERVE_PUBLIC_CORS_DEBUG=true'
+      - 'SERVE_PUBLIC_CORS_ALLOWED_ORIGINS=*'
+      - 'SERVE_PUBLIC_CORS_ALLOWED_HEADERS=Authorization,Content-Type,X-Requested-With'
+      - 'CORS_ALLOWED_ORIGINS=*'
+      - 'LOG_LEAK_SENSITIVE_VALUES=true'
+    depends_on:
+      - hydra-migrate
+    restart: on-failure
+
+
+  hydra-config:
+    image: oryd/hydra:$HYDRA_VERSION
+    environment:
+      - 'LOG_LEVEL=debug'
+      - 'HYDRA_ADMIN_URL=http://hydra:4445'
+    volumes:
+      - './docker/hydra:/etc/hydra-config'
+    command:
+      clients import /etc/hydra-config/creditors-supervisor.json /etc/hydra-config/swagger-ui.json
+    depends_on:
+      - hydra
+    restart: on-failure
+
+
+  login-migrate:
+    build:
+      context: ./submodules/swpt_login
+      dockerfile: Dockerfile
+    environment:
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
+    command: configure
+    depends_on:
+      - pg
+    restart: on-failure
+
+
+  login:
+    build:
+      context: ./submodules/swpt_login
+      dockerfile: Dockerfile
+    ports:
+      # This is the public endpoint for login and consent pages.
+      - 4488:4488
+    environment:
+      - 'PORT=4488'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
+      - 'REDIS_URL=redis://redis:6379/0'
+      - 'MAIL_SERVER=mail'
+      - 'MAIL_PORT=1025'
+      - 'MAIL_DEFAULT_SENDER=Login Test Site <no-reply@example.com>'
+      - 'HYDRA_ADMIN_URL=http://hydra:4445'
+      - 'SUBJECT_PREFIX=creditors:'
+      - 'SUPERVISOR_CLIENT_ID=creditors-supervisor'
+      - 'SUPERVISOR_CLIENT_SECRET=creditors-supervisor'
+      - 'API_AUTH2_TOKEN_URL=http://hydra:4444/oauth2/token'
+      - 'API_RESOURCE_SERVER=http://resource-server:8080'
+      - 'API_RESERVE_USER_ID_PATH=/creditors/.creditor-reserve'
+      - 'API_USER_ID_FIELD_NAME=creditorId'
+      - 'API_TIMEOUT_SECONDS=5'
+      - 'OAUTHLIB_INSECURE_TRANSPORT=1'
+    command:
+      supervisord
+    depends_on:
+      - pg
+      - redis
+      - mail
+      - hydra
+
+
+  swagger-ui:
     build:
       context: .
       dockerfile: Dockerfile
+      target: swagger-ui-image
+    environment:
+      - 'API_ROOT=http://localhost:$PORT/'
+      - 'OAUTH2_AUTHORIZATION_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/auth'
+      - 'OAUTH2_TOKEN_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/token'
+      - 'OAUTH2_REFRESH_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/token'
+      - 'SWAGGER_JSON=/openapi.json'
+    ports:
+      - 8080:8080
+    depends_on:
+      - hydra
+      - oathkeeper
+
+  oathkeeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-image
+    environment:
+      - 'RESOURCE_SERVER=http://resource-server:8080'
+    ports:
+      - $PORT:4455
+      # This may be useful during development to access the admin API.
+      - 4456:4456
+    command:
+      oathkeeper
+    restart: on-failure
+    depends_on:
+      - resource-server
+
+
+  resource-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-image
     volumes:
       - './swpt_creditors:/usr/src/app/swpt_creditors'
-    ports:
-      - $PORT:$PORT
-      - 1$PORT:5555
     env_file: .env
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONBREAKPOINT=web_pdb.set_trace
-      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+      - 'PORT=8080'
+      - 'PYTHONDONTWRITEBYTECODE=1'
+      - 'PYTHONBREAKPOINT=web_pdb.set_trace'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
     command: develop-run-flask
     depends_on:
       - pg
@@ -33,15 +200,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app-image
     volumes:
       - './swpt_creditors:/usr/src/app/swpt_creditors'
-    ports:
-      - 2$PORT:5555
     env_file: .env
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONBREAKPOINT=web_pdb.set_trace
-      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+      - 'PYTHONDONTWRITEBYTECODE=1'
+      - 'PYTHONBREAKPOINT=web_pdb.set_trace'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
     command: develop-run-tasks --watch '/usr/src/app/swpt_creditors' tasks:broker
     depends_on:
       - pg
@@ -50,15 +216,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app-image
     volumes:
       - './swpt_creditors:/usr/src/app/swpt_creditors'
-    ports:
-      - 3$PORT:5555
     env_file: .env
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONBREAKPOINT=web_pdb.set_trace
-      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+      - 'PYTHONDONTWRITEBYTECODE=1'
+      - 'PYTHONBREAKPOINT=web_pdb.set_trace'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
     command: supervisord
     depends_on:
       - pg
+
+
+volumes:
+  pg-data-volume:

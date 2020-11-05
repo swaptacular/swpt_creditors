@@ -26,6 +26,7 @@ class RandomCreditorReserveEndpoint(MethodView):
     @admin_api.arguments(CreditorReservationRequestSchema)
     @admin_api.response(CreditorReservationSchema(context=context))
     @admin_api.doc(operationId='reserveRandomCreditor',
+                   security=specs.SCOPE_ACTIVATE,
                    responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_reservation_request):
         """Reserve an auto-generated creditor ID.
@@ -51,7 +52,7 @@ class RandomCreditorReserveEndpoint(MethodView):
 @admin_api.route('/.list')
 class CreditorsListEndpoint(MethodView):
     @admin_api.response(CreditorsListSchema, example=examples.CREDITORS_LIST_EXAMPLE)
-    @admin_api.doc(operationId='getCreditorsList')
+    @admin_api.doc(operationId='getCreditorsList', security=specs.SCOPE_ACCESS_READONLY)
     def get(self):
         """Return a paginated list of links to all active creditors."""
 
@@ -65,7 +66,7 @@ class CreditorsListEndpoint(MethodView):
 @admin_api.route('/<i64:creditorId>/enumerate', parameters=[CID])
 class CreditorEnumerateEndpoint(MethodView):
     @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.CREDITOR_LINKS_EXAMPLE)
-    @admin_api.doc(operationId='getCreditorsPage')
+    @admin_api.doc(operationId='getCreditorsPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return a collection of active creditors.
 
@@ -105,6 +106,7 @@ class CreditorReserveEndpoint(MethodView):
     @admin_api.arguments(CreditorReservationRequestSchema)
     @admin_api.response(CreditorReservationSchema(context=context))
     @admin_api.doc(operationId='reserveCreditor',
+                   security=specs.SCOPE_ACTIVATE,
                    responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_reservation_request, creditorId):
         """Try to reserve a specific creditor ID.
@@ -132,6 +134,7 @@ class CreditorActivateEndpoint(MethodView):
     @admin_api.arguments(CreditorActivationRequestSchema)
     @admin_api.response(CreditorSchema(context=context))
     @admin_api.doc(operationId='activateCreditor',
+                   security=specs.SCOPE_ACTIVATE,
                    responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_activation_request, creditorId):
         """Activate a creditor."""
@@ -156,7 +159,7 @@ class CreditorActivateEndpoint(MethodView):
 class CreditorDeactivateEndpoint(MethodView):
     @admin_api.arguments(CreditorDeactivationRequestSchema)
     @admin_api.response(code=204)
-    @admin_api.doc(operationId='deactivateCreditor')
+    @admin_api.doc(operationId='deactivateCreditor', security=specs.SCOPE_DEACTIVATE)
     def post(self, creditor_deactivation_request, creditorId):
         """Deactivate a creditor."""
 

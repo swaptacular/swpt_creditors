@@ -74,6 +74,10 @@ case $1 in
     supervisord)
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
+    oathkeeper)
+        envsubst '$RESOURCE_SERVER' < "$APP_ROOT_DIR/oathkeeper/rules.template" > "$APP_ROOT_DIR/oathkeeper/rules.json"
+        exec oathkeeper serve --config="$APP_ROOT_DIR/oathkeeper/config.yaml"
+        ;;
     tasks)
         shift
         exec dramatiq --processes ${DRAMATIQ_PROCESSES-4} --threads ${DRAMATIQ_THREADS-8} "$@"

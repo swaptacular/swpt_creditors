@@ -53,7 +53,7 @@ accounts_api.before_request(ensure_creditor_permissions)
 class AccountLookupEndpoint(MethodView):
     @accounts_api.arguments(AccountIdentitySchema, example=examples.ACCOUNT_IDENTITY_EXAMPLE)
     @accounts_api.response(DebtorIdentitySchema)
-    @accounts_api.doc(operationId='accountLookup')
+    @accounts_api.doc(operationId='accountLookup', security=specs.SCOPE_ACCESS_MODIFY)
     def post(self, account_identity, creditorId):
         """Given an account identity, find the debtor's identity.
 
@@ -77,6 +77,7 @@ class DebtorLookupEndpoint(MethodView):
     @accounts_api.arguments(DebtorIdentitySchema, example=examples.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='debtorLookup',
+                      security=specs.SCOPE_ACCESS_MODIFY,
                       responses={204: specs.NO_ACCOUNT_WITH_THIS_DEBTOR,
                                  303: specs.ACCOUNT_EXISTS})
     def post(self, debtor_identity, creditorId):
@@ -104,7 +105,7 @@ class DebtorLookupEndpoint(MethodView):
 class AccountsEndpoint(MethodView):
     @accounts_api.arguments(AccountsPaginationParamsSchema, location='query')
     @accounts_api.response(ObjectReferencesPageSchema(context=context))
-    @accounts_api.doc(operationId='getAccountsPage')
+    @accounts_api.doc(operationId='getAccountsPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, params, creditorId):
         """Return a collection of accounts belonging to a given creditor.
 
@@ -140,6 +141,7 @@ class AccountsEndpoint(MethodView):
     @accounts_api.arguments(DebtorIdentitySchema, example=examples.DEBTOR_IDENTITY_EXAMPLE)
     @accounts_api.response(AccountSchema(context=context), code=201, headers=specs.LOCATION_HEADER)
     @accounts_api.doc(operationId='createAccount',
+                      security=specs.SCOPE_ACCESS_MODIFY,
                       responses={303: specs.ACCOUNT_EXISTS,
                                  403: specs.FORBIDDEN_OPERATION})
     def post(self, debtor_identity, creditorId):
@@ -172,7 +174,7 @@ class AccountsEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/', parameters=[CID, DID])
 class AccountEndpoint(MethodView):
     @accounts_api.response(AccountSchema(context=context))
-    @accounts_api.doc(operationId='getAccount')
+    @accounts_api.doc(operationId='getAccount', security=specs.SCOPE_ACCESS_READONLY,)
     def get(self, creditorId, debtorId):
         """Return account.
 
@@ -198,6 +200,7 @@ class AccountEndpoint(MethodView):
 
     @accounts_api.response(code=204)
     @accounts_api.doc(operationId='deleteAccount',
+                      security=specs.SCOPE_ACCESS_MODIFY,
                       responses={403: specs.FORBIDDEN_ACCOUNT_DELETION})
     def delete(self, creditorId, debtorId):
         """Delete account.
@@ -237,7 +240,7 @@ class AccountEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/config', parameters=[CID, DID])
 class AccountConfigEndpoint(MethodView):
     @accounts_api.response(AccountConfigSchema(context=context))
-    @accounts_api.doc(operationId='getAccountConfig')
+    @accounts_api.doc(operationId='getAccountConfig', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's configuration."""
 
@@ -246,6 +249,7 @@ class AccountConfigEndpoint(MethodView):
     @accounts_api.arguments(AccountConfigSchema)
     @accounts_api.response(AccountConfigSchema(context=context))
     @accounts_api.doc(operationId='updateAccountConfig',
+                      security=specs.SCOPE_ACCESS_MODIFY,
                       responses={403: specs.FORBIDDEN_OPERATION,
                                  409: specs.UPDATE_CONFLICT})
     def patch(self, account_config, creditorId, debtorId):
@@ -288,7 +292,7 @@ class AccountConfigEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/display', parameters=[CID, DID])
 class AccountDisplayEndpoint(MethodView):
     @accounts_api.response(AccountDisplaySchema(context=context))
-    @accounts_api.doc(operationId='getAccountDisplay')
+    @accounts_api.doc(operationId='getAccountDisplay', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's display settings."""
 
@@ -297,6 +301,7 @@ class AccountDisplayEndpoint(MethodView):
     @accounts_api.arguments(AccountDisplaySchema)
     @accounts_api.response(AccountDisplaySchema(context=context))
     @accounts_api.doc(operationId='updateAccountDisplay',
+                      security=specs.SCOPE_ACCESS_MODIFY,
                       responses={403: specs.FORBIDDEN_OPERATION,
                                  409: specs.UPDATE_CONFLICT})
     def patch(self, account_display, creditorId, debtorId):
@@ -341,7 +346,7 @@ class AccountDisplayEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/exchange', parameters=[CID, DID])
 class AccountExchangeEndpoint(MethodView):
     @accounts_api.response(AccountExchangeSchema(context=context))
-    @accounts_api.doc(operationId='getAccountExchange')
+    @accounts_api.doc(operationId='getAccountExchange', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's exchange settings."""
 
@@ -350,6 +355,7 @@ class AccountExchangeEndpoint(MethodView):
     @accounts_api.arguments(AccountExchangeSchema)
     @accounts_api.response(AccountExchangeSchema(context=context))
     @accounts_api.doc(operationId='updateAccountExchange',
+                      security=specs.SCOPE_ACCESS_MODIFY,
                       responses={403: specs.FORBIDDEN_OPERATION,
                                  409: specs.UPDATE_CONFLICT})
     def patch(self, account_exchange, creditorId, debtorId):
@@ -402,6 +408,7 @@ class AccountExchangeEndpoint(MethodView):
 class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.response(AccountKnowledgeSchema(context=context))
     @accounts_api.doc(operationId='getAccountKnowledge',
+                      security=specs.SCOPE_ACCESS_READONLY,
                       responses={409: specs.UPDATE_CONFLICT})
     def get(self, creditorId, debtorId):
         """Return account's stored knowledge.
@@ -416,6 +423,7 @@ class AccountKnowledgeEndpoint(MethodView):
     @accounts_api.arguments(AccountKnowledgeSchema)
     @accounts_api.response(AccountKnowledgeSchema(context=context))
     @accounts_api.doc(operationId='updateAccountKnowledge',
+                      security=specs.SCOPE_ACCESS_MODIFY,
                       responses={409: specs.UPDATE_CONFLICT})
     def patch(self, account_knowledge, creditorId, debtorId):
         """Update account's stored knowledge.
@@ -450,7 +458,7 @@ class AccountKnowledgeEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/info', parameters=[CID, DID])
 class AccountInfoEndpoint(MethodView):
     @accounts_api.response(AccountInfoSchema(context=context))
-    @accounts_api.doc(operationId='getAccountInfo')
+    @accounts_api.doc(operationId='getAccountInfo', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's status information."""
 
@@ -460,7 +468,7 @@ class AccountInfoEndpoint(MethodView):
 @accounts_api.route('/<i64:creditorId>/accounts/<i64:debtorId>/ledger', parameters=[CID, DID])
 class AccountLedgerEndpoint(MethodView):
     @accounts_api.response(AccountLedgerSchema(context=context))
-    @accounts_api.doc(operationId='getAccountLedger')
+    @accounts_api.doc(operationId='getAccountLedger', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId):
         """Return account's ledger."""
 
@@ -471,7 +479,7 @@ class AccountLedgerEndpoint(MethodView):
 class AccountLedgerEntriesEndpoint(MethodView):
     @accounts_api.arguments(LedgerEntriesPaginationParamsSchema, location='query')
     @accounts_api.response(LedgerEntriesPageSchema(context=context), example=examples.ACCOUNT_LEDGER_ENTRIES_EXAMPLE)
-    @accounts_api.doc(operationId='getAccountLedgerEntriesPage')
+    @accounts_api.doc(operationId='getAccountLedgerEntriesPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, params, creditorId, debtorId):
         """Return a collection of ledger entries for a given account.
 
