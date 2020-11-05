@@ -3,9 +3,7 @@ version: '3.6'
 services:
 
   pg:
-    build:
-      context: ./docker/pg
-      dockerfile: Dockerfile
+    image: postgres:13.0
     environment:
       - 'POSTGRES_DB=$POSTGRES_DB'
       - 'POSTGRES_USER=$POSTGRES_USER'
@@ -16,14 +14,14 @@ services:
       - pg-data-volume:/var/lib/postgresql/data
 
 
-  pg-create-users:
-    build:
-      context: ./docker/pg
-      dockerfile: Dockerfile
+  pg-config:
+    image: postgres:13.0
     environment:
       - 'PGPASSWORD=$POSTGRES_PASSWORD'
+    volumes:
+      - './docker/pg:/configure-scripts'
     command:
-      psql -h pg -d "$POSTGRES_DB" -U "$POSTGRES_USER" -f /docker-entrypoint-initdb.d/create-users.sql
+      psql -h pg -d "$POSTGRES_DB" -U "$POSTGRES_USER" -f /configure-scripts/create-users.sql
     depends_on:
       - pg
     restart: on-failure
