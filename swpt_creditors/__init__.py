@@ -37,7 +37,7 @@ class MetaEnvReader(type):
         for key, value in os.environ.items():
             if hasattr(cls, key):
                 target_type = annotations.get(key) or type(getattr(cls, key))
-                if target_type is NoneType:
+                if target_type is NoneType:  # pragma: no cover
                     target_type = str
 
                 if target_type is bool:

@@ -44,7 +44,7 @@ class UserIdPatternMatcher:
             pattern = self.get_pattern(user_type)
             m = pattern.match(user_id)
             if m:
-                creditor_id = m.group(1) if user_type == UserType.CREDITOR else None
+                creditor_id = u64_to_i64(int(m.group(1))) if user_type == UserType.CREDITOR else None
                 return user_type, creditor_id
 
         abort(403)
@@ -79,7 +79,7 @@ def ensure_creditor_permissions():
 
     user_type, creditor_id = parse_swpt_user_id_header()
 
-    if user_type == UserType.CREDITOR and u64_to_i64(int(creditor_id)) != request.view_args['creditorId']:
+    if user_type == UserType.CREDITOR and creditor_id != request.view_args.get('creditorId', creditor_id):
         abort(403)
 
     if user_type == UserType.SUPERVISOR and request.method not in READ_ONLY_METHODS:
@@ -87,6 +87,7 @@ def ensure_creditor_permissions():
 
     x_swpt_require_pin = request.headers.get('X-Swpt-Require-Pin', NOT_REQUIED)
     g.pin_reset_mode = x_swpt_require_pin == NOT_REQUIED
+    g.creditor_id = creditor_id
 
 
 def make_transfer_slug(creation_date: date, transfer_number: int) -> str:

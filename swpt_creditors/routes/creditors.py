@@ -1,5 +1,5 @@
 from datetime import timedelta
-from flask import current_app, request, g
+from flask import current_app, request, g, redirect, url_for
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
@@ -17,6 +17,22 @@ creditors_api = Blueprint(
     description="Get information about creditors, create new creditors.",
 )
 creditors_api.before_request(ensure_creditor_permissions)
+
+
+@creditors_api.route('/.wallet')
+class RedirectToWalletEndpoint(MethodView):
+    @creditors_api.response(code=204)
+    @creditors_api.doc(operationId='redirectToWallet',
+                       security=specs.SCOPE_ACCESS_READONLY,
+                       responses={204: specs.WALLET_DOES_NOT_EXIST,
+                                  303: specs.WALLET_EXISTS})
+    def get(self):
+        """Redirect to the creditor's wallet."""
+
+        creditorId = g.creditor_id
+        if creditorId is not None:
+            location = url_for('creditors.WalletEndpoint', _external=True, creditorId=creditorId)
+            return redirect(location, code=303)
 
 
 @creditors_api.route('/<i64:creditorId>/', parameters=[CID])

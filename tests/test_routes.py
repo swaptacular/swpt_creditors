@@ -301,6 +301,19 @@ def test_change_pin(client, creditor):
     ]
 
 
+def test_redirect_to_wallet(client, creditor):
+    r = client.get('/creditors/.wallet')
+    assert r.status_code == 204
+
+    r = client.get('/creditors/.wallet', headers={'X-Swpt-User-Id': 'creditors:2'})
+    assert r.status_code == 303
+    assert r.headers['Location'] == 'http://example.com/creditors/2/wallet'
+
+    r = client.get('/creditors/.wallet', headers={'X-Swpt-User-Id': 'creditors:18446744073709551615'})
+    assert r.status_code == 303
+    assert r.headers['Location'] == 'http://example.com/creditors/18446744073709551615/wallet'
+
+
 def test_get_wallet(client, creditor):
     r = client.get('/creditors/2222/wallet')
     assert r.status_code == 404

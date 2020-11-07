@@ -130,6 +130,13 @@ NO_ACCOUNT_WITH_THIS_DEBTOR = {
     "description": "Account does not exist.",
 }
 
+WALLET_DOES_NOT_EXIST = {
+    "description": "The wallet has not been found.",
+}
+
+WALLET_EXISTS = {
+    "description": "The wallet has been found.",
+}
 
 SCOPE_ACCESS_READONLY = [
     {'oauth2': ['access.readonly']},
