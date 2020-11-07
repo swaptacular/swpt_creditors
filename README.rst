@@ -20,7 +20,17 @@ How to run it
 
      $ cp env.development .env
 
-4. To start the containers, run this command::
+4. To create a minimal *docker-compose.yml* file for running the unit
+   tests, run this command::
+
+     $ cp docker-compose-tests.yml docker-compose.yml
+
+   To create a *docker-compose.yml* file that spawns all sevices, run
+   this command::
+
+     $ cp docker-compose-all.yml docker-compose.yml
+
+5. To start the containers, run this command::
 
      $ docker-compose up --build -d
 
