@@ -4,8 +4,8 @@ swpt_creditors
 Swaptacular micro-service that manages creditors
 
 
-How to run it
--------------
+How to run the unit tests
+-------------------------
 
 1. Install `Docker`_ and `Docker Compose`_.
 
@@ -15,22 +15,22 @@ How to run it
    alter the firewall rules on your computer as well, to allow docker
    containers to connect to the docker host.
 
-3. To create an *.env* file with reasonable defalut values, run this
+3. To create an *.env* file with reasonable defalut values, use this
    command::
 
      $ cp env.development .env
 
-4. To create a minimal *docker-compose.yml* file for running the unit
-   tests, run this command::
+4. To create a minimal *docker-compose.yml* file for development, use
+   this command::
 
      $ cp docker-compose-tests.yml docker-compose.yml
 
-   To create a *docker-compose.yml* file that spawns all sevices, run
-   this command::
+5. To run the unit tests, use this command::
 
-     $ cp docker-compose-all.yml docker-compose.yml
+     $ docker-compose run resource-server test
 
-5. To start the containers, run this command::
+6. To run the minimal set of services needed for development, use this
+   command::
 
      $ docker-compose up --build -d
 
@@ -42,12 +42,25 @@ How to setup a development environment
 
 2. Create a new `Python`_ virtual environment and activate it.
 
-3. To install dependencies, run this command::
+3. To install dependencies, use this command::
 
      $ poetry install
 
 4. You can use ``flask run`` to run a local Web server, or ``dramatiq
    tasks:broker`` to spawn local task workers.
+
+
+How to run all services (production-like)
+-----------------------------------------
+
+1. To create a production-like *docker-compose.yml* file, use this
+   command::
+
+     $ cp docker-compose-all.yml docker-compose.yml
+
+2. To start the containers, use this command::
+
+     $ docker-compose up --build -d
 
 
 .. _Docker: https://docs.docker.com/
