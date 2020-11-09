@@ -1,0 +1,29 @@
+# Always redirect www.x.y to x.y
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name www.${CMBARTER_HOST};
+    return 301 $scheme://${CMBARTER_HOST}$request_uri;
+}
+
+# Everything else must be encrypted
+server {
+    listen 443 ssl;
+    server_name ${CMBARTER_HOST};
+    location /doc/ {
+        root /usr/share/nginx/html/;
+        index  index.shtml;
+        ssi on;
+        add_header Cache-Control "max-age=12096000, public";
+    }
+    location /static/ {
+        root /usr/share/nginx/html/;
+        add_header Cache-Control "max-age=12096000, public";
+    }
+    location /creditors/ {
+        proxy_pass http://resource-server:8080/creditors/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        add_header Strict-Transport-Security "max-age=16070400; includeSubDomains";
+    }
+}

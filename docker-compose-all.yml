@@ -36,6 +36,23 @@ services:
       - 8025:8025
 
 
+  nginx:
+    image: nginx:1.19.4
+    volumes:
+      - './docker/nginx/nginx.conf:/etc/nginx/nginx.conf'
+      - './docker/nginx/templates:/etc/nginx/templates'
+      - './docker/nginx/ssl/cert.pem:/etc/nginx/ssl/cert.pem'
+      - './docker/nginx/ssl/key.pem:/etc/nginx/ssl/key.pem'
+    ports:
+     - 443:443
+    env_file: .env
+    environment:
+     - NGINX_HOST=foobar.com
+     - NGINX_PORT=80
+     - 'CMBARTER_HOST=localhost'
+    depends_on:
+      - resource-server
+
   hydra:
     image: oryd/hydra:$HYDRA_VERSION
     ports:
