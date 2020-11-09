@@ -75,6 +75,8 @@ services:
       - 'SERVE_PUBLIC_CORS_MAX_AGE=86400'
       - 'OAUTH2_EXPOSE_INTERNAL_ERRORS=true'
       - 'SQA_OPT_OUT=true'
+    depends_on:
+      - pg
     restart: on-failure
 
 
@@ -83,7 +85,7 @@ services:
     command:
       migrate sql postgres://hydra:hydra@pg/${POSTGRES_DB}?sslmode=disable --yes
     depends_on:
-      - pg
+      - pg-config
     restart: on-failure
 
 
@@ -140,7 +142,7 @@ services:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
     command: configure
     depends_on:
-      - pg
+      - pg-config
     restart: on-failure
 
 
@@ -171,7 +173,7 @@ services:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
     command: configure
     depends_on:
-      - pg
+      - pg-config
     restart: on-failure
 
 

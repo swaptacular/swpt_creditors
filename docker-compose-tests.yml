@@ -10,8 +10,6 @@ services:
       - 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD'
     ports:
       - $POSTGRES_LOCAL_PORT:5432
-    volumes:
-      - pg-data-volume:/var/lib/postgresql/data
 
 
   pg-config:
@@ -44,10 +42,10 @@ services:
       - $PORT:8080
     command: develop-run-flask
     depends_on:
-      - pg
+      - resource-server-config
 
 
-  tasks:
+  resource-server-config:
     build:
       context: .
       dockerfile: Dockerfile
@@ -57,12 +55,7 @@ services:
     env_file: .env
     environment:
       - 'PYTHONDONTWRITEBYTECODE=1'
-      - 'PYTHONBREAKPOINT=web_pdb.set_trace'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
-    command: develop-run-tasks --watch '/usr/src/app/swpt_creditors' tasks:broker
+    command: configure
     depends_on:
-      - pg
-
-
-volumes:
-  pg-data-volume:
+      - pg-config
