@@ -137,8 +137,6 @@ services:
       dockerfile: Dockerfile
       target: app-image
     environment:
-      - 'PORT=8080'
-      - 'RESOURCE_SERVER=http://127.0.0.1:8080'
       - 'GUNICORN_LOGLEVEL=warning'
       - 'GUNICORN_WORKER_CLASS=sync'
       - 'GUNICORN_WORKERS=2'
