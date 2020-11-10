@@ -61,7 +61,7 @@ services:
       - 'SERVE_PUBLIC_CORS_MAX_AGE=86400'
       - 'OAUTH2_EXPOSE_INTERNAL_ERRORS=true'
       - 'SQA_OPT_OUT=true'
-      # - 'LOG_LEAK_SENSITIVE_VALUES=true'
+      - 'LOG_LEAK_SENSITIVE_VALUES=false'
     depends_on:
       - pg
     restart: on-failure
