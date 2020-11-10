@@ -64,7 +64,6 @@ services:
       # - 'LOG_LEAK_SENSITIVE_VALUES=true'
     depends_on:
       - pg
-    restart: on-failure
 
 
   hydra-migrate:
@@ -163,7 +162,6 @@ services:
     command: configure
     depends_on:
       - pg
-    restart: on-failure
 
 
   swagger-ui:
