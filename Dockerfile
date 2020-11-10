@@ -71,7 +71,7 @@ RUN flask openapi write openapi.json
 
 USER $FLASK_APP
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
-CMD ["serve"]
+CMD ["supervisord"]
 
 
 # This is the swagger-ui image. Starting from the final app image, it
