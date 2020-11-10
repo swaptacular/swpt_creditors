@@ -49,8 +49,6 @@ class MetaEnvReader(type):
 
 
 class Configuration(metaclass=MetaEnvReader):
-    SECRET_KEY = 'dummy-secret'
-    PREFERRED_URL_SCHEME = 'http'
     SQLALCHEMY_DATABASE_URI = ''
     SQLALCHEMY_POOL_SIZE: int = None
     SQLALCHEMY_POOL_TIMEOUT: int = None
