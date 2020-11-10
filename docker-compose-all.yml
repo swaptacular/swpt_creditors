@@ -110,8 +110,6 @@ services:
       - 'API_USER_ID_FIELD_NAME=creditorId'
       - 'API_TIMEOUT_SECONDS=5'
       - 'OAUTHLIB_INSECURE_TRANSPORT=1'
-    command:
-      supervisord
     depends_on:
       - pg
       - redis
