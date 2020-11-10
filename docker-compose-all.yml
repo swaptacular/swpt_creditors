@@ -145,7 +145,6 @@ services:
       - 'DRAMATIQ_BROKER_URL=amqp://guest:guest@localhost:5672'
       - 'DRAMATIQ_PROCESSES=4'
       - 'DRAMATIQ_THREADS=8'
-      - 'APP_USE_LOAD_BALANCING_EXCHANGE=False'
     command: supervisord
     depends_on:
       - pg
