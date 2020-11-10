@@ -13,7 +13,6 @@
   ],
   "token_endpoint_auth_method": "client_secret_basic",
   "redirect_uris": [
-    "http://localhost:8080/oauth2-redirect.html",
-    "http://localhost:8004/docs/swagger-ui"
+    "https://swpt-creditors/swagger-ui/oauth2-redirect.html"
   ]
 }

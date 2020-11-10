@@ -75,7 +75,7 @@ CMD ["serve"]
 # copies the auto-generated OpenAPI spec file. The entrypoint
 # substitutes the placeholders in the spec file with values from
 # environment variables.
-FROM swaggerapi/swagger-ui:v3.35.2 AS swagger-ui-image
+FROM swaggerapi/swagger-ui:v3.36.2 AS swagger-ui-image
 
 COPY --from=app-image /usr/src/app/openapi.json /openapi.template
 COPY docker/swagger-ui/entrypoint.sh /
