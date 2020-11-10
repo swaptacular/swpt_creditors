@@ -27,7 +27,7 @@ How to run the unit tests
 
 5. To run the unit tests, use this command::
 
-     $ docker-compose run resource-server test
+     $ docker-compose run tests-config test
 
 6. To run the minimal set of services needed for development, use this
    command::

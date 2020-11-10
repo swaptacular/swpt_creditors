@@ -2,7 +2,7 @@ version: '3.6'
 
 services:
 
-  pg:
+  tests-pg:
     image: postgres:$POSTGRES_VERSION
     environment:
       - 'POSTGRES_DB=$POSTGRES_DB'
@@ -14,7 +14,7 @@ services:
       - $POSTGRES_LOCAL_PORT:5432
 
 
-  resource-server:
+  tests-resource-server:
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,15 +26,15 @@ services:
       - 'PORT=8080'
       - 'PYTHONDONTWRITEBYTECODE=1'
       - 'PYTHONBREAKPOINT=web_pdb.set_trace'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@tests-pg:5432/${POSTGRES_DB}'
     ports:
       - $PORT:8080
     command: develop-run-flask
     depends_on:
-      - resource-server-config
+      - tests-config
 
 
-  resource-server-config:
+  tests-config:
     build:
       context: .
       dockerfile: Dockerfile
@@ -44,7 +44,7 @@ services:
     env_file: .env
     environment:
       - 'PYTHONDONTWRITEBYTECODE=1'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@tests-pg:5432/${POSTGRES_DB}'
     command: configure
     depends_on:
-      - pg
+      - tests-pg
