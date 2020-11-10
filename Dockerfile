@@ -80,6 +80,8 @@ CMD ["serve"]
 # environment variables.
 FROM swaggerapi/swagger-ui:v3.36.2 AS swagger-ui-image
 
+ENV SWAGGER_JSON=/openapi.json
+
 COPY --from=app-image /usr/src/app/openapi.json /openapi.template
 COPY docker/swagger-ui/entrypoint.sh /
 

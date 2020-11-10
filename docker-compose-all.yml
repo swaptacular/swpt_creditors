@@ -177,7 +177,6 @@ services:
       - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOST/oauth2/token'
       - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOST/swagger-ui/oauth2-redirect.html'
       - 'BASE_URL=/swagger-ui'
-      - 'SWAGGER_JSON=/openapi.json'
     depends_on:
       - hydra
       - resource-server
