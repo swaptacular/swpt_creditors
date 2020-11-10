@@ -82,7 +82,7 @@ case $1 in
         ;;
     tasks-gevent)
         shift
-        exec dramatiq-gevent --processes ${DRAMATIQ_PROCESSES-4} --threads ${DRAMATIQ_GREENLETS-8} "$@"
+        exec dramatiq-gevent --processes ${DRAMATIQ_PROCESSES-4} --threads ${DRAMATIQ_THREADS-8} "$@"
         ;;
     *)
         exec "$@"

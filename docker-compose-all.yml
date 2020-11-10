@@ -144,14 +144,9 @@ services:
       - 'GUNICORN_WORKERS=2'
       - 'GUNICORN_THREADS=1'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
-      - 'SQLALCHEMY_POOL_SIZE=None'
-      - 'SQLALCHEMY_POOL_TIMEOUT=None'
-      - 'SQLALCHEMY_POOL_RECYCLE=None'
-      - 'SQLALCHEMY_MAX_OVERFLOW=None'
       - 'DRAMATIQ_BROKER_URL=amqp://guest:guest@localhost:5672'
       - 'DRAMATIQ_PROCESSES=4'
       - 'DRAMATIQ_THREADS=8'
-      - 'DRAMATIQ_GREENLETS=64'
       - 'APP_USE_LOAD_BALANCING_EXCHANGE=False'
     command: supervisord
     depends_on:
