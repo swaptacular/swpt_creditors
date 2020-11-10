@@ -1,10 +1,6 @@
 server {
     listen 443 ssl;
     server_name ${CREDITORS_HOST};
-    location /static/ {
-        root /usr/share/nginx/html/;
-        add_header Cache-Control "max-age=12096000, public";
-    }
     location /oauth2/ {
         proxy_pass http://hydra:4444/oauth2/;
         proxy_set_header Host $host;

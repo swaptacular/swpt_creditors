@@ -8,11 +8,7 @@
     "refresh_token"
   ],
   "response_types": [
-    "token",
-    "d_token"
+    "token"
   ],
-  "token_endpoint_auth_method": "client_secret_basic",
-  "redirect_uris": [
-    "https://swpt-creditors/swagger-ui/oauth2-redirect.html"
-  ]
+  "token_endpoint_auth_method": "client_secret_basic"
 }
