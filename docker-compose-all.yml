@@ -117,7 +117,7 @@ services:
       - hydra
 
 
-  login-migrate:
+  login-config:
     build:
       context: ./submodules/swpt_login
       dockerfile: Dockerfile
