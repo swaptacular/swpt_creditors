@@ -32,9 +32,10 @@ services:
       - './docker/nginx/ssl/cert.pem:/etc/nginx/ssl/cert.pem'
       - './docker/nginx/ssl/key.pem:/etc/nginx/ssl/key.pem'
     ports:
-      - 443:443
+      - $CREDITORS_PORT:$CREDITORS_PORT
     environment:
       - 'USER_FACING_HOST=$CREDITORS_HOST'
+      - 'USER_FACING_PORT=$CREDITORS_PORT'
       - 'HYDRA_URL=http://hydra:4444'
       - 'LOGIN_URL=http://login:8080'
       - 'RESOURCE_SERVER_URL=http://resource-server:8080'
@@ -59,9 +60,9 @@ services:
       - 'SERVE_PUBLIC_CORS_ALLOWED_HEADERS=Authorization,Content-Type,X-Requested-With'
       - 'SERVE_PUBLIC_CORS_MAX_AGE=86400'
       - 'SERVE_ADMIN_PORT=4445'
-      - 'URLS_SELF_ISSUER=https://$CREDITORS_HOST'
-      - 'URLS_LOGIN=https://$CREDITORS_HOST/login'
-      - 'URLS_CONSENT=https://$CREDITORS_HOST/consent'
+      - 'URLS_SELF_ISSUER=https://$CREDITORS_HOST:$CREDITORS_PORT'
+      - 'URLS_LOGIN=https://$CREDITORS_HOST:$CREDITORS_PORT/login'
+      - 'URLS_CONSENT=https://$CREDITORS_HOST:$CREDITORS_PORT/consent'
       - 'LOG_LEVEL=warn'
       - 'LOG_FORMAT=json'
       - 'LOG_LEAK_SENSITIVE_VALUES=false'
@@ -175,11 +176,11 @@ services:
       target: swagger-ui-image
     environment:
       - 'BASE_URL=/swagger-ui'
-      - 'API_ROOT=https://$CREDITORS_HOST/'
-      - 'OAUTH2_AUTHORIZATION_URL=https://$CREDITORS_HOST/oauth2/auth'
-      - 'OAUTH2_TOKEN_URL=https://$CREDITORS_HOST/oauth2/token'
-      - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOST/oauth2/token'
-      - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOST/swagger-ui/oauth2-redirect.html'
+      - 'API_ROOT=https://$CREDITORS_HOST:$CREDITORS_PORT/'
+      - 'OAUTH2_AUTHORIZATION_URL=https://$CREDITORS_HOST:$CREDITORS_PORT/oauth2/auth'
+      - 'OAUTH2_TOKEN_URL=https://$CREDITORS_HOST:$CREDITORS_PORT/oauth2/token'
+      - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOST:$CREDITORS_PORT/oauth2/token'
+      - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOST:$CREDITORS_PORT/swagger-ui/oauth2-redirect.html'
     depends_on:
       - hydra
       - resource-server

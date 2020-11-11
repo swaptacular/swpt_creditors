@@ -115,7 +115,7 @@ def create_app(config_dict={}):
     from . import models  # noqa
 
     app = Flask(__name__)
-    app.wsgi_app = ProxyFix(app.wsgi_app)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_port=1)
     app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
