@@ -50,13 +50,8 @@ services:
     command:
       serve all --dangerous-force-http
     environment:
-      - 'LOG_LEVEL=debug'
-      - 'LOG_FORMAT=json'
-      - 'SECRETS_SYSTEM=$HYDRA_SYSTEM_SECRET'
       - 'DSN=postgres://hydra:hydra@pg/${POSTGRES_DB}?sslmode=disable'
-      - 'URLS_SELF_ISSUER=https://$CREDITORS_HOST'
-      - 'URLS_LOGIN=https://$CREDITORS_HOST/login'
-      - 'URLS_CONSENT=https://$CREDITORS_HOST/consent'
+      - 'SECRETS_SYSTEM=$HYDRA_SYSTEM_SECRET'
       - 'SERVE_PUBLIC_PORT=4444'
       - 'SERVE_PUBLIC_CORS_ENABLED=true'
       - 'SERVE_PUBLIC_CORS_DEBUG=false'
@@ -64,9 +59,14 @@ services:
       - 'SERVE_PUBLIC_CORS_ALLOWED_HEADERS=Authorization,Content-Type,X-Requested-With'
       - 'SERVE_PUBLIC_CORS_MAX_AGE=86400'
       - 'SERVE_ADMIN_PORT=4445'
+      - 'URLS_SELF_ISSUER=https://$CREDITORS_HOST'
+      - 'URLS_LOGIN=https://$CREDITORS_HOST/login'
+      - 'URLS_CONSENT=https://$CREDITORS_HOST/consent'
+      - 'LOG_LEVEL=warn'
+      - 'LOG_FORMAT=json'
+      - 'LOG_LEAK_SENSITIVE_VALUES=false'
       - 'OAUTH2_EXPOSE_INTERNAL_ERRORS=true'
       - 'SQA_OPT_OUT=true'
-      - 'LOG_LEAK_SENSITIVE_VALUES=false'
     depends_on:
       - pg
     restart: on-failure
@@ -101,11 +101,10 @@ services:
       - 'PORT=8080'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
       - 'REDIS_URL=redis://redis:6379/0'
+      - 'HYDRA_ADMIN_URL=http://hydra:4445'
       - 'MAIL_SERVER=mail'
       - 'MAIL_PORT=1025'
       - 'MAIL_DEFAULT_SENDER=Swaptacular <no-reply@example.com>'
-      - 'HYDRA_ADMIN_URL=http://hydra:4445'
-      - 'SUBJECT_PREFIX=creditors:'
       - 'SUPERVISOR_CLIENT_ID=creditors-supervisor'
       - 'SUPERVISOR_CLIENT_SECRET=creditors-supervisor'
       - 'API_AUTH2_TOKEN_URL=http://hydra:4444/oauth2/token'
@@ -113,12 +112,13 @@ services:
       - 'API_RESERVE_USER_ID_PATH=/creditors/.creditor-reserve'
       - 'API_USER_ID_FIELD_NAME=creditorId'
       - 'API_TIMEOUT_SECONDS=5'
+      - 'SUBJECT_PREFIX=creditors:'
       - 'OAUTHLIB_INSECURE_TRANSPORT=1'
     depends_on:
       - pg
       - redis
-      - mail
       - hydra
+      - mail
 
 
   login-config:
@@ -174,12 +174,12 @@ services:
       dockerfile: Dockerfile
       target: swagger-ui-image
     environment:
+      - 'BASE_URL=/swagger-ui'
       - 'API_ROOT=https://$CREDITORS_HOST/'
       - 'OAUTH2_AUTHORIZATION_URL=https://$CREDITORS_HOST/oauth2/auth'
       - 'OAUTH2_TOKEN_URL=https://$CREDITORS_HOST/oauth2/token'
       - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOST/oauth2/token'
       - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOST/swagger-ui/oauth2-redirect.html'
-      - 'BASE_URL=/swagger-ui'
     depends_on:
       - hydra
       - resource-server
