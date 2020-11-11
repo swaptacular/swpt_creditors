@@ -34,7 +34,11 @@ services:
     ports:
       - 443:443
     environment:
-      - 'CREDITORS_HOST=$CREDITORS_HOST'
+      - 'USER_FACING_HOST=$CREDITORS_HOST'
+      - 'HYDRA_URL=http://hydra:4444'
+      - 'LOGIN_URL=http://login:8080'
+      - 'RESOURCE_SERVER_URL=http://resource-server:8080'
+      - 'SWAGGER_UI_URL=http://swagger-ui:8080'
     depends_on:
       - hydra
       - login
@@ -53,12 +57,13 @@ services:
       - 'URLS_SELF_ISSUER=https://$CREDITORS_HOST'
       - 'URLS_LOGIN=https://$CREDITORS_HOST/login'
       - 'URLS_CONSENT=https://$CREDITORS_HOST/consent'
-      - 'SERVE_ADMIN_PORT=4445'
+      - 'SERVE_PUBLIC_PORT=4444'
       - 'SERVE_PUBLIC_CORS_ENABLED=true'
       - 'SERVE_PUBLIC_CORS_DEBUG=false'
       - 'SERVE_PUBLIC_CORS_ALLOWED_ORIGINS=*'
       - 'SERVE_PUBLIC_CORS_ALLOWED_HEADERS=Authorization,Content-Type,X-Requested-With'
       - 'SERVE_PUBLIC_CORS_MAX_AGE=86400'
+      - 'SERVE_ADMIN_PORT=4445'
       - 'OAUTH2_EXPOSE_INTERNAL_ERRORS=true'
       - 'SQA_OPT_OUT=true'
       - 'LOG_LEAK_SENSITIVE_VALUES=false'
@@ -93,7 +98,7 @@ services:
       context: ./submodules/swpt_login
       dockerfile: Dockerfile
     environment:
-      - 'PORT=4488'
+      - 'PORT=8080'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_login:swpt_login@pg/${POSTGRES_DB}'
       - 'REDIS_URL=redis://redis:6379/0'
       - 'MAIL_SERVER=mail'
@@ -134,12 +139,13 @@ services:
       dockerfile: Dockerfile
       target: app-image
     environment:
+      - 'PORT=8080'
       - 'OAUTH2_INTROSPECT_URL=http://hydra:4445/oauth2/introspect'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
       - 'GUNICORN_LOGLEVEL=warning'
       - 'GUNICORN_WORKER_CLASS=sync'
       - 'GUNICORN_WORKERS=2'
       - 'GUNICORN_THREADS=1'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
       - 'DRAMATIQ_BROKER_URL=amqp://guest:guest@localhost:5672'
       - 'DRAMATIQ_PROCESSES=4'
       - 'DRAMATIQ_THREADS=8'

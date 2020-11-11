@@ -66,15 +66,19 @@ case $1 in
         perform_db_upgrade
         setup_rabbitmq_bindings
         ;;
-    serve)
-        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf" -b :$PORT wsgi:app
+    gunicorn)
+        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf" -b 127.0.0.1:4499 wsgi:app
         ;;
     supervisord)
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
     oathkeeper)
-        envsubst '$OAUTH2_INTROSPECT_URL' < "$APP_ROOT_DIR/oathkeeper/config.yaml.template" > "$APP_ROOT_DIR/oathkeeper/config.yaml"
-        envsubst '$RESOURCE_SERVER' < "$APP_ROOT_DIR/oathkeeper/rules.json.template" > "$APP_ROOT_DIR/oathkeeper/rules.json"
+        envsubst '$PORT $OAUTH2_INTROSPECT_URL' \
+                 < "$APP_ROOT_DIR/oathkeeper/config.yaml.template" \
+                 > "$APP_ROOT_DIR/oathkeeper/config.yaml"
+        envsubst '$RESOURCE_SERVER' \
+                 < "$APP_ROOT_DIR/oathkeeper/rules.json.template" \
+                 > "$APP_ROOT_DIR/oathkeeper/rules.json"
         exec oathkeeper serve --config="$APP_ROOT_DIR/oathkeeper/config.yaml"
         ;;
     tasks)

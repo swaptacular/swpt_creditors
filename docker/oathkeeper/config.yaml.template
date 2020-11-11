@@ -1,6 +1,6 @@
 serve:
   proxy:
-    port: 4455
+    port: $PORT
   api:
     port: 4456
 

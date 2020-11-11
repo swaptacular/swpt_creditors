@@ -1,32 +1,32 @@
 server {
     listen 443 ssl;
-    server_name ${CREDITORS_HOST};
+    server_name ${USER_FACING_HOST};
     location /oauth2/ {
-        proxy_pass http://hydra:4444/oauth2/;
+        proxy_pass ${HYDRA_URL}/oauth2/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     location /login/ {
-        proxy_pass http://login:4488/login/;
+        proxy_pass ${LOGIN_URL}/login/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     location /consent/ {
-        proxy_pass http://login:4488/consent/;
+        proxy_pass ${LOGIN_URL}/consent/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     location /creditors/ {
-        proxy_pass http://resource-server:4455/creditors/;
+        proxy_pass ${RESOURCE_SERVER_URL}/creditors/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     location /swagger-ui/ {
-        proxy_pass http://swagger-ui:8080/swagger-ui/;
+        proxy_pass ${SWAGGER_UI_URL}/swagger-ui/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
