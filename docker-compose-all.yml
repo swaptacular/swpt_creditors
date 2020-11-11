@@ -134,6 +134,7 @@ services:
       dockerfile: Dockerfile
       target: app-image
     environment:
+      - 'OAUTH2_INTROSPECT_URL=http://hydra:4445/oauth2/introspect'
       - 'GUNICORN_LOGLEVEL=warning'
       - 'GUNICORN_WORKER_CLASS=sync'
       - 'GUNICORN_WORKERS=2'

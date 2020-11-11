@@ -28,7 +28,7 @@ authenticators:
   oauth2_introspection:
     enabled: true
     config:
-      introspection_url: http://hydra:4445/oauth2/introspect
+      introspection_url: $OAUTH2_INTROSPECT_URL
       scope_strategy: hierarchic
       # introspection_request_headers:
       #   x-forwarded-proto: https
