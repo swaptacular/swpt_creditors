@@ -105,6 +105,11 @@ class Creditor(db.Model):
 
 
 class PinInfo(db.Model):
+    # TODO: Store the HMAC of the `value` column, instead of the value
+    #       (the PIN) itself. This will allow the backup of the
+    #       database to be publicly available, without jeopardizing
+    #       creditor's security.
+
     STATUS_OFF = 0
     STATUS_ON = 1
     STATUS_BLOCKED = 2
