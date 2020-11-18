@@ -136,6 +136,7 @@ WALLET_DOES_NOT_EXIST = {
 
 WALLET_EXISTS = {
     "description": "The wallet has been found.",
+    'headers': LOCATION_HEADER,
 }
 
 SCOPE_ACCESS_READONLY = [
