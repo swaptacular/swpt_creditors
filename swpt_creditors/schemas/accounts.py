@@ -66,8 +66,8 @@ class DebtorInfoSchema(ValidateTypeMixin, Schema):
     optional_sha256 = fields.String(
         validate=validate.Regexp('^[0-9A-F]{64}$'),
         data_key='sha256',
-        description='Optional SHA-256 cryptographic hash (Base16 encoded) of content of the '
-                    'document that the `iri` field refers to.',
+        description='Optional SHA-256 cryptographic hash (Base16 encoded) of the content of '
+                    'the document that the `iri` field refers to.',
         example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
     )
 
