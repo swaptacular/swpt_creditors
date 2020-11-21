@@ -23,9 +23,9 @@ class DebtorIdentitySchema(ValidateTypeMixin, Schema):
         required=True,
         validate=validate.Length(max=100),
         format='uri',
-        description="The URI of the debtor. The information contained in the URI must be "
-                    "enough to uniquely and reliably identify the debtor. Note that "
-                    "a network request *should not be needed* to identify the debtor. "
+        description="The information contained in this field must be enough to uniquely and "
+                    "reliably identify the debtor. Note that a network request *should not "
+                    "be needed* to identify the debtor."
                     "\n\n"
                     "For example, if the debtor happens to be a bank, the URI would reveal "
                     "the type of the debtor (a bank), and the ID of the bank. Note that "

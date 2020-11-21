@@ -214,10 +214,10 @@ class AccountIdentitySchema(ValidateTypeMixin, Schema):
         required=True,
         validate=validate.Length(max=200),
         format='uri',
-        description="The URI of the account. The information contained in the URI must be "
-                    "enough to: 1) uniquely and reliably identify the debtor, 2) uniquely "
-                    "and reliably identify the creditor's account with the debtor. Note that "
-                    "a network request *should not be needed* to identify the account. "
+        description="The information contained in this field must be enough to: 1) uniquely "
+                    "and reliably identify the debtor, 2) uniquely and reliably identify "
+                    "the creditor's account with the debtor. Note that a network request "
+                    "*should not be needed* to identify the account."
                     "\n\n"
                     "For example, if the debtor happens to be a bank, the URI would reveal "
                     "the type of the debtor (a bank), the ID of the bank, and the bank "
