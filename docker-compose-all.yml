@@ -21,7 +21,7 @@ services:
     # Mailhog is a dummy mail server which is useful for testing.
     image: mailhog/mailhog:v1.0.1
     ports:
-      - 8025:8025
+      - $MAILHOG_LOCAL_PORT:8025
 
 
   nginx:
@@ -45,6 +45,7 @@ services:
       - login
       - resource-server
       - swagger-ui
+
 
   hydra:
     image: oryd/hydra:$HYDRA_VERSION
