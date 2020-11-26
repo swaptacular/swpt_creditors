@@ -146,6 +146,7 @@ services:
       target: app-image
     environment:
       - 'PORT=8080'
+      - 'SERVER_NAME=$CREDITORS_HOST:$CREDITORS_PORT'
       - 'OAUTH2_INTROSPECT_URL=http://hydra:4445/oauth2/introspect'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
       - 'GUNICORN_LOGLEVEL=warning'
