@@ -307,11 +307,11 @@ def test_redirect_to_wallet(client, creditor):
 
     r = client.get('/creditors/.wallet', headers={'X-Swpt-User-Id': 'creditors:2'})
     assert r.status_code == 303
-    assert r.headers['Location'] == 'http://example.com/creditors/2/wallet'
+    assert r.headers['Location'] == 'http://localhost/creditors/2/wallet'
 
     r = client.get('/creditors/.wallet', headers={'X-Swpt-User-Id': 'creditors:18446744073709551615'})
     assert r.status_code == 303
-    assert r.headers['Location'] == 'http://example.com/creditors/18446744073709551615/wallet'
+    assert r.headers['Location'] == 'http://localhost/creditors/18446744073709551615/wallet'
 
 
 def test_get_wallet(client, creditor):
@@ -483,7 +483,7 @@ def test_debtor_lookup(client, account):
 
     r = client.post('/creditors/2/debtor-lookup', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 303
-    assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
+    assert r.headers['Location'] == 'http://localhost/creditors/2/accounts/1/'
 
     r = client.post('/creditors/2/debtor-lookup', json={'type': 'DebtorIdentity', 'uri': 'swpt:1111'})
     assert r.status_code == 204
@@ -503,7 +503,7 @@ def test_create_account(client, creditor):
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 201
     data1 = r.get_json()
-    assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
+    assert r.headers['Location'] == 'http://localhost/creditors/2/accounts/1/'
     latestUpdateId = data1['latestUpdateId']
     latestUpdateAt = data1['latestUpdateAt']
     ledgerLatestEntryId = data1['ledger'].get('latestEntryId', 0)
@@ -588,7 +588,7 @@ def test_create_account(client, creditor):
 
     r = client.post('/creditors/2/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 303
-    assert r.headers['Location'] == 'http://example.com/creditors/2/accounts/1/'
+    assert r.headers['Location'] == 'http://localhost/creditors/2/accounts/1/'
 
     r = client.post('/creditors/2222/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 404
@@ -945,11 +945,11 @@ def test_account_exchange(client, account):
         '/creditors/2/account-lookup',
         'awt4ao8t4o',
         'http://wrongname.com/creditors/2/accounts/11/',
-        'https://example.com/creditors/2/accounts/11/',
-        'http://example.com/creditors/2/accounts/11',
+        'https://localhost/creditors/2/accounts/11/',
+        'http://localhost/creditors/2/accounts/11',
         '/creditors/2/accounts/11/?x=y',
         '/creditors/2/accounts/11/#xyz',
-        'http://user:pass@example.com/creditors/2/accounts/11/',
+        'http://user:pass@localhost/creditors/2/accounts/11/',
         'http://[',
         '../1111/',
     ]
@@ -969,7 +969,7 @@ def test_account_exchange(client, account):
     p.process_pending_log_entries(2)
 
     ok_uris = [
-        'http://example.com/creditors/2/accounts/11/',
+        'http://localhost/creditors/2/accounts/11/',
         '../11/',
     ]
     for uri in ok_uris:
@@ -1284,7 +1284,7 @@ def test_create_transfer(client, account):
 
     r = client.post('/creditors/2/transfers/', json=request_data)
     assert r.status_code == 201
-    assert r.headers['location'] == 'http://example.com/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'
+    assert r.headers['location'] == 'http://localhost/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000'
     p.process_pending_log_entries(2)
 
     r = client.get('/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000')

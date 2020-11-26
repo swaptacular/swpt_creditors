@@ -132,16 +132,22 @@ def calc_require_pin(pin_info: PinInfo) -> bool:
 
 class path_builder:
     def _build_committed_transfer_path(creditorId, debtorId, creationDate, transferNumber):
-        return url_for(
-            'transfers.CommittedTransferEndpoint',
-            creditorId=creditorId,
-            debtorId=debtorId,
-            transferId=make_transfer_slug(creationDate, transferNumber),
-            _external=False,
-        )
+        with current_app.test_request_context():
+            return url_for(
+                'transfers.CommittedTransferEndpoint',
+                creditorId=creditorId,
+                debtorId=debtorId,
+                transferId=make_transfer_slug(creationDate, transferNumber),
+                _external=False,
+            )
 
     def _url_for(name):
-        return staticmethod(partial(url_for, name, _external=False))
+        @staticmethod
+        def m(**kw):
+            with current_app.test_request_context():
+                return url_for(name, _external=False, **kw)
+
+        return m
 
     creditors_list = _url_for('admin.CreditorsListEndpoint')
     creditor_enumerate = _url_for('admin.CreditorEnumerateEndpoint')

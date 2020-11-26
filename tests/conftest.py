@@ -8,10 +8,8 @@ from swpt_creditors.extensions import db
 
 DB_SESSION = 'swpt_creditors.extensions.db.session'
 
-server_name = 'example.com'
 config_dict = {
     'TESTING': True,
-    'SERVER_NAME': server_name,
     'PREFERRED_URL_SCHEME': 'http',
     'APP_TRANSFERS_FINALIZATION_AVG_SECONDS': 10.0,
     'APP_MAX_TRANSFERS_PER_MONTH': 10,

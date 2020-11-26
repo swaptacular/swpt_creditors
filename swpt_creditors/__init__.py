@@ -49,7 +49,6 @@ class MetaEnvReader(type):
 
 
 class Configuration(metaclass=MetaEnvReader):
-    SERVER_NAME = 'localhost'
     SQLALCHEMY_DATABASE_URI = ''
     SQLALCHEMY_POOL_SIZE: int = None
     SQLALCHEMY_POOL_TIMEOUT: int = None
