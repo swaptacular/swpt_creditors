@@ -32,11 +32,11 @@ class CreditorScanner(TableScanner):
 
     @property
     def blocks_per_query(self) -> int:
-        return int(current_app.config['APP_CREDITORS_SCAN_BLOCKS_PER_QUERY'])
+        return current_app.config['APP_CREDITORS_SCAN_BLOCKS_PER_QUERY']
 
     @property
     def target_beat_duration(self) -> int:
-        return int(current_app.config['APP_CREDITORS_SCAN_BEAT_MILLISECS'])
+        return current_app.config['APP_CREDITORS_SCAN_BEAT_MILLISECS']
 
     @atomic
     def process_rows(self, rows):

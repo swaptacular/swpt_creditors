@@ -96,7 +96,7 @@ def process_log_entries(threads):
 
     """
 
-    threads = threads or int(current_app.config['APP_PROCESS_LOG_ENTRIES_THREADS'])
+    threads = threads or current_app.config['APP_PROCESS_LOG_ENTRIES_THREADS']
     app = current_app._get_current_object()
 
     def push_app_context():
@@ -134,9 +134,9 @@ def process_ledger_updates(threads, burst):
 
     """
 
-    threads = threads or int(current_app.config['APP_PROCESS_LEDGER_UPDATES_THREADS'])
-    burst = burst or int(current_app.config['APP_PROCESS_LEDGER_UPDATES_BURST'])
-    max_delay = timedelta(days=float(current_app.config['APP_MAX_TRANSFER_DELAY_DAYS']))
+    threads = threads or current_app.config['APP_PROCESS_LEDGER_UPDATES_THREADS']
+    burst = burst or current_app.config['APP_PROCESS_LEDGER_UPDATES_BURST']
+    max_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
     app = current_app._get_current_object()
 
     def push_app_context():
@@ -178,7 +178,7 @@ def scan_creditors(days, quit_early):
     """
 
     click.echo('Scanning creditors...')
-    days = days or float(current_app.config['APP_CREDITORS_SCAN_DAYS'])
+    days = days or current_app.config['APP_CREDITORS_SCAN_DAYS']
     assert days > 0.0
     scanner = CreditorScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
@@ -200,7 +200,7 @@ def scan_accounts(hours, quit_early):
     """
 
     click.echo('Scanning accounts...')
-    hours = hours or float(current_app.config['APP_ACCOUNTS_SCAN_HOURS'])
+    hours = hours or current_app.config['APP_ACCOUNTS_SCAN_HOURS']
     assert hours > 0.0
     scanner = AccountScanner()
     scanner.run(db.engine, timedelta(hours=hours), quit_early=quit_early)
@@ -222,7 +222,7 @@ def scan_log_entries(days, quit_early):
     """
 
     click.echo('Scanning log entries...')
-    days = days or float(current_app.config['APP_LOG_ENTRIES_SCAN_DAYS'])
+    days = days or current_app.config['APP_LOG_ENTRIES_SCAN_DAYS']
     assert days > 0.0
     scanner = LogEntryScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
@@ -244,7 +244,7 @@ def scan_ledger_entries(days, quit_early):
     """
 
     click.echo('Scanning ledger entries...')
-    days = days or float(current_app.config['APP_LEDGER_ENTRIES_SCAN_DAYS'])
+    days = days or current_app.config['APP_LEDGER_ENTRIES_SCAN_DAYS']
     assert days > 0.0
     scanner = LedgerEntryScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
@@ -266,7 +266,7 @@ def scan_committed_transfers(days, quit_early):
     """
 
     click.echo('Scanning committed transfers...')
-    days = days or float(current_app.config['APP_COMMITTED_TRANSFERS_SCAN_DAYS'])
+    days = days or current_app.config['APP_COMMITTED_TRANSFERS_SCAN_DAYS']
     assert days > 0.0
     scanner = CommittedTransferScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)

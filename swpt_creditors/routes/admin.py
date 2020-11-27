@@ -83,7 +83,7 @@ class CreditorEnumerateEndpoint(MethodView):
 
         """
 
-        n = int(current_app.config['APP_CREDITORS_PER_PAGE'])
+        n = current_app.config['APP_CREDITORS_PER_PAGE']
         creditor_ids, next_creditor_id = procedures.get_creditor_ids(start_from=creditorId, count=n)
         creditor_uris = [{'uri': path_builder.creditor(creditorId=creditor_id)} for creditor_id in creditor_ids]
 

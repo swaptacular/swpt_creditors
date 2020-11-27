@@ -165,7 +165,7 @@ def on_account_transfer_signal(
         principal=principal,
         ts=iso8601.parse_date(ts),
         previous_transfer_number=previous_transfer_number,
-        retention_interval=timedelta(days=int(current_app.config['APP_LOG_RETENTION_DAYS'])),
+        retention_interval=timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS']),
     )
 
 

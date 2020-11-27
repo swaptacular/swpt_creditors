@@ -120,7 +120,7 @@ class LogEntriesEndpoint(MethodView):
 
         """
 
-        n = int(current_app.config['APP_LOG_ENTRIES_PER_PAGE'])
+        n = current_app.config['APP_LOG_ENTRIES_PER_PAGE']
         try:
             log_entries, last_log_entry_id = procedures.get_log_entries(
                 creditorId,

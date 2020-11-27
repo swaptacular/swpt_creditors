@@ -1473,7 +1473,7 @@ def test_pin_cfa_reset(client, creditor, account):
     assert data['status'] == 'blocked'
 
 
-@pytest.fixture(params=[10, -10])
+@pytest.fixture(params=[10.0, -10.0])
 def reset_days(request):
     return request.param
 
