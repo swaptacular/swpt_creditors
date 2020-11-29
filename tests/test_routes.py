@@ -173,9 +173,9 @@ def test_get_creditors_list(client):
     assert r.status_code == 200
     r = client.post('/creditors/3/activate', json={})
     assert r.status_code == 200
-    r = client.post('/creditors/9223372036854775808/activate', json={})
+    r = client.post('/creditors/4/activate', json={})
     assert r.status_code == 200
-    r = client.post('/creditors/18446744073709551615/activate', json={})
+    r = client.post('/creditors/4294967295/activate', json={})
     assert r.status_code == 200
 
     r = client.get('/creditors/.list')
@@ -188,10 +188,10 @@ def test_get_creditors_list(client):
 
     entries = _get_all_pages(client, data['first'], page_type='ObjectReferencesPage')
     assert entries == [
-        {'uri': '/creditors/9223372036854775808/'},
-        {'uri': '/creditors/18446744073709551615/'},
         {'uri': '/creditors/2/'},
         {'uri': '/creditors/3/'},
+        {'uri': '/creditors/4/'},
+        {'uri': '/creditors/4294967295/'},
     ]
 
 

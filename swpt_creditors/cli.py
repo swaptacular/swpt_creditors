@@ -6,7 +6,7 @@ from datetime import timedelta
 from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
-from swpt_creditors.models import MIN_INT64, MAX_INT64
+from swpt_creditors.models import MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID
 from swpt_creditors import procedures
 from .extensions import db
 from .table_scanners import CreditorScanner, AccountScanner, LogEntryScanner, LedgerEntryScanner, \
@@ -79,6 +79,9 @@ def configure_interval(min_id, max_id):
     validate(max_id)
     if min_id > max_id:
         click.echo('Error: an invalid interval has been specified.')
+        sys.exit(1)
+    if min_id <= ROOT_CREDITOR_ID <= max_id:
+        click.echo(f'Error: the specified interval contains {ROOT_CREDITOR_ID}.')
         sys.exit(1)
 
     procedures.configure_agent(min_creditor_id=min_id, max_creditor_id=max_id)

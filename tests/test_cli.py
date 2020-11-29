@@ -104,27 +104,31 @@ def test_configure_interval(app, db_session, current_ts):
     runner = app.test_cli_runner()
 
     result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', str(m.MIN_INT64 - 1), str(m.MAX_INT64)])
+        'swpt_creditors', 'configure_interval', '--', str(m.MIN_INT64 - 1), '-1'])
     assert 'not a valid creditor ID' in result.output
 
     result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', str(m.MIN_INT64), str(m.MAX_INT64 + 1)])
+        'swpt_creditors', 'configure_interval', '--', '1', str(m.MAX_INT64 + 1)])
     assert 'not a valid creditor ID' in result.output
 
     result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', str(m.MAX_INT64), str(m.MIN_INT64)])
+        'swpt_creditors', 'configure_interval', '--', '2', '1'])
     assert 'invalid interval' in result.output
 
     result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', str(min_creditor_id), str(max_creditor_id)])
+        'swpt_creditors', 'configure_interval', '--', '-1', '1'])
+    assert 'contains 0' in result.output
+
+    result = runner.invoke(args=[
+        'swpt_creditors', 'configure_interval', '--', '1', str(max_creditor_id)])
     assert not result.output
     ac = m.AgentConfig.query.one()
-    assert ac.min_creditor_id == min_creditor_id
+    assert ac.min_creditor_id == 1
     assert ac.max_creditor_id == max_creditor_id
 
     result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', str(min_creditor_id), str(max_creditor_id)])
+        'swpt_creditors', 'configure_interval', '--', str(min_creditor_id), '-1'])
     assert not result.output
     ac = m.AgentConfig.query.one()
     assert ac.min_creditor_id == min_creditor_id
-    assert ac.max_creditor_id == max_creditor_id
+    assert ac.max_creditor_id == -1
