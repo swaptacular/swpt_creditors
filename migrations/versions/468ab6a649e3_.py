@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4c7172058739
+Revision ID: 468ab6a649e3
 Revises: 8d8c816257ce
-Create Date: 2020-11-29 16:21:01.635207
+Create Date: 2020-11-29 16:39:10.969278
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '4c7172058739'
+revision = '468ab6a649e3'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -24,6 +24,7 @@ def upgrade():
     sa.Column('max_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('is_effective = true'),
     sa.CheckConstraint('min_creditor_id <= max_creditor_id'),
+    sa.CheckConstraint('min_creditor_id > 0 OR max_creditor_id < 0'),
     sa.PrimaryKeyConstraint('is_effective'),
     comment='Represents the global agent configuration (a singleton). The agent is responsible only for creditor IDs that are within the interval [min_creditor_id, max_creditor_id].'
     )

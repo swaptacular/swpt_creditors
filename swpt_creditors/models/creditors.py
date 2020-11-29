@@ -18,6 +18,10 @@ class AgentConfig(db.Model):
     __table_args__ = (
         db.CheckConstraint(is_effective == true()),
         db.CheckConstraint(min_creditor_id <= max_creditor_id),
+        db.CheckConstraint(or_(
+            min_creditor_id > ROOT_CREDITOR_ID,
+            max_creditor_id < ROOT_CREDITOR_ID,
+        )),
         {
             'comment': 'Represents the global agent configuration (a singleton). The '
                        'agent is responsible only for creditor IDs that are within the '

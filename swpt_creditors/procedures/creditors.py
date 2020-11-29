@@ -6,7 +6,7 @@ from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, joinedload
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, PinInfo, Account, \
-    RunningTransfer, MIN_INT64, MAX_INT64, ROOT_CREDITOR_ID
+    RunningTransfer, MAX_INT64
 from .common import get_paths_and_types
 from . import errors
 
@@ -59,11 +59,6 @@ def generate_new_creditor_id() -> int:
 
 @atomic
 def configure_agent(min_creditor_id: int, max_creditor_id: int) -> None:
-    assert MIN_INT64 <= min_creditor_id <= MAX_INT64
-    assert MIN_INT64 <= max_creditor_id <= MAX_INT64
-    assert min_creditor_id <= max_creditor_id
-    assert not min_creditor_id <= ROOT_CREDITOR_ID <= max_creditor_id
-
     agent_config = AgentConfig.query.with_for_update().one_or_none()
 
     if agent_config:
@@ -351,9 +346,6 @@ def _is_correct_creditor_id(creditor_id: int) -> bool:
         return False
 
     if not config.min_creditor_id <= creditor_id <= config.max_creditor_id:
-        return False
-
-    if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
         return False
 
     return True
