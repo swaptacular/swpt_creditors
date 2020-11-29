@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ef209fe5be05
+Revision ID: 4c7172058739
 Revises: 8d8c816257ce
-Create Date: 2020-10-17 21:58:44.456272
+Create Date: 2020-11-29 16:21:01.635207
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ef209fe5be05'
+revision = '4c7172058739'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -73,6 +73,7 @@ def upgrade():
     sa.Column('deactivation_date', sa.DATE(), nullable=True, comment='The date on which the creditor was deactivated. When a creditor gets deactivated, all its belonging objects (account, transfers, etc.) are removed. To be deactivated, the creditor must be activated first. Once deactivated, a creditor stays deactivated until it is deleted. A `NULL` value for this column means either that the creditor has not been deactivated yet, or that the deactivation date is unknown.'),
     sa.CheckConstraint('(status_flags & 2) = 0 OR (status_flags & 1) != 0'),
     sa.CheckConstraint('accounts_list_latest_update_id > 0'),
+    sa.CheckConstraint('creditor_id != 0'),
     sa.CheckConstraint('creditor_latest_update_id > 0'),
     sa.CheckConstraint('last_log_entry_id >= 0'),
     sa.CheckConstraint('transfers_list_latest_update_id > 0')

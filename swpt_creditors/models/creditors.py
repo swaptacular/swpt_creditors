@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import true, null, or_, and_
 from swpt_creditors.extensions import db
-from .common import get_now_utc
+from .common import get_now_utc, ROOT_CREDITOR_ID
 
 DEFAULT_CREDITOR_STATUS = 0
 
@@ -64,6 +64,7 @@ class Creditor(db.Model):
         'eager_defaults': True,
     }
     __table_args__ = (
+        db.CheckConstraint(creditor_id != ROOT_CREDITOR_ID),
         db.CheckConstraint(last_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(accounts_list_latest_update_id > 0),
