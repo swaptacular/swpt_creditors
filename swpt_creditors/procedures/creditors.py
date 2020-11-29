@@ -353,4 +353,7 @@ def _is_correct_creditor_id(creditor_id: int) -> bool:
     if not config.min_creditor_id <= creditor_id <= config.max_creditor_id:
         return False
 
+    if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
+        return False
+
     return True
