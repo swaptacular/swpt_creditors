@@ -8,7 +8,7 @@ from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX
 
-CONFIG_MAX_BYTES = 1000
+CONFIG_MAX_BYTES = 2000
 RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
 
 
@@ -26,6 +26,7 @@ def on_rejected_config_signal(
         *args, **kwargs) -> None:
 
     assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
+    assert len(config) <= CONFIG_MAX_BYTES
 
     procedures.process_rejected_config_signal(
         debtor_id=debtor_id,
@@ -70,6 +71,7 @@ def on_account_update_signal(
         *args, **kwargs) -> None:
 
     assert 0 <= transfer_note_max_bytes <= TRANSFER_NOTE_MAX_BYTES
+    assert len(config) <= CONFIG_MAX_BYTES
     assert account_id == '' or len(account_id) <= 100 and account_id.encode('ascii')
     assert len(debtor_info_iri) <= 200
     assert debtor_info_content_type == '' or (
