@@ -381,7 +381,7 @@ class AccountInfoSchema(MutableResourceSchema):
                     '`AccountConfig` settings can not be applied, or are not effectual anymore. '
                     'Usually this means that there has been a network communication problem, or a '
                     'system configuration problem. The value alludes to the cause of the problem.',
-        example='CONFIG_IS_INEFFECTUAL',
+        example='CONFIGURATION_IS_NOT_EFFECTUAL',
     )
     optional_debtor_info = fields.Nested(
         DebtorInfoSchema,
