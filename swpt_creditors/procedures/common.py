@@ -11,6 +11,7 @@ ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
     'last_config_seqnum',
     'negligible_amount',
     'config_flags',
+    'config_data',
     'allow_unsafe_deletion',
     'is_config_effectual',
     'config_error',

@@ -32,7 +32,7 @@ def test_process_ledger_entries(app, db_session, current_ts):
         'last_config_seqnum': 1,
         'negligible_amount': 0.0,
         'config_flags': 0,
-        'config': '',
+        'config_data': '',
         'account_id': str(C_ID),
         'debtor_info_iri': 'http://example.com',
         'debtor_info_content_type': None,

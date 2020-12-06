@@ -8,7 +8,7 @@ from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX
 
-CONFIG_MAX_BYTES = 2000
+CONFIG_DATA_MAX_BYTES = 2000
 RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
 
 
@@ -19,14 +19,14 @@ def on_rejected_config_signal(
         config_ts: str,
         config_seqnum: int,
         negligible_amount: float,
-        config: str,
+        config_data: str,
         config_flags: int,
         rejection_code: str,
         ts: str,
         *args, **kwargs) -> None:
 
     assert rejection_code == '' or len(rejection_code) <= 30 and rejection_code.encode('ascii')
-    assert len(config) <= CONFIG_MAX_BYTES and len(config.encode('utf8')) <= CONFIG_MAX_BYTES
+    assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
     procedures.process_rejected_config_signal(
         debtor_id=debtor_id,
@@ -34,7 +34,7 @@ def on_rejected_config_signal(
         config_ts=iso8601.parse_date(config_ts),
         config_seqnum=config_seqnum,
         negligible_amount=negligible_amount,
-        config=config,
+        config_data=config_data,
         config_flags=config_flags,
         rejection_code=rejection_code,
     )
@@ -59,7 +59,7 @@ def on_account_update_signal(
         last_config_seqnum: int,
         creation_date: str,
         negligible_amount: float,
-        config: str,
+        config_data: str,
         config_flags: int,
         status_flags: int,
         ts: str,
@@ -71,7 +71,7 @@ def on_account_update_signal(
         *args, **kwargs) -> None:
 
     assert 0 <= transfer_note_max_bytes <= TRANSFER_NOTE_MAX_BYTES
-    assert len(config) <= CONFIG_MAX_BYTES and len(config.encode('utf8')) <= CONFIG_MAX_BYTES
+    assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
     assert account_id == '' or len(account_id) <= 100 and account_id.encode('ascii')
     assert len(debtor_info_iri) <= 200
     assert debtor_info_content_type == '' or (
@@ -94,7 +94,7 @@ def on_account_update_signal(
         last_config_seqnum=last_config_seqnum,
         negligible_amount=negligible_amount,
         config_flags=config_flags,
-        config=config,
+        config_data=config_data,
         account_id=account_id,
         debtor_info_iri=debtor_info_iri or None,
         debtor_info_content_type=debtor_info_content_type or None,
