@@ -39,7 +39,6 @@ class PrepareTransferSignal(Signal):
         min_locked_amount = fields.Integer(attribute='locked_amount', dump_only=True)
         max_locked_amount = fields.Integer(attribute='locked_amount', dump_only=True)
         recipient = fields.String()
-        min_account_balance = fields.Constant(0)
         min_interest_rate = fields.Float()
         max_commit_delay = fields.Integer()
         inserted_at = fields.DateTime(data_key='ts')
