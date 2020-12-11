@@ -180,7 +180,6 @@ def on_rejected_direct_transfer_signal(
         coordinator_request_id: int,
         status_code: str,
         total_locked_amount: int,
-        recipient: str,
         ts: str,
         *args, **kwargs) -> None:
 
@@ -236,7 +235,6 @@ def on_finalized_direct_transfer_signal(
         coordinator_id: int,
         coordinator_request_id: int,
         committed_amount: int,
-        recipient: str,
         status_code: str,
         total_locked_amount: int,
         prepared_at: str,
@@ -254,7 +252,6 @@ def on_finalized_direct_transfer_signal(
         coordinator_id=coordinator_id,
         coordinator_request_id=coordinator_request_id,
         committed_amount=committed_amount,
-        recipient=recipient,
         status_code=status_code,
         total_locked_amount=total_locked_amount,
     )

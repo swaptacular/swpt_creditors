@@ -86,7 +86,6 @@ def test_on_rejected_direct_transfer_signal(db_session):
         total_locked_amount=0,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1111',
         ts='2019-10-01T00:00:00Z',
     )
 
@@ -117,7 +116,6 @@ def test_on_finalized_direct_transfer_signal(db_session):
         coordinator_id=C_ID,
         coordinator_request_id=1,
         committed_amount=100,
-        recipient='1111',
         status_code='OK',
         total_locked_amount=0,
         prepared_at='2019-10-01T00:00:00Z',

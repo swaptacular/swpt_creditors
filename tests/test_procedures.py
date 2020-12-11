@@ -896,7 +896,6 @@ def test_successful_transfer(db_session, account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=1000,
-        recipient='666',
         status_code='OK',
         total_locked_amount=100,
     )
@@ -949,7 +948,6 @@ def test_unsuccessful_transfer(db_session, account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=0,
-        recipient='666',
         status_code='TEST_ERROR',
         total_locked_amount=100,
     )
@@ -989,7 +987,6 @@ def test_unsuccessful_transfer_unexpected_error(db_session, account, current_ts)
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=999,
-        recipient='666',
         status_code='TEST_ERROR',
         total_locked_amount=100,
     )
