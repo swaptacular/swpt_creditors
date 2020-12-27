@@ -42,8 +42,6 @@ class TransferErrorSchema(Schema):
                     '  does not exist.\n'
                     '* `"RECIPIENT_IS_UNREACHABLE"` signifies that the recipient\'s'
                     '  account does not exist, or does not accept incoming transfers.\n'
-                    '* `"NO_RECIPIENT_CONFIRMATION"` signifies that a confirmation from '
-                    '  the recipient is required, but has not been obtained.\n'
                     '* `"TRANSFER_NOTE_IS_TOO_LONG"` signifies that the transfer has been '
                     '  rejected because the byte-length of the transfer note is too big.\n'
                     '* `"INSUFFICIENT_AVAILABLE_AMOUNT"` signifies that the transfer '
@@ -111,12 +109,6 @@ class TransferOptionsSchema(Schema):
         description="The amount that should to be locked when the transer is prepared. This must "
                     "be a non-negative number.",
         example=0,
-    )
-    recipient_confirmation = fields.Boolean(
-        missing=False,
-        data_key='recipientConfirmation',
-        description='Whether a confirmation from the recipient is required.',
-        example=False,
     )
 
 
@@ -302,7 +294,6 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         obj.options = {
             'min_interest_rate': obj.min_interest_rate,
             'locked_amount': obj.locked_amount,
-            'recipient_confirmation': bool(obj.finalization_flags & obj.FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG),
         }
 
         if obj.deadline is not None:

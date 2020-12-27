@@ -1425,7 +1425,6 @@ def test_deserialize_transfer_creation_request(app):
             'type': 'TransferOptions',
             'min_interest_rate': -100.0,
             'locked_amount': 0,
-            'recipient_confirmation': False,
         },
     }
 
@@ -1449,7 +1448,6 @@ def test_deserialize_transfer_creation_request(app):
             'type': 'TransferOptions',
             'min_interest_rate': -100.0,
             'locked_amount': 0,
-            'recipient_confirmation': False,
         },
     }
 
@@ -1457,12 +1455,10 @@ def test_deserialize_transfer_creation_request(app):
         'deadline': '1970-01-01T00:00:00Z',
         'minInterestRate': -5,
         'lockedAmount': 1000,
-        'recipientConfirmation': True,
     }})
     assert data['options']['optional_deadline'] == models.TS0
     assert data['options']['min_interest_rate'] == -5.0
     assert data['options']['locked_amount'] == 1000
-    assert data['options']['recipient_confirmation'] is True
 
     with pytest.raises(ValidationError):
         dis.load({'type': 'WrongType', **base_data})
@@ -1568,7 +1564,6 @@ def test_serialize_transfer(app):
         'recipient_uri': 'swpt:18446744073709551615/1111',
         'transfer_note_format': 'json',
         'transfer_note': '{"note": "test"}',
-        'finalization_flags': models.RunningTransfer.FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG,
         'deadline': datetime(2020, 1, 1),
         'min_interest_rate': -50.0,
         'locked_amount': 1000,
@@ -1600,7 +1595,6 @@ def test_serialize_transfer(app):
             "minInterestRate": -50.0,
             "deadline": "2020-01-01T00:00:00",
             "lockedAmount": 1000,
-            "recipientConfirmation": True,
         },
         "result": {
             "type": "TransferResult",
@@ -1618,7 +1612,6 @@ def test_serialize_transfer(app):
 
     dt.error_code = None
     dt.deadline = None
-    dt.finalization_flags = 0
     data = ts.dump(dt)
     assert data == {
         "type": "Transfer",
@@ -1637,7 +1630,6 @@ def test_serialize_transfer(app):
             "type": "TransferOptions",
             "minInterestRate": -50.0,
             "lockedAmount": 1000,
-            "recipientConfirmation": False,
         },
         "result": {
             "type": "TransferResult",
@@ -1668,7 +1660,6 @@ def test_serialize_transfer(app):
             "type": "TransferOptions",
             "minInterestRate": -50.0,
             "lockedAmount": 1000,
-            "recipientConfirmation": False,
         },
         "latestUpdateAt": "2020-01-02T00:00:00",
         "latestUpdateId": 2,

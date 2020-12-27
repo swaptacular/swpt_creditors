@@ -66,7 +66,6 @@ class FinalizeTransferSignal(Signal):
         committed_amount = fields.Integer()
         transfer_note_format = fields.String()
         transfer_note = fields.String()
-        finalization_flags = fields.Integer()
         inserted_at = fields.DateTime(data_key='ts')
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -78,4 +77,3 @@ class FinalizeTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
-    finalization_flags = db.Column(db.Integer, nullable=False)
