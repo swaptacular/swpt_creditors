@@ -11,7 +11,7 @@ def test_on_rejected_config_signal(db_session):
         config_ts='2019-10-01T00:00:00Z',
         config_seqnum=123,
         negligible_amount=100.0,
-        config='',
+        config_data='',
         config_flags=0,
         rejection_code='TEST_REJECTION',
         ts='2019-10-01T00:00:00Z',
@@ -65,7 +65,7 @@ def test_on_account_update_signal(db_session):
         last_config_seqnum=1,
         creation_date='2019-01-01',
         negligible_amount=100.0,
-        config='',
+        config_data='',
         config_flags=0,
         status_flags=0,
         ts='2019-10-01T00:00:00Z',
@@ -86,7 +86,6 @@ def test_on_rejected_direct_transfer_signal(db_session):
         total_locked_amount=0,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1111',
         ts='2019-10-01T00:00:00Z',
     )
 
@@ -117,7 +116,6 @@ def test_on_finalized_direct_transfer_signal(db_session):
         coordinator_id=C_ID,
         coordinator_request_id=1,
         committed_amount=100,
-        recipient='1111',
         status_code='OK',
         total_locked_amount=0,
         prepared_at='2019-10-01T00:00:00Z',

@@ -14,7 +14,7 @@ class ConfigureAccountSignal(Signal):
         ts = fields.DateTime()
         seqnum = fields.Integer()
         negligible_amount = fields.Float()
-        config = fields.String()
+        config_data = fields.String()
         config_flags = fields.Integer()
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -22,7 +22,7 @@ class ConfigureAccountSignal(Signal):
     ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
     seqnum = db.Column(db.Integer, primary_key=True)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    config = db.Column(db.String, nullable=False, default='')
+    config_data = db.Column(db.String, nullable=False, default='')
     config_flags = db.Column(db.Integer, nullable=False)
 
 
@@ -39,7 +39,6 @@ class PrepareTransferSignal(Signal):
         min_locked_amount = fields.Integer(attribute='locked_amount', dump_only=True)
         max_locked_amount = fields.Integer(attribute='locked_amount', dump_only=True)
         recipient = fields.String()
-        min_account_balance = fields.Constant(0)
         min_interest_rate = fields.Float()
         max_commit_delay = fields.Integer()
         inserted_at = fields.DateTime(data_key='ts')
@@ -67,7 +66,6 @@ class FinalizeTransferSignal(Signal):
         committed_amount = fields.Integer()
         transfer_note_format = fields.String()
         transfer_note = fields.String()
-        finalization_flags = fields.Integer()
         inserted_at = fields.DateTime(data_key='ts')
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -79,4 +77,3 @@ class FinalizeTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
-    finalization_flags = db.Column(db.Integer, nullable=False)

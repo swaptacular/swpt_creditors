@@ -51,7 +51,7 @@ class AccountData(db.Model):
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     negligible_amount = db.Column(db.REAL, nullable=False, default=DEFAULT_NEGLIGIBLE_AMOUNT)
     config_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_CONFIG_FLAGS)
-    config = db.Column(db.String, nullable=False, default='')
+    config_data = db.Column(db.String, nullable=False, default='')
     is_config_effectual = db.Column(db.BOOLEAN, nullable=False, default=False)
     allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
     has_server_account = db.Column(db.BOOLEAN, nullable=False, default=False)

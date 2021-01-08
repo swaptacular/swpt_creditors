@@ -29,7 +29,7 @@ def process_rejected_config_signal(
         config_ts: datetime,
         config_seqnum: int,
         negligible_amount: float,
-        config: str,
+        config_data: str,
         config_flags: int,
         rejection_code: str) -> None:
 
@@ -42,7 +42,7 @@ def process_rejected_config_signal(
             last_config_ts=config_ts,
             last_config_seqnum=config_seqnum,
             config_flags=config_flags,
-            config=config,
+            config_data=config_data,
             config_error=None,
         ).\
         filter(func.abs(AccountData.negligible_amount - negligible_amount) <= EPS * negligible_amount).\
@@ -73,7 +73,7 @@ def process_account_update_signal(
         last_config_seqnum: int,
         negligible_amount: float,
         config_flags: int,
-        config: str,
+        config_data: str,
         account_id: str,
         debtor_info_iri: Optional[str],
         debtor_info_content_type: Optional[str],
@@ -109,7 +109,7 @@ def process_account_update_signal(
         last_config_ts == data.last_config_ts
         and last_config_seqnum == data.last_config_seqnum
         and config_flags == data.config_flags
-        and config == data.config
+        and config_data == data.config_data
         and abs(data.negligible_amount - negligible_amount) <= EPS * negligible_amount
     )
     config_error = None if is_config_effectual else data.config_error

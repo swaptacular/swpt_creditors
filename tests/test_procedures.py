@@ -99,7 +99,7 @@ def test_delete_account(db_session, account, current_ts):
         'ts': current_ts,
         'ttl': 1000000,
         'account_id': str(C_ID),
-        'config': '',
+        'config_data': '',
         'config_flags': 0,
         'debtor_info_iri': 'http://example.com',
         'debtor_info_content_type': None,
@@ -174,7 +174,7 @@ def test_process_account_update_signal(db_session, account):
         'last_config_seqnum': last_seqnum,
         'negligible_amount': negligible_amount,
         'config_flags': config_flags,
-        'config': '',
+        'config_data': '',
         'account_id': str(C_ID),
         'debtor_info_iri': 'http://example.com',
         'debtor_info_content_type': 'text/plain',
@@ -225,7 +225,7 @@ def test_process_account_update_signal(db_session, account):
         config_ts=last_ts,
         config_seqnum=last_seqnum,
         negligible_amount=negligible_amount,
-        config='',
+        config_data='',
         config_flags=config_flags,
         rejection_code='TEST_CONFIG_ERROR',
     )
@@ -299,11 +299,11 @@ def test_process_rejected_config_signal(account):
         'config_ts': c.last_config_ts,
         'config_seqnum': c.last_config_seqnum,
         'negligible_amount': c.negligible_amount,
-        'config': '',
+        'config_data': '',
         'config_flags': c.config_flags,
         'rejection_code': 'TEST_CODE',
     }
-    p.process_rejected_config_signal(**{**params, 'config': 'UNEXPECTED'})
+    p.process_rejected_config_signal(**{**params, 'config_data': 'UNEXPECTED'})
     p.process_rejected_config_signal(**{**params, 'negligible_amount': c.negligible_amount * 1.0001})
     p.process_rejected_config_signal(**{**params, 'config_flags': c.config_flags ^ 1})
     p.process_rejected_config_signal(**{**params, 'config_seqnum': c.last_config_seqnum - 1})
@@ -417,7 +417,7 @@ def test_update_account_config(account, current_ts):
         'last_config_seqnum': data.last_config_seqnum,
         'negligible_amount': data.negligible_amount,
         'config_flags': data.config_flags,
-        'config': '',
+        'config_data': '',
         'account_id': str(C_ID),
         'debtor_info_iri': 'http://example.com',
         'debtor_info_content_type': None,
@@ -482,7 +482,7 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
         last_config_seqnum=0,
         negligible_amount=100.0,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
-        config='',
+        config_data='',
         account_id=str(C_ID),
         debtor_info_iri='http://example.com',
         debtor_info_content_type=None,
@@ -616,7 +616,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
         last_config_seqnum=0,
         negligible_amount=10.0,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
-        config='',
+        config_data='',
         account_id=str(C_ID),
         debtor_info_iri='http://example.com',
         debtor_info_content_type=None,
@@ -688,7 +688,7 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
         last_config_seqnum=0,
         negligible_amount=10.0,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
-        config='',
+        config_data='',
         account_id=str(C_ID),
         debtor_info_iri=None,
         debtor_info_content_type=None,
@@ -896,7 +896,6 @@ def test_successful_transfer(db_session, account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=1000,
-        recipient='666',
         status_code='OK',
         total_locked_amount=100,
     )
@@ -949,7 +948,6 @@ def test_unsuccessful_transfer(db_session, account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=0,
-        recipient='666',
         status_code='TEST_ERROR',
         total_locked_amount=100,
     )
@@ -989,7 +987,6 @@ def test_unsuccessful_transfer_unexpected_error(db_session, account, current_ts)
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=999,
-        recipient='666',
         status_code='TEST_ERROR',
         total_locked_amount=100,
     )
