@@ -45,7 +45,6 @@ ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
     'debtor_id',
     'creation_date',
     'account_id',
-    'status_flags',
     'config_flags',
     'config_error',
     'is_config_effectual',

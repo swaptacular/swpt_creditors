@@ -819,7 +819,6 @@ def test_serialize_account_info(app):
         interest_rate=7.0,
         last_interest_rate_change_ts=datetime(2000, 1, 1),
         transfer_note_max_bytes=500,
-        status_flags=0,
         account_id='',
         debtor_info_iri=None,
         debtor_info_content_type='text/plain',
@@ -850,7 +849,6 @@ def test_serialize_account_info(app):
     }
 
     ad.interest_rate = 0.0
-    ad.status_flags = 0
     ad.account_id = 'not URL safe'
     ad.debtor_info_iri = 'https://example.com/debtor'
     ad.config_error = 'TEST_ERROR'
@@ -1012,7 +1010,6 @@ def test_serialize_account_ledger(app):
         last_heartbeat_ts=datetime(2020, 1, 3),
         interest_rate=0.0,
         last_interest_rate_change_ts=datetime(2000, 1, 1),
-        status_flags=0,
         account_id='',
         debtor_info_iri=None,
         debtor_info_content_type=None,

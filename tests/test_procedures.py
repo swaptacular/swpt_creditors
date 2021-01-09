@@ -95,7 +95,6 @@ def test_delete_account(db_session, account, current_ts):
         'last_config_seqnum': 1,
         'creation_date': date(2020, 1, 15),
         'negligible_amount': 0.0,
-        'status_flags': 0,
         'ts': current_ts,
         'ttl': 1000000,
         'account_id': str(C_ID),
@@ -169,7 +168,6 @@ def test_process_account_update_signal(db_session, account):
         'interest_rate': 5.0,
         'last_interest_rate_change_ts': current_ts - timedelta(days=1),
         'transfer_note_max_bytes': 500,
-        'status_flags': 5,
         'last_config_ts': last_ts,
         'last_config_seqnum': last_seqnum,
         'negligible_amount': negligible_amount,
@@ -205,7 +203,6 @@ def test_process_account_update_signal(db_session, account):
     assert ad.interest_rate == 5.0
     assert ad.last_interest_rate_change_ts == current_ts - timedelta(days=1)
     assert ad.transfer_note_max_bytes == 500
-    assert ad.status_flags == 5
     assert ad.last_config_ts == last_ts
     assert ad.last_config_seqnum == last_seqnum
     assert ad.account_id == str(C_ID)
@@ -412,7 +409,6 @@ def test_update_account_config(account, current_ts):
         'interest_rate': 0.0,
         'last_interest_rate_change_ts': models.TS0,
         'transfer_note_max_bytes': 500,
-        'status_flags': 0,
         'last_config_ts': data.last_config_ts,
         'last_config_seqnum': data.last_config_seqnum,
         'negligible_amount': data.negligible_amount,
@@ -477,7 +473,6 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
         interest_rate=5.0,
         last_interest_rate_change_ts=current_ts - timedelta(days=1),
         transfer_note_max_bytes=500,
-        status_flags=5,
         last_config_ts=current_ts,
         last_config_seqnum=0,
         negligible_amount=100.0,
@@ -611,7 +606,6 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
         interest_rate=0.0,
         last_interest_rate_change_ts=models.TS0,
         transfer_note_max_bytes=500,
-        status_flags=0,
         last_config_ts=current_ts,
         last_config_seqnum=0,
         negligible_amount=10.0,
@@ -683,7 +677,6 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
         interest_rate=0.0,
         last_interest_rate_change_ts=models.TS0,
         transfer_note_max_bytes=500,
-        status_flags=0,
         last_config_ts=current_ts,
         last_config_seqnum=0,
         negligible_amount=10.0,

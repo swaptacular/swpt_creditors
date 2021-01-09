@@ -67,7 +67,6 @@ def test_on_account_update_signal(db_session):
         negligible_amount=100.0,
         config_data='',
         config_flags=0,
-        status_flags=0,
         ts='2019-10-01T00:00:00Z',
         ttl=10000,
         account_id=str(C_ID),

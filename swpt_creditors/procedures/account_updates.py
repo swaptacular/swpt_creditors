@@ -68,7 +68,6 @@ def process_account_update_signal(
         interest_rate: float,
         last_interest_rate_change_ts: datetime,
         transfer_note_max_bytes: int,
-        status_flags: int,
         last_config_ts: datetime,
         last_config_seqnum: int,
         negligible_amount: float,
@@ -134,7 +133,6 @@ def process_account_update_signal(
     data.interest_rate = interest_rate
     data.last_interest_rate_change_ts = last_interest_rate_change_ts
     data.transfer_note_max_bytes = transfer_note_max_bytes
-    data.status_flags = status_flags
     data.account_id = account_id
     data.debtor_info_iri = debtor_info_iri
     data.debtor_info_content_type = debtor_info_content_type

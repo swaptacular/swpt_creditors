@@ -8,7 +8,6 @@ from .common import get_now_utc, MAX_INT64, MIN_INT64, TS0, DATE0, SECONDS_IN_YE
 
 HUGE_NEGLIGIBLE_AMOUNT = 1e30
 DEFAULT_NEGLIGIBLE_AMOUNT = HUGE_NEGLIGIBLE_AMOUNT
-DEFAULT_STATUS_FLAGS = 0
 DEFAULT_CONFIG_FLAGS = 0
 
 
@@ -63,7 +62,6 @@ class AccountData(db.Model):
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=TS0)
     transfer_note_max_bytes = db.Column(db.Integer, nullable=False, default=0)
-    status_flags = db.Column(db.Integer, nullable=False, default=DEFAULT_STATUS_FLAGS | STATUS_UNREACHABLE_FLAG)
     account_id = db.Column(db.String, nullable=False, default='')
     debtor_info_iri = db.Column(db.String)
     debtor_info_content_type = db.Column(db.String)

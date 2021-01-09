@@ -27,7 +27,6 @@ def test_process_ledger_entries(app, db_session, current_ts):
         'interest_rate': 5.0,
         'last_interest_rate_change_ts': current_ts,
         'transfer_note_max_bytes': 500,
-        'status_flags': 0,
         'last_config_ts': current_ts,
         'last_config_seqnum': 1,
         'negligible_amount': 0.0,
