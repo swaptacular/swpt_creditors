@@ -3,7 +3,7 @@ import iso8601
 from base64 import b16decode
 from datetime import date, timedelta
 from flask import current_app
-from swpt_creditors.extensions import broker, APP_QUEUE_NAME
+from swpt_creditors.extensions import protocol_broker, APP_QUEUE_NAME
 from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX
@@ -12,7 +12,7 @@ CONFIG_DATA_MAX_BYTES = 2000
 RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_rejected_config_signal(
         debtor_id: int,
         creditor_id: int,
@@ -40,7 +40,7 @@ def on_rejected_config_signal(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_account_update_signal(
         debtor_id: int,
         creditor_id: int,
@@ -104,7 +104,7 @@ def on_account_update_signal(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_account_purge_signal(
         debtor_id: int,
         creditor_id: int,
@@ -119,7 +119,7 @@ def on_account_purge_signal(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_account_transfer_signal(
         debtor_id: int,
         creditor_id: int,
@@ -169,7 +169,7 @@ def on_account_transfer_signal(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_rejected_direct_transfer_signal(
         debtor_id: int,
         creditor_id: int,
@@ -195,7 +195,7 @@ def on_rejected_direct_transfer_signal(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_prepared_direct_transfer_signal(
         debtor_id: int,
         creditor_id: int,
@@ -224,7 +224,7 @@ def on_prepared_direct_transfer_signal(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_finalized_direct_transfer_signal(
         debtor_id: int,
         creditor_id: int,

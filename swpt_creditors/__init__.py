@@ -56,7 +56,7 @@ class Configuration(metaclass=MetaEnvReader):
     SQLALCHEMY_MAX_OVERFLOW: int = None
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
-    DRAMATIQ_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+    PROTOCOL_BROKER_URL = 'amqp://guest:guest@localhost:5672'
     API_TITLE = 'Creditors API'
     API_VERSION = 'v1'
     OPENAPI_VERSION = '3.0.2'
@@ -106,7 +106,7 @@ def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
     from swpt_lib.utils import Int64Converter
-    from .extensions import db, migrate, broker, api
+    from .extensions import db, migrate, protocol_broker, api
     from .routes import admin_api, creditors_api, accounts_api, transfers_api, path_builder, specs
     from .schemas import type_registry
     from .cli import swpt_creditors
@@ -122,7 +122,7 @@ def create_app(config_dict={}):
     CORS(app, max_age=24 * 60 * 60, vary_header=False, expose_headers=['Location'])
     db.init_app(app)
     migrate.init_app(app, db)
-    broker.init_app(app)
+    protocol_broker.init_app(app)
     api.init_app(app)
     api.register_blueprint(admin_api)
     api.register_blueprint(creditors_api)

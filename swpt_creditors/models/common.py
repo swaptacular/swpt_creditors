@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional
 from datetime import datetime, timezone
 import dramatiq
-from swpt_creditors.extensions import db, broker, MAIN_EXCHANGE_NAME
+from swpt_creditors.extensions import db, protocol_broker, MAIN_EXCHANGE_NAME
 
 MIN_INT16 = -1 << 15
 MAX_INT16 = (1 << 15) - 1
@@ -60,6 +60,6 @@ class Signal(db.Model):
             kwargs=data,
             options={},
         )
-        broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
+        protocol_broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
 
     inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)

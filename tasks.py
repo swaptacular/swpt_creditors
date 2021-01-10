@@ -8,11 +8,11 @@ else:
     load_dotenv()
 
 from swpt_creditors import create_app  # noqa
-from swpt_creditors.extensions import broker  # noqa
+from swpt_creditors.extensions import protocol_broker  # noqa
 import swpt_creditors.actors  # noqa
 
 app = create_app()
-broker.set_default()
+protocol_broker.set_default()
 
 if __name__ == '__main__':
     import sys
