@@ -3,7 +3,7 @@ from swpt_creditors import procedures as p
 from swpt_creditors import models as m
 
 D_ID = -1
-C_ID = 1
+C_ID = 4294967296
 
 
 def _create_new_creditor(creditor_id: int, activate: bool = False):

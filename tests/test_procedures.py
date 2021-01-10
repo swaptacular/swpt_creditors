@@ -10,10 +10,9 @@ from swpt_creditors.models import Creditor, AccountData, ConfigureAccountSignal,
     FinalizeTransferSignal
 
 D_ID = -1
-C_ID = 1
+C_ID = 4294967296
 TEST_UUID = UUID('123e4567-e89b-12d3-a456-426655440000')
 TEST_UUID2 = UUID('123e4567-e89b-12d3-a456-426655440001')
-RECIPIENT_URI = 'https://example.com/creditors/1'
 
 
 @pytest.fixture(params=[2, 1000000])

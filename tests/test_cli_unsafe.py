@@ -5,7 +5,7 @@ from swpt_creditors import procedures as p
 from swpt_creditors import models as m
 
 D_ID = -1
-C_ID = 1
+C_ID = 4294967296
 
 
 def _create_new_creditor(creditor_id: int, activate: bool = False):
@@ -19,23 +19,23 @@ def test_scan_creditors(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     db.session.commit()
 
-    _create_new_creditor(1, activate=False)
-    _create_new_creditor(2, activate=False)
-    _create_new_creditor(3, activate=True)
-    _create_new_creditor(4, activate=True)
-    _create_new_creditor(5, activate=True)
-    _create_new_creditor(6, activate=True)
-    m.Creditor.query.filter_by(creditor_id=1).update({
+    _create_new_creditor(C_ID + 1, activate=False)
+    _create_new_creditor(C_ID + 2, activate=False)
+    _create_new_creditor(C_ID + 3, activate=True)
+    _create_new_creditor(C_ID + 4, activate=True)
+    _create_new_creditor(C_ID + 5, activate=True)
+    _create_new_creditor(C_ID + 6, activate=True)
+    m.Creditor.query.filter_by(creditor_id=C_ID + 1).update({
         'created_at': current_ts - timedelta(days=30),
     })
-    p.deactivate_creditor(3)
-    p.deactivate_creditor(4)
-    p.deactivate_creditor(6)
-    m.Creditor.query.filter_by(creditor_id=3).update({
+    p.deactivate_creditor(C_ID + 3)
+    p.deactivate_creditor(C_ID + 4)
+    p.deactivate_creditor(C_ID + 6)
+    m.Creditor.query.filter_by(creditor_id=C_ID + 3).update({
         'created_at': current_ts - timedelta(days=3000),
         'deactivation_date': (current_ts - timedelta(days=3000)).date(),
     })
-    m.Creditor.query.filter_by(creditor_id=4).update({
+    m.Creditor.query.filter_by(creditor_id=C_ID + 4).update({
         'created_at': current_ts - timedelta(days=3000),
         'deactivation_date': (current_ts - timedelta(days=3000)).date(),
     })
@@ -50,7 +50,7 @@ def test_scan_creditors(app_unsafe_session, current_ts):
 
     creditors = m.Creditor.query.all()
     assert len(creditors) == 3
-    assert sorted([c.creditor_id for c in creditors]) == [2, 5, 6]
+    assert sorted([c.creditor_id for c in creditors]) == [C_ID + 2, C_ID + 5, C_ID + 6]
 
     m.Creditor.query.delete()
     db.session.commit()

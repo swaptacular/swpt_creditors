@@ -1,7 +1,7 @@
 from swpt_creditors import actors as a
 
 D_ID = -1
-C_ID = 1
+C_ID = 4294967296
 
 
 def test_on_rejected_config_signal(db_session):

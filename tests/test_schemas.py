@@ -12,7 +12,7 @@ from swpt_creditors import procedures
 from swpt_creditors.routes import context
 
 D_ID = -1
-C_ID = 1
+C_ID = 4294967296
 
 
 def test_serialize_creditor(app):
@@ -28,8 +28,8 @@ def test_serialize_creditor(app):
     cs = schemas.CreditorSchema(context=context)
     assert cs.dump(c) == {
         'type': 'Creditor',
-        'uri': '/creditors/1/',
-        'wallet': {'uri': '/creditors/1/wallet'},
+        'uri': '/creditors/4294967296/',
+        'wallet': {'uri': '/creditors/4294967296/wallet'},
         'createdAt': '2019-11-30T00:00:00',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
@@ -75,22 +75,22 @@ def test_serialize_wallet(app):
     ws = schemas.WalletSchema(context=context)
     assert ws.dump(c) == {
         'type': 'Wallet',
-        'uri': '/creditors/1/wallet',
-        'creditor': {'uri': '/creditors/1/'},
-        'accountsList': {'uri': '/creditors/1/accounts-list'},
-        'transfersList': {'uri': '/creditors/1/transfers-list'},
-        'accountLookup': {'uri': '/creditors/1/account-lookup'},
-        'debtorLookup': {'uri': '/creditors/1/debtor-lookup'},
-        'createAccount': {'uri': '/creditors/1/accounts/'},
-        'createTransfer': {'uri': '/creditors/1/transfers/'},
-        'pinInfo': {'uri': '/creditors/1/pin'},
+        'uri': '/creditors/4294967296/wallet',
+        'creditor': {'uri': '/creditors/4294967296/'},
+        'accountsList': {'uri': '/creditors/4294967296/accounts-list'},
+        'transfersList': {'uri': '/creditors/4294967296/transfers-list'},
+        'accountLookup': {'uri': '/creditors/4294967296/account-lookup'},
+        'debtorLookup': {'uri': '/creditors/4294967296/debtor-lookup'},
+        'createAccount': {'uri': '/creditors/4294967296/accounts/'},
+        'createTransfer': {'uri': '/creditors/4294967296/transfers/'},
+        'pinInfo': {'uri': '/creditors/4294967296/pin'},
         'requirePin': False,
         'logRetentionDays': 31,
         'log': {
             'type': 'PaginatedStream',
             'itemsType': 'LogEntry',
-            'first': '/creditors/1/log',
-            'forthcoming': '/creditors/1/log?prev=12345',
+            'first': '/creditors/4294967296/log',
+            'forthcoming': '/creditors/4294967296/log?prev=12345',
         },
     }
 
@@ -101,7 +101,7 @@ def test_serialize_log_entry(app):
         entry_id=12345,
         added_at=datetime(2020, 1, 2),
         object_type='Account',
-        object_uri='/creditors/1/accounts/123/',
+        object_uri='/creditors/4294967296/accounts/123/',
         object_update_id=777,
         is_deleted=True,
         data=None,
@@ -112,7 +112,7 @@ def test_serialize_log_entry(app):
         'entryId': 12345,
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'Account',
-        'object': {'uri': '/creditors/1/accounts/123/'},
+        'object': {'uri': '/creditors/4294967296/accounts/123/'},
         'objectUpdateId': 777,
         'deleted': True,
     }
@@ -125,7 +125,7 @@ def test_serialize_log_entry(app):
         'entryId': 12345,
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'Account',
-        'object': {'uri': '/creditors/1/accounts/123/'},
+        'object': {'uri': '/creditors/4294967296/accounts/123/'},
         'deleted': False,
         'data': le.data,
     }
@@ -155,7 +155,7 @@ def test_serialize_log_entry(app):
         'entryId': 12345,
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'Transfer',
-        'object': {'uri': '/creditors/1/transfers/123e4567-e89b-12d3-a456-426655440000'},
+        'object': {'uri': '/creditors/4294967296/transfers/123e4567-e89b-12d3-a456-426655440000'},
         'objectUpdateId': 777,
         'deleted': True,
     }
@@ -177,7 +177,7 @@ def test_serialize_log_entry(app):
         'entryId': 12345,
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'CommittedTransfer',
-        'object': {'uri': '/creditors/1/accounts/18446744073709551615/transfers/1-123'},
+        'object': {'uri': '/creditors/4294967296/accounts/18446744073709551615/transfers/1-123'},
         'objectUpdateId': 777,
         'deleted': True,
     }
@@ -197,7 +197,7 @@ def test_serialize_log_entry(app):
         'entryId': 12345,
         'addedAt': '2020-01-02T00:00:00',
         'objectType': 'AccountLedger',
-        'object': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'object': {'uri': '/creditors/4294967296/accounts/18446744073709551615/ledger'},
         'objectUpdateId': 777,
         'deleted': True,
     }
@@ -227,7 +227,7 @@ def test_serialize_log_entries_page(app):
         entry_id=12345,
         added_at=datetime(2020, 1, 2),
         object_type='Account',
-        object_uri='/creditors/1/accounts/123/',
+        object_uri='/creditors/4294967296/accounts/123/',
         is_deleted=True,
         data=None,
     )
@@ -269,10 +269,10 @@ def test_serialize_accounts_list(app):
     als = schemas.AccountsListSchema(context=context)
     assert als.dump(c) == {
         'type': 'AccountsList',
-        'uri': '/creditors/1/accounts-list',
-        'wallet': {'uri': '/creditors/1/wallet'},
+        'uri': '/creditors/4294967296/accounts-list',
+        'wallet': {'uri': '/creditors/4294967296/wallet'},
         'itemsType': 'ObjectReference',
-        'first': '/creditors/1/accounts/',
+        'first': '/creditors/4294967296/accounts/',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
@@ -291,10 +291,10 @@ def test_serialize_transfers_list(app):
     tls = schemas.TransfersListSchema(context=context)
     assert tls.dump(c) == {
         'type': 'TransfersList',
-        'uri': '/creditors/1/transfers-list',
-        'wallet': {'uri': '/creditors/1/wallet'},
+        'uri': '/creditors/4294967296/transfers-list',
+        'wallet': {'uri': '/creditors/4294967296/wallet'},
         'itemsType': 'ObjectReference',
-        'first': '/creditors/1/transfers/',
+        'first': '/creditors/4294967296/transfers/',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
@@ -315,8 +315,8 @@ def test_serialize_account_display(app):
     ads = schemas.AccountDisplaySchema(context=context)
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
-        'uri': '/creditors/1/accounts/18446744073709551615/display',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/display',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'debtorName': 'Test Debtor',
         'unit': 'XXX',
         'amountDivisor': 100.0,
@@ -330,8 +330,8 @@ def test_serialize_account_display(app):
     ad.unit = None
     assert ads.dump(ad) == {
         'type': 'AccountDisplay',
-        'uri': '/creditors/1/accounts/18446744073709551615/display',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/display',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'hide': False,
@@ -422,8 +422,8 @@ def test_serialize_account_exchange(app):
     aes = schemas.AccountExchangeSchema(context=context)
     assert aes.dump(ae) == {
         'type': 'AccountExchange',
-        'uri': '/creditors/1/accounts/18446744073709551615/exchange',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/exchange',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'policy': 'test policy',
         'minPrincipal': 1000,
         'maxPrincipal': 5000,
@@ -434,8 +434,8 @@ def test_serialize_account_exchange(app):
     ae.policy = None
     assert aes.dump(ae) == {
         'type': 'AccountExchange',
-        'uri': '/creditors/1/accounts/18446744073709551615/exchange',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/exchange',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'minPrincipal': 1000,
         'maxPrincipal': 5000,
         'latestUpdateId': 1,
@@ -540,8 +540,8 @@ def test_serialize_account_knowledge(app):
     aks = schemas.AccountKnowledgeSchema(context=context)
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
-        'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/knowledge',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
         'debtorInfo': {
             'type': 'DebtorInfo',
@@ -566,8 +566,8 @@ def test_serialize_account_knowledge(app):
     }
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
-        'uri': '/creditors/1/accounts/18446744073709551615/knowledge',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/knowledge',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'interestRate': 'not a number',
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
@@ -704,8 +704,8 @@ def test_serialize_account_config(app):
     acs = schemas.AccountConfigSchema(context=context)
     assert acs.dump(ac) == {
         'type': 'AccountConfig',
-        'uri': '/creditors/1/accounts/18446744073709551615/config',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/config',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'negligibleAmount': 101.0,
         'scheduledForDeletion': True,
         'allowUnsafeDeletion': True,
@@ -718,8 +718,8 @@ def test_serialize_account_config(app):
     ac.allow_unsafe_deletion = False
     assert acs.dump(ac) == {
         'type': 'AccountConfig',
-        'uri': '/creditors/1/accounts/18446744073709551615/config',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/config',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'negligibleAmount': models.DEFAULT_NEGLIGIBLE_AMOUNT,
         'scheduledForDeletion': False,
         'allowUnsafeDeletion': False,
@@ -837,8 +837,8 @@ def test_serialize_account_info(app):
     ais = schemas.AccountInfoSchema(context=context)
     assert ais.dump(ad) == {
         'type': 'AccountInfo',
-        'uri': '/creditors/1/accounts/18446744073709551615/info',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/info',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'interestRate': 7.0,
         'interestRateChangedAt': '2000-01-01T00:00:00',
         'noteMaxBytes': 500,
@@ -857,8 +857,8 @@ def test_serialize_account_info(app):
     ad.has_server_account = False
     assert ais.dump(ad) == {
         'type': 'AccountInfo',
-        'uri': '/creditors/1/accounts/18446744073709551615/info',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/info',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'interestRate': 0.0,
         'interestRateChangedAt': '2000-01-01T00:00:00',
         'noteMaxBytes': 500,
@@ -879,8 +879,8 @@ def test_serialize_account_info(app):
     ad.debtor_info_sha256 = None
     assert ais.dump(ad) == {
         'type': 'AccountInfo',
-        'uri': '/creditors/1/accounts/18446744073709551615/info',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/info',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'interestRate': 0.0,
         'interestRateChangedAt': '2000-01-01T00:00:00',
         'noteMaxBytes': 500,
@@ -910,8 +910,8 @@ def test_serialize_account(db_session):
     aks = schemas.AccountKnowledgeSchema(context=context)
     assert account_schema.dump(account) == {
         'type': 'Account',
-        'uri': '/creditors/1/accounts/18446744073709551615/',
-        'accountsList': {'uri': '/creditors/1/accounts-list'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/',
+        'accountsList': {'uri': '/creditors/4294967296/accounts-list'},
         'createdAt': account.created_at.isoformat(),
         'latestUpdateId': account.latest_update_id,
         'latestUpdateAt': account.latest_update_ts.isoformat(),
@@ -1029,14 +1029,14 @@ def test_serialize_account_ledger(app):
     als = schemas.AccountLedgerSchema(context=context)
     assert als.dump(ad) == {
         'type': 'AccountLedger',
-        'uri': '/creditors/1/accounts/18446744073709551615/ledger',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/ledger',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'principal': 999,
         'interest': 11,
         'entries': {
             'type': 'PaginatedList',
             'itemsType': 'LedgerEntry',
-            'first': '/creditors/1/accounts/18446744073709551615/entries?prev=1',
+            'first': '/creditors/4294967296/accounts/18446744073709551615/entries?prev=1',
         },
         'nextEntryId': 1,
         'latestUpdateId': 2,
@@ -1045,7 +1045,7 @@ def test_serialize_account_ledger(app):
 
     ad.ledger_last_entry_id = 54321
     assert als.dump(ad)['nextEntryId'] == 54322
-    assert als.dump(ad)['entries']['first'] == '/creditors/1/accounts/18446744073709551615/entries?prev=54322'
+    assert als.dump(ad)['entries']['first'] == '/creditors/4294967296/accounts/18446744073709551615/entries?prev=54322'
 
     ad.interest_rate = 7.0
     assert als.dump(ad)['interest'] > 11
@@ -1078,10 +1078,10 @@ def test_serialize_ledger_entry(app):
     les = schemas.LedgerEntrySchema(context=context)
     assert les.dump(le) == {
         'type': 'LedgerEntry',
-        'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'ledger': {'uri': '/creditors/4294967296/accounts/18446744073709551615/ledger'},
         'entryId': 2,
         'principal': 3000,
-        'transfer': {'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666'},
+        'transfer': {'uri': '/creditors/4294967296/accounts/18446744073709551615/transfers/4-666'},
         'aquiredAmount': 1000,
         'addedAt': '2020-01-02T00:00:00',
     }
@@ -1089,7 +1089,7 @@ def test_serialize_ledger_entry(app):
     le.creation_date = None
     assert les.dump(le) == {
         'type': 'LedgerEntry',
-        'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'ledger': {'uri': '/creditors/4294967296/accounts/18446744073709551615/ledger'},
         'entryId': 2,
         'principal': 3000,
         'aquiredAmount': 1000,
@@ -1100,7 +1100,7 @@ def test_serialize_ledger_entry(app):
     le.transfer_number = None
     assert les.dump(le) == {
         'type': 'LedgerEntry',
-        'ledger': {'uri': '/creditors/1/accounts/18446744073709551615/ledger'},
+        'ledger': {'uri': '/creditors/4294967296/accounts/18446744073709551615/ledger'},
         'entryId': 2,
         'principal': 3000,
         'aquiredAmount': 1000,
@@ -1279,8 +1279,8 @@ def test_serialize_committed_transfer(app):
     cts = schemas.CommittedTransferSchema(context=context)
     assert cts.dump(ct) == {
         'type': 'CommittedTransfer',
-        'uri': '/creditors/1/accounts/18446744073709551615/transfers/4-666',
-        'account': {'uri': '/creditors/1/accounts/18446744073709551615/'},
+        'uri': '/creditors/4294967296/accounts/18446744073709551615/transfers/4-666',
+        'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'committedAt': '2020-01-01T00:00:00',
         'sender': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1'},
         'recipient': {'type': 'AccountIdentity', 'uri': 'swpt:18446744073709551615/1111'},
@@ -1675,7 +1675,7 @@ def test_serialize_creditor_reservation(app):
     assert crs.dump(c) == {
         'type': 'CreditorReservation',
         'createdAt': '2020-01-01T00:00:00',
-        'creditorId': '1',
+        'creditorId': '4294967296',
         'reservationId': 2,
         'validUntil': '2020-01-15T00:00:00',
     }
@@ -1694,8 +1694,8 @@ def test_serialize_pin(app):
         p.status = status_id
         assert pss.dump(p) == {
             'type': 'PinInfo',
-            'uri': '/creditors/1/pin',
-            'wallet': {'uri': '/creditors/1/wallet'},
+            'uri': '/creditors/4294967296/pin',
+            'wallet': {'uri': '/creditors/4294967296/wallet'},
             'status': status_name,
             'latestUpdateId': 1,
             'latestUpdateAt': '2020-01-01T00:00:00',

@@ -165,8 +165,8 @@ services:
     environment:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
       - 'DRAMATIQ_BROKER_URL=amqp://guest:guest@localhost:5672'
-      - 'MIN_CREDITOR_ID=1'
-      - 'MAX_CREDITOR_ID=4294967295'
+      - 'MIN_CREDITOR_ID=4294967296'
+      - 'MAX_CREDITOR_ID=8589934591'
     command: configure
     depends_on:
       - pg
