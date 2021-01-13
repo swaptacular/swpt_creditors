@@ -151,8 +151,8 @@ services:
       - 'GUNICORN_WORKERS=2'
       - 'GUNICORN_THREADS=1'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@localhost:5672'
-      - 'PROTOCOL_PROCESSES=4'
-      - 'PROTOCOL_THREADS=8'
+      - 'PROTOCOL_PROCESSES=2'
+      - 'PROTOCOL_THREADS=1'
     depends_on:
       - pg
 
