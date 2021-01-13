@@ -1,7 +1,6 @@
 from urllib.parse import urljoin, urlparse
 from datetime import datetime, timezone, timedelta, date
 import pytest
-import iso8601
 from swpt_lib.utils import u64_to_i64
 from swpt_creditors import models as m
 from swpt_creditors import procedures as p
@@ -64,8 +63,8 @@ def test_auto_genereate_creditor_id(client):
     assert data['type'] == 'CreditorReservation'
     assert isinstance(data['creditorId'], str)
     assert isinstance(data['reservationId'], int)
-    assert iso8601.parse_date(data['validUntil'])
-    assert iso8601.parse_date(data['createdAt'])
+    assert datetime.fromisoformat(data['validUntil'])
+    assert datetime.fromisoformat(data['createdAt'])
 
 
 def test_create_creditor(client):
@@ -81,8 +80,8 @@ def test_create_creditor(client):
     assert data['type'] == 'CreditorReservation'
     assert data['creditorId'] == '4294967296'
     assert isinstance(data['reservationId'], int)
-    assert iso8601.parse_date(data['validUntil'])
-    assert iso8601.parse_date(data['createdAt'])
+    assert datetime.fromisoformat(data['validUntil'])
+    assert datetime.fromisoformat(data['createdAt'])
     reservation_id = data['reservationId']
 
     r = client.post('/creditors/4294967296/reserve', json={})
@@ -105,8 +104,8 @@ def test_create_creditor(client):
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/4294967296/'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
-    assert iso8601.parse_date(data['createdAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['createdAt'])
 
     r = client.post('/creditors/4294967296/activate', json={
         'reservationId': reservation_id,
@@ -125,8 +124,8 @@ def test_create_creditor(client):
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/4294967297/'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
-    assert iso8601.parse_date(data['createdAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['createdAt'])
 
     r = client.post('/creditors/4294967297/activate', json={})
     assert r.status_code == 409
@@ -137,8 +136,8 @@ def test_create_creditor(client):
     assert data['type'] == 'Creditor'
     assert data['uri'] == '/creditors/4294967296/'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
-    assert iso8601.parse_date(data['createdAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['createdAt'])
 
     p.process_pending_log_entries(4294967296)
     entries = _get_all_pages(client, '/creditors/4294967296/log', page_type='LogEntriesPage', streaming=True)
@@ -209,7 +208,7 @@ def test_change_pin(client, creditor):
     assert data['uri'] == '/creditors/4294967296/pin'
     assert data['status'] == 'off'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['wallet'] == {'uri': '/creditors/4294967296/wallet'}
 
     r = client.patch('/creditors/4294967297/pin', json={
@@ -229,7 +228,7 @@ def test_change_pin(client, creditor):
     assert data['type'] == 'PinInfo'
     assert data['status'] == 'on'
     assert data['latestUpdateId'] == 2
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['wallet'] == {'uri': '/creditors/4294967296/wallet'}
 
     r = client.patch('/creditors/4294967296/pin', json={
@@ -363,7 +362,7 @@ def test_accounts_list_page(client, account):
     assert data['first'] == '/creditors/4294967296/accounts/'
     assert data['itemsType'] == 'ObjectReference'
     assert data['latestUpdateId'] > 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
 
     r = client.get('/creditors/4294967296/accounts/?prev=-1')
     assert r.status_code == 422
@@ -400,7 +399,7 @@ def test_accounts_list_page(client, account):
     assert all([e['deleted'] is False for e in entries])
     assert all(['data' not in e for e in entries])
     assert all([e['type'] == 'LogEntry' not in e for e in entries])
-    assert all([iso8601.parse_date(e['addedAt']) not in e for e in entries])
+    assert all([datetime.fromisoformat(e['addedAt']) not in e for e in entries])
 
 
 def test_transfers_list_page(client, account, creditor):
@@ -416,7 +415,7 @@ def test_transfers_list_page(client, account, creditor):
     assert data['first'] == '/creditors/4294967296/transfers/'
     assert data['itemsType'] == 'ObjectReference'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
 
     r = client.get('/creditors/4294967296/transfers/?prev=%#^')
     assert r.status_code == 422
@@ -514,8 +513,8 @@ def test_create_account(client, creditor):
     ledgerLatestEntryId = data1['ledger'].get('latestEntryId', 0)
     createdAt = data1['createdAt']
     assert latestUpdateId == 1
-    assert iso8601.parse_date(latestUpdateAt)
-    assert iso8601.parse_date(createdAt)
+    assert datetime.fromisoformat(latestUpdateAt)
+    assert datetime.fromisoformat(createdAt)
     assert data1 == {
         'type': 'Account',
         'uri': '/creditors/4294967296/accounts/1/',
@@ -608,7 +607,7 @@ def test_create_account(client, creditor):
     assert e['objectType'] == 'Account'
     assert e['object'] == {'uri': '/creditors/4294967296/accounts/1/'}
     assert not e.get('deleted')
-    assert iso8601.parse_date(e['addedAt'])
+    assert datetime.fromisoformat(e['addedAt'])
 
     r = client.get('/creditors/4294967296/accounts/1/')
     assert r.status_code == 200
@@ -658,7 +657,7 @@ def test_delete_account(client, account):
     assert r.status_code == 200
     data = r.get_json()
     latest_update_id = data['latestUpdateId']
-    latest_update_at = iso8601.parse_date(data['latestUpdateAt'])
+    latest_update_at = datetime.fromisoformat(data['latestUpdateAt'])
 
     p.process_pending_log_entries(4294967296)
     r = client.delete('/creditors/4294967296/accounts/1/')
@@ -686,7 +685,7 @@ def test_delete_account(client, account):
     assert r.status_code == 200
     data = r.get_json()
     assert data['latestUpdateId'] == latest_update_id + 1
-    assert iso8601.parse_date(data['latestUpdateAt']) >= latest_update_at
+    assert datetime.fromisoformat(data['latestUpdateAt']) >= latest_update_at
 
 
 def test_account_config(client, account):
@@ -699,7 +698,7 @@ def test_account_config(client, account):
     assert data['type'] == 'AccountConfig'
     assert data['uri'] == '/creditors/4294967296/accounts/1/config'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['scheduledForDeletion'] is False
     assert data['allowUnsafeDeletion'] is False
     assert data['negligibleAmount'] == m.DEFAULT_NEGLIGIBLE_AMOUNT
@@ -724,7 +723,7 @@ def test_account_config(client, account):
     assert data['type'] == 'AccountConfig'
     assert data['uri'] == '/creditors/4294967296/accounts/1/config'
     assert data['latestUpdateId'] == 2
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['scheduledForDeletion'] is True
     assert data['allowUnsafeDeletion'] is True
     assert data['negligibleAmount'] == 100.0
@@ -765,7 +764,7 @@ def test_account_display(client, account):
     assert data['type'] == 'AccountDisplay'
     assert data['uri'] == '/creditors/4294967296/accounts/1/display'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['amountDivisor'] == 1.0
     assert data['hide'] is False
     assert data['decimalPlaces'] == 0
@@ -797,7 +796,7 @@ def test_account_display(client, account):
     assert data['type'] == 'AccountDisplay'
     assert data['uri'] == '/creditors/4294967296/accounts/1/display'
     assert data['latestUpdateId'] == 2
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['debtorName'] == 'United States of America'
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
@@ -878,7 +877,7 @@ def test_account_exchange(client, account):
     assert data['type'] == 'AccountExchange'
     assert data['uri'] == '/creditors/4294967296/accounts/1/exchange'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['minPrincipal'] == p.MIN_INT64
     assert data['maxPrincipal'] == p.MAX_INT64
     assert data['account'] == {'uri': '/creditors/4294967296/accounts/1/'}
@@ -914,7 +913,7 @@ def test_account_exchange(client, account):
     assert data['type'] == 'AccountExchange'
     assert data['uri'] == '/creditors/4294967296/accounts/1/exchange'
     assert data['latestUpdateId'] == 2
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['minPrincipal'] == 1000
     assert data['maxPrincipal'] == 2000
     assert 'policy' not in data
@@ -1036,7 +1035,7 @@ def test_account_knowledge(client, account):
     assert data['type'] == 'AccountKnowledge'
     assert data['uri'] == '/creditors/4294967296/accounts/1/knowledge'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['account'] == {'uri': '/creditors/4294967296/accounts/1/'}
     assert 'debtorInfo' not in data
     assert 'identity' not in data
@@ -1044,7 +1043,7 @@ def test_account_knowledge(client, account):
     request_data = {
         'latestUpdateId': 2,
         'interestRate': 11.5,
-        'interestRateChangedAt': '2020-01-01T00:00:00Z',
+        'interestRateChangedAt': '2020-01-01T00:00:00+00:00',
         'identity': {
             'type': 'AccountIdentity',
             'uri': 'swpt:1/4294967296',
@@ -1075,9 +1074,9 @@ def test_account_knowledge(client, account):
     assert data['type'] == 'AccountKnowledge'
     assert data['uri'] == '/creditors/4294967296/accounts/1/knowledge'
     assert data['latestUpdateId'] == 2
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['interestRate'] == 11.5
-    assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
+    assert datetime.fromisoformat(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
     assert data['identity'] == {'type': 'AccountIdentity', 'uri': 'swpt:1/4294967296'}
     assert data['debtorInfo'] == {
         'type': 'DebtorInfo',
@@ -1102,8 +1101,8 @@ def test_account_knowledge(client, account):
     assert data['interestRate'] == 11.5
     assert data['latestUpdateId'] == 3
     assert data['addedField'] == 'value'
-    assert iso8601.parse_date(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['interestRateChangedAt']) == datetime(2020, 1, 1, tzinfo=timezone.utc)
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert 'debtorInfo' not in data
     assert 'identity' not in data
 
@@ -1128,8 +1127,8 @@ def test_get_account_info(client, account):
     assert data['type'] == 'AccountInfo'
     assert data['uri'] == '/creditors/4294967296/accounts/1/info'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
-    assert iso8601.parse_date(data['interestRateChangedAt']) == m.TS0
+    assert datetime.fromisoformat(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['interestRateChangedAt']) == m.TS0
     assert data['interestRate'] == 0.0
     assert data['safeToDelete'] is False
     assert data['account'] == {'uri': '/creditors/4294967296/accounts/1/'}
@@ -1148,7 +1147,7 @@ def test_get_account_ledger(client, account):
     assert data['type'] == 'AccountLedger'
     assert data['uri'] == '/creditors/4294967296/accounts/1/ledger'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['principal'] == 0
     assert data['interest'] == 0
     assert 'latestEntryId' not in data
@@ -1311,13 +1310,13 @@ def test_create_transfer(client, account):
     assert data['amount'] == 1000
     assert data['note'] == '{"message": "test"}'
     assert data['noteFormat'] == 'json'
-    assert iso8601.parse_date(data['initiatedAt'])
+    assert datetime.fromisoformat(data['initiatedAt'])
     assert data['transferUuid'] == '123e4567-e89b-12d3-a456-426655440000'
     assert data['latestUpdateId'] == 1
-    assert iso8601.parse_date(data['latestUpdateAt'])
+    assert datetime.fromisoformat(data['latestUpdateAt'])
     assert 'result' not in data
     assert data['transfersList']['uri'] == '/creditors/4294967296/transfers-list'
-    assert iso8601.parse_date(data['checkupAt'])
+    assert datetime.fromisoformat(data['checkupAt'])
     assert data['options'] == {
         'type': 'TransferOptions',
         'minInterestRate': -10.0,

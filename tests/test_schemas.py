@@ -1,7 +1,6 @@
 import pytest
 import math
 from uuid import UUID
-import iso8601
 from flask import g
 from marshmallow import ValidationError
 from datetime import date, datetime, timezone
@@ -535,7 +534,7 @@ def test_serialize_account_knowledge(app):
             'type': '',
         },
         latest_update_id=1,
-        latest_update_ts=datetime(2020, 1, 1),
+        latest_update_ts=datetime(2020, 1, 1, tzinfo=timezone.utc),
     )
     aks = schemas.AccountKnowledgeSchema(context=context)
     assert aks.dump(ak) == {
@@ -553,7 +552,7 @@ def test_serialize_account_knowledge(app):
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'noteMaxBytes': 500,
         'latestUpdateId': 1,
-        'latestUpdateAt': '2020-01-01T00:00:00',
+        'latestUpdateAt': '2020-01-01T00:00:00+00:00',
     }
 
     ak.data = {
@@ -571,7 +570,7 @@ def test_serialize_account_knowledge(app):
         'interestRate': 'not a number',
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
-        'latestUpdateAt': '2020-01-01T00:00:00',
+        'latestUpdateAt': '2020-01-01T00:00:00+00:00',
         'debtorInfo': {
             'type': 'DebtorInfo',
             'iri': 'http://example.com',
@@ -593,14 +592,14 @@ def test_deserialize_account_knowledge(app):
     data = aks.load({
         'type': 'AccountKnowledge',
         'latestUpdateId': 1,
-        'xxx_yyy_zzz': '1970-01-01T00:00:00Z',
+        'xxx_yyy_zzz': '1970-01-01T00:00:00+00:00',
         'unknownField': {'innerField': n * 'Ш'},
     })
     assert data == {
         'type': 'AccountKnowledge',
         'latest_update_id': 1,
         'data': {
-            'xxx_yyy_zzz': '1970-01-01T00:00:00Z',
+            'xxx_yyy_zzz': '1970-01-01T00:00:00+00:00',
             'unknownField': {'innerField': n * 'Ш'},
         }
     }
@@ -616,7 +615,7 @@ def test_deserialize_account_knowledge(app):
             'sha256': 16 * 'BA01',
         },
         'interestRate': 11.0,
-        'interestRateChangedAt': '1970-01-01T00:00:00Z',
+        'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
     })
     assert data == {
         'type': 'AccountKnowledge',
@@ -630,7 +629,7 @@ def test_deserialize_account_knowledge(app):
                 'sha256': 16 * 'BA01',
             },
             'interestRate': 11.0,
-            'interestRateChangedAt': '1970-01-01T00:00:00Z',
+            'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
         },
     }
 
@@ -1449,7 +1448,7 @@ def test_deserialize_transfer_creation_request(app):
     }
 
     data = dis.load({**base_data, 'options': {
-        'deadline': '1970-01-01T00:00:00Z',
+        'deadline': '1970-01-01T00:00:00+00:00',
         'minInterestRate': -5,
         'lockedAmount': 1000,
     }})
@@ -1639,7 +1638,7 @@ def test_serialize_transfer(app):
 
     dt.finalized_at = None
     data = ts.dump(dt)
-    assert iso8601.parse_date(data.pop('checkupAt'))
+    assert datetime.fromisoformat(data.pop('checkupAt'))
     assert data == {
         "type": "Transfer",
         "uri": "/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000",

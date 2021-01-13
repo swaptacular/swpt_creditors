@@ -1,7 +1,6 @@
 import re
-import iso8601
+from datetime import datetime, date, timedelta
 from base64 import b16decode
-from datetime import date, timedelta
 from flask import current_app
 from swpt_creditors.extensions import protocol_broker, APP_QUEUE_NAME
 from swpt_creditors import procedures
@@ -31,7 +30,7 @@ def on_rejected_config_signal(
     procedures.process_rejected_config_signal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
-        config_ts=iso8601.parse_date(config_ts),
+        config_ts=datetime.fromisoformat(config_ts),
         config_seqnum=config_seqnum,
         negligible_amount=negligible_amount,
         config_data=config_data,
@@ -80,15 +79,15 @@ def on_account_update_signal(
     procedures.process_account_update_signal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
-        creation_date=iso8601.parse_date(creation_date).date(),
-        last_change_ts=iso8601.parse_date(last_change_ts),
+        creation_date=date.fromisoformat(creation_date),
+        last_change_ts=datetime.fromisoformat(last_change_ts),
         last_change_seqnum=last_change_seqnum,
         principal=principal,
         interest=interest,
         interest_rate=interest_rate,
-        last_interest_rate_change_ts=iso8601.parse_date(last_interest_rate_change_ts),
+        last_interest_rate_change_ts=datetime.fromisoformat(last_interest_rate_change_ts),
         transfer_note_max_bytes=transfer_note_max_bytes,
-        last_config_ts=iso8601.parse_date(last_config_ts),
+        last_config_ts=datetime.fromisoformat(last_config_ts),
         last_config_seqnum=last_config_seqnum,
         negligible_amount=negligible_amount,
         config_flags=config_flags,
@@ -98,8 +97,8 @@ def on_account_update_signal(
         debtor_info_content_type=debtor_info_content_type or None,
         debtor_info_sha256=b16decode(debtor_info_sha256, casefold=True) or None,
         last_transfer_number=last_transfer_number,
-        last_transfer_committed_at=iso8601.parse_date(last_transfer_committed_at),
-        ts=iso8601.parse_date(ts),
+        last_transfer_committed_at=datetime.fromisoformat(last_transfer_committed_at),
+        ts=datetime.fromisoformat(ts),
         ttl=ttl,
     )
 
@@ -161,9 +160,9 @@ def on_account_transfer_signal(
         acquired_amount=acquired_amount,
         transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
-        committed_at=iso8601.parse_date(committed_at),
+        committed_at=datetime.fromisoformat(committed_at),
         principal=principal,
-        ts=iso8601.parse_date(ts),
+        ts=datetime.fromisoformat(ts),
         previous_transfer_number=previous_transfer_number,
         retention_interval=timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS']),
     )
