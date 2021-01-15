@@ -71,18 +71,20 @@ def configure_interval(min_id, max_id):
 
     """
 
+    logger = logging.getLogger(__name__)
+
     def validate(value):
         if not MIN_INT64 <= value <= MAX_INT64:
-            click.echo(f'Error: {value} is not a valid creditor ID.')
+            logger.error(f'{value} is not a valid creditor ID.')
             sys.exit(1)
 
     validate(min_id)
     validate(max_id)
     if min_id > max_id:
-        click.echo('Error: an invalid interval has been specified.')
+        logger.error('An invalid interval has been specified.')
         sys.exit(1)
     if min_id <= ROOT_CREDITOR_ID <= max_id:
-        click.echo(f'Error: the specified interval contains {ROOT_CREDITOR_ID}.')
+        logger.error(f'The specified interval contains {ROOT_CREDITOR_ID}.')
         sys.exit(1)
 
     procedures.configure_agent(min_creditor_id=min_id, max_creditor_id=max_id)
