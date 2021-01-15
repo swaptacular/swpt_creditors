@@ -67,7 +67,7 @@ services:
       - 'URLS_LOGIN=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/login'
       - 'URLS_CONSENT=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/consent'
       - 'LOG_LEVEL=warn'
-      - 'LOG_FORMAT=text'
+      - 'LOG_FORMAT=json'
       - 'LOG_LEAK_SENSITIVE_VALUES=false'
       - 'OAUTH2_EXPOSE_INTERNAL_ERRORS=true'
       - 'SQA_OPT_OUT=true'
