@@ -19,7 +19,7 @@ BEGIN
   --------------------------
   PERFORM create_user_with_own_schema('hydra');
   PERFORM create_user_with_own_schema('swpt_creditors');
-  PERFORM create_user_with_own_schema('swpt_login');
+  PERFORM create_user_with_own_schema('swpt_creditors_login');
   RETURN 'ok';
 END;
 $$ LANGUAGE plpgsql;
