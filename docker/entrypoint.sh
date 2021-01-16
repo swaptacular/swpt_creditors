@@ -22,7 +22,7 @@ perform_db_upgrade() {
     echo -n 'Running database schema upgrade ...'
     while [[ $retry_after -lt $time_limit ]]; do
         if flask db upgrade 2>$error_file; then
-            perform_initializations
+            perform_db_initialization
             echo ' done.'
             return 0
         fi
@@ -39,22 +39,29 @@ setup_rabbitmq_bindings() {
     return 0
 }
 
-# This function is intended to perform additional one-time
-# initializations. Make sure that it is idempotent.
+# This function is intended to perform additional one-time database
+# initialization. Make sure that it is idempotent.
 # (https://en.wikipedia.org/wiki/Idempotence)
-perform_initializations() {
+perform_db_initialization() {
     flask swpt_creditors configure_interval -- $MIN_CREDITOR_ID $MAX_CREDITOR_ID
+}
+
+configure_web_server() {
+    export GUNICORN_LOGLEVEL=${WEBSERVER_LOGLEVEL:-warning}
+    export GUNICORN_WORKERS=${WEBSERVER_WORKERS:-1}
+    export GUNICORN_THREADS=${WEBSERVER_THREADS:-3}
+    envsubst '$PORT $OAUTH2_INTROSPECT_URL' \
+             < "$APP_ROOT_DIR/oathkeeper/config.yaml.template" \
+             > "$APP_ROOT_DIR/oathkeeper/config.yaml"
+    envsubst '$RESOURCE_SERVER' \
+             < "$APP_ROOT_DIR/oathkeeper/rules.json.template" \
+             > "$APP_ROOT_DIR/oathkeeper/rules.json"
 }
 
 case $1 in
     develop-run-flask)
         shift
         exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
-        ;;
-    develop-run-protocol)
-        shift
-        flask signalbus flush -w 0
-        exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} "$@"
         ;;
     test)
         perform_db_upgrade
@@ -64,23 +71,20 @@ case $1 in
         perform_db_upgrade
         setup_rabbitmq_bindings
         ;;
-    gunicorn)
-        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b 127.0.0.1:4499 wsgi:app
-        ;;
-    supervisord)
-        exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
-        ;;
-    oathkeeper)
-        envsubst '$PORT $OAUTH2_INTROSPECT_URL' \
-                 < "$APP_ROOT_DIR/oathkeeper/config.yaml.template" \
-                 > "$APP_ROOT_DIR/oathkeeper/config.yaml"
-        envsubst '$RESOURCE_SERVER' \
-                 < "$APP_ROOT_DIR/oathkeeper/rules.json.template" \
-                 > "$APP_ROOT_DIR/oathkeeper/rules.json"
-        exec oathkeeper serve --config="$APP_ROOT_DIR/oathkeeper/config.yaml"
+    webserver)
+        configure_web_server
+        exec supervisord -c "$APP_ROOT_DIR/supervisord-webserver.conf"
         ;;
     protocol)
         exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} tasks:protocol_broker
+        ;;
+    process_ledger_updates | process_log_entries | scan_creditors | scan_accounts | scan_committed_transfers \
+        | scan_ledger_entries | scan_log_entries | configure_interval)
+        exec flask swpt_creditors "$@"
+        ;;
+    supervisord)
+        configure_web_server
+        exec supervisord -c "$APP_ROOT_DIR/supervisord-all.conf"
         ;;
     *)
         exec "$@"
