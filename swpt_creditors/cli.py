@@ -1,6 +1,8 @@
 import logging
+import time
 import sys
 import click
+import threading
 from os import environ
 from datetime import timedelta
 from multiprocessing.dummy import Pool as ThreadPool
@@ -11,6 +13,68 @@ from swpt_creditors import procedures
 from .extensions import db
 from .table_scanners import CreditorScanner, AccountScanner, LogEntryScanner, LedgerEntryScanner, \
     CommittedTransferScanner
+
+
+class ThreadPoolProcessor:
+    def __init__(self, threads, *, get_objects, process_object, wait_seconds):
+        self.logger = logging.getLogger(__name__)
+        self.threads = threads
+        self.get_objects = get_objects
+        self.process_object = process_object
+        self.wait_seconds = wait_seconds
+        self.all_done = threading.Condition()
+        self.pending = 0
+
+    def _wait_until_all_done(self):
+        while self.pending > 0:
+            self.all_done.wait()
+        assert self.pending == 0
+
+    def _mark_done(self, result=None):
+        with self.all_done:
+            self.pending -= 1
+            if self.pending <= 0:
+                self.all_done.notify()
+
+    def _log_error(self, e):  # pragma: no cover
+        self._mark_done()
+        try:
+            raise e
+        except Exception:
+            self.logger.exception('Caught error while processing objects.')
+
+    def run(self, *, quit_early=False):
+        app = current_app._get_current_object()
+
+        def push_app_context():
+            ctx = app.app_context()
+            ctx.push()
+
+        pool = ThreadPool(self.threads, initializer=push_app_context)
+        iteration_counter = 0
+
+        while not (quit_early and iteration_counter > 0):
+            iteration_counter += 1
+            started_at = time.time()
+            objects = self.get_objects()
+
+            with self.all_done:
+                self.pending += len(objects)
+
+            pool.map_async(
+                self.process_object,
+                objects,
+                callback=self._mark_done,
+                error_callback=self._log_error,
+            )
+
+            with self.all_done:
+                self._wait_until_all_done()
+
+            time.sleep(max(0.0, self.wait_seconds + started_at - time.time()))
+
+        pool.close()
+        pool.join()
 
 
 @click.group('swpt_creditors')
@@ -90,82 +154,84 @@ def configure_interval(min_id, max_id):
     procedures.configure_agent(min_creditor_id=min_id, max_creditor_id=max_id)
 
 
-@swpt_creditors.command('process_log_entries')
+@swpt_creditors.command('process_log_additions')
 @with_appcontext
 @click.option('-t', '--threads', type=int, help='The number of worker threads.')
-def process_log_entries(threads):
-    """Process all pending log entries.
+@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
+              ' the queries to obtain pending log entries.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def process_log_additions(threads, wait, quit_early):
+    """Process pending log additions.
 
     If --threads is not specified, the value of the configuration
-    variable APP_PROCESS_LOG_ENTRIES_THREADS is taken (the default is
-    1).
+    variable APP_PROCESS_LOG_ADDITIONS_THREADS is taken. If it is not
+    set, the default number of threads is 1.
+
+    If --wait is not specified, the value of the configuration
+    variable APP_PROCESS_LOG_ADDITIONS_WAIT is taken. If it is not
+    set, the default number of seconds is 5.
 
     """
 
-    threads = threads or current_app.config['APP_PROCESS_LOG_ENTRIES_THREADS']
-    app = current_app._get_current_object()
+    threads = threads or current_app.config['APP_PROCESS_LOG_ADDITIONS_THREADS']
+    wait = wait if wait is not None else current_app.config['APP_PROCESS_LOG_ADDITIONS_WAIT']
 
-    def push_app_context():
-        ctx = app.app_context()
-        ctx.push()
+    logger = logging.getLogger(__name__)
+    logger.info('Started log additions processor.')
 
-    def log_error(e):  # pragma: no cover
-        try:
-            raise e
-        except Exception:
-            logger = logging.getLogger(__name__)
-            logger.exception('Caught error while processing log entries.')
-
-    pool = ThreadPool(threads, initializer=push_app_context)
-    for creditor_id in procedures.get_creditors_with_pending_log_entries():
-        pool.apply_async(procedures.process_pending_log_entries, (creditor_id,), error_callback=log_error)
-    pool.close()
-    pool.join()
+    ThreadPoolProcessor(
+        threads,
+        get_objects=procedures.get_creditors_with_pending_log_entries,
+        process_object=procedures.process_pending_log_entries,
+        wait_seconds=wait,
+    ).run(quit_early=quit_early)
 
 
 @swpt_creditors.command('process_ledger_updates')
 @with_appcontext
 @click.option('-t', '--threads', type=int, help='The number of worker threads.')
-@click.option('-b', '--burst', type=int, help='The number of transfers to process in a single database transaction.')
-def process_ledger_updates(threads, burst):
+@click.option('-b', '--burst', type=int, help='The maximal number of transfers to process in'
+              ' a single database transaction.')
+@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
+              ' the queries to obtain pending ledger updates.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def process_ledger_updates(threads, burst, wait, quit_early):
     """Process all pending ledger updates.
 
     If --threads is not specified, the value of the configuration
-    variable APP_PROCESS_LEDGER_UPDATES_THREADS is taken (the default
-    is 1).
+    variable APP_PROCESS_LEDGER_UPDATES_THREADS is taken. If it is not
+    set, the default number of threads is 1.
 
     If --burst is not specified, the value of the configuration
-    variable APP_PROCESS_LEDGER_UPDATES_BURST is taken (the default is
-    1000).
+    variable APP_PROCESS_LEDGER_UPDATES_BURST is taken. If it is not
+    set, the default is 1000.
+
+    If --wait is not specified, the value of the configuration
+    variable APP_PROCESS_LEDGER_UPDATES_WAIT is taken. If it is not
+    set, the default number of seconds is 5.
 
     """
 
     threads = threads or current_app.config['APP_PROCESS_LEDGER_UPDATES_THREADS']
     burst = burst or current_app.config['APP_PROCESS_LEDGER_UPDATES_BURST']
+    wait = wait if wait is not None else current_app.config['APP_PROCESS_LEDGER_UPDATES_WAIT']
     max_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
-    app = current_app._get_current_object()
 
-    def push_app_context():
-        ctx = app.app_context()
-        ctx.push()
-
-    def log_error(e):  # pragma: no cover
-        try:
-            raise e
-        except Exception:
-            logger = logging.getLogger(__name__)
-            logger.exception('Caught error while processing ledger updates.')
-
-    def process_ledger_update(creditor_id, debtor_id):
+    def process_ledger_update(pk):
+        creditor_id, debtor_id = pk
         while not procedures.process_pending_ledger_update(
                 creditor_id, debtor_id, max_count=burst, max_delay=max_delay):
             pass
 
-    pool = ThreadPool(threads, initializer=push_app_context)
-    for account_pk in procedures.get_pending_ledger_updates():
-        pool.apply_async(process_ledger_update, account_pk, error_callback=log_error)
-    pool.close()
-    pool.join()
+    logger = logging.getLogger(__name__)
+    logger.info('Started ledger updates processor.')
+
+    ThreadPoolProcessor(
+        threads,
+        get_objects=procedures.get_pending_ledger_updates,
+        process_object=process_ledger_update,
+        wait_seconds=wait,
+    ).run(quit_early=quit_early)
 
 
 @swpt_creditors.command('scan_creditors')

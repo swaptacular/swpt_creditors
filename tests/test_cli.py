@@ -69,12 +69,12 @@ def test_process_ledger_entries(app, db_session, current_ts):
 
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 0
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_creditors', 'process_ledger_updates', '--burst=1'])
+    result = runner.invoke(args=['swpt_creditors', 'process_ledger_updates', '--burst=1', '--quit-early'])
     assert not result.output
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 2
 
 
-def test_process_log_entries(app, db_session, current_ts):
+def test_process_log_additions(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     p.update_account_config(
@@ -87,7 +87,8 @@ def test_process_log_entries(app, db_session, current_ts):
     )
     entries1, _ = p.get_log_entries(C_ID, count=10000)
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_creditors', 'process_log_entries'])
+    result = runner.invoke(args=['swpt_creditors', 'process_log_additions', '--wait=0', '--quit-early'])
+    assert result.exit_code == 0
     assert not result.output
     entries2, _ = p.get_log_entries(C_ID, count=10000)
     assert len(entries2) > len(entries1)

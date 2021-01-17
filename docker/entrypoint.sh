@@ -78,7 +78,7 @@ case $1 in
     protocol)
         exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} tasks:protocol_broker
         ;;
-    process_ledger_updates | process_log_entries | scan_creditors | scan_accounts | scan_committed_transfers \
+    process_ledger_updates | process_log_additions | scan_creditors | scan_accounts | scan_committed_transfers \
         | scan_ledger_entries | scan_log_entries | configure_interval)
         exec flask swpt_creditors "$@"
         ;;
