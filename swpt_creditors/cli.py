@@ -169,6 +169,14 @@ def process_log_additions(threads, wait, quit_early):
 
     """
 
+    # TODO: Consider allowing load-sharing between multiple
+    #       processors. A possible way to do this is to separate the
+    #       `args collection` in multiple buckets, assigning a
+    #       dedicated `ThreadPoolProcessor`-process for each bucket.
+    #       This is also true for the other "process_*" CLI
+    #       commands. Note that this would makes sense only if the
+    #       load is CPU-bound.
+
     threads = threads or current_app.config['APP_PROCESS_LOG_ADDITIONS_THREADS']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_LOG_ADDITIONS_WAIT']
 
