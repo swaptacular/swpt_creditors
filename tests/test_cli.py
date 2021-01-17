@@ -69,7 +69,7 @@ def test_process_ledger_entries(app, db_session, current_ts):
 
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 0
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_creditors', 'process_ledger_updates', '--burst=1', '--quit-early'])
+    result = runner.invoke(args=['swpt_creditors', 'process_ledger_updates', '--burst=1', '--quit-early', '--wait=0'])
     assert not result.output
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 2
 
