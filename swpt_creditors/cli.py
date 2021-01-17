@@ -16,11 +16,11 @@ from .table_scanners import CreditorScanner, AccountScanner, LogEntryScanner, Le
 
 
 class ThreadPoolProcessor:
-    def __init__(self, threads, *, get_objects, process_object, wait_seconds):
+    def __init__(self, threads, *, get_args_collection, process_func, wait_seconds):
         self.logger = logging.getLogger(__name__)
         self.threads = threads
-        self.get_objects = get_objects
-        self.process_object = process_object
+        self.get_args_collection = get_args_collection
+        self.process_func = process_func
         self.wait_seconds = wait_seconds
         self.all_done = threading.Condition()
         self.pending = 0
@@ -56,17 +56,13 @@ class ThreadPoolProcessor:
         while not (quit_early and iteration_counter > 0):
             iteration_counter += 1
             started_at = time.time()
-            objects = self.get_objects()
+            args_collection = self.get_args_collection()
 
             with self.all_done:
-                self.pending += len(objects)
+                self.pending += len(args_collection)
 
-            pool.map_async(
-                self.process_object,
-                objects,
-                callback=self._mark_done,
-                error_callback=self._log_error,
-            )
+            for args in args_collection:
+                pool.apply_async(self.process_func, args, callback=self._mark_done, error_callback=self._log_error)
 
             with self.all_done:
                 self._wait_until_all_done()
@@ -179,10 +175,13 @@ def process_log_additions(threads, wait, quit_early):
     logger = logging.getLogger(__name__)
     logger.info('Started log additions processor.')
 
+    def get_args_collection():
+        return [(creditor_id,) for creditor_id in procedures.get_creditors_with_pending_log_entries()]
+
     ThreadPoolProcessor(
         threads,
-        get_objects=procedures.get_creditors_with_pending_log_entries,
-        process_object=procedures.process_pending_log_entries,
+        get_args_collection=get_args_collection,
+        process_func=procedures.process_pending_log_entries,
         wait_seconds=wait,
     ).run(quit_early=quit_early)
 
@@ -217,8 +216,7 @@ def process_ledger_updates(threads, burst, wait, quit_early):
     wait = wait if wait is not None else current_app.config['APP_PROCESS_LEDGER_UPDATES_WAIT']
     max_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
 
-    def process_ledger_update(pk):
-        creditor_id, debtor_id = pk
+    def process_ledger_update(creditor_id, debtor_id):
         while not procedures.process_pending_ledger_update(
                 creditor_id, debtor_id, max_count=burst, max_delay=max_delay):
             pass
@@ -228,8 +226,8 @@ def process_ledger_updates(threads, burst, wait, quit_early):
 
     ThreadPoolProcessor(
         threads,
-        get_objects=procedures.get_pending_ledger_updates,
-        process_object=process_ledger_update,
+        get_args_collection=procedures.get_pending_ledger_updates,
+        process_func=process_ledger_update,
         wait_seconds=wait,
     ).run(quit_early=quit_early)
 
