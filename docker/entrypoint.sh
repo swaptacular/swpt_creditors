@@ -82,7 +82,7 @@ case $1 in
         | scan_ledger_entries | scan_log_entries | configure_interval)
         exec flask swpt_creditors "$@"
         ;;
-    supervisord)
+    all)
         configure_web_server
         exec supervisord -c "$APP_ROOT_DIR/supervisord-all.conf"
         ;;
