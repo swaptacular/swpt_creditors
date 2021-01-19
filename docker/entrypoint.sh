@@ -82,6 +82,22 @@ case $1 in
         | scan_ledger_entries | scan_log_entries | configure_interval)
         exec flask swpt_creditors "$@"
         ;;
+    flush_configure_accounts  | flush_prepare_transfers | flush_finalize_transfers)
+        flush_configure_accounts=ConfigureAccountSignal
+        flush_prepare_transfers=PrepareTransferSignal
+        flush_finalize_transfers=FinalizeTransferSignal
+
+        # For example: if `$1` is "flush_configure_accounts",
+        # `signal_name` will be "ConfigureAccountSignal".
+        eval signal_name=\$$1
+
+        # For example: if `$1` is "flush_configure_accounts", `wait`
+        # will get the value of the APP_FLUSH_CONFIGURE_ACCOUNTS_WAIT
+        # environment variable, defaulting to 5 if it is not defined.
+        eval wait=\${APP_$(echo "$1" | tr [:lower:] [:upper:])_WAIT-5}
+
+        exec flask signalbus flushmany --repeat=$wait $signal_name
+        ;;
     all)
         configure_web_server
         exec supervisord -c "$APP_ROOT_DIR/supervisord-all.conf"
