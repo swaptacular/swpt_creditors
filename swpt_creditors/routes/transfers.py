@@ -1,14 +1,14 @@
 from datetime import timedelta
 from flask import redirect, url_for, request, current_app, g
 from flask.views import MethodView
-from flask_smorest import Blueprint, abort
+from flask_smorest import abort
 from swpt_lib.swpt_uris import parse_account_uri
 from swpt_creditors.schemas import examples, TransferCreationRequestSchema, TransferSchema, \
     CommittedTransferSchema, TransferCancelationRequestSchema, ObjectReferencesPageSchema, \
     TransfersPaginationParamsSchema
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
-from .common import context, parse_transfer_slug, ensure_creditor_permissions
+from .common import context, parse_transfer_slug, ensure_creditor_permissions, Blueprint
 from .specs import DID, CID, TID, TRANSFER_UUID
 from . import specs
 

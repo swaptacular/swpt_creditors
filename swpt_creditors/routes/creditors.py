@@ -1,11 +1,11 @@
 from datetime import timedelta
 from flask import current_app, request, g, redirect, url_for
 from flask.views import MethodView
-from flask_smorest import Blueprint, abort
+from flask_smorest import abort
 from swpt_creditors.schemas import examples, CreditorSchema, WalletSchema, LogEntriesPageSchema, \
     LogPaginationParamsSchema, AccountsListSchema, TransfersListSchema, PinInfoSchema
 from swpt_creditors import procedures
-from .common import context, ensure_creditor_permissions
+from .common import context, ensure_creditor_permissions, Blueprint
 from .specs import CID
 from . import specs
 

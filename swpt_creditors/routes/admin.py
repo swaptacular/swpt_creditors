@@ -1,13 +1,13 @@
 from flask import current_app, request, g
 from flask.views import MethodView
-from flask_smorest import Blueprint, abort
+from flask_smorest import abort
 from swpt_creditors.schemas import examples, CreditorSchema, CreditorReservationRequestSchema, \
     CreditorReservationSchema, CreditorActivationRequestSchema, CreditorDeactivationRequestSchema, \
     ObjectReferencesPageSchema
 from swpt_creditors import procedures
 from swpt_creditors.schemas import type_registry, CreditorsListSchema
 from swpt_creditors.models import MIN_INT64
-from .common import context, path_builder, ensure_admin
+from .common import context, path_builder, ensure_admin, Blueprint
 from .specs import CID
 from . import specs
 

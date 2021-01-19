@@ -1,16 +1,32 @@
 import re
-from functools import partial
 from typing import Tuple, Optional
 from enum import IntEnum
 from datetime import date, timedelta, datetime, timezone
 from flask import url_for, current_app, request, g
 from flask_smorest import abort
+from webargs.flaskparser import FlaskParser as FlaskParserOrig
+from flask_smorest import Blueprint as BlueprintOrig
 from swpt_lib.utils import u64_to_i64
 from swpt_creditors.models import MAX_INT64, DATE0, PinInfo
 from swpt_creditors.schemas import type_registry
 
 NOT_REQUIED = 'false'
 READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS']
+UNKNOWN_JSON_FIELDS_OPT_IN = FlaskParserOrig.DEFAULT_UNKNOWN_BY_LOCATION.copy()
+UNKNOWN_JSON_FIELDS_OPT_IN['json'] = None
+
+
+class FlaskParser(FlaskParserOrig):
+    """A parser subclass that allows individual marshmallow schemas to
+    change the way unknown fields are handled.
+
+    """
+
+    DEFAULT_UNKNOWN_BY_LOCATION = UNKNOWN_JSON_FIELDS_OPT_IN
+
+
+class Blueprint(BlueprintOrig):
+    ARGUMENTS_PARSER = FlaskParser()
 
 
 class UserType(IntEnum):

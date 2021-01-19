@@ -3,7 +3,7 @@ from datetime import timedelta
 from werkzeug.routing import NotFound, RequestRedirect, MethodNotAllowed
 from flask import current_app, redirect, url_for, request, g
 from flask.views import MethodView
-from flask_smorest import Blueprint, abort
+from flask_smorest import abort
 from swpt_lib.utils import i64_to_u64, u64_to_i64
 from swpt_lib.swpt_uris import parse_debtor_uri, parse_account_uri, make_debtor_uri
 from swpt_creditors.schemas import examples, DebtorIdentitySchema, AccountIdentitySchema, \
@@ -12,7 +12,7 @@ from swpt_creditors.schemas import examples, DebtorIdentitySchema, AccountIdenti
     AccountsPaginationParamsSchema, LedgerEntriesPaginationParamsSchema, LedgerEntriesPageSchema
 from swpt_creditors import procedures
 from swpt_creditors import inspect_ops
-from .common import context, ensure_creditor_permissions
+from .common import context, ensure_creditor_permissions, Blueprint
 from .specs import DID, CID
 from . import specs
 
