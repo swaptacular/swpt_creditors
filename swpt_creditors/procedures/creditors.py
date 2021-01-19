@@ -217,9 +217,12 @@ def get_log_entries(creditor_id: int, *, count: int = 1, prev: int = 0) -> Tuple
 
 
 @atomic
-def get_creditors_with_pending_log_entries() -> Iterable[int]:
+def get_creditors_with_pending_log_entries(max_count: int = None) -> Iterable[Tuple[int]]:
     query = db.session.query(PendingLogEntry.creditor_id).distinct()
-    return [t[0] for t in query.all()]
+    if max_count is not None:
+        query = query.limit(max_count)
+
+    return query.all()
 
 
 @atomic

@@ -276,7 +276,7 @@ def test_process_account_update_signal(db_session, account):
     p.process_account_update_signal(**params)
     assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
 
-    assert list(p.get_creditors_with_pending_log_entries()) == [C_ID]
+    assert list(p.get_creditors_with_pending_log_entries()) == [(C_ID,)]
     p.process_pending_log_entries(1235)
     p.process_pending_log_entries(C_ID)
     assert len(models.LogEntry.query.filter_by(object_type='AccountInfo').all()) == 3

@@ -179,12 +179,13 @@ def process_log_additions(threads, wait, quit_early):
 
     threads = threads or current_app.config['APP_PROCESS_LOG_ADDITIONS_THREADS']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_LOG_ADDITIONS_WAIT']
+    max_count = current_app.config['APP_PROCESS_LOG_ADDITIONS_MAX_COUNT']
+
+    def get_args_collection():
+        return procedures.get_creditors_with_pending_log_entries(max_count=max_count)
 
     logger = logging.getLogger(__name__)
     logger.info('Started log additions processor.')
-
-    def get_args_collection():
-        return [(creditor_id,) for creditor_id in procedures.get_creditors_with_pending_log_entries()]
 
     ThreadPoolProcessor(
         threads,
@@ -222,7 +223,11 @@ def process_ledger_updates(threads, burst, wait, quit_early):
     threads = threads or current_app.config['APP_PROCESS_LEDGER_UPDATES_THREADS']
     burst = burst or current_app.config['APP_PROCESS_LEDGER_UPDATES_BURST']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_LEDGER_UPDATES_WAIT']
+    max_count = current_app.config['APP_PROCESS_LEDGER_UPDATES_MAX_COUNT']
     max_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
+
+    def get_args_collection():
+        return procedures.get_pending_ledger_updates(max_count=max_count)
 
     def process_ledger_update(creditor_id, debtor_id):
         while not procedures.process_pending_ledger_update(
@@ -234,7 +239,7 @@ def process_ledger_updates(threads, burst, wait, quit_early):
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=procedures.get_pending_ledger_updates,
+        get_args_collection=get_args_collection,
         process_func=process_ledger_update,
         wait_seconds=wait,
     ).run(quit_early=quit_early)
