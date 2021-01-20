@@ -1,7 +1,16 @@
 from __future__ import annotations
+from flask import current_app
 from marshmallow import Schema, fields
 from swpt_creditors.extensions import db
 from .common import Signal, CT_DIRECT
+
+
+class classproperty(object):
+    def __init__(self, f):
+        self.f = f
+
+    def __get__(self, obj, owner):
+        return self.f(owner)
 
 
 class ConfigureAccountSignal(Signal):
@@ -24,6 +33,10 @@ class ConfigureAccountSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     config_data = db.Column(db.String, nullable=False, default='')
     config_flags = db.Column(db.Integer, nullable=False)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_CONFIGURE_ACCOUNTS_BURST_COUNT']
 
 
 class PrepareTransferSignal(Signal):
@@ -51,6 +64,10 @@ class PrepareTransferSignal(Signal):
     min_interest_rate = db.Column(db.Float, nullable=False)
     max_commit_delay = db.Column(db.Integer, nullable=False)
 
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_PREPARE_TRANSFERS_BURST_COUNT']
+
 
 class FinalizeTransferSignal(Signal):
     queue_name = 'swpt_accounts'
@@ -77,3 +94,7 @@ class FinalizeTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_FINALIZE_TRANSFERS_BURST_COUNT']

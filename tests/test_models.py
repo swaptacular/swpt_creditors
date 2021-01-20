@@ -2,6 +2,13 @@ from datetime import datetime, timezone, timedelta
 from swpt_creditors import models as m
 
 
+def test_sibnalbus_burst_count(app):
+    from swpt_creditors import models as m
+    assert isinstance(m.ConfigureAccountSignal.signalbus_burst_count, int)
+    assert isinstance(m.PrepareTransferSignal.signalbus_burst_count, int)
+    assert isinstance(m.FinalizeTransferSignal.signalbus_burst_count, int)
+
+
 def test_account_data(db_session):
     current_ts = datetime.now(tz=timezone.utc)
     ad = m.AccountData(
