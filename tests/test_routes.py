@@ -504,6 +504,12 @@ def test_create_account(client, creditor):
     data = r.get_json()
     assert data['errors']['json']['uri'] == ['The URI can not be recognized.']
 
+    r = client.post('/creditors/4294967296/accounts/', json={
+        'type': 'DebtorIdentity', 'uri': 'swpt:1', 'unknowFiled': 'test'})
+    assert r.status_code == 422
+    data = r.get_json()
+    assert data['errors']['json'] == {'unknowFiled': ['Unknown field.']}
+
     r = client.post('/creditors/4294967296/accounts/', json={'type': 'DebtorIdentity', 'uri': 'swpt:1'})
     assert r.status_code == 201
     data1 = r.get_json()

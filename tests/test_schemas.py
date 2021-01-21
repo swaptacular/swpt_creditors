@@ -61,6 +61,9 @@ def test_deserialize_creditor(app):
     with pytest.raises(ValidationError):
         cs.load({'type': 'WrongType', 'latestUpdateId': 2})
 
+    with pytest.raises(ValidationError):
+        cs.load({'latestUpdateId': 2, 'unknownField': 'test'})
+
 
 def test_serialize_wallet(app):
     g.pin_reset_mode = True
