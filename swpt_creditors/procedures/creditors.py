@@ -14,6 +14,12 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 ACTIVATION_STATUS_MASK = Creditor.STATUS_IS_ACTIVATED_FLAG | Creditor.STATUS_IS_DEACTIVATED_FLAG
+LOG_ENTRY_NONE_AUX_FIELDS_EXCLUDED_TYPE_HINT = {
+    attr: None for attr in LogEntry.AUX_FIELDS if attr != 'object_type_hint'
+}
+LOG_ENTRY_NONE_DATA_FIELDS = {
+    attr: None for attr in LogEntry.DATA_FIELDS
+}
 
 
 def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], pin_failures_reset_interval: timedelta) -> None:
@@ -293,9 +299,15 @@ def _add_transfers_list_update_log_entry(creditor: Creditor, added_at: datetime)
 
     _add_log_entry(
         creditor,
-        object_type_hint=LogEntry.OTH_TRANSFERS_LIST,
+        object_type=None,
+        object_uri=None,
         object_update_id=creditor.transfers_list_latest_update_id,
         added_at=creditor.transfers_list_latest_update_ts,
+        is_deleted=None,
+        data=None,
+        **LOG_ENTRY_NONE_DATA_FIELDS,
+        **LOG_ENTRY_NONE_AUX_FIELDS_EXCLUDED_TYPE_HINT,
+        object_type_hint=LogEntry.OTH_TRANSFERS_LIST,
     )
 
 
