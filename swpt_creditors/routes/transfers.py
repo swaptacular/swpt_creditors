@@ -85,6 +85,7 @@ class TransfersEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
+                    secret=current_app.config['APP_PIN_PROTECTION_SECRET'],
                     pin_value=transfer_creation_request.get('optional_pin'),
                     pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )

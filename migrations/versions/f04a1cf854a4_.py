@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3434ee5cdbac
+Revision ID: f04a1cf854a4
 Revises: 8d8c816257ce
-Create Date: 2021-01-09 21:32:14.651549
+Create Date: 2021-01-25 15:01:31.485273
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '3434ee5cdbac'
+revision = 'f04a1cf854a4'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -183,13 +183,16 @@ def upgrade():
     sa.Column('cfa', sa.SmallInteger(), nullable=False, comment='The number of consecutive failed attempts. It gets reset to zero when either of those events occur: 1) a correct PIN is entered; 2) the PIN is changed.'),
     sa.Column('afa', sa.SmallInteger(), nullable=False, comment='The number of accumulated failed attempts. It gets reset to zero when either of those events occur: 1) some time has passed since the previous reset; 2) the PIN is blocked.'),
     sa.Column('afa_last_reset_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('value', sa.String(), nullable=True),
+    sa.Column('pin_length', sa.SmallInteger(), nullable=False),
+    sa.Column('pin_hmac', sa.LargeBinary(), nullable=True),
     sa.Column('latest_update_id', sa.BigInteger(), nullable=False),
     sa.Column('latest_update_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('afa >= 0'),
     sa.CheckConstraint('cfa >= 0'),
     sa.CheckConstraint('latest_update_id > 0'),
-    sa.CheckConstraint('status != 1 OR value IS NOT NULL'),
+    sa.CheckConstraint('pin_hmac IS NULL OR octet_length(pin_hmac) = 32'),
+    sa.CheckConstraint('pin_length >= 0'),
+    sa.CheckConstraint('status != 1 OR pin_hmac IS NOT NULL'),
     sa.CheckConstraint('status >= 0 AND status < 3'),
     sa.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('creditor_id'),

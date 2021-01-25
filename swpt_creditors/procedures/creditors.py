@@ -22,9 +22,16 @@ LOG_ENTRY_NONE_DATA_FIELDS = {
 }
 
 
-def verify_pin_value(creditor_id: int, *, pin_value: Optional[str], pin_failures_reset_interval: timedelta) -> None:
+def verify_pin_value(
+        creditor_id: int,
+        *,
+        secret: str,
+        pin_value: Optional[str],
+        pin_failures_reset_interval: timedelta) -> None:
+
     is_pin_value_ok = verify_pin_value_helper(
         creditor_id,
+        secret=secret,
         pin_value=pin_value,
         pin_failures_reset_interval=pin_failures_reset_interval,
     )
@@ -36,6 +43,7 @@ def update_pin_info(
         creditor_id: int,
         *,
         status_name: str,
+        secret: str,
         new_pin_value: Optional[str],
         latest_update_id: int,
         pin_reset_mode: bool,
@@ -45,6 +53,7 @@ def update_pin_info(
     is_pin_value_ok, pin_info = update_pin_info_helper(
         creditor_id=creditor_id,
         status_name=status_name,
+        secret=secret,
         new_pin_value=new_pin_value,
         latest_update_id=latest_update_id,
         pin_reset_mode=pin_reset_mode,
@@ -167,6 +176,7 @@ def update_pin_info_helper(
         creditor_id: int,
         *,
         status_name: str,
+        secret: str,
         new_pin_value: Optional[str],
         latest_update_id: int,
         pin_reset_mode: bool,
@@ -182,10 +192,10 @@ def update_pin_info_helper(
     if latest_update_id != pin_info.latest_update_id + 1:
         raise errors.UpdateConflict()
 
-    is_pin_value_ok = pin_reset_mode or pin_info.try_value(pin_value, pin_failures_reset_interval)
+    is_pin_value_ok = pin_reset_mode or pin_info.try_value(secret, pin_value, pin_failures_reset_interval)
     if is_pin_value_ok:
         pin_info.status_name = status_name
-        pin_info.value = new_pin_value
+        pin_info.set_value(secret, new_pin_value)
         pin_info.latest_update_id = latest_update_id
         pin_info.latest_update_ts = current_ts
         pin_info.cfa = 0
@@ -249,6 +259,7 @@ def process_pending_log_entries(creditor_id: int) -> None:
 def verify_pin_value_helper(
         creditor_id: int,
         *,
+        secret: str,
         pin_value: Optional[str],
         pin_failures_reset_interval: timedelta) -> bool:
 
@@ -256,7 +267,7 @@ def verify_pin_value_helper(
     if pin_info is None:
         raise errors.CreditorDoesNotExist()
 
-    is_pin_value_ok = pin_info.try_value(pin_value, pin_failures_reset_interval)
+    is_pin_value_ok = pin_info.try_value(secret, pin_value, pin_failures_reset_interval)
     if is_pin_value_ok:
         pin_info.cfa = 0
 

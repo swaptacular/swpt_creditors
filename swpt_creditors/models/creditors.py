@@ -1,10 +1,11 @@
 from __future__ import annotations
 import logging
+import hmac
 from math import exp
 from typing import Dict, Optional
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import true, null, or_, and_
+from sqlalchemy.sql.expression import func, true, null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, ROOT_CREDITOR_ID
 
@@ -110,11 +111,6 @@ class Creditor(db.Model):
 
 
 class PinInfo(db.Model):
-    # TODO: Store the HMAC of the `value` column, instead of the value
-    #       (the PIN) itself. This will allow the backup of the
-    #       database to be publicly available, without jeopardizing
-    #       creditor's security.
-
     STATUS_OFF = 0
     STATUS_ON = 1
     STATUS_BLOCKED = 2
@@ -151,20 +147,27 @@ class PinInfo(db.Model):
                 'PIN is blocked.',
     )
     afa_last_reset_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    value = db.Column(db.String)
+    pin_length = db.Column(db.SmallInteger, nullable=False, default=0)
+    pin_hmac = db.Column(db.LargeBinary)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(and_(status >= 0, status < 3)),
-        db.CheckConstraint(or_(status != STATUS_ON, value != null())),
+        db.CheckConstraint(or_(status != STATUS_ON, pin_hmac != null())),
         db.CheckConstraint(cfa >= 0),
         db.CheckConstraint(afa >= 0),
         db.CheckConstraint(latest_update_id > 0),
+        db.CheckConstraint(pin_length >= 0),
+        db.CheckConstraint(or_(pin_hmac == null(), func.octet_length(pin_hmac) == 32)),
         {
             'comment': "Represents creditor's Personal Identification Number",
         }
     )
+
+    @staticmethod
+    def calc_hmac(secret: str, value: str) -> bytes:
+        return hmac.digest(secret.encode('utf8'), value.encode('utf8'), 'sha256')
 
     @property
     def is_required(self) -> bool:
@@ -180,11 +183,12 @@ class PinInfo(db.Model):
 
     def _block(self):
         self.status = self.STATUS_BLOCKED
-        self.value = None
+        self.pin_length = 0
+        self.pin_hmac = None
         self._reset_afa(datetime.now(tz=timezone.utc))
 
     def _get_max_cfa(self) -> int:
-        n = len(self.value) if self.value else 0
+        n = self.pin_length
 
         # NOTE: This is more or less an arbitrary linear
         # dependency. For `n` between 4 and 10, it generate the
@@ -192,7 +196,7 @@ class PinInfo(db.Model):
         return int(1.5 * n - 3)
 
     def _get_max_afa(self) -> int:
-        n = len(self.value) if self.value else 0
+        n = self.pin_length
 
         # NOTE: This is more or less an arbitrary exponential
         # dependency. For `n` between 4 and 10, it generate the
@@ -224,20 +228,28 @@ class PinInfo(db.Model):
         self._increment_cfa()
         self._increment_afa(afa_reset_interval)
 
-    def try_value(self, value: Optional[str], afa_reset_interval: timedelta) -> bool:
+    def try_value(self, secret: str, value: Optional[str], afa_reset_interval: timedelta) -> bool:
         if self.status == self.STATUS_BLOCKED:
             return False
 
         if self.is_required:
-            assert self.value is not None
+            assert self.pin_hmac is not None
             if value is None:
                 return False
 
-            if value != self.value:
+            if PinInfo.calc_hmac(secret, value) != self.pin_hmac:
                 self._register_failed_attempt(afa_reset_interval)
                 return False
 
         return True
+
+    def set_value(self, secret: str, value: Optional[str]) -> None:
+        if value is None:
+            self.pin_hmac = None
+            self.pin_length = 0
+        else:
+            self.pin_hmac = self.calc_hmac(secret, value)
+            self.pin_length = len(value)
 
 
 class BaseLogEntry(db.Model):

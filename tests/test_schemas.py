@@ -1686,7 +1686,6 @@ def test_serialize_creditor_reservation(app):
 def test_serialize_pin(app):
     p = models.PinInfo(
         creditor_id=C_ID,
-        value='123',
         status=models.PinInfo.STATUS_ON,
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),

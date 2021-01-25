@@ -90,6 +90,7 @@ class PinInfoEndpoint(MethodView):
             return procedures.update_pin_info(
                 creditor_id=creditorId,
                 status_name=pin_info['status_name'],
+                secret=current_app.config['APP_PIN_PROTECTION_SECRET'],
                 new_pin_value=pin_info.get('optional_new_pin_value'),
                 latest_update_id=pin_info['latest_update_id'],
                 pin_reset_mode=g.pin_reset_mode,
