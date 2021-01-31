@@ -139,6 +139,8 @@ services:
       - 'PROTOCOL_PROCESSES=1'
       - 'PROTOCOL_THREADS=3'
       - 'APP_PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
     depends_on:
       - pg
