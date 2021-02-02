@@ -39,12 +39,12 @@ services:
       - 'HYDRA_URL=http://login:4444'
       - 'LOGIN_URL=http://login:8080'
       - 'CREDITORS_SERVER_URL=http://creditors-server:8080'
-      - 'SWAGGER_UI_URL=http://swagger-ui:8080'
+      - 'CREDITORS_SWAGGER_UI_URL=http://creditors-swagger-ui:8080'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
     depends_on:
       - login
       - creditors-server
-      - swagger-ui
+      - creditors-swagger-ui
 
 
   login:
@@ -165,18 +165,18 @@ services:
       - pg
 
 
-  swagger-ui:
+  creditors-swagger-ui:
     build:
       context: .
       dockerfile: Dockerfile
       target: swagger-ui-image
     environment:
-      - 'BASE_URL=/swagger-ui'
+      - 'BASE_URL=/creditors-swagger-ui'
       - 'API_ROOT=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/'
       - 'OAUTH2_AUTHORIZATION_URL=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/oauth2/auth'
       - 'OAUTH2_TOKEN_URL=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/oauth2/token'
       - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/oauth2/token'
-      - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/swagger-ui/oauth2-redirect.html'
+      - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/creditors-swagger-ui/oauth2-redirect.html'
     depends_on:
       - creditors-server
 
