@@ -36,18 +36,18 @@ services:
       - $CREDITORS_PORT:$CREDITORS_PORT
     environment:
       - 'PORT=$CREDITORS_PORT'
-      - 'HYDRA_URL=http://login:4444'
-      - 'LOGIN_URL=http://login:8080'
+      - 'HYDRA_URL=http://creditors-login:4444'
+      - 'LOGIN_URL=http://creditors-login:8080'
       - 'CREDITORS_SERVER_URL=http://creditors-server:8080'
       - 'CREDITORS_SWAGGER_UI_URL=http://creditors-swagger-ui:8080'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
     depends_on:
-      - login
+      - creditors-login
       - creditors-server
       - creditors-swagger-ui
 
 
-  login:
+  creditors-login:
     build:
       context: ./submodules/swpt_login
       dockerfile: Dockerfile
@@ -69,7 +69,7 @@ services:
       - 'HYDRA_DSN=postgres://hydra_creditors:hydra_creditors@pg/${POSTGRES_DB}?sslmode=disable&max_conns=2&max_idle_conns=1&max_conn_lifetime=30s'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors_login:swpt_creditors_login@pg/${POSTGRES_DB}'
       - 'REDIS_URL=redis://redis:6379/0?health_check_interval=30'
-      - 'HYDRA_ADMIN_URL=http://login:4445'
+      - 'HYDRA_ADMIN_URL=http://creditors-login:4445'
       - 'SITE_TITLE=Swaptacular'
       - 'STYLE_URL='
       - 'ABOUT_URL=https://github.com/epandurski/swpt_login'
@@ -97,7 +97,7 @@ services:
       - mail
 
 
-  login-config:
+  creditors-login-config:
     build:
       context: ./submodules/swpt_login
       dockerfile: Dockerfile
@@ -109,12 +109,12 @@ services:
       - pg
 
 
-  hydra-config:
+  creditors-hydra-config:
     build:
       context: ./submodules/swpt_login
       dockerfile: Dockerfile
     environment:
-      - 'HYDRA_ADMIN_URL=http://login:4445'
+      - 'HYDRA_ADMIN_URL=http://creditors-login:4445'
     volumes:
       - './docker/hydra:/etc/hydra-config'
     command:
@@ -124,7 +124,7 @@ services:
       --fake-tls-termination
       --fail-after 5m
     depends_on:
-      - login
+      - creditors-login
 
 
   creditors-server:
@@ -134,7 +134,7 @@ services:
       target: app-image
     environment:
       - 'PORT=8080'
-      - 'OAUTH2_INTROSPECT_URL=http://login:4445/oauth2/introspect'
+      - 'OAUTH2_INTROSPECT_URL=http://creditors-login:4445/oauth2/introspect'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
       - 'WEBSERVER_WORKERS=1'
       - 'WEBSERVER_THREADS=3'
@@ -177,8 +177,6 @@ services:
       - 'OAUTH2_TOKEN_URL=https://$CREDITORS_HOST/oauth2/token'
       - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOST/oauth2/token'
       - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOST/creditors-swagger-ui/oauth2-redirect.html'
-    depends_on:
-      - creditors-server
 
 
 volumes:
