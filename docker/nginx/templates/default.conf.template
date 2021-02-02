@@ -1,22 +1,23 @@
 server {
     listen ${PORT} ssl;
     server_name $hostname;
-    location /oauth2/ {
-        proxy_pass ${HYDRA_URL}/oauth2/;
+    location /creditors-hydra/oauth2/ {
+        proxy_pass ${CREDITORS_HYDRA_URL}/oauth2/;
+        proxy_redirect default;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Port $server_port;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     location /creditors-login/ {
-        proxy_pass ${LOGIN_URL}/creditors-login/;
+        proxy_pass ${CREDITORS_LOGIN_URL}/creditors-login/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Port $server_port;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     location /creditors-consent/ {
-        proxy_pass ${LOGIN_URL}/creditors-consent/;
+        proxy_pass ${CREDITORS_LOGIN_URL}/creditors-consent/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Port $server_port;
         proxy_set_header X-Forwarded-Proto $scheme;
