@@ -9,8 +9,8 @@ services:
       - 'POSTGRES_USER=$POSTGRES_USER'
       - 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD'
     volumes:
-      - pg-data-volume:/var/lib/postgresql/data
-      - ./docker/pg/create-users.sql:/docker-entrypoint-initdb.d/create-users.sql
+      - 'pg-data-volume:/var/lib/postgresql/data'
+      - './docker/pg/create-users.sql:/docker-entrypoint-initdb.d/create-users.sql'
     command: -c log_min_messages=FATAL
 
 
@@ -38,12 +38,12 @@ services:
       - 'PORT=$CREDITORS_PORT'
       - 'HYDRA_URL=http://login:4444'
       - 'LOGIN_URL=http://login:8080'
-      - 'RESOURCE_SERVER_URL=http://resource-server:8080'
+      - 'CREDITORS_SERVER_URL=http://creditors-server:8080'
       - 'SWAGGER_UI_URL=http://swagger-ui:8080'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
     depends_on:
       - login
-      - resource-server
+      - creditors-server
       - swagger-ui
 
 
@@ -83,7 +83,7 @@ services:
       - 'MAIL_PASSWORD=None'
       - 'MAIL_DEFAULT_SENDER=Swaptacular <no-reply@example.com>'
       - 'API_AUTH2_TOKEN_URL=https://nginx:$CREDITORS_PORT/oauth2/token'
-      - 'API_RESOURCE_SERVER=http://resource-server:8080'
+      - 'API_RESOURCE_SERVER=http://creditors-server:8080'
       - 'API_TIMEOUT_SECONDS=5'
       - 'SUPERVISOR_CLIENT_ID=creditors-supervisor'
       - 'SUPERVISOR_CLIENT_SECRET=creditors-supervisor'
@@ -127,7 +127,7 @@ services:
       - login
 
 
-  resource-server:
+  creditors-server:
     build:
       context: .
       dockerfile: Dockerfile
@@ -149,7 +149,7 @@ services:
       - pg
 
 
-  resource-server-config:
+  creditors-server-config:
     build:
       context: .
       dockerfile: Dockerfile
@@ -178,7 +178,7 @@ services:
       - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/oauth2/token'
       - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOSTNAME:$CREDITORS_PORT/swagger-ui/oauth2-redirect.html'
     depends_on:
-      - resource-server
+      - creditors-server
 
 
 volumes:
