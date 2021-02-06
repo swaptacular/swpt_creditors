@@ -33,9 +33,9 @@ services:
       - './docker/nginx/ssl/cert.pem:/etc/nginx/ssl/cert.pem'
       - './docker/nginx/ssl/key.pem:/etc/nginx/ssl/key.pem'
     ports:
-      - $CREDITORS_PORT:$CREDITORS_PORT
+      - $PUBLIC_PORT:$PUBLIC_PORT
     environment:
-      - 'PORT=$CREDITORS_PORT'
+      - 'PORT=$PUBLIC_PORT'
       - 'CREDITORS_HYDRA_URL=http://creditors-login:4444'
       - 'CREDITORS_LOGIN_URL=http://creditors-login:8080'
       - 'CREDITORS_SERVER_URL=http://creditors-server:8080'
@@ -62,9 +62,9 @@ services:
       - 'TTL_ACCESS_TOKEN=168h'
       - 'TTL_REFRESH_TOKEN=720h'
       - 'SECRETS_SYSTEM=$HYDRA_SYSTEM_SECRET'
-      - 'URLS_SELF_ISSUER=https://$CREDITORS_HOST/creditors-hydra/'
-      - 'URLS_LOGIN=https://$CREDITORS_HOST/creditors-login/'
-      - 'URLS_CONSENT=https://$CREDITORS_HOST/creditors-consent/'
+      - 'URLS_SELF_ISSUER=https://$PUBLIC_HOST/creditors-hydra/'
+      - 'URLS_LOGIN=https://$PUBLIC_HOST/creditors-login/'
+      - 'URLS_CONSENT=https://$PUBLIC_HOST/creditors-consent/'
       - 'URLS_ERROR=https://github.com/epandurski/swpt_login'
       - 'HYDRA_DSN=postgres://hydra_creditors:hydra_creditors@pg/${POSTGRES_DB}?sslmode=disable&max_conns=2&max_idle_conns=1&max_conn_lifetime=30s'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors_login:swpt_creditors_login@pg/${POSTGRES_DB}'
@@ -82,7 +82,7 @@ services:
       - 'MAIL_USERNAME=None'
       - 'MAIL_PASSWORD=None'
       - 'MAIL_DEFAULT_SENDER=Swaptacular <no-reply@example.com>'
-      - 'API_AUTH2_TOKEN_URL=https://nginx:$CREDITORS_PORT/creditors-hydra/oauth2/token'
+      - 'API_AUTH2_TOKEN_URL=https://nginx:$PUBLIC_PORT/creditors-hydra/oauth2/token'
       - 'API_RESOURCE_SERVER=http://creditors-server:8080'
       - 'API_TIMEOUT_SECONDS=5'
       - 'SUPERVISOR_CLIENT_ID=creditors-supervisor'
@@ -172,11 +172,11 @@ services:
       target: swagger-ui-image
     environment:
       - 'BASE_URL=/creditors-swagger-ui'
-      - 'API_ROOT=https://$CREDITORS_HOST/'
-      - 'OAUTH2_AUTHORIZATION_URL=https://$CREDITORS_HOST/creditors-hydra/oauth2/auth'
-      - 'OAUTH2_TOKEN_URL=https://$CREDITORS_HOST/creditors-hydra/oauth2/token'
-      - 'OAUTH2_REFRESH_URL=https://$CREDITORS_HOST/creditors-hydra/oauth2/token'
-      - 'OAUTH2_REDIRECT_URL=https://$CREDITORS_HOST/creditors-swagger-ui/oauth2-redirect.html'
+      - 'API_ROOT=https://$PUBLIC_HOST/'
+      - 'OAUTH2_AUTHORIZATION_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/auth'
+      - 'OAUTH2_TOKEN_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'OAUTH2_REFRESH_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'OAUTH2_REDIRECT_URL=https://$PUBLIC_HOST/creditors-swagger-ui/oauth2-redirect.html'
 
 
 volumes:
