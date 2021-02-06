@@ -6,11 +6,17 @@ C_ID = 4294967296
 
 @pytest.fixture(scope='module')
 def actors():
+    from unittest import mock
+
+    class Broker:
+        def actor(self, f, **kw):
+            return f
+
+    mock.patch('swpt_accounts.extensions.protocol_broker', Broker())
     from swpt_creditors import actors
     return actors
 
 
-@pytest.mark.skip
 def test_on_rejected_config_signal(db_session, actors):
     actors.on_rejected_config_signal(
         debtor_id=D_ID,
@@ -25,7 +31,6 @@ def test_on_rejected_config_signal(db_session, actors):
     )
 
 
-@pytest.mark.skip
 def test_on_account_purge_signal(db_session, actors):
     actors.on_account_purge_signal(
         debtor_id=D_ID,
@@ -35,7 +40,6 @@ def test_on_account_purge_signal(db_session, actors):
     )
 
 
-@pytest.mark.skip
 def test_on_account_transfer_signal(db_session, actors):
     actors.on_account_transfer_signal(
         debtor_id=D_ID,
@@ -55,7 +59,6 @@ def test_on_account_transfer_signal(db_session, actors):
     )
 
 
-@pytest.mark.skip
 def test_on_account_update_signal(db_session, actors):
     actors.on_account_update_signal(
         debtor_id=D_ID,
@@ -86,7 +89,6 @@ def test_on_account_update_signal(db_session, actors):
     )
 
 
-@pytest.mark.skip
 def test_on_rejected_direct_transfer_signal(db_session, actors):
     actors.on_rejected_direct_transfer_signal(
         coordinator_type='direct',
@@ -100,7 +102,6 @@ def test_on_rejected_direct_transfer_signal(db_session, actors):
     )
 
 
-@pytest.mark.skip
 def test_on_prepared_direct_transfer_signal(db_session, actors):
     actors.on_prepared_direct_transfer_signal(
         debtor_id=D_ID,
@@ -118,7 +119,6 @@ def test_on_prepared_direct_transfer_signal(db_session, actors):
     )
 
 
-@pytest.mark.skip
 def test_on_finalized_direct_transfer_signal(db_session, actors):
     actors.on_finalized_direct_transfer_signal(
         debtor_id=D_ID,
