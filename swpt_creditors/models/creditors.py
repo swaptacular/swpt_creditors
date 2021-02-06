@@ -228,7 +228,10 @@ class PinInfo(db.Model):
         self._increment_cfa()
         self._increment_afa(afa_reset_interval)
 
-    def try_value(self, secret: str, value: Optional[str], afa_reset_interval: timedelta) -> bool:
+    def _register_successful_attempt(self) -> None:
+        self.cfa = 0
+
+    def try_value(self, value: Optional[str], secret: str, afa_reset_interval: timedelta) -> bool:
         if self.status == self.STATUS_BLOCKED:
             return False
 
@@ -241,9 +244,12 @@ class PinInfo(db.Model):
                 self._register_failed_attempt(afa_reset_interval)
                 return False
 
+        self._register_successful_attempt()
         return True
 
-    def set_value(self, secret: str, value: Optional[str]) -> None:
+    def set_value(self, value: Optional[str], secret: str) -> None:
+        self.cfa = 0
+
         if value is None:
             self.pin_hmac = None
             self.pin_length = 0

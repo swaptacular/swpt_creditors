@@ -192,13 +192,12 @@ def update_pin_info_helper(
     if latest_update_id != pin_info.latest_update_id + 1:
         raise errors.UpdateConflict()
 
-    is_pin_value_ok = pin_reset_mode or pin_info.try_value(secret, pin_value, pin_failures_reset_interval)
+    is_pin_value_ok = pin_reset_mode or pin_info.try_value(pin_value, secret, pin_failures_reset_interval)
     if is_pin_value_ok:
         pin_info.status_name = status_name
-        pin_info.set_value(secret, new_pin_value)
+        pin_info.set_value(new_pin_value, secret)
         pin_info.latest_update_id = latest_update_id
         pin_info.latest_update_ts = current_ts
-        pin_info.cfa = 0
 
         paths, types = get_paths_and_types()
         db.session.add(PendingLogEntry(
@@ -267,11 +266,7 @@ def verify_pin_value_helper(
     if pin_info is None:
         raise errors.CreditorDoesNotExist()
 
-    is_pin_value_ok = pin_info.try_value(secret, pin_value, pin_failures_reset_interval)
-    if is_pin_value_ok:
-        pin_info.cfa = 0
-
-    return is_pin_value_ok
+    return pin_info.try_value(pin_value, secret, pin_failures_reset_interval)
 
 
 def _process_pending_log_entry(creditor: Creditor, entry: PendingLogEntry) -> None:
