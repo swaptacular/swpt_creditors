@@ -16,6 +16,8 @@ services:
 
   redis:
     image: redis:6.0.9
+    volumes:
+      - 'redis-data-volume:/data'
 
 
   mail:
@@ -181,3 +183,4 @@ services:
 
 volumes:
   pg-data-volume:
+  redis-data-volume:
