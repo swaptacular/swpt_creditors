@@ -197,3 +197,4 @@ configure_logging(
     format=os.environ.get('APP_LOG_FORMAT', 'text'),
     associated_loggers=os.environ.get('APP_ASSOCIATED_LOGGERS', '').split(),
 )
+sys.excepthook = _excepthook
