@@ -8,23 +8,40 @@ from typing import List
 from flask_cors import CORS
 
 
-def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:  # pragma: no cover
+def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
+    logging.error("Uncaught exception occured", exc_info=(exc_type, exc_value, traceback))
+
+
+def _remove_handlers(logger):
+    for h in logger.handlers:
+        logger.removeHandler(h)  # pragma: nocover
+
+
+def _add_console_hander(logger, format: str):
+    handler = logging.StreamHandler(sys.stdout)
+    fmt = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+
+    if format == 'text':
+        handler.setFormatter(logging.Formatter(fmt))
+    elif format == 'json':  # pragma: nocover
+        from pythonjsonlogger import jsonlogger
+        handler.setFormatter(jsonlogger.JsonFormatter(fmt))
+    else:  # pragma: nocover
+        raise RuntimeError(f'invalid log format: {format}')
+
+    logger.addHandler(handler)
+
+
+def _configure_root_logger(format: str) -> logging.Logger:
     root_logger = logging.getLogger()
+    _remove_handlers(root_logger)
+    _add_console_hander(root_logger, format)
 
-    # Setup the root logger's handler if necessary.
-    if not root_logger.hasHandlers():
-        handler = logging.StreamHandler(sys.stdout)
-        fmt = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+    return root_logger
 
-        if format == 'text':
-            handler.setFormatter(logging.Formatter(fmt))
-        elif format == 'json':
-            from pythonjsonlogger import jsonlogger
-            handler.setFormatter(jsonlogger.JsonFormatter(fmt))
-        else:
-            raise RuntimeError(f'invalid log format: {format}')
 
-        root_logger.addHandler(handler)
+def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:
+    root_logger = _configure_root_logger(format)
 
     # Set the log level for this app's logger.
     app_logger = logging.getLogger(__name__)
@@ -40,7 +57,7 @@ def configure_logging(level: str, format: str, associated_loggers: List[str]) ->
     # level for all third party libraires) is not lower than the
     # specified level.
     if app_logger_level > root_logger.getEffectiveLevel():
-        root_logger.setLevel(app_logger_level)
+        root_logger.setLevel(app_logger_level)  # pragma: no cover
 
     # Delete all gunicorn's log handlers (they are not needed in a
     # docker container because everything goes to the stdout anyway),
@@ -48,10 +65,9 @@ def configure_logging(level: str, format: str, associated_loggers: List[str]) ->
     # than the specified level.
     gunicorn_logger = logging.getLogger('gunicorn.error')
     gunicorn_logger.propagate = True
-    for h in gunicorn_logger.handlers:
-        gunicorn_logger.removeHandler(h)
+    _remove_handlers(gunicorn_logger)
     if app_logger_level > gunicorn_logger.getEffectiveLevel():
-        gunicorn_logger.setLevel(app_logger_level)
+        gunicorn_logger.setLevel(app_logger_level)  # pragma: no cover
 
 
 class MetaEnvReader(type):
