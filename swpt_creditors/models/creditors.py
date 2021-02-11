@@ -37,7 +37,13 @@ class Creditor(db.Model):
 
     _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
 
-    creditor_id = db.Column(db.BigInteger, nullable=False)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+
+    # NOTE: The `status_flags` column is not be part of the primary
+    # key, but should be included in the primary key index to allow
+    # index-only scans. Because SQLAlchemy does not support this yet
+    # (2020-01-11), the migration file should be edited so as not to
+    # create a "normal" index, but create a "covering" index instead.
     status_flags = db.Column(
         db.SmallInteger,
         nullable=False,
@@ -46,6 +52,7 @@ class Creditor(db.Model):
                 f"{STATUS_IS_ACTIVATED_FLAG} - is activated, "
                 f"{STATUS_IS_DEACTIVATED_FLAG} - is deactivated.",
     )
+
     created_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     reservation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
@@ -64,10 +71,7 @@ class Creditor(db.Model):
                 '`NULL` value for this column means either that the creditor has not '
                 'been deactivated yet, or that the deactivation date is unknown.',
     )
-    __mapper_args__ = {
-        'primary_key': [creditor_id],
-        'eager_defaults': True,
-    }
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.CheckConstraint(creditor_id != ROOT_CREDITOR_ID),
         db.CheckConstraint(last_log_entry_id >= 0),
@@ -78,13 +82,6 @@ class Creditor(db.Model):
             status_flags.op('&')(STATUS_IS_DEACTIVATED_FLAG) == 0,
             status_flags.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0,
         )),
-
-        # TODO: The `status_flags` column is not be part of the
-        #       primary key, but should be included in the primary key
-        #       index to allow index-only scans. Because SQLAlchemy
-        #       does not support this yet (2020-01-11), temporarily,
-        #       there are no index-only scans.
-        db.Index('idx_creditor_pk', creditor_id, unique=True),
     )
 
     pin_info = db.relationship('PinInfo', uselist=False, cascade='all', passive_deletes=True)
@@ -409,21 +406,18 @@ class PendingLogEntry(BaseLogEntry):
 
 
 class LogEntry(BaseLogEntry):
-    creditor_id = db.Column(db.BigInteger, nullable=False)
-    entry_id = db.Column(db.BigInteger, nullable=False)
-    __mapper_args__ = {
-        'primary_key': [creditor_id, entry_id],
-    }
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    entry_id = db.Column(db.BigInteger, primary_key=True)
+
+    # NOTE: The rest of the columns are not be part of the primary
+    # key, but should be included in the primary key index to allow
+    # index-only scans. Because SQLAlchemy does not support this yet
+    # (2020-01-11), the migration file should be edited so as not to
+    # create a "normal" index, but create a "covering" index instead.
+
     __table_args__ = (
         db.CheckConstraint('object_update_id > 0'),
         db.CheckConstraint('transfer_number > 0'),
         db.CheckConstraint('data_next_entry_id > 0'),
         db.CheckConstraint(entry_id > 0),
-
-        # TODO: The rest of the columns are not be part of the primary
-        #       key, but should be included in the primary key index
-        #       to allow index-only scans. Because SQLAlchemy does not
-        #       support this yet (2020-01-11), temporarily, there are
-        #       no index-only scans.
-        db.Index('idx_log_entry_pk', creditor_id, entry_id, unique=True),
     )

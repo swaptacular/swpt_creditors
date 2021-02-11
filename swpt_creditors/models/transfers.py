@@ -11,35 +11,33 @@ SC_CANCELED_BY_THE_SENDER = 'CANCELED_BY_THE_SENDER'
 
 
 class CommittedTransfer(db.Model):
-    creditor_id = db.Column(db.BigInteger, nullable=False)
-    debtor_id = db.Column(db.BigInteger, nullable=False)
-    creation_date = db.Column(db.DATE, nullable=False)
-    transfer_number = db.Column(db.BigInteger, nullable=False)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, primary_key=True)
+    transfer_number = db.Column(db.BigInteger, primary_key=True)
+
+    # NOTE: `acquired_amount`, `principal`, `committed_at`, and
+    # `previous_transfer_number` columns are not be part of the
+    # primary key, but should be included in the primary key index to
+    # allow index-only scans. Because SQLAlchemy does not support this
+    # yet (2020-01-11), the migration file should be edited so as not
+    # to create a "normal" index, but create a "covering" index
+    # instead.
+    acquired_amount = db.Column(db.BigInteger, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
+    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    previous_transfer_number = db.Column(db.BigInteger, nullable=False)
+
     coordinator_type = db.Column(db.String, nullable=False)
     sender = db.Column(db.String, nullable=False)
     recipient = db.Column(db.String, nullable=False)
-    acquired_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
-    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    principal = db.Column(db.BigInteger, nullable=False)
-    previous_transfer_number = db.Column(db.BigInteger, nullable=False)
-    __mapper_args__ = {
-        'primary_key': [creditor_id, debtor_id, creation_date, transfer_number],
-    }
     __table_args__ = (
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(acquired_amount != 0),
         db.CheckConstraint(previous_transfer_number >= 0),
         db.CheckConstraint(previous_transfer_number < transfer_number),
-
-        # TODO: `acquired_amount`, `principal`, `committed_at`, and
-        #       `previous_transfer_number` columns are not be part of
-        #       the primary key, but should be included in the primary
-        #       key index to allow index-only scans. Because
-        #       SQLAlchemy does not support this yet (2020-01-11),
-        #       temporarily, there are no index-only scans.
-        db.Index('idx_committed_transfer_pk', creditor_id, debtor_id, creation_date, transfer_number, unique=True),
     )
 
 

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f04a1cf854a4
+Revision ID: 8c56a59f4f05
 Revises: 8d8c816257ce
-Create Date: 2021-01-25 15:01:31.485273
+Create Date: 2021-02-11 21:01:07.818791
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f04a1cf854a4'
+revision = '8c56a59f4f05'
 down_revision = '8d8c816257ce'
 branch_labels = None
 depends_on = None
@@ -33,21 +33,25 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
+    sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
+    sa.Column('principal', sa.BigInteger(), nullable=False),
+    sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(), nullable=False),
     sa.Column('sender', sa.String(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
-    sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
-    sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('principal', sa.BigInteger(), nullable=False),
-    sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('acquired_amount != 0'),
     sa.CheckConstraint('previous_transfer_number < transfer_number'),
     sa.CheckConstraint('previous_transfer_number >= 0'),
     sa.CheckConstraint('transfer_number > 0')
     )
-    op.create_index('idx_committed_transfer_pk', 'committed_transfer', ['creditor_id', 'debtor_id', 'creation_date', 'transfer_number'], unique=True)
+
+    # Create a "covering" index instead of a "normal" index.
+    op.execute('CREATE UNIQUE INDEX idx_committed_transfer_pk ON committed_transfer (creditor_id, debtor_id, creation_date, transfer_number) INCLUDE (acquired_amount, principal, committed_at, previous_transfer_number)')
+    op.execute('ALTER TABLE committed_transfer ADD CONSTRAINT committed_transfer_pkey PRIMARY KEY USING INDEX idx_committed_transfer_pk')
+
     op.create_table('configure_account_signal',
     sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -79,7 +83,11 @@ def upgrade():
     sa.CheckConstraint('last_log_entry_id >= 0'),
     sa.CheckConstraint('transfers_list_latest_update_id > 0')
     )
-    op.create_index('idx_creditor_pk', 'creditor', ['creditor_id'], unique=True)
+
+    # Create a "covering" index instead of a "normal" index.
+    op.execute('CREATE UNIQUE INDEX idx_creditor_pk ON creditor (creditor_id) INCLUDE (status_flags)')
+    op.execute('ALTER TABLE creditor ADD CONSTRAINT creditor_pkey PRIMARY KEY USING INDEX idx_creditor_pk')
+
     op.create_table('finalize_transfer_signal',
     sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -106,7 +114,11 @@ def upgrade():
     sa.CheckConstraint('entry_id > 0'),
     sa.CheckConstraint('transfer_number > 0')
     )
-    op.create_index('idx_ledger_entry_pk', 'ledger_entry', ['creditor_id', 'debtor_id', 'entry_id'], unique=True)
+
+    # Create a "covering" index instead of a "normal" index.
+    op.execute('CREATE UNIQUE INDEX idx_ledger_entry_pk ON ledger_entry (creditor_id, debtor_id, entry_id) INCLUDE (creation_date, transfer_number, aquired_amount, principal, added_at)')
+    op.execute('ALTER TABLE ledger_entry ADD CONSTRAINT ledger_entry_pkey PRIMARY KEY USING INDEX idx_ledger_entry_pk')
+
     op.create_table('log_entry',
     sa.Column('added_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('object_type', sa.String(), nullable=True),
@@ -130,7 +142,11 @@ def upgrade():
     sa.CheckConstraint('object_update_id > 0'),
     sa.CheckConstraint('transfer_number > 0')
     )
-    op.create_index('idx_log_entry_pk', 'log_entry', ['creditor_id', 'entry_id'], unique=True)
+
+    # Create a "covering" index instead of a "normal" index.
+    op.execute('CREATE UNIQUE INDEX idx_log_entry_pk ON log_entry (creditor_id, entry_id) INCLUDE (added_at, object_type, object_uri, object_update_id, is_deleted, data, object_type_hint, debtor_id, creation_date, transfer_number, transfer_uuid, data_principal, data_next_entry_id, data_finalized_at, data_error_code)')
+    op.execute('ALTER TABLE log_entry ADD CONSTRAINT log_entry_pkey PRIMARY KEY USING INDEX idx_log_entry_pk')
+
     op.create_table('prepare_transfer_signal',
     sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -349,15 +365,11 @@ def downgrade():
     op.drop_table('pending_log_entry')
     op.drop_table('account')
     op.drop_table('prepare_transfer_signal')
-    op.drop_index('idx_log_entry_pk', table_name='log_entry')
     op.drop_table('log_entry')
-    op.drop_index('idx_ledger_entry_pk', table_name='ledger_entry')
     op.drop_table('ledger_entry')
     op.drop_table('finalize_transfer_signal')
-    op.drop_index('idx_creditor_pk', table_name='creditor')
     op.drop_table('creditor')
     op.drop_table('configure_account_signal')
-    op.drop_index('idx_committed_transfer_pk', table_name='committed_transfer')
     op.drop_table('committed_transfer')
     op.drop_table('agent_config')
     # ### end Alembic commands ###

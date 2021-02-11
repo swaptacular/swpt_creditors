@@ -215,17 +215,20 @@ class AccountDisplay(db.Model):
 
 
 class LedgerEntry(db.Model):
-    creditor_id = db.Column(db.BigInteger, nullable=False)
-    debtor_id = db.Column(db.BigInteger, nullable=False)
-    entry_id = db.Column(db.BigInteger, nullable=False)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    entry_id = db.Column(db.BigInteger, primary_key=True)
+
+    # NOTE: The rest of the columns are not be part of the primary
+    # key, but should be included in the primary key index to allow
+    # index-only scans. Because SQLAlchemy does not support this yet
+    # (2020-01-11), the migration file should be edited so as not to
+    # create a "normal" index, but create a "covering" index instead.
     creation_date = db.Column(db.DATE)
     transfer_number = db.Column(db.BigInteger)
     aquired_amount = db.Column(db.BigInteger, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     added_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    __mapper_args__ = {
-        'primary_key': [creditor_id, debtor_id, entry_id],
-    }
     __table_args__ = (
         db.CheckConstraint(transfer_number > 0),
         db.CheckConstraint(entry_id > 0),
@@ -234,10 +237,4 @@ class LedgerEntry(db.Model):
             and_(creation_date != null(), transfer_number != null()),
         )),
 
-        # TODO: The rest of the columns are not be part of the primary
-        #       key, but should be included in the primary key index
-        #       to allow index-only scans. Because SQLAlchemy does not
-        #       support this yet (2020-01-11), temporarily, there are
-        #       no index-only scans.
-        db.Index('idx_ledger_entry_pk', creditor_id, debtor_id, entry_id, unique=True),
     )
