@@ -91,6 +91,10 @@ def process_account_update_signal(
         with_for_update().\
         one_or_none()
     if data is None:
+        # TODO: Consider creating a new local `Account` record instead
+        #       of deleting the account record on the server. This
+        #       would be safer, but would allow third parties (the
+        #       accounts server) to create local accounts at will.
         _discard_orphaned_account(creditor_id, debtor_id, config_flags, negligible_amount)
         return
 
