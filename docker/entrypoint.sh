@@ -71,7 +71,7 @@ perform_db_initialization() {
     flask swpt_creditors configure_interval -- $MIN_CREDITOR_ID $MAX_CREDITOR_ID
 }
 
-configure_web_server() {
+generate_oathkeeper_configuration() {
     envsubst '$PORT $OAUTH2_INTROSPECT_URL' \
              < "$APP_ROOT_DIR/oathkeeper/config.yaml.template" \
              > "$APP_ROOT_DIR/oathkeeper/config.yaml"
@@ -94,7 +94,7 @@ case $1 in
         setup_rabbitmq_bindings
         ;;
     webserver)
-        configure_web_server
+        generate_oathkeeper_configuration
         exec supervisord -c "$APP_ROOT_DIR/supervisord-webserver.conf"
         ;;
     protocol)
@@ -121,7 +121,8 @@ case $1 in
         exec flask signalbus flushmany --repeat=$wait $signal_name
         ;;
     all)
-        configure_web_server
+        # Spawns all the necessary processes in one container.
+        generate_oathkeeper_configuration
         exec supervisord -c "$APP_ROOT_DIR/supervisord-all.conf"
         ;;
     *)
