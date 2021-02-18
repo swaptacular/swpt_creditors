@@ -1,18 +1,21 @@
 Swaptacular service that manages creditors
 ==========================================
 
-This service implements a [messaging
+This service implements
+[Swaptacular](https://github.com/epandurski/swaptacular)'s [messaging
 protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
 client. The deliverables are two docker images: the app-image, and the
 swagger-ui-image. Both images are generated from the project's
-[Dockerfile](Dockerfile). The app-image is the creditor managing
-service. The swagger-ui-image is a simple Swagger UI cleint for the
-service. To find out what processes can be spawned from the generated
-app-image, see the [entrypoint](docker/entrypoint.sh). For the
-available configuration options, see the
-[development.env](development.env) file.  This
-[example](docker-compose-all.yml) shows how to use the generated
-image.
+[Dockerfile](https://github.com/epandurski/swpt_creditors/blob/master/Dockerfile). The
+app-image is the creditor managing service. The swagger-ui-image is a
+simple Swagger UI cleint for the service. To find out what processes
+can be spawned from the generated app-image, see the
+[entrypoint](https://github.com/epandurski/swpt_creditors/blob/master/docker/entrypoint.sh). For
+the available configuration options, see the
+[development.env](https://github.com/epandurski/swpt_creditors/blob/master/development.env)
+file.  This
+[example](https://github.com/epandurski/swpt_creditors/blob/master/docker-compose-all.yml)
+shows how to use the generated image.
 
 
 How to run the unit tests
