@@ -1,11 +1,12 @@
 Swaptacular service that manages creditors
 ==========================================
 
-This service implements
-[Swaptacular](https://github.com/epandurski/swaptacular)'s [messaging
+This service implements a
+[Swaptacular](https://github.com/epandurski/swaptacular) [messaging
 protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
-client. The deliverables are two docker images: the app-image, and the
-swagger-ui-image. Both images are generated from the project's
+client that manages creditors. The deliverables are two docker images:
+the app-image, and the swagger-ui-image. Both images are generated
+from the project's
 [Dockerfile](https://github.com/epandurski/swpt_creditors/blob/master/Dockerfile). The
 app-image is the creditor managing service. The swagger-ui-image is a
 simple Swagger UI cleint for the service. To find out what processes
