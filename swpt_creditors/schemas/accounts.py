@@ -88,6 +88,7 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
         required=True,
         validate=validate.Range(min=0.0),
         data_key='exchangeRate',
+        format='double',
         description="The exchange rate between the pegged currency and the peg currency. For "
                     "example, `2.0` would mean that pegged currency's tokens are twice as "
                     "valuable as peg currency's tokens.",
@@ -357,6 +358,7 @@ class AccountInfoSchema(MutableResourceSchema):
         required=True,
         dump_only=True,
         data_key='interestRate',
+        format='float',
         description='Annual rate (in percents) at which interest accumulates on the account.',
         example=0.0,
     )
@@ -447,6 +449,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         example={'uri': '/creditors/2/accounts/1/'},
     )
     interestRate = fields.Float(
+        format='float',
         description='Optional annual account interest rate (in percents), which is known to '
                     'the creditor.',
         example=0.0,
@@ -561,6 +564,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema, PinProtected
         required=True,
         validate=validate.Range(min=0.0),
         data_key='negligibleAmount',
+        format='float',
         description='The maximum amount that is considered negligible. It can be used '
                     'to decide whether the account can be safely deleted, and whether an '
                     'incoming transfer should be considered as insignificant. Must be '
@@ -714,6 +718,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema, PinProtecte
         required=True,
         validate=validate.Range(min=0.0, min_inclusive=False),
         data_key='amountDivisor',
+        format='double',
         description="Before displaying the amount, it should be divided by this number. For "
                     "new accounts the value of this field will be `1`."
                     "\n\n"

@@ -87,6 +87,7 @@ class TransferOptionsSchema(Schema):
         missing=-100.0,
         validate=validate.Range(min=-100.0),
         data_key='minInterestRate',
+        format='float',
         description='The minimal approved interest rate. If the interest rate on the '
                     'account becomes lower than this value, the transfer will not be '
                     'successful. This can be useful when the transferred amount may need '
