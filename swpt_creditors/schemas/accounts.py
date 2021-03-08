@@ -370,6 +370,7 @@ class AccountInfoSchema(MutableResourceSchema):
         required=True,
         dump_only=True,
         data_key='noteMaxBytes',
+        format='int32',
         description='The maximal number of bytes that transfer notes are allowed to contain when '
                     'UTF-8 encoded. This will be a non-negative number.',
         example=500,
@@ -456,6 +457,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     )
     noteMaxBytes = fields.Integer(
         validate=validate.Range(min=0, max=TRANSFER_NOTE_MAX_BYTES),
+        format='int32',
         description='Optional maximal number of bytes that transfer notes are allowed to '
                     'contain when UTF-8 encoded, which is known to the creditor.',
         example=500,
@@ -724,6 +726,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema, PinProtecte
         required=True,
         validate=validate.Range(min=-20, max=20),
         data_key='decimalPlaces',
+        format='int32',
         description='The number of digits to show after the decimal point, when displaying '
                     'the amount. A negative number signifies the number of insignificant '
                     'digits at the end of the integer number. For new accounts the value of '
