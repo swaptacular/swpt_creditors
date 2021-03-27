@@ -56,7 +56,8 @@ class TransferErrorSchema(Schema):
     )
     total_locked_amount = fields.Method(
         'get_total_locked_amount',
-        format="int64",
+        type='integer',
+        format='int64',
         data_key='totalLockedAmount',
         description='This field will be present only when the transfer has been rejected '
                     'due to insufficient available amount. In this case, it will contain '
