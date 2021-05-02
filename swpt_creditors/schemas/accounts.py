@@ -383,7 +383,14 @@ class AccountInfoSchema(MutableResourceSchema):
         description='When this field is present, this means that for some reason, the current '
                     '`AccountConfig` settings can not be applied, or are not effectual anymore. '
                     'Usually this means that there has been a network communication problem, or a '
-                    'system configuration problem. The value alludes to the cause of the problem.',
+                    'system configuration problem. The value alludes to the cause of the problem.'
+                    '\n\n'
+                    '* `"NO_CONNECTION_TO_DEBTOR"` signifies that there is no network connection '
+                    '  to the account\'s debtor. Note that the account may still be useful as a '
+                    '  link in a chain of currency pegs.\n'
+                    '* `"CONFIGURATION_IS_NOT_EFFECTUAL"` signifies that the necessary confirmation '
+                    '  that the current configuration settings have been successfully applied '
+                    '  has not been received.\n',
         example='CONFIGURATION_IS_NOT_EFFECTUAL',
     )
     optional_debtor_info = fields.Nested(
