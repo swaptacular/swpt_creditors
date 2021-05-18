@@ -323,7 +323,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         return calc_checkup_datetime(obj.debtor_id, obj.initiated_at).isoformat()
 
 
-class TransferCancelationRequestSchema(Schema):
+class TransferCancelationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.transfer_cancelation_request,
         default=type_registry.transfer_cancelation_request,
