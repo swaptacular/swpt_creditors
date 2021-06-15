@@ -1608,6 +1608,7 @@ def test_serialize_transfer(app):
         "latestUpdateAt": "2020-01-02T00:00:00",
         "latestUpdateId": 2,
     }
+    assert ts.dumps(dt).find('"minInterestRate": -50.0') != -1
 
     dt.error_code = None
     dt.deadline = None
