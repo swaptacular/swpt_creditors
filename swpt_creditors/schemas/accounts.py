@@ -27,12 +27,13 @@ class DebtorIdentitySchema(ValidateTypeMixin, Schema):
                     "reliably identify the debtor. Note that a network request *should not "
                     "be needed* to identify the debtor."
                     "\n\n"
-                    "For example, if the debtor happens to be a bank, the URI would reveal "
-                    "the type of the debtor (a bank), and the ID of the bank. Note that "
-                    "some debtors may be used only to represent a physical value measurement "
-                    "unit (like ounces of gold). Those *dummy debtors* do not represent a "
-                    "person or an organization, do not owe anything to anyone, and are used "
-                    "solely as identifiers of value measurement units.",
+                    "For example, if the issuer happens to be a bank, the URI would reveal "
+                    "the type of the issuer (a bank), the ID of the bank, and the currency "
+                    "code (USD for example). Note that some debtors may be used only to "
+                    "represent a physical value measurement unit (like ounces of gold). Those "
+                    "*dummy debtors* do not represent a person or an organization, do not owe "
+                    "anything to anyone, and are used solely as identifiers of value "
+                    "measurement units.",
         example='swpt:1',
     )
 
