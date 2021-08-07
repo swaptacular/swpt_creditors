@@ -11,6 +11,7 @@ DB_SESSION = 'swpt_creditors.extensions.db.session'
 config_dict = {
     'TESTING': True,
     'PREFERRED_URL_SCHEME': 'http',
+    'APP_ENABLE_CORS': True,
     'APP_TRANSFERS_FINALIZATION_AVG_SECONDS': 10.0,
     'APP_MAX_TRANSFERS_PER_MONTH': 10,
     'APP_CREDITORS_PER_PAGE': 2,
