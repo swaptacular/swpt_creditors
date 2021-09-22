@@ -308,6 +308,9 @@ class AccountDisplayEndpoint(MethodView):
     def patch(self, account_display, creditorId, debtorId):
         """Update account's display settings.
 
+        A 422 error will be returned if there is another account with
+        the same `debtorName`.
+
         **Note:** This is a potentially dangerous operation which may
         require a PIN. Also, normally this is an idempotent operation,
         but when an incorrect PIN is supplied, repeating the operation
