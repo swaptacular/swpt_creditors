@@ -352,7 +352,8 @@ class AccountInfoSchema(MutableResourceSchema):
         required=True,
         dump_only=True,
         data_key='safeToDelete',
-        description='Whether it is safe to delete this account.',
+        description='Whether it is safe to delete this account. Will be `False` '
+                    'when `scheduledForDeletion` is `False`.',
         example=False,
     )
     interest_rate = fields.Float(
