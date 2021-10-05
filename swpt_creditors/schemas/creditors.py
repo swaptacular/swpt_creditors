@@ -4,7 +4,7 @@ from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64, PinInfo, PIN_REGEX
 from .common import ObjectReferenceSchema, PaginatedListSchema, PaginatedStreamSchema, \
     MutableResourceSchema, PinProtectedResourceSchema, type_registry, ValidateTypeMixin, URI_DESCRIPTION, \
-    PAGE_NEXT_DESCRIPTION
+    PAGE_NEXT_DESCRIPTION, TYPE_DESCRIPTION
 
 
 class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
@@ -18,7 +18,7 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
     type = fields.String(
         missing=type_registry.creditor,
         default=type_registry.creditor,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='Creditor',
     )
     created_at = fields.DateTime(
@@ -59,7 +59,7 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
     type = fields.String(
         missing=type_registry.pin_info,
         default=type_registry.pin_info,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='PinInfo',
     )
     status_name = fields.String(
@@ -123,7 +123,7 @@ class AccountsListSchema(PaginatedListSchema, MutableResourceSchema):
         lambda obj: type_registry.accounts_list,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountsList',
     )
     wallet = fields.Nested(
@@ -161,7 +161,7 @@ class TransfersListSchema(PaginatedListSchema, MutableResourceSchema):
         lambda obj: type_registry.transfers_list,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='TransfersList',
     )
     wallet = fields.Nested(
@@ -199,7 +199,7 @@ class WalletSchema(Schema):
         lambda obj: type_registry.wallet,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='Wallet',
     )
     creditor = fields.Nested(
@@ -349,7 +349,7 @@ class LogEntrySchema(Schema):
         lambda obj: type_registry.log_entry,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='LogEntry',
     )
     entry_id = fields.Integer(
@@ -465,7 +465,7 @@ class LogEntriesPageSchema(Schema):
         lambda obj: type_registry.log_entries_page,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='LogEntriesPage',
     )
     items = fields.Nested(

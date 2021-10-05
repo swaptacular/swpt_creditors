@@ -9,14 +9,14 @@ from swpt_creditors import models
 from swpt_creditors.models import MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES
 from .common import ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, \
     PinProtectedResourceSchema, MutableResourceSchema, ValidateTypeMixin, type_registry, \
-    URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION
+    URI_DESCRIPTION, PAGE_NEXT_DESCRIPTION, TYPE_DESCRIPTION
 
 
 class DebtorIdentitySchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.debtor_identity,
         default=type_registry.debtor_identity,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='DebtorIdentity',
     )
     uri = fields.String(
@@ -47,7 +47,7 @@ class DebtorInfoSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.debtor_info,
         default=type_registry.debtor_info,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='DebtorInfo',
     )
     iri = fields.String(
@@ -82,7 +82,7 @@ class CurrencyPegSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.currency_peg,
         default=type_registry.currency_peg,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='CurrencyPeg',
     )
     exchange_rate = fields.Float(
@@ -114,7 +114,7 @@ class LedgerEntrySchema(Schema):
         lambda obj: type_registry.ledger_entry,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='LedgerEntry',
     )
     ledger = fields.Nested(
@@ -197,7 +197,7 @@ class LedgerEntriesPageSchema(Schema):
         lambda obj: type_registry.ledger_entries_page,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='LedgerEntriesPage',
     )
     items = fields.Nested(
@@ -231,7 +231,7 @@ class AccountLedgerSchema(MutableResourceSchema):
         lambda obj: type_registry.account_ledger,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountLedger',
     )
     account = fields.Nested(
@@ -321,7 +321,7 @@ class AccountInfoSchema(MutableResourceSchema):
         lambda obj: type_registry.account_info,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountInfo',
     )
     account = fields.Nested(
@@ -447,7 +447,7 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
     type = fields.String(
         missing=type_registry.account_knowledge,
         default=type_registry.account_knowledge,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountKnowledge',
     )
     account = fields.Nested(
@@ -546,7 +546,7 @@ class AccountConfigSchema(ValidateTypeMixin, MutableResourceSchema, PinProtected
     type = fields.String(
         missing=type_registry.account_config,
         default=type_registry.account_config,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountConfig',
     )
     account = fields.Nested(
@@ -617,7 +617,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema, PinProtect
     type = fields.String(
         missing=type_registry.account_exchange,
         default=type_registry.account_exchange,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountExchange',
     )
     account = fields.Nested(
@@ -713,7 +713,7 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema, PinProtecte
     type = fields.String(
         missing=type_registry.account_display,
         default=type_registry.account_display,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountDisplay',
     )
     account = fields.Nested(
@@ -811,7 +811,7 @@ class AccountSchema(MutableResourceSchema):
         lambda obj: type_registry.account,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='Account',
     )
     accounts_list = fields.Nested(

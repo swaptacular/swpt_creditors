@@ -7,7 +7,8 @@ from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64, CT_DIRECT, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX, SC_INSUFFICIENT_AVAILABLE_AMOUNT
 from .common import ObjectReferenceSchema, AccountIdentitySchema, ValidateTypeMixin, \
-    MutableResourceSchema, PinProtectedResourceSchema, type_registry, URI_DESCRIPTION
+    MutableResourceSchema, PinProtectedResourceSchema, type_registry, URI_DESCRIPTION, \
+    TYPE_DESCRIPTION
 
 
 _TRANSFER_NOTE_DESCRIPTION = '\
@@ -27,7 +28,7 @@ class TransferErrorSchema(Schema):
         lambda obj: type_registry.transfer_error,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='TransferError',
     )
     error_code = fields.String(
@@ -81,7 +82,7 @@ class TransferOptionsSchema(Schema):
     type = fields.String(
         missing=type_registry.transfer_options,
         default=type_registry.transfer_options,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='TransferOptions',
     )
     min_interest_rate = fields.Float(
@@ -119,7 +120,7 @@ class TransferResultSchema(Schema):
         lambda obj: type_registry.transfer_result,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='TransferResult',
     )
     finalized_at = fields.DateTime(
@@ -156,7 +157,7 @@ class TransferCreationRequestSchema(ValidateTypeMixin, PinProtectedResourceSchem
     type = fields.String(
         missing=type_registry.transfer_creation_request,
         default=type_registry.transfer_creation_request,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='TransferCreationRequest',
     )
     transfer_uuid = fields.UUID(
@@ -225,7 +226,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         lambda obj: type_registry.transfer,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='Transfer',
     )
     transfers_list = fields.Nested(
@@ -327,7 +328,7 @@ class TransferCancelationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.transfer_cancelation_request,
         default=type_registry.transfer_cancelation_request,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='TransferCancelationRequest',
     )
 
@@ -344,7 +345,7 @@ class CommittedTransferSchema(Schema):
         lambda obj: type_registry.committed_transfer,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='CommittedTransfer',
     )
     account = fields.Nested(

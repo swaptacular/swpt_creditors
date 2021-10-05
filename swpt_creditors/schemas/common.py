@@ -1,6 +1,9 @@
 from marshmallow import Schema, fields, validate, validates, post_dump, ValidationError
 from swpt_creditors.models import MAX_INT64, PIN_REGEX
 
+TYPE_DESCRIPTION = '\
+The type of this object. Will always be present in the responses from the server.'
+
 URI_DESCRIPTION = '\
 The URI of this object. Can be a relative URI.'
 
@@ -76,7 +79,7 @@ class PaginatedListSchema(Schema):
         lambda obj: type_registry.paginated_list,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='PaginatedList',
     )
     items_type = fields.String(
@@ -110,7 +113,7 @@ class PaginatedStreamSchema(Schema):
         lambda obj: type_registry.paginated_stream,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='PaginatedStream',
     )
     items_type = fields.String(
@@ -179,7 +182,7 @@ class ObjectReferencesPageSchema(Schema):
         lambda obj: type_registry.object_references_page,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='ObjectReferencesPage',
     )
     items = fields.Nested(
@@ -207,7 +210,7 @@ class AccountIdentitySchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.account_identity,
         default=type_registry.account_identity,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='AccountIdentity',
     )
     uri = fields.String(

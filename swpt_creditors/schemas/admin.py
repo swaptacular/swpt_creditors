@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, post_dump
 from swpt_lib.utils import i64_to_u64
-from .common import type_registry, ValidateTypeMixin, PaginatedListSchema, URI_DESCRIPTION
+from .common import type_registry, ValidateTypeMixin, PaginatedListSchema, URI_DESCRIPTION, TYPE_DESCRIPTION
 
 
 class CreditorsListSchema(PaginatedListSchema):
@@ -15,7 +15,7 @@ class CreditorsListSchema(PaginatedListSchema):
         lambda obj: type_registry.creditors_list,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='CreditorsList',
     )
 
@@ -31,7 +31,7 @@ class CreditorReservationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.creditor_reservation_request,
         load_only=True,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='CreditorReservationRequest',
     )
 
@@ -41,7 +41,7 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         lambda obj: type_registry.creditor_reservation,
         required=True,
         type='string',
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='CreditorReservation',
     )
     created_at = fields.DateTime(
@@ -86,7 +86,7 @@ class CreditorActivationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.creditor_activation_request,
         load_only=True,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='CreditorActivationRequest',
     )
     optional_reservation_id = fields.Integer(
@@ -105,6 +105,6 @@ class CreditorDeactivationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
         missing=type_registry.creditor_deactivation_request,
         load_only=True,
-        description='The type of this object.',
+        description=TYPE_DESCRIPTION,
         example='CreditorDeactivationRequest',
     )
