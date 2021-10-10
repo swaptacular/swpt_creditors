@@ -242,7 +242,7 @@ class WalletSchema(Schema):
         format="int32",
         data_key='logRetentionDays',
         description="The entries in the creditor's log stream will not be deleted for at least this "
-                    "number of days. This will always be a positive number.",
+                    "number of days. Must be at least 30 days.",
         example=30,
     )
     transfers_list = fields.Nested(

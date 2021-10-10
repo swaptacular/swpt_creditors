@@ -198,6 +198,9 @@ class Configuration(metaclass=MetaEnvReader):
     APP_CREDITOR_SUBJECT_REGEX = '^creditors:([0-9]+)$'
 
 
+assert Configuration.APP_LOG_RETENTION_DAYS >= 30, 'APP_LOG_RETENTION_DAYS must be at least 30.'
+
+
 def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
