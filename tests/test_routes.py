@@ -325,6 +325,8 @@ def test_get_wallet(client, creditor):
     assert data['pinInfo'] == {'uri': '/creditors/4294967296/pin'}
     assert data['requirePin'] is False
     assert data['creditor'] == {'uri': '/creditors/4294967296/'}
+    assert data['logRetentionDays'] == 31
+    assert data['logLatestEntryId'] == 0
     log = data['log']
     assert log['type'] == 'PaginatedStream'
     assert log['first'] == '/creditors/4294967296/log'

@@ -88,6 +88,7 @@ def test_serialize_wallet(app):
         'pinInfo': {'uri': '/creditors/4294967296/pin'},
         'requirePin': False,
         'logRetentionDays': 31,
+        'logLatestEntryId': 12345,
         'log': {
             'type': 'PaginatedStream',
             'itemsType': 'LogEntry',

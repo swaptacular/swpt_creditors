@@ -234,6 +234,15 @@ class WalletSchema(Schema):
             'type': 'PaginatedStream',
         },
     )
+    last_log_entry_id = fields.Integer(
+        required=True,
+        dump_only=True,
+        format="int64",
+        data_key='logLatestEntryId',
+        description="The ID of the latest entry in the creditor's log stream. If there are "
+                    "no entries yet, the value will be `0`.",
+        example=12345,
+    )
     log_retention_days = fields.Method(
         'get_log_retention_days',
         required=True,
