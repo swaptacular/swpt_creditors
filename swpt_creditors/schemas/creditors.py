@@ -408,7 +408,8 @@ class LogEntrySchema(Schema):
         format='int64',
         description='A positive number which gets incremented after each change in the '
                     'object. When this field is not present, this means that the changed object '
-                    'does not have an update ID (the object is immutable, or has been deleted).',
+                    'does not have an update ID (the object is immutable, or has been deleted '
+                    '*permanently*).',
         example=10,
     )
     optional_data = fields.Dict(

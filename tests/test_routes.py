@@ -689,19 +689,21 @@ def test_delete_account(client, account):
     p.process_pending_log_entries(4294967296)
     entries = _get_all_pages(client, '/creditors/4294967296/log', page_type='LogEntriesPage', streaming=True)
     assert len(entries) == 11
+    object_update_id = entries[4]['objectUpdateId']
+    assert object_update_id > account_uid
     assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
             for e in entries] == [
         ('Account', '/creditors/4294967296/accounts/1/', account_uid, False),
         ('AccountsList', '/creditors/4294967296/accounts-list', 2, False),
         ('AccountConfig', '/creditors/4294967296/accounts/1/config', latestUpdateId + 1, False),
         ('AccountsList', '/creditors/4294967296/accounts-list', 3, False),
-        ('Account', '/creditors/4294967296/accounts/1/', None, True),
-        ('AccountConfig', '/creditors/4294967296/accounts/1/config', None, True),
-        ('AccountInfo', '/creditors/4294967296/accounts/1/info', None, True),
-        ('AccountLedger', '/creditors/4294967296/accounts/1/ledger', None, True),
-        ('AccountDisplay', '/creditors/4294967296/accounts/1/display', None, True),
-        ('AccountExchange', '/creditors/4294967296/accounts/1/exchange', None, True),
-        ('AccountKnowledge', '/creditors/4294967296/accounts/1/knowledge', None, True),
+        ('Account', '/creditors/4294967296/accounts/1/', object_update_id, True),
+        ('AccountConfig', '/creditors/4294967296/accounts/1/config', object_update_id, True),
+        ('AccountInfo', '/creditors/4294967296/accounts/1/info', object_update_id, True),
+        ('AccountLedger', '/creditors/4294967296/accounts/1/ledger', object_update_id, True),
+        ('AccountDisplay', '/creditors/4294967296/accounts/1/display', object_update_id, True),
+        ('AccountExchange', '/creditors/4294967296/accounts/1/exchange', object_update_id, True),
+        ('AccountKnowledge', '/creditors/4294967296/accounts/1/knowledge', object_update_id, True),
     ]
 
     r = client.get('/creditors/4294967296/accounts-list')

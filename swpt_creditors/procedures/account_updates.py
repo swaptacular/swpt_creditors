@@ -6,7 +6,7 @@ from swpt_lib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     LogEntry, PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \
-    HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS, MIN_INT64, MAX_INT64
+    HUGE_NEGLIGIBLE_AMOUNT, DEFAULT_CONFIG_FLAGS, MIN_INT64, MAX_INT64, uid_seq
 from .common import ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
     LOAD_ONLY_INFO_RELATED_COLUMNS
 from .common import contain_principal_overflow
@@ -159,6 +159,7 @@ def process_account_update_signal(
         )
         if log_entry:
             db.session.add(log_entry)
+            db.session.execute(uid_seq)
 
         data.ledger_pending_transfer_ts = None
         ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
@@ -255,6 +256,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, *, max_count
 
     if log_entry:
         db.session.add(log_entry)
+        db.session.execute(uid_seq)
 
     return is_done
 

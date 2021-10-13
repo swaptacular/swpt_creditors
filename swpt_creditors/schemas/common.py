@@ -241,7 +241,7 @@ class MutableResourceSchema(Schema):
         format='int64',
         description='The sequential number of the latest update in the object. This will always '
                     'be a positive number, which gets incremented after each change in the '
-                    'object. Normally the counting starts from `1` but this is not guaranteed. For '
+                    'object. Normally the counting starts from `1`, but this is not guaranteed. For '
                     'objects that can be deleted and re-created with the same URI (accounts for '
                     'example), the counting will start with some arbitrary number that is '
                     'guaranteed to be bigger than the number the previous "generation" finished '

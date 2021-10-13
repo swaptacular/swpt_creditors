@@ -7,7 +7,7 @@ from sqlalchemy.dialects import postgresql
 from swpt_lib.scan_table import TableScanner
 from .extensions import db
 from .models import Creditor, AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, \
-    PendingLedgerUpdate
+    PendingLedgerUpdate, uid_seq
 from .procedures import contain_principal_overflow, get_paths_and_types, \
     ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
 
@@ -270,6 +270,7 @@ class AccountScanner(TableScanner):
                 ledger_update_pending_log_entries.append(log_entry)
 
             db.session.bulk_save_objects(ledger_update_pending_log_entries, preserve_order=False)
+            db.session.execute(uid_seq)
 
     def _update_ledger(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
         creditor_id = data.creditor_id
@@ -370,6 +371,7 @@ class AccountScanner(TableScanner):
                 info_update_pending_log_entries.append(log_entry)
 
             db.session.bulk_save_objects(info_update_pending_log_entries, preserve_order=False)
+            db.session.execute(uid_seq)
 
     def _set_config_error(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
         data.config_error = 'CONFIGURATION_IS_NOT_EFFECTUAL'
