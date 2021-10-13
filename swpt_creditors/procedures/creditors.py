@@ -124,7 +124,7 @@ def reserve_creditor(creditor_id, verify_correctness=True) -> Creditor:
         query(func.max(LogEntry.entry_id)).\
         filter_by(creditor_id=creditor_id).\
         scalar()
-    creditor.last_log_entry_id = 0 if relic_log_entry_id is None else relic_log_entry_id + 1  # a leap
+    creditor.last_log_entry_id = 0 if relic_log_entry_id is None else relic_log_entry_id + 1  # a gap
 
     return creditor
 

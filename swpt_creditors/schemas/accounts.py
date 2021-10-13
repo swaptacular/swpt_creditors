@@ -129,9 +129,13 @@ class LedgerEntrySchema(Schema):
         dump_only=True,
         format='int64',
         data_key='entryId',
-        description='The ID of the ledger entry. This will always be a positive number. The first '
-                    'ledger entry can be any positive number, but the ID of each subsequent ledger '
-                    'entry will be equal to the ID of the previous ledger entry plus one.',
+        description='The ID of the ledger entry. This will always be a positive number. The ID of '
+                    'the first ledger entry for a given account can be any positive number, but '
+                    'the IDs of all subsequent ledger entries will be equal to the ID of the previous '
+                    'ledger entry plus one. When an account has been deleted and recreated again, '
+                    'the first (the smallest) ledger entry ID for the new account is guaranteed to '
+                    'be larger than the last (the largest) IDs for the deleted account, and the '
+                    'difference is guaranteed to be at least 2 (a gap will exist).',
         example=12345,
     )
     added_at = fields.DateTime(

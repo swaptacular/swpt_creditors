@@ -385,7 +385,7 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
         config_latest_update_ts=current_ts,
         info_latest_update_ts=current_ts,
         ledger_latest_update_ts=current_ts,
-        ledger_last_entry_id=creditor.largest_historic_ledger_entry_id + 1  # a leap
+        ledger_last_entry_id=creditor.largest_historic_ledger_entry_id + 1  # a gap
     )
     account = Account(
         creditor_id=creditor_id,
