@@ -77,13 +77,14 @@ def test_process_ledger_entries(app, db_session, current_ts):
 def test_process_log_additions(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
+    latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
     p.update_account_config(
         creditor_id=C_ID,
         debtor_id=D_ID,
         is_scheduled_for_deletion=True,
         negligible_amount=1e30,
         allow_unsafe_deletion=False,
-        latest_update_id=2,
+        latest_update_id=latest_update_id + 1,
     )
     entries1, _ = p.get_log_entries(C_ID, count=10000)
     runner = app.test_cli_runner()

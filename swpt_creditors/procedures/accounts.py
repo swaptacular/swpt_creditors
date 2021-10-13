@@ -395,13 +395,14 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
         latest_update_ts=current_ts,
     )
     db.session.add(account)
+    db.session.flush()
 
     paths, types = get_paths_and_types()
     _add_log_entry(
         creditor,
         object_type=types.account,
         object_uri=paths.account(creditorId=creditor_id, debtorId=debtor_id),
-        object_update_id=1,
+        object_update_id=account.latest_update_id,
         added_at=current_ts,
     )
 

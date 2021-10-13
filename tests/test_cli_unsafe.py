@@ -107,13 +107,13 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     ple = m.PendingLogEntry.query.filter_by(object_type_hint=m.LogEntry.OTH_ACCOUNT_LEDGER).one()
     assert ple.creditor_id == C_ID
     assert ple.added_at >= current_ts
-    assert ple.object_update_id == 2
+    assert ple.object_update_id == data2.ledger_latest_update_id
     assert not ple.is_deleted
 
     ple = m.PendingLogEntry.query.filter_by(object_type='AccountInfo').one()
     assert ple.creditor_id == C_ID
     assert ple.added_at >= current_ts
-    assert ple.object_update_id == 2
+    assert ple.object_update_id == data2.info_latest_update_id
     assert not ple.is_deleted
 
     data2 = m.AccountData.query.filter_by(debtor_id=2).one()

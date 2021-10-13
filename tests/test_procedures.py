@@ -109,10 +109,11 @@ def test_delete_account(db_session, account, current_ts):
     with pytest.raises(p.UnsafeAccountDeletion):
         p.delete_account(C_ID, D_ID)
 
+    latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
     p.update_account_config(
         C_ID, D_ID,
         is_scheduled_for_deletion=True, negligible_amount=0.0,
-        allow_unsafe_deletion=False, latest_update_id=2)
+        allow_unsafe_deletion=False, latest_update_id=latest_update_id + 1)
 
     config = p.get_account_config(C_ID, D_ID)
     params['last_change_seqnum'] += 1
@@ -384,11 +385,12 @@ def test_update_account_config(account, current_ts):
     assert not data.has_server_account
     assert get_info_entries_count() == 0
 
+    latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
     p.update_account_config(C_ID, D_ID,
                             is_scheduled_for_deletion=True,
                             negligible_amount=1e30,
                             allow_unsafe_deletion=False,
-                            latest_update_id=2)
+                            latest_update_id=latest_update_id + 1)
 
     data = get_data()
     assert not data.is_config_effectual
@@ -436,11 +438,12 @@ def test_update_account_config(account, current_ts):
     assert not data.has_server_account
     assert get_info_entries_count() == 2
 
+    latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
     p.update_account_config(C_ID, D_ID,
                             is_scheduled_for_deletion=True,
                             negligible_amount=1e30,
                             allow_unsafe_deletion=False,
-                            latest_update_id=3)
+                            latest_update_id=latest_update_id + 1)
     data = get_data()
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
@@ -664,6 +667,7 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
 
     creation_date = date(2020, 1, 2)
     assert get_ledger_update_entries_count() == 0
+    ledger_latest_update_id = p.get_account_ledger(C_ID, D_ID).ledger_latest_update_id
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -702,7 +706,7 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert data.ledger_principal == 0
     assert data.ledger_last_entry_id == 0
     assert data.ledger_last_transfer_number == 0
-    assert data.ledger_latest_update_id == 1
+    assert data.ledger_latest_update_id == ledger_latest_update_id
     assert len(PendingLedgerUpdate.query.all()) == 0
 
     max_delay = timedelta(days=10)
@@ -716,7 +720,7 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert data.ledger_principal == 1000
     assert data.ledger_last_entry_id == 1
     assert data.ledger_last_transfer_number == 3
-    assert data.ledger_latest_update_id == 2
+    assert data.ledger_latest_update_id == ledger_latest_update_id + 1
 
 
 def test_process_rejected_direct_transfer_signal(db_session, account, current_ts):

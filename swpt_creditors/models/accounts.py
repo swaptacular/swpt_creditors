@@ -11,12 +11,16 @@ DEFAULT_NEGLIGIBLE_AMOUNT = HUGE_NEGLIGIBLE_AMOUNT
 DEFAULT_CONFIG_FLAGS = 0
 
 
+_uid_seq = db.Sequence('object_update_id_seq', metadata=db.Model.metadata)
+
+
 class Account(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     created_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=_uid_seq.next_value())
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
         db.CheckConstraint(latest_update_id > 0),
@@ -55,7 +59,7 @@ class AccountData(db.Model):
     allow_unsafe_deletion = db.Column(db.BOOLEAN, nullable=False, default=False)
     has_server_account = db.Column(db.BOOLEAN, nullable=False, default=False)
     config_error = db.Column(db.String)
-    config_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    config_latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=_uid_seq.next_value())
     config_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     # `AccountInfo` data
@@ -66,7 +70,7 @@ class AccountData(db.Model):
     debtor_info_iri = db.Column(db.String)
     debtor_info_content_type = db.Column(db.String)
     debtor_info_sha256 = db.Column(db.LargeBinary)
-    info_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    info_latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=_uid_seq.next_value())
     info_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     # `AccountLedger` data
@@ -82,9 +86,10 @@ class AccountData(db.Model):
                 '"repaired". A NULL means that the account has no pending committed '
                 'transfers which the system knows of.',
     )
-    ledger_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    ledger_latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=_uid_seq.next_value())
     ledger_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
@@ -149,8 +154,9 @@ class AccountKnowledge(db.Model):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     data = db.Column(pg.JSON, nullable=False, default={})
-    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=_uid_seq.next_value())
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
@@ -169,8 +175,9 @@ class AccountExchange(db.Model):
     max_principal = db.Column(db.BigInteger, nullable=False, default=MAX_INT64)
     peg_exchange_rate = db.Column(db.FLOAT)
     peg_debtor_id = db.Column(db.BigInteger)
-    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=_uid_seq.next_value())
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
@@ -200,8 +207,9 @@ class AccountDisplay(db.Model):
     decimal_places = db.Column(db.Integer, nullable=False, default=0)
     unit = db.Column(db.String)
     hide = db.Column(db.BOOLEAN, nullable=False, default=False)
-    latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
+    latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=_uid_seq.next_value())
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    __mapper_args__ = {'eager_defaults': True}
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['creditor_id', 'debtor_id'],
