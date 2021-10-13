@@ -366,9 +366,10 @@ class LogEntrySchema(Schema):
         dump_only=True,
         format='int64',
         data_key='entryId',
-        description='The ID of the log entry. This will always be a positive number. The first '
-                    'log entry has an ID of `1`, and the ID of each subsequent log entry will '
-                    'be equal to the ID of the previous log entry plus one.',
+        description='The ID of the log entry. This will always be a positive number. The ID of '
+                    'the first log entry can by any positive number, but the IDs of all '
+                    'subsequent log entries will be equal to the ID of the previous log entry '
+                    'plus one.',
         example=12345,
     )
     added_at = fields.DateTime(

@@ -134,7 +134,7 @@ class LedgerEntrySchema(Schema):
                     'the IDs of all subsequent ledger entries will be equal to the ID of the previous '
                     'ledger entry plus one. When an account has been deleted and recreated again, '
                     'the first (the smallest) ledger entry ID for the new account is guaranteed to '
-                    'be larger than the last (the largest) IDs for the deleted account, and the '
+                    'be larger than the last (the largest) entry ID for the deleted account, and the '
                     'difference is guaranteed to be at least 2 (a gap will exist).',
         example=12345,
     )
