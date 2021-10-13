@@ -56,6 +56,7 @@ class Creditor(db.Model):
     created_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     reservation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
+    largest_historic_ledger_entry_id = db.Column(db.BigInteger, nullable=False, server_default='0')
     creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     accounts_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)

@@ -519,7 +519,6 @@ def test_create_account(client, creditor):
     assert r.headers['Location'] == 'http://localhost/creditors/4294967296/accounts/1/'
     latestUpdateId = data1['latestUpdateId']
     latestUpdateAt = data1['latestUpdateAt']
-    ledgerLatestEntryId = data1['ledger'].get('latestEntryId', 0)
     createdAt = data1['createdAt']
     assert latestUpdateId >= 1
     assert datetime.fromisoformat(latestUpdateAt)
@@ -529,7 +528,9 @@ def test_create_account(client, creditor):
     assert data1['exchange']['latestUpdateId'] >= 1
     assert data1['info']['latestUpdateId'] >= 1
     assert data1['ledger']['latestUpdateId'] >= 1
+    assert data1['ledger']['nextEntryId'] >= 1
     assert data1['knowledge']['latestUpdateId'] >= 1
+    nextEntryId = data1['ledger']['nextEntryId']
     del data1['config']['latestUpdateId']
     del data1['display']['latestUpdateId']
     del data1['exchange']['latestUpdateId']
@@ -594,11 +595,11 @@ def test_create_account(client, creditor):
             'principal': 0,
             'interest': 0,
             'entries': {
-                'first': f'/creditors/4294967296/accounts/1/entries?prev={ledgerLatestEntryId + 1}',
+                'first': f'/creditors/4294967296/accounts/1/entries?prev={nextEntryId}',
                 'itemsType': 'LedgerEntry',
                 'type': 'PaginatedList',
             },
-            'nextEntryId': 1,
+            'nextEntryId': nextEntryId,
             'latestUpdateAt': latestUpdateAt,
         },
         'latestUpdateAt': latestUpdateAt,
@@ -1188,10 +1189,12 @@ def test_get_account_ledger(client, account):
     assert data['principal'] == 0
     assert data['interest'] == 0
     assert 'latestEntryId' not in data
+    assert data['nextEntryId'] >= 1
+    next_entry_id = data['nextEntryId']
     assert data['entries'] == {
         'itemsType': 'LedgerEntry',
         'type': 'PaginatedList',
-        'first': '/creditors/4294967296/accounts/1/entries?prev=1'
+        'first': f'/creditors/4294967296/accounts/1/entries?prev={next_entry_id}'
     }
     assert data['account'] == {'uri': '/creditors/4294967296/accounts/1/'}
 
@@ -1203,13 +1206,15 @@ def test_ledger_entries_list(ledger_entries, client, current_ts):
     r = client.get('/creditors/4294967296/accounts/1111/entries?prev=100')
     assert r.status_code == 404 or r.get_json()['items'] == []
 
-    items = _get_all_pages(client, '/creditors/4294967296/accounts/1/entries?prev=100', page_type='LedgerEntriesPage')
+    items = _get_all_pages(client, '/creditors/4294967296/accounts/1/entries?prev=1000000000000000', page_type='LedgerEntriesPage')
+    assert len(items) == 3
+    first_entry_id = items[2]['entryId']
     assert items == [
         {
             'type': 'LedgerEntry',
             'ledger': {'uri': '/creditors/4294967296/accounts/1/ledger'},
             'addedAt': current_ts.isoformat(),
-            'entryId': 3,
+            'entryId': first_entry_id + 2,
             'aquiredAmount': 200,
             'principal': 350,
             'transfer': {'uri': '/creditors/4294967296/accounts/1/transfers/0-2'},
@@ -1218,7 +1223,7 @@ def test_ledger_entries_list(ledger_entries, client, current_ts):
             'type': 'LedgerEntry',
             'ledger': {'uri': '/creditors/4294967296/accounts/1/ledger'},
             'addedAt': current_ts.isoformat(),
-            'entryId': 2,
+            'entryId': first_entry_id + 1,
             'aquiredAmount': 50,
             'principal': 150,
         },
@@ -1226,30 +1231,30 @@ def test_ledger_entries_list(ledger_entries, client, current_ts):
             'type': 'LedgerEntry',
             'ledger': {'uri': '/creditors/4294967296/accounts/1/ledger'},
             'addedAt': current_ts.isoformat(),
-            'entryId': 1,
+            'entryId': first_entry_id,
             'aquiredAmount': 100,
             'principal': 100,
             'transfer': {'uri': '/creditors/4294967296/accounts/1/transfers/0-1'},
         },
     ]
 
-    items = _get_all_pages(client, '/creditors/4294967296/accounts/1/entries?prev=1',
+    items = _get_all_pages(client, f'/creditors/4294967296/accounts/1/entries?prev={first_entry_id}',
                            page_type='LedgerEntriesPage')
     assert len(items) == 0
 
-    items = _get_all_pages(client, '/creditors/4294967296/accounts/1/entries?prev=100&stop=1',
+    items = _get_all_pages(client, f'/creditors/4294967296/accounts/1/entries?prev=1000000000000000&stop={first_entry_id}',
                            page_type='LedgerEntriesPage')
     assert len(items) == 2
 
-    items = _get_all_pages(client, '/creditors/4294967296/accounts/1/entries?prev=3&stop=1',
+    items = _get_all_pages(client, f'/creditors/4294967296/accounts/1/entries?prev={first_entry_id + 2}&stop={first_entry_id}',
                            page_type='LedgerEntriesPage')
     assert len(items) == 1
 
-    items = _get_all_pages(client, '/creditors/4294967296/accounts/1/entries?prev=2&stop=1000',
+    items = _get_all_pages(client, f'/creditors/4294967296/accounts/1/entries?prev={first_entry_id + 1}&stop=1000000000000000',
                            page_type='LedgerEntriesPage')
     assert len(items) == 0
 
-    items = _get_all_pages(client, '/creditors/4294967296/accounts/1/entries?prev=2&stop=2',
+    items = _get_all_pages(client, f'/creditors/4294967296/accounts/1/entries?prev={first_entry_id + 1}&stop={first_entry_id + 1}',
                            page_type='LedgerEntriesPage')
     assert len(items) == 0
 
@@ -1262,9 +1267,9 @@ def test_ledger_entries_list(ledger_entries, client, current_ts):
         ('Account', '/creditors/4294967296/accounts/1/', account_uid, None),
         ('AccountsList', '/creditors/4294967296/accounts-list', 2, None),
         ('AccountLedger', '/creditors/4294967296/accounts/1/ledger',
-         ledger_latest_update_id - 1, {'principal': 100, 'nextEntryId': 2}),
+         ledger_latest_update_id - 1, {'principal': 100, 'nextEntryId': first_entry_id + 1}),
         ('AccountLedger', '/creditors/4294967296/accounts/1/ledger',
-         ledger_latest_update_id, {'principal': 350, 'nextEntryId': 4}),
+         ledger_latest_update_id, {'principal': 350, 'nextEntryId': first_entry_id + 3}),
     ]
 
 

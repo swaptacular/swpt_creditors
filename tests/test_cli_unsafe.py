@@ -95,9 +95,10 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     assert result.exit_code == 0
 
     le = m.LedgerEntry.query.one()
+    ledger_entry_id = le.entry_id
     assert le.creditor_id == C_ID
     assert le.debtor_id == 2
-    assert le.entry_id == 1
+    assert le.entry_id >= 1
     assert le.creation_date is None
     assert le.transfer_number is None
     assert le.aquired_amount == 1000
@@ -119,7 +120,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     data2 = m.AccountData.query.filter_by(debtor_id=2).one()
     assert data2.ledger_principal == data2.principal == 1000
     assert data2.ledger_last_transfer_number == data2.last_transfer_number == 0
-    assert data2.ledger_last_entry_id == 1
+    assert data2.ledger_last_entry_id == ledger_entry_id
     assert data2.ledger_latest_update_ts >= current_ts
     assert data2.config_error == 'CONFIGURATION_IS_NOT_EFFECTUAL'
 

@@ -703,8 +703,9 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     lue_count = get_ledger_update_entries_count()
     assert lue_count == 0
     data = p.get_account_ledger(C_ID, D_ID)
+    ledger_last_entry_id = data.ledger_last_entry_id
     assert data.ledger_principal == 0
-    assert data.ledger_last_entry_id == 0
+    assert data.ledger_last_entry_id >= 0
     assert data.ledger_last_transfer_number == 0
     assert data.ledger_latest_update_id == ledger_latest_update_id
     assert len(PendingLedgerUpdate.query.all()) == 0
@@ -718,7 +719,7 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert lue_count == 1
     data = p.get_account_ledger(C_ID, D_ID)
     assert data.ledger_principal == 1000
-    assert data.ledger_last_entry_id == 1
+    assert data.ledger_last_entry_id == ledger_last_entry_id + 1
     assert data.ledger_last_transfer_number == 3
     assert data.ledger_latest_update_id == ledger_latest_update_id + 1
 

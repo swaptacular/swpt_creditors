@@ -95,6 +95,9 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise errors.ForbiddenPegDeletion()
 
+    if data.ledger_last_entry_id > creditor.largest_historic_ledger_entry_id:
+        creditor.largest_historic_ledger_entry_id = data.ledger_last_entry_id
+
     with db.retry_on_integrity_error():
         Account.query.\
             filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
@@ -376,17 +379,13 @@ def get_account_ledger_entries(
 def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) -> Account:
     creditor_id = creditor.creditor_id
 
-    relic_ledger_entry_id = db.session.\
-        query(func.max(LedgerEntry.entry_id)).\
-        filter_by(creditor_id=creditor_id, debtor_id=debtor_id).\
-        scalar()
     data = AccountData(
         last_config_ts=current_ts,
         last_config_seqnum=0,
         config_latest_update_ts=current_ts,
         info_latest_update_ts=current_ts,
         ledger_latest_update_ts=current_ts,
-        ledger_last_entry_id=0 if relic_ledger_entry_id is None else relic_ledger_entry_id + 1  # a leap
+        ledger_last_entry_id=creditor.largest_historic_ledger_entry_id + 1  # a leap
     )
     account = Account(
         creditor_id=creditor_id,

@@ -130,8 +130,8 @@ class LedgerEntrySchema(Schema):
         format='int64',
         data_key='entryId',
         description='The ID of the ledger entry. This will always be a positive number. The first '
-                    'ledger entry has an ID of `1`, and the ID of each subsequent ledger entry will '
-                    'be equal to the ID of the previous ledger entry plus one.',
+                    'ledger entry can be any positive number, but the ID of each subsequent ledger '
+                    'entry will be equal to the ID of the previous ledger entry plus one.',
         example=12345,
     )
     added_at = fields.DateTime(
