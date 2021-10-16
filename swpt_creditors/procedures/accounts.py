@@ -95,6 +95,11 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise errors.ForbiddenPegDeletion()
 
+    # NOTE: To guarantee monotonic increase in accounts' ledger entry
+    # IDs, even when accounts get deleted and created again, we make
+    # sure that `largest_historic_ledger_entry_id` contains the
+    # largest ledger entry ID that have been produced for any deleted
+    # accounts in the past.
     if data.ledger_last_entry_id > creditor.largest_historic_ledger_entry_id:
         creditor.largest_historic_ledger_entry_id = data.ledger_last_entry_id
 
