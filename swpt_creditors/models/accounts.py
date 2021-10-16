@@ -11,6 +11,12 @@ DEFAULT_NEGLIGIBLE_AMOUNT = HUGE_NEGLIGIBLE_AMOUNT
 DEFAULT_CONFIG_FLAGS = 0
 
 
+# NOTE: This sequence is used to generate initial `objectUpdateId`s
+# for accounts and account-related objects. To guarantee monotonic
+# increase, this sequence must be incremented each time the update ID
+# of at least one account-object gets incremented. Note that if the
+# update IDs of multiple objects get incremented in one trasaction,
+# this sequence can be incremented only once.
 uid_seq = db.Sequence('object_update_id_seq', metadata=db.Model.metadata)
 
 
