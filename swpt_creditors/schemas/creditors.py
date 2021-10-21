@@ -214,8 +214,8 @@ class WalletSchema(Schema):
         required=True,
         dump_only=True,
         data_key='accountsList',
-        description="The URI of creditor's `AccountsList`. That is: an URI of a `PaginatedList` of "
-                    "`ObjectReference`s to all `Account`s belonging to the creditor. The paginated "
+        description="The URI of creditor's `AccountsList`. In other words: an URI of a paginated list "
+                    "of `ObjectReference`s to all `Account`s belonging to the creditor. The paginated "
                     "list will not be sorted in any particular order.",
         example={'uri': '/creditors/2/accounts-list'},
     )
@@ -259,8 +259,8 @@ class WalletSchema(Schema):
         required=True,
         dump_only=True,
         data_key='transfersList',
-        description="The URI of creditor's `TransfersList`. That is: an URI of a `PaginatedList` of "
-                    "`ObjectReference`s to all `Transfer`s initiated by the creditor, which have not "
+        description="The URI of creditor's `TransfersList`. In other words: an URI of a paginated list "
+                    "of `ObjectReference`s to all `Transfer`s initiated by the creditor, which have not "
                     "been deleted yet. The paginated list will not be sorted in any particular order.",
         example={'uri': '/creditors/2/transfers-list'},
     )
