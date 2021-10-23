@@ -372,12 +372,15 @@ class BaseLogEntry(db.Model):
         logger.error('Log entry without an object URI.')
         return ''
 
-    def get_data_dict(self) -> Optional[Dict]:
+    def get_data_dict(self, paths) -> Optional[Dict]:
         if isinstance(self.data, dict):
             return self.data
 
         items = self.DATA_FIELDS.items()
         data = {prop: self._jsonify_attribute(attr) for attr, prop in items if getattr(self, attr) is not None}
+        if self.data_next_entry_id is not None:
+            entries_path = paths.account_ledger_entries(creditorId=self.creditor_id, debtorId=self.debtor_id)
+            data['firstPage'] = f'{entries_path}?prev={self.data_next_entry_id}'
         return data or None
 
     def _jsonify_attribute(self, attr_name):

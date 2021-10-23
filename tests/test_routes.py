@@ -1266,10 +1266,26 @@ def test_ledger_entries_list(ledger_entries, client, current_ts):
             for e in entries] == [
         ('Account', '/creditors/4294967296/accounts/1/', account_uid, None),
         ('AccountsList', '/creditors/4294967296/accounts-list', 2, None),
-        ('AccountLedger', '/creditors/4294967296/accounts/1/ledger',
-         ledger_latest_update_id - 1, {'principal': 100, 'nextEntryId': first_entry_id + 1}),
-        ('AccountLedger', '/creditors/4294967296/accounts/1/ledger',
-         ledger_latest_update_id, {'principal': 350, 'nextEntryId': first_entry_id + 3}),
+        (
+            'AccountLedger',
+            '/creditors/4294967296/accounts/1/ledger',
+            ledger_latest_update_id - 1,
+            {
+                'principal': 100,
+                'nextEntryId': first_entry_id + 1,
+                'firstPage': f'/creditors/4294967296/accounts/1/entries?prev={first_entry_id + 1}',
+            },
+        ),
+        (
+            'AccountLedger',
+            '/creditors/4294967296/accounts/1/ledger',
+            ledger_latest_update_id,
+            {
+                'principal': 350,
+                'nextEntryId': first_entry_id + 3,
+                'firstPage': f'/creditors/4294967296/accounts/1/entries?prev={first_entry_id + 3}',
+            },
+        ),
     ]
 
 

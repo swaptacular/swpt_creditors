@@ -275,7 +275,14 @@ class AccountLedgerSchema(MutableResourceSchema):
         description='A `PaginatedList` of account `LedgerEntry`s. That is: transfers '
                     'for which the account is either the sender or the recipient. The '
                     'paginated list will be sorted in reverse-chronological order '
-                    '(bigger `entryId`s go first).',
+                    '(bigger `entryId`s go first).'
+                    '\n\n'
+                    '**Note:** Clients are allowed to add a `stop=KNOWN_ENTRY_ID` '
+                    'query parameter to the `entries.first` URI, informing the server '
+                    'that they do not need to receive ledger entries whose `entryId`s '
+                    'are smaller or equal (not newer) than `KNOWN_ENTRY_ID`. Servers '
+                    'MAY use this, so as not to access and return entries that will '
+                    'not be needed.',
         example={
             'itemsType': 'LedgerEntry',
             'type': 'PaginatedList',

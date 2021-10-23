@@ -423,7 +423,9 @@ class LogEntrySchema(Schema):
                     'on the value of the `objectType` field:'
                     '\n\n'
                     '### When the object type is "AccountLedger"\n'
-                    '`principal` and `nextEntryId` properties will  be present.'
+                    '`principal`, `nextEntryId`, and `firstPage` properties will  be present. The '
+                    '`firstPage` property will contain the value of the `entries.first` field from '
+                    'the corresponding account ledger object.'
                     '\n\n'
                     '### When the object type is "Transfer"\n'
                     'If the transfer is finalized, `finalizedAt` and (only when there is an '
@@ -436,14 +438,15 @@ class LogEntrySchema(Schema):
     @pre_dump
     def process_log_entry_instance(self, obj, many):
         assert isinstance(obj, models.LogEntry)
+        paths = self.context['paths']
         obj = copy(obj)
-        obj.object = {'uri': obj.get_object_uri(self.context['paths'])}
+        obj.object = {'uri': obj.get_object_uri(paths)}
 
         if obj.object_update_id is not None:
             obj.optional_object_update_id = obj.object_update_id
 
         if not obj.is_deleted:
-            data = obj.get_data_dict()
+            data = obj.get_data_dict(paths)
             if data is not None:
                 obj.optional_data = data
 
