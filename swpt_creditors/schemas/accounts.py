@@ -494,6 +494,29 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         DebtorInfoSchema,
         description='Optional `DebtorInfo`, which is known to the creditor.',
     )
+    confirmedDebtorInfo = fields.Boolean(
+        description='Whether there is a confirmation that the information contained in the '
+                    'document referenced by the `debtorInfo` field is correct. Accepting '
+                    'payments without this confirmation should not be allowed. If this field '
+                    'is not present, this means that there is no confirmation.',
+        example=True,
+    )
+    knownDebtor = fields.Boolean(
+        description="Whether the account's debtor is known to the creditor. Accepting "
+                    "payments in currencies with an unknown debtor should not be allowed. If "
+                    "this field is not present, this means that the debtor is unknown.",
+        example=True,
+    )
+    payeeName = fields.String(
+        validate=validate.Length(min=1, max=200),
+        description='Optional name, used as payee name for the latest payment from the account.',
+        example='John Doe',
+    )
+    payeeNameUsedAt = fields.DateTime(
+        description='Optional moment at which the `payeeName` was used. This is necessary to correctly '
+                    'order the list of recently used payee names, when making a payment. Note that '
+                    'this is not necessarily the latest moment of use.',
+    )
 
     @validates_schema(pass_original=True)
     def validate_max_bytes(self, data, original_data, **kwargs):
