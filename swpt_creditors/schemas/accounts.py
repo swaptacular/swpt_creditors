@@ -494,13 +494,6 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         DebtorInfoSchema,
         description='Optional `DebtorInfo`, which is known to the creditor.',
     )
-    confirmedDebtorInfo = fields.Boolean(
-        description='Whether there is a confirmation that the information contained in the '
-                    'document referenced by the `debtorInfo` field is correct. Accepting '
-                    'payments without this confirmation should not be allowed. If this field '
-                    'is not present, this means that there is no confirmation.',
-        example=True,
-    )
     knownDebtor = fields.Boolean(
         description="Whether the account's debtor is known to the creditor. Accepting "
                     "payments in currencies with an unknown debtor should not be allowed. If "
