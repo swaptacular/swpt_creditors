@@ -311,7 +311,7 @@ def test_serialize_account_display(app):
         amount_divisor=100.0,
         decimal_places=2,
         unit='XXX',
-        hide=False,
+        known_debtor=False,
         latest_update_id=1,
         latest_update_ts=datetime(2020, 1, 1),
     )
@@ -324,7 +324,7 @@ def test_serialize_account_display(app):
         'unit': 'XXX',
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
-        'hide': False,
+        'knownDebtor': False,
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
@@ -337,7 +337,7 @@ def test_serialize_account_display(app):
         'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
-        'hide': False,
+        'knownDebtor': False,
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00',
     }
@@ -349,7 +349,7 @@ def test_deserialize_account_display(app):
     base_data = {
         'amountDivisor': 1.0,
         'decimalPlaces': 0,
-        'hide': False,
+        'knownDebtor': False,
         'latestUpdateId': 2,
     }
 
@@ -358,7 +358,7 @@ def test_deserialize_account_display(app):
         'type': 'AccountDisplay',
         'amount_divisor': 1.0,
         'decimal_places': 0,
-        'hide': False,
+        'known_debtor': False,
         'latest_update_id': 2,
     }
 
@@ -368,14 +368,14 @@ def test_deserialize_account_display(app):
         'unit': 'XXX',
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
-        'hide': False,
+        'knownDebtor': False,
         'latestUpdateId': 2,
     })
     assert data == {
         'type': 'AccountDisplay',
         'amount_divisor': 100.0,
         'decimal_places': 2,
-        'hide': False,
+        'known_debtor': False,
         'optional_unit': 'XXX',
         'optional_debtor_name': 'Test Debtor',
         'latest_update_id': 2,

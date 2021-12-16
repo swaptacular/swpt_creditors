@@ -212,7 +212,7 @@ class AccountDisplay(db.Model):
     amount_divisor = db.Column(db.FLOAT, nullable=False, default=1.0)
     decimal_places = db.Column(db.Integer, nullable=False, default=0)
     unit = db.Column(db.String)
-    hide = db.Column(db.BOOLEAN, nullable=False, default=False)
+    known_debtor = db.Column(db.BOOLEAN, nullable=False, default=False)
     latest_update_id = db.Column(db.BigInteger, nullable=False, server_default=uid_seq.next_value())
     latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     __mapper_args__ = {'eager_defaults': True}

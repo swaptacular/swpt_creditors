@@ -198,7 +198,7 @@ def update_account_display(
         amount_divisor: float,
         decimal_places: int,
         unit: Optional[str],
-        hide: bool,
+        known_debtor: bool,
         latest_update_id: int) -> AccountDisplay:
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -213,7 +213,7 @@ def update_account_display(
             'amount_divisor': amount_divisor,
             'decimal_places': decimal_places,
             'unit': unit,
-            'hide': hide,
+            'known_debtor': known_debtor,
         })
     except errors.AlreadyUpToDate:
         return display

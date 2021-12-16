@@ -561,7 +561,7 @@ def test_create_account(client, creditor):
             'account': {'uri': '/creditors/4294967296/accounts/1/'},
             'amountDivisor': 1.0,
             'decimalPlaces': 0,
-            'hide': False,
+            'knownDebtor': False,
             'latestUpdateAt': latestUpdateAt,
         },
         'exchange': {
@@ -794,7 +794,7 @@ def test_account_display(client, account):
     assert data['latestUpdateId'] >= 1
     assert datetime.fromisoformat(data['latestUpdateAt'])
     assert data['amountDivisor'] == 1.0
-    assert data['hide'] is False
+    assert data['knownDebtor'] is False
     assert data['decimalPlaces'] == 0
     assert data['account'] == {'uri': '/creditors/4294967296/accounts/1/'}
     assert 'unit' not in data
@@ -807,7 +807,7 @@ def test_account_display(client, account):
         'amountDivisor': 100.0,
         'decimalPlaces': 2,
         'unit': 'USD',
-        'hide': True,
+        'knownDebtor': True,
         'latestUpdateId': latestUpdateId + 1,
         'pin': '1234',
     }
@@ -829,7 +829,7 @@ def test_account_display(client, account):
     assert data['amountDivisor'] == 100.0
     assert data['decimalPlaces'] == 2
     assert data['unit'] == 'USD'
-    assert data['hide'] is True
+    assert data['knownDebtor'] is True
     assert 'peg' not in data
     p.process_pending_log_entries(4294967296)
 
@@ -851,7 +851,7 @@ def test_account_display(client, account):
 
     del request_data['debtorName']
     del request_data['unit']
-    request_data['hide'] = True
+    request_data['knownDebtor'] = True
     request_data['latestUpdateId'] = latestUpdateId + 2
     request_data['decimalPlaces'] = 3
     r = client.patch('/creditors/4294967296/accounts/1/display', json=request_data)
@@ -859,7 +859,7 @@ def test_account_display(client, account):
     data = r.get_json()
     assert data['latestUpdateId'] == latestUpdateId + 2
     assert data['amountDivisor'] == 100.0
-    assert data['hide'] is True
+    assert data['knownDebtor'] is True
     assert data['decimalPlaces'] == 3
     assert data['account'] == {'uri': '/creditors/4294967296/accounts/1/'}
     assert 'unit' not in data

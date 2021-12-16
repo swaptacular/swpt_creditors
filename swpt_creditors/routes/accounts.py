@@ -333,7 +333,7 @@ class AccountDisplayEndpoint(MethodView):
                 amount_divisor=account_display['amount_divisor'],
                 decimal_places=account_display['decimal_places'],
                 unit=account_display.get('optional_unit'),
-                hide=account_display['hide'],
+                known_debtor=account_display['known_debtor'],
                 latest_update_id=account_display['latest_update_id'],
             )
         except procedures.WrongPinValue:

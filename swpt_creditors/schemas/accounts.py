@@ -494,12 +494,6 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         DebtorInfoSchema,
         description='Optional `DebtorInfo`, which is known to the creditor.',
     )
-    knownDebtor = fields.Boolean(
-        description="Whether the account's debtor is known to the creditor. Accepting "
-                    "payments in currencies with an unknown debtor should not be allowed. If "
-                    "this field is not present, this means that the debtor is unknown.",
-        example=True,
-    )
     payeeName = fields.String(
         validate=validate.Length(min=1, max=200),
         description='Optional name, used as payee name for the latest non-automatic '
@@ -803,11 +797,13 @@ class AccountDisplaySchema(ValidateTypeMixin, MutableResourceSchema, PinProtecte
                     "and financial loses.",
         example='USD',
     )
-    hide = fields.Boolean(
+    known_debtor = fields.Boolean(
         required=True,
-        description="Whether the account should be hidden. That is: not shown when the user "
-                    "views his accounts list. For new accounts the value of this field "
-                    "will be `False`.",
+        data_key='knownDebtor',
+        description="Whether the account's debtor is known to the creditor. Accepting payments "
+                    "to accounts with an unknown debtor is of course very dangerous, but such "
+                    "accounts can still be useful as links in a chain of currency pegs. For "
+                    "new accounts the value of this field will be `False`.",
         example=False,
     )
 
