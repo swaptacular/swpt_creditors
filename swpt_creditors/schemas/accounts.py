@@ -494,18 +494,6 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         DebtorInfoSchema,
         description='Optional `DebtorInfo`, which is known to the creditor.',
     )
-    payeeName = fields.String(
-        validate=validate.Length(min=1, max=200),
-        description='Optional name, used as payee name for the latest non-automatic '
-                    'payment from the account.',
-        example='John Doe',
-    )
-    payeeNameUsedAt = fields.DateTime(
-        description='Optional moment at which the `payeeName` was used in a non-automatic '
-                    'payment. This is necessary to correctly order the list of recently used '
-                    'payee names, when making a payment. Note that this is not necessarily '
-                    'the latest moment of use.',
-    )
 
     @validates_schema(pass_original=True)
     def validate_max_bytes(self, data, original_data, **kwargs):
