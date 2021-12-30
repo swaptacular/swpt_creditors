@@ -443,7 +443,7 @@ class AccountInfoSchema(MutableResourceSchema):
 
 
 class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
-    MAX_BYTES = 4000
+    MAX_BYTES = 8000
 
     class Meta:
         unknown = INCLUDE
