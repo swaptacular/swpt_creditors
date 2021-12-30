@@ -490,10 +490,6 @@ class AccountKnowledgeSchema(ValidateTypeMixin, MutableResourceSchema):
         description="Optional `AccountIdentity`, which is known to the creditor.",
         example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'},
     )
-    debtorInfo = fields.Nested(
-        DebtorInfoSchema,
-        description='Optional `DebtorInfo`, which is known to the creditor.',
-    )
 
     @validates_schema(pass_original=True)
     def validate_max_bytes(self, data, original_data, **kwargs):

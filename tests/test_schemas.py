@@ -520,12 +520,6 @@ def test_serialize_account_knowledge(app):
         debtor_id=D_ID,
         data={
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-            'debtorInfo': {
-                'type': 'DebtorInfo',
-                'iri': 'http://example.com',
-                'contentType': 'text/html',
-                'sha256': 32 * '01',
-            },
             'interestRate': 11.0,
             'interestRateChangedAt': '2020-01-02T00:00:00',
             'noteMaxBytes': 500,
@@ -546,12 +540,6 @@ def test_serialize_account_knowledge(app):
         'uri': '/creditors/4294967296/accounts/18446744073709551615/knowledge',
         'account': {'uri': '/creditors/4294967296/accounts/18446744073709551615/'},
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'debtorInfo': {
-            'type': 'DebtorInfo',
-            'iri': 'http://example.com',
-            'contentType': 'text/html',
-            'sha256': 32 * '01',
-        },
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'noteMaxBytes': 500,
@@ -562,10 +550,6 @@ def test_serialize_account_knowledge(app):
     ak.data = {
         'interestRate': 'not a number',
         'interestRateChangedAt': '2020-01-02T00:00:00',
-        'debtorInfo': {
-            'type': 'DebtorInfo',
-            'iri': 'http://example.com',
-        },
     }
     assert aks.dump(ak) == {
         'type': 'AccountKnowledge',
@@ -575,10 +559,6 @@ def test_serialize_account_knowledge(app):
         'interestRateChangedAt': '2020-01-02T00:00:00',
         'latestUpdateId': 1,
         'latestUpdateAt': '2020-01-01T00:00:00+00:00',
-        'debtorInfo': {
-            'type': 'DebtorInfo',
-            'iri': 'http://example.com',
-        },
     }
 
 
@@ -612,12 +592,6 @@ def test_deserialize_account_knowledge(app):
         'type': 'AccountKnowledge',
         'latestUpdateId': 1,
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'debtorInfo': {
-            'type': 'DebtorInfo',
-            'iri': 'http://example.com',
-            'contentType': 'text/html',
-            'sha256': 16 * 'BA01',
-        },
         'interestRate': 11.0,
         'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
     })
@@ -626,12 +600,6 @@ def test_deserialize_account_knowledge(app):
         'latest_update_id': 1,
         'data': {
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-            'debtorInfo': {
-                'type': 'DebtorInfo',
-                'iri': 'http://example.com',
-                'contentType': 'text/html',
-                'sha256': 16 * 'BA01',
-            },
             'interestRate': 11.0,
             'interestRateChangedAt': '1970-01-01T00:00:00+00:00',
         },
@@ -641,9 +609,6 @@ def test_deserialize_account_knowledge(app):
         'type': 'AccountKnowledge',
         'latestUpdateId': 1,
         'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-        'debtorInfo': {
-            'iri': 'http://example.com',
-        },
         'interestRate': 11.0,
         'interestRateChangedAt': '2020-01-02T00:00:00',
     })
@@ -652,9 +617,6 @@ def test_deserialize_account_knowledge(app):
         'latest_update_id': 1,
         'data': {
             'identity': {'type': 'AccountIdentity', 'uri': 'https://example.com/USD/accounts/123'},
-            'debtorInfo': {
-                'iri': 'http://example.com',
-            },
             'interestRate': 11.0,
             'interestRateChangedAt': '2020-01-02T00:00:00',
         },
@@ -668,9 +630,6 @@ def test_deserialize_account_knowledge(app):
 
     with pytest.raises(ValidationError, match='Not a valid datetime.'):
         aks.load({'latestUpdateId': 1, 'interestRateChangedAt': 'INVALID TIMESTAMP'})
-
-    with pytest.raises(ValidationError, match='Missing data for required field.'):
-        aks.load({'latestUpdateId': 1, 'debtorInfo': {}})
 
     with pytest.raises(ValidationError, match='Not a valid number.'):
         aks.load({'latestUpdateId': 1, 'interestRate': 'not a number'})
