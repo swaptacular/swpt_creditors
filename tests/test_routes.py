@@ -649,6 +649,19 @@ def test_get_account(client, account):
 
 
 def test_delete_account(client, account):
+    display = p.get_account_display(4294967296, 1)
+    assert(display is not None)
+    p.update_account_display(
+        4294967296,
+        1,
+        debtor_name='test_name',
+        amount_divisor=1.0,
+        decimal_places=0,
+        unit='USD',
+        known_debtor=True,
+        latest_update_id=display.latest_update_id + 1,
+    )
+
     r = client.delete('/creditors/4294967296/accounts/1111/', headers={'X-Swpt-User-Id': 'creditors-supervisor'})
     assert r.status_code == 403
 
@@ -689,13 +702,14 @@ def test_delete_account(client, account):
 
     p.process_pending_log_entries(4294967296)
     entries = _get_all_pages(client, '/creditors/4294967296/log', page_type='LogEntriesPage', streaming=True)
-    assert len(entries) == 11
-    object_update_id = entries[4]['objectUpdateId']
+    assert len(entries) == 12
+    object_update_id = entries[5]['objectUpdateId']
     assert object_update_id > account_uid
     assert [(e['objectType'], e['object']['uri'], e.get('objectUpdateId'), e.get('deleted', False))
             for e in entries] == [
         ('Account', '/creditors/4294967296/accounts/1/', account_uid, False),
         ('AccountsList', '/creditors/4294967296/accounts-list', 2, False),
+        ('AccountDisplay', '/creditors/4294967296/accounts/1/display', display.latest_update_id + 1, False),
         ('AccountConfig', '/creditors/4294967296/accounts/1/config', latestUpdateId + 1, False),
         ('AccountsList', '/creditors/4294967296/accounts-list', 3, False),
         ('Account', '/creditors/4294967296/accounts/1/', object_update_id, True),

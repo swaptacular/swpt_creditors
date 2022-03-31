@@ -75,10 +75,27 @@ def test_deactivate_creditor(db_session, creditor, account):
     assert len(models.PinInfo.query.all()) == 0
 
 
+def test_delete_account_without_debtor_name(db_session, account, current_ts):
+    p.delete_account(C_ID, D_ID)
+    assert not p.get_account(C_ID, D_ID)
+
+
 def test_delete_account(db_session, account, current_ts):
     with pytest.raises(p.AccountDoesNotExist):
         p.delete_account(C_ID, 1234)
 
+    display = p.get_account_display(C_ID, D_ID)
+    assert(display is not None)
+    p.update_account_display(
+        C_ID,
+        D_ID,
+        debtor_name='test_name',
+        amount_divisor=1.0,
+        decimal_places=0,
+        unit='USD',
+        known_debtor=True,
+        latest_update_id=display.latest_update_id + 1,
+    )
     params = {
         'debtor_id': D_ID,
         'creditor_id': C_ID,

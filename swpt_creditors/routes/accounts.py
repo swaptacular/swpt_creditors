@@ -211,7 +211,8 @@ class AccountEndpoint(MethodView):
         1. There are no other accounts pegged to this account.
 
         2. The account is marked as safe for deletion, or unsafe
-           deletion is allowed for the account.
+           deletion is allowed for the account, or a `debtorName` has
+           not been set for the account.
 
         """
 
