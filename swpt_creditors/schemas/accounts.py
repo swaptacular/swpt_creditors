@@ -669,7 +669,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema, PinProtect
         data_key='minPrincipal',
         description='The principal amount on the account should not fall below this value. '
                     'Note that this limit applies only for automatic exchanges, and is '
-                    'enforced on "best effort" bases.'
+                    'enforced on "best effort" basis.'
                     '\n\n'
                     f'**Note:** For new accounts the value of this field will be `{MIN_INT64}`.',
         example=1000,
@@ -681,7 +681,7 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema, PinProtect
         data_key='maxPrincipal',
         description='The principal amount on the account should not exceed this value. '
                     'Note that this limit applies only for automatic exchanges, and is '
-                    'enforced on "best effort" bases. The value of this field must be '
+                    'enforced on "best effort" basis. The value of this field must be '
                     'greater or equal than the value of the `minPrincipal` field.'
                     '\n\n'
                     f'**Note:** For new accounts the value of this field will be `{MAX_INT64}`.',
