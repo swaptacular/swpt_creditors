@@ -326,9 +326,6 @@ def update_account_exchange(
     except errors.AlreadyUpToDate:
         return exchange
 
-    if policy not in [None, 'conservative']:
-        raise errors.InvalidPolicyName()
-
     if peg_debtor_id is not None and not has_account(creditor_id, peg_debtor_id):
         raise errors.PegDoesNotExist()
 

@@ -652,9 +652,11 @@ class AccountExchangeSchema(ValidateTypeMixin, MutableResourceSchema, PinProtect
         data_key='policy',
         description='The name of the automatic exchange policy. If this field is not present, '
                     'this means that the account will not participate in automatic '
-                    'exchanges.'
+                    'exchanges. If the field is present, but the given policy name is not '
+                    'supported by the implementation, the implementation should behave as if '
+                    '`"conservative"` policy have been chosen.'
                     '\n\n'
-                    '`"conservative"` is the most straightforward exchange policy. It tries '
+                    '`"conservative"` is the most conservative exchange policy. It tries '
                     'to make the *mimimal exchange* that would bring account\'s principal '
                     'between `minPrincipal` and `maxPrincipal`, or if this is not possible, it '
                     'tries to bring the principal as close as possible to that interval.'

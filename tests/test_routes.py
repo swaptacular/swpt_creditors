@@ -980,14 +980,14 @@ def test_account_exchange(client, account):
     assert 'maxPrincipal' in data['errors']['json']
     assert 'minPrincipal' in data['errors']['json']
 
-    request_data['policy'] = 'INVALID'
+    request_data['policy'] = 41 * 'X'
     request_data['latestUpdateId'] = latestUpdateId + 2
     r = client.patch('/creditors/4294967296/accounts/1/exchange', json=request_data)
     assert r.status_code == 422
     data = r.get_json()
-    assert data['errors']['json']['policy'] == ['Invalid policy name.']
+    assert data['errors']['json']['policy'] == ['Length must be between 1 and 40.']
 
-    request_data['policy'] = 'conservative'
+    request_data['policy'] = 'non-conservative'
     request_data['peg'] = {'exchangeRate': 1.5, 'account': {'uri': '/creditors/4294967296/accounts/1111/'}}
     r = client.patch('/creditors/4294967296/accounts/1/exchange', json=request_data)
     assert r.status_code == 422
@@ -1020,7 +1020,7 @@ def test_account_exchange(client, account):
     r = client.patch('/creditors/4294967296/accounts/1/exchange', json=request_data)
     assert r.status_code == 200
     data = r.get_json()
-    assert data['policy'] == 'conservative'
+    assert data['policy'] == 'non-conservative'
     assert data['latestUpdateId'] == latestUpdateId + 2
     p.process_pending_log_entries(4294967296)
 
