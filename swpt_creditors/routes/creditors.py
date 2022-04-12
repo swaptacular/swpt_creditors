@@ -119,6 +119,11 @@ class LogEntriesEndpoint(MethodView):
         sorted in chronological order (smaller `entryId`s go
         first).
 
+        **Note:** The number of items in the returned fragment should
+        be small enough, so that all the items in the fragment can be
+        processed and saved to the client's local database in a single
+        database transaction.
+
         """
 
         n = current_app.config['APP_LOG_ENTRIES_PER_PAGE']
