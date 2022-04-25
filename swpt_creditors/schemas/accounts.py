@@ -144,11 +144,11 @@ class LedgerEntrySchema(Schema):
         data_key='addedAt',
         description='The moment at which the entry was added to the ledger.',
     )
-    aquired_amount = fields.Integer(
+    acquired_amount = fields.Integer(
         required=True,
         dump_only=True,
         format='int64',
-        data_key='aquiredAmount',
+        data_key='acquiredAmount',
         description="The amount added to the account's principal. Can be a positive number (an "
                     "increase), a negative number (a decrease), or zero.",
         example=1000,
@@ -159,7 +159,7 @@ class LedgerEntrySchema(Schema):
         format='int64',
         description='The new principal amount on the account, as it is after the transfer. Unless '
                     'a principal overflow has occurred, the new principal amount will be equal to '
-                    '`aquiredAmount` plus the old principal amount.',
+                    '`acquiredAmount` plus the old principal amount.',
         example=1500,
     )
     optional_transfer = fields.Nested(

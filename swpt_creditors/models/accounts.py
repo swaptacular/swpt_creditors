@@ -240,7 +240,7 @@ class LedgerEntry(db.Model):
     # create a "normal" index, but create a "covering" index instead.
     creation_date = db.Column(db.DATE)
     transfer_number = db.Column(db.BigInteger)
-    aquired_amount = db.Column(db.BigInteger, nullable=False)
+    acquired_amount = db.Column(db.BigInteger, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     added_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (

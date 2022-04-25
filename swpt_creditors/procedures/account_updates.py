@@ -337,7 +337,7 @@ def _update_ledger(
             creditor_id=data.creditor_id,
             debtor_id=data.debtor_id,
             entry_id=data.ledger_last_entry_id,
-            aquired_amount=acquired_amount,
+            acquired_amount=acquired_amount,
             principal=principal,
             added_at=current_ts,
             creation_date=data.creation_date,
@@ -387,7 +387,7 @@ def _make_correcting_ledger_entry_if_necessary(
                 creditor_id=data.creditor_id,
                 debtor_id=data.debtor_id,
                 entry_id=data.ledger_last_entry_id,
-                aquired_amount=safe_correction_amount,
+                acquired_amount=safe_correction_amount,
                 principal=ledger_principal,
                 added_at=current_ts,
             ))

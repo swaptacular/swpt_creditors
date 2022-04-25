@@ -9,7 +9,7 @@ ACCOUNT_LEDGER_ENTRIES_EXAMPLE = {
             'entryId': 123,
             'addedAt': '2020-04-03T18:42:44Z',
             'principal': 1500,
-            'aquiredAmount': 1000
+            'acquiredAmount': 1000
         },
     ],
     'next': '?prev=123',

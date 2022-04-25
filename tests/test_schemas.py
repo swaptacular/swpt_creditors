@@ -1033,7 +1033,7 @@ def test_serialize_ledger_entry(app):
         entry_id=2,
         creation_date=date(1970, 1, 5),
         transfer_number=666,
-        aquired_amount=1000,
+        acquired_amount=1000,
         principal=3000,
         added_at=datetime(2020, 1, 2),
     )
@@ -1044,7 +1044,7 @@ def test_serialize_ledger_entry(app):
         'entryId': 2,
         'principal': 3000,
         'transfer': {'uri': '/creditors/4294967296/accounts/18446744073709551615/transfers/4-666'},
-        'aquiredAmount': 1000,
+        'acquiredAmount': 1000,
         'addedAt': '2020-01-02T00:00:00',
     }
 
@@ -1054,7 +1054,7 @@ def test_serialize_ledger_entry(app):
         'ledger': {'uri': '/creditors/4294967296/accounts/18446744073709551615/ledger'},
         'entryId': 2,
         'principal': 3000,
-        'aquiredAmount': 1000,
+        'acquiredAmount': 1000,
         'addedAt': '2020-01-02T00:00:00',
     }
 
@@ -1065,7 +1065,7 @@ def test_serialize_ledger_entry(app):
         'ledger': {'uri': '/creditors/4294967296/accounts/18446744073709551615/ledger'},
         'entryId': 2,
         'principal': 3000,
-        'aquiredAmount': 1000,
+        'acquiredAmount': 1000,
         'addedAt': '2020-01-02T00:00:00',
     }
 
@@ -1105,7 +1105,7 @@ def test_serialize_ledger_entries_page(app):
         entry_id=2,
         creation_date=date(1970, 1, 5),
         transfer_number=666,
-        aquired_amount=1000,
+        acquired_amount=1000,
         principal=3000,
         added_at=datetime(2020, 1, 2),
     )

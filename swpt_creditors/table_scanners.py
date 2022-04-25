@@ -290,7 +290,7 @@ class AccountScanner(TableScanner):
                 creditor_id=creditor_id,
                 debtor_id=debtor_id,
                 entry_id=ledger_last_entry_id,
-                aquired_amount=safe_correction_amount,
+                acquired_amount=safe_correction_amount,
                 principal=ledger_principal,
                 added_at=current_ts,
             ))

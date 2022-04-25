@@ -101,7 +101,7 @@ def test_scan_accounts(app_unsafe_session, current_ts):
     assert le.entry_id >= 1
     assert le.creation_date is None
     assert le.transfer_number is None
-    assert le.aquired_amount == 1000
+    assert le.acquired_amount == 1000
     assert le.principal == 1000
     assert le.added_at >= current_ts
 
