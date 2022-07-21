@@ -1,8 +1,14 @@
 from __future__ import annotations
 from flask import current_app
 from marshmallow import Schema, fields
-from swpt_creditors.extensions import db
+from swpt_creditors.extensions import db, CREDITORS_OUT_EXCHANGE
 from .common import Signal, CT_DIRECT
+
+
+def i64_to_hex_routing_key(n):
+    bytes_n = n.to_bytes(8, byteorder='big', signed=True)
+    assert(len(bytes_n) == 8)
+    return '.'.join([format(byte, '02x') for byte in bytes_n])
 
 
 class classproperty(object):
@@ -14,7 +20,8 @@ class classproperty(object):
 
 
 class ConfigureAccountSignal(Signal):
-    queue_name = 'swpt_accounts'
+    message_type = 'ConfigureAccount'
+    exchange_name = CREDITORS_OUT_EXCHANGE
     actor_name = 'configure_account'
 
     class __marshmallow__(Schema):
@@ -34,13 +41,18 @@ class ConfigureAccountSignal(Signal):
     config_data = db.Column(db.String, nullable=False, default='')
     config_flags = db.Column(db.Integer, nullable=False)
 
+    @property
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.debtor_id)
+
     @classproperty
     def signalbus_burst_count(self):
         return current_app.config['APP_FLUSH_CONFIGURE_ACCOUNTS_BURST_COUNT']
 
 
 class PrepareTransferSignal(Signal):
-    queue_name = 'swpt_accounts'
+    message_type = 'PrepareTransfer'
+    exchange_name = CREDITORS_OUT_EXCHANGE
     actor_name = 'prepare_transfer'
 
     class __marshmallow__(Schema):
@@ -64,13 +76,18 @@ class PrepareTransferSignal(Signal):
     min_interest_rate = db.Column(db.Float, nullable=False)
     max_commit_delay = db.Column(db.Integer, nullable=False)
 
+    @property
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.debtor_id)
+
     @classproperty
     def signalbus_burst_count(self):
         return current_app.config['APP_FLUSH_PREPARE_TRANSFERS_BURST_COUNT']
 
 
 class FinalizeTransferSignal(Signal):
-    queue_name = 'swpt_accounts'
+    message_type = 'FinalizeTransfer'
+    exchange_name = CREDITORS_OUT_EXCHANGE
     actor_name = 'finalize_transfer'
 
     class __marshmallow__(Schema):
@@ -94,6 +111,10 @@ class FinalizeTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(db.String, nullable=False)
     transfer_note = db.Column(db.String, nullable=False)
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.debtor_id)
 
     @classproperty
     def signalbus_burst_count(self):
