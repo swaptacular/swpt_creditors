@@ -172,14 +172,14 @@ def process_log_additions(threads, wait, quit_early):
 
     """
 
-    # TODO: Consider allowing load-sharing between multiple
-    #       containers. A possible way to do this is to separate the
-    #       `args collection` in multiple buckets, assigning a
-    #       dedicated container for each bucket. This may also be true
-    #       for the other "process_*" CLI commands. Note that this
-    #       would makes sense only if the load is CPU-bound, which is
-    #       unlikely if we re-implement the logic in stored
-    #       procedures.
+    # TODO: Consider allowing load-sharing between multiple processes
+    #       or containers. This may also be true for the other
+    #       "process_*" CLI commands. A possible way to do this is to
+    #       separate the `args collection` in multiple buckets,
+    #       assigning a dedicated process/container for each bucket.
+    #       Note that this would makes sense only if the load is
+    #       CPU-bound, which is unlikely, especially if we
+    #       re-implement the logic in stored procedures.
 
     threads = threads or current_app.config['APP_PROCESS_LOG_ADDITIONS_THREADS']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_LOG_ADDITIONS_WAIT']
