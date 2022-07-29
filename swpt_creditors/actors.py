@@ -1,17 +1,19 @@
+import logging
+import json
 import re
 from datetime import datetime, date, timedelta
 from base64 import b16decode
 from flask import current_app
-from swpt_creditors.extensions import protocol_broker, APP_QUEUE_NAME
+from flask_signalbus import rabbitmq
 from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX
 
+LOGGER = logging.getLogger(__name__)
 CONFIG_DATA_MAX_BYTES = 2000
 RE_TRANSFER_NOTE_FORMAT = re.compile(TRANSFER_NOTE_FORMAT_REGEX)
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_rejected_config_signal(
         debtor_id: int,
         creditor_id: int,
@@ -39,7 +41,6 @@ def on_rejected_config_signal(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_account_update_signal(
         debtor_id: int,
         creditor_id: int,
@@ -103,7 +104,6 @@ def on_account_update_signal(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_account_purge_signal(
         debtor_id: int,
         creditor_id: int,
@@ -118,7 +118,6 @@ def on_account_purge_signal(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_account_transfer_signal(
         debtor_id: int,
         creditor_id: int,
@@ -168,7 +167,6 @@ def on_account_transfer_signal(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_rejected_direct_transfer_signal(
         debtor_id: int,
         creditor_id: int,
@@ -194,7 +192,6 @@ def on_rejected_direct_transfer_signal(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_prepared_direct_transfer_signal(
         debtor_id: int,
         creditor_id: int,
@@ -223,7 +220,6 @@ def on_prepared_direct_transfer_signal(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_finalized_direct_transfer_signal(
         debtor_id: int,
         creditor_id: int,
@@ -252,3 +248,48 @@ def on_finalized_direct_transfer_signal(
         status_code=status_code,
         total_locked_amount=total_locked_amount,
     )
+
+
+MESSAGE_TYPES = {
+    'RejectedConfig': on_rejected_config_signal,
+    'AccountUpdate': on_account_update_signal,
+    'AccountPurge': on_account_purge_signal,
+    'AccountTransfer': on_account_transfer_signal,
+    'RejectedTransfer': on_rejected_direct_transfer_signal,
+    'PreparedTransfer': on_prepared_direct_transfer_signal,
+    'FinalizedTransfer': on_finalized_direct_transfer_signal
+}
+
+TerminatedConsumtion = rabbitmq.TerminatedConsumtion
+
+
+class SmpConsumer(rabbitmq.Consumer):
+    """Passes messages to proper handlers (actors)."""
+
+    def process_message(self, body, properties):
+        try:
+            massage_type = properties.type
+        except AttributeError:
+            LOGGER.warn('Missing message type header')
+            return False
+
+        try:
+            actor = MESSAGE_TYPES[massage_type]
+        except KeyError:
+            LOGGER.warn('Unknown message type: "%s"', massage_type)
+            return False
+
+        try:
+            obj = json.loads(body.decode('utf8'))
+        except (UnicodeError, json.JSONDecodeError):
+            LOGGER.warn('The message does not contain a valid JSON document.')
+            return False
+
+        try:
+            kwargs = obj['kwargs']
+        except KeyError:
+            LOGGER.warn('Malformed message: does not contain a "kwargs" property.')
+            return False
+
+        actor(**kwargs)
+        return True

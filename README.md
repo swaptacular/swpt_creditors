@@ -53,8 +53,7 @@ How to setup a development environment
 
         $ poetry install
 
-4.  You can use `flask run -p 5000` to run a local web server,
-    `dramatiq tasks:protocol_broker` to spawn local task workers, and
+4.  You can use `flask run -p 5000` to run a local web server, and
     `pytest --cov=swpt_creditors --cov-report=html` to run the tests
     and generate a test coverage report.
 
@@ -65,3 +64,8 @@ How to run all services (production-like)
 To start the containers, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
+
+Note that you may need to checkout the `swpt_login` Git submodule
+first, by running:
+
+    $ git submodule update --init --recursive

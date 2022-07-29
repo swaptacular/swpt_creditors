@@ -52,7 +52,7 @@ setup_rabbitmq_bindings() {
     local error_file="$APP_ROOT_DIR/flask-db-upgrade.error"
     echo -n 'Setting up message broker objects ...'
     while [[ $retry_after -lt $time_limit ]]; do
-        if flask swpt_creditors subscribe swpt_creditors &>$error_file; then
+        if flask swpt_creditors subscribe &>$error_file; then
             echo ' done.'
             return 0
         fi
@@ -97,11 +97,8 @@ case $1 in
         generate_oathkeeper_configuration
         exec supervisord -c "$APP_ROOT_DIR/supervisord-webserver.conf"
         ;;
-    protocol)
-        exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} tasks:protocol_broker
-        ;;
     process_ledger_updates | process_log_additions | scan_creditors | scan_accounts | scan_committed_transfers \
-        | scan_ledger_entries | scan_log_entries | configure_interval)
+        | scan_ledger_entries | scan_log_entries | configure_interval | consume_messages)
         exec flask swpt_creditors "$@"
         ;;
     flush_configure_accounts  | flush_prepare_transfers | flush_finalize_transfers)
