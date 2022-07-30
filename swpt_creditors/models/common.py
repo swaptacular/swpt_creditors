@@ -1,6 +1,6 @@
 from __future__ import annotations
+import json
 from datetime import datetime, timezone
-import dramatiq
 from swpt_creditors.extensions import db, publisher
 from flask_signalbus import rabbitmq
 
@@ -41,13 +41,6 @@ class Signal(db.Model):
 
     def _create_message(self):  # pragma: no cover
         data = self.__marshmallow_schema__.dump(self)
-        dramatiq_message = dramatiq.Message(
-            queue_name=None,
-            actor_name=self.actor_name,
-            args=(),
-            kwargs=data,
-            options={},
-        )
         headers = {
             'debtor-id': data['debtor_id'],
             'creditor-id': data['creditor_id'],
@@ -55,17 +48,26 @@ class Signal(db.Model):
         if 'coordinator_id' in data:
             headers['coordinator-id'] = data['coordinator_id']
             headers['coordinator-type'] = data['coordinator_type']
+
         properties = rabbitmq.MessageProperties(
             delivery_mode=2,
             app_id='swpt_creditors',
             content_type='application/json',
-            type=self.message_type,
+            type=data['type'],
             headers=headers,
         )
+        body = json.dumps(
+            data,
+            ensure_ascii=False,
+            check_circular=False,
+            allow_nan=False,
+            separators=(',', ':'),
+        ).encode('utf8')
+
         return rabbitmq.Message(
             exchange=self.exchange_name,
             routing_key=self.routing_key,
-            body=dramatiq_message.encode(),
+            body=body,
             properties=properties,
             mandatory=True,
         )

@@ -20,11 +20,10 @@ class classproperty(object):
 
 
 class ConfigureAccountSignal(Signal):
-    message_type = 'ConfigureAccount'
     exchange_name = CREDITORS_OUT_EXCHANGE
-    actor_name = 'configure_account'
 
     class __marshmallow__(Schema):
+        type = fields.Constant('ConfigureAccount')
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         ts = fields.DateTime()
@@ -51,11 +50,10 @@ class ConfigureAccountSignal(Signal):
 
 
 class PrepareTransferSignal(Signal):
-    message_type = 'PrepareTransfer'
     exchange_name = CREDITORS_OUT_EXCHANGE
-    actor_name = 'prepare_transfer'
 
     class __marshmallow__(Schema):
+        type = fields.Constant('PrepareTransfer')
         creditor_id = fields.Integer()
         debtor_id = fields.Integer()
         coordinator_type = fields.Constant(CT_DIRECT)
@@ -86,11 +84,10 @@ class PrepareTransferSignal(Signal):
 
 
 class FinalizeTransferSignal(Signal):
-    message_type = 'FinalizeTransfer'
     exchange_name = CREDITORS_OUT_EXCHANGE
-    actor_name = 'finalize_transfer'
 
     class __marshmallow__(Schema):
+        type = fields.Constant('FinalizeTransfer')
         creditor_id = fields.Integer()
         debtor_id = fields.Integer()
         transfer_id = fields.Integer()
