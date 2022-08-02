@@ -1,5 +1,9 @@
 """Implement functions that inspect operations susceptible to DOS attacks."""
 
+# TODO: Add real implementations of these functions. Consider using a
+#       Reddis instance holding the current numer of accounts and the
+#       current number of transfers for each creditor.
+
 
 class ForbiddenOperation(Exception):
     """The operation is forbidden."""
