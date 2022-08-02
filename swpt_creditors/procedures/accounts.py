@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from typing import TypeVar, Callable, List, Optional
-from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import joinedload
 from swpt_lib.utils import increment_seqnum
 from swpt_creditors.extensions import db
