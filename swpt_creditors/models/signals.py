@@ -32,6 +32,8 @@ class ConfigureAccountSignal(Signal):
         config_data = fields.String()
         config_flags = fields.Integer()
 
+    __marshmallow_schema__ = __marshmallow__()
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
@@ -66,6 +68,8 @@ class PrepareTransferSignal(Signal):
         max_commit_delay = fields.Integer()
         inserted_at = fields.DateTime(data_key='ts')
 
+    __marshmallow_schema__ = __marshmallow__()
+
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, nullable=False)
@@ -98,6 +102,8 @@ class FinalizeTransferSignal(Signal):
         transfer_note_format = fields.String()
         transfer_note = fields.String()
         inserted_at = fields.DateTime(data_key='ts')
+
+    __marshmallow_schema__ = __marshmallow__()
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)

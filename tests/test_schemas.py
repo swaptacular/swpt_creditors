@@ -4,7 +4,7 @@ from uuid import UUID
 from flask import g
 from marshmallow import ValidationError
 from datetime import date, datetime, timezone
-from swpt_lib.utils import i64_to_u64
+from swpt_pythonlib.utils import i64_to_u64
 from swpt_creditors import schemas
 from swpt_creditors import models
 from swpt_creditors import procedures

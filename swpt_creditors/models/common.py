@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from swpt_creditors.extensions import db, publisher
-from flask_signalbus import rabbitmq
+from swpt_pythonlib import rabbitmq
 
 MIN_INT16 = -1 << 15
 MAX_INT16 = (1 << 15) - 1

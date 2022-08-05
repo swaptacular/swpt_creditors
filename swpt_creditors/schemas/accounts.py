@@ -3,8 +3,8 @@ from base64 import b16encode
 from copy import copy
 from marshmallow import Schema, fields, ValidationError, validate, validates_schema, \
     pre_dump, post_dump, post_load, INCLUDE
-from swpt_lib.utils import i64_to_u64
-from swpt_lib.swpt_uris import make_account_uri
+from swpt_pythonlib.utils import i64_to_u64
+from swpt_pythonlib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES
 from .common import ObjectReferenceSchema, AccountIdentitySchema, PaginatedListSchema, \

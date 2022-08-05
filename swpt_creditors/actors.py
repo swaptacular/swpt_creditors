@@ -4,7 +4,7 @@ import re
 from datetime import datetime, date, timedelta
 from base64 import b16decode
 from flask import current_app
-from flask_signalbus import rabbitmq
+from swpt_pythonlib import rabbitmq
 from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT, MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX

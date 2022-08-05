@@ -2,7 +2,7 @@ from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Callable, Tuple, List, Optional
 from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import exc, Load
-from swpt_lib.utils import Seqnum
+from swpt_pythonlib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
     LogEntry, PendingLogEntry, PendingLedgerUpdate, LedgerEntry, CommittedTransfer, \

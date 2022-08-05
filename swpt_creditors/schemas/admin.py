@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, post_dump
-from swpt_lib.utils import i64_to_u64
+from swpt_pythonlib.utils import i64_to_u64
 from .common import type_registry, ValidateTypeMixin, PaginatedListSchema, URI_DESCRIPTION, TYPE_DESCRIPTION
 
 

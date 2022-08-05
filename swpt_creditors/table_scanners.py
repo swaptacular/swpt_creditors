@@ -4,7 +4,7 @@ from flask import current_app
 from sqlalchemy.sql.expression import tuple_, or_, and_, false, true, null
 from sqlalchemy.orm import load_only
 from sqlalchemy.dialects import postgresql
-from swpt_lib.scan_table import TableScanner
+from swpt_pythonlib.scan_table import TableScanner
 from .extensions import db
 from .models import Creditor, AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, \
     PendingLedgerUpdate, uid_seq

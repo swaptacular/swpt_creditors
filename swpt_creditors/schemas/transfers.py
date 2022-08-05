@@ -1,8 +1,8 @@
 from copy import copy
 from marshmallow import Schema, fields, validate, missing, pre_load, post_dump, pre_dump, \
     validates, ValidationError
-from swpt_lib.utils import i64_to_u64
-from swpt_lib.swpt_uris import make_account_uri
+from swpt_pythonlib.utils import i64_to_u64
+from swpt_pythonlib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import MAX_INT64, CT_DIRECT, TRANSFER_NOTE_MAX_BYTES, \
     TRANSFER_NOTE_FORMAT_REGEX, SC_INSUFFICIENT_AVAILABLE_AMOUNT

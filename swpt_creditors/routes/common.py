@@ -6,7 +6,7 @@ from flask import url_for, current_app, request, g
 from flask_smorest import abort
 from webargs.flaskparser import FlaskParser as FlaskParserOrig
 from flask_smorest import Blueprint as BlueprintOrig
-from swpt_lib.utils import u64_to_i64
+from swpt_pythonlib.utils import u64_to_i64
 from swpt_creditors.models import MAX_INT64, DATE0, PinInfo
 from swpt_creditors.schemas import type_registry
 

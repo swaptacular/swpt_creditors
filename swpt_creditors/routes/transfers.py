@@ -2,7 +2,7 @@ from datetime import timedelta
 from flask import redirect, url_for, request, current_app, g
 from flask.views import MethodView
 from flask_smorest import abort
-from swpt_lib.swpt_uris import parse_account_uri
+from swpt_pythonlib.swpt_uris import parse_account_uri
 from swpt_creditors.schemas import examples, TransferCreationRequestSchema, TransferSchema, \
     CommittedTransferSchema, TransferCancelationRequestSchema, ObjectReferencesPageSchema, \
     TransfersPaginationParamsSchema

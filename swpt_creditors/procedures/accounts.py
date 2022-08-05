@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import TypeVar, Callable, List, Optional
 from sqlalchemy.orm import joinedload
-from swpt_lib.utils import increment_seqnum
+from swpt_pythonlib.utils import increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import Account, AccountData, ConfigureAccountSignal, \
     AccountDisplay, AccountKnowledge, AccountExchange, LedgerEntry, PendingLogEntry, \

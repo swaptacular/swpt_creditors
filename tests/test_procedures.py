@@ -2,7 +2,7 @@ import pytest
 import time
 from datetime import date, timedelta, datetime, timezone
 from uuid import UUID
-from swpt_lib.utils import i64_to_u64
+from swpt_pythonlib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
 from swpt_creditors.models import Creditor, AccountData, ConfigureAccountSignal, LogEntry, \

@@ -1,7 +1,7 @@
 from urllib.parse import urljoin, urlparse
 from datetime import datetime, timezone, timedelta, date
 import pytest
-from swpt_lib.utils import u64_to_i64
+from swpt_pythonlib.utils import u64_to_i64
 from swpt_creditors import models as m
 from swpt_creditors import procedures as p
 
