@@ -1,3 +1,4 @@
+from datetime import datetime, date
 import pytest
 
 D_ID = -1
@@ -11,33 +12,33 @@ def actors():
 
 
 def test_on_rejected_config_signal(db_session, actors):
-    actors.on_rejected_config_signal(
+    actors._on_rejected_config_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        config_ts='2019-10-01T00:00:00+00:00',
+        config_ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         config_seqnum=123,
         negligible_amount=100.0,
         config_data='',
         config_flags=0,
         rejection_code='TEST_REJECTION',
-        ts='2019-10-01T00:00:00+00:00',
+        ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
     )
 
 
 def test_on_account_purge_signal(db_session, actors):
-    actors.on_account_purge_signal(
+    actors._on_account_purge_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        creation_date='2001-01-01',
-        ts='2019-10-01T00:00:00+00:00',
+        creation_date=date.fromisoformat('2001-01-01'),
+        ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
     )
 
 
 def test_on_account_transfer_signal(db_session, actors):
-    actors.on_account_transfer_signal(
+    actors._on_account_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        creation_date='2020-01-02',
+        creation_date=date.fromisoformat('2020-01-02'),
         transfer_number=1,
         coordinator_type='direct',
         sender='666',
@@ -45,18 +46,18 @@ def test_on_account_transfer_signal(db_session, actors):
         acquired_amount=1000,
         transfer_note_format='json',
         transfer_note='{"message": "test"}',
-        committed_at='2019-10-01T00:00:00+00:00',
+        committed_at=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         principal=1000,
-        ts='2000-01-01T00:00:00+00:00',
+        ts=datetime.fromisoformat('2000-01-01T00:00:00+00:00'),
         previous_transfer_number=0,
     )
 
 
 def test_on_account_update_signal(db_session, actors):
-    actors.on_account_update_signal(
+    actors._on_account_update_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        last_change_ts='2019-10-01T00:00:00+00:00',
+        last_change_ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         last_change_seqnum=1,
         principal=1000,
         interest=123.0,
@@ -64,16 +65,16 @@ def test_on_account_update_signal(db_session, actors):
         demurrage_rate=-50.0,
         commit_period=100000,
         transfer_note_max_bytes=500,
-        last_interest_rate_change_ts='2019-10-01T00:00:00+00:00',
+        last_interest_rate_change_ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         last_transfer_number=5,
-        last_transfer_committed_at='2019-10-01T00:00:00+00:00',
-        last_config_ts='2019-10-01T00:00:00+00:00',
+        last_transfer_committed_at=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
+        last_config_ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         last_config_seqnum=1,
-        creation_date='2019-01-01',
+        creation_date=date.fromisoformat('2019-01-01'),
         negligible_amount=100.0,
         config_data='',
         config_flags=0,
-        ts='2019-10-01T00:00:00+00:00',
+        ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         ttl=10000,
         account_id=str(C_ID),
         debtor_info_iri='http://example.com',
@@ -83,7 +84,7 @@ def test_on_account_update_signal(db_session, actors):
 
 
 def test_on_rejected_direct_transfer_signal(db_session, actors):
-    actors.on_rejected_direct_transfer_signal(
+    actors._on_rejected_direct_transfer_signal(
         coordinator_type='direct',
         coordinator_id=C_ID,
         coordinator_request_id=1,
@@ -91,12 +92,12 @@ def test_on_rejected_direct_transfer_signal(db_session, actors):
         total_locked_amount=0,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        ts='2019-10-01T00:00:00+00:00',
+        ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
     )
 
 
 def test_on_prepared_direct_transfer_signal(db_session, actors):
-    actors.on_prepared_direct_transfer_signal(
+    actors._on_prepared_direct_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_id=1,
@@ -105,15 +106,15 @@ def test_on_prepared_direct_transfer_signal(db_session, actors):
         coordinator_request_id=1,
         locked_amount=1000,
         recipient='1111',
-        prepared_at='2019-10-01T00:00:00+00:00',
+        prepared_at=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         demurrage_rate=-50.0,
-        deadline='2019-10-01T00:00:00+00:00',
-        ts='2019-10-01T00:00:00+00:00',
+        deadline=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
+        ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
     )
 
 
 def test_on_finalized_direct_transfer_signal(db_session, actors):
-    actors.on_finalized_direct_transfer_signal(
+    actors._on_finalized_direct_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_id=123,
@@ -123,6 +124,6 @@ def test_on_finalized_direct_transfer_signal(db_session, actors):
         committed_amount=100,
         status_code='OK',
         total_locked_amount=0,
-        prepared_at='2019-10-01T00:00:00+00:00',
-        ts='2019-10-01T00:00:00+00:00',
+        prepared_at=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
+        ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
     )
