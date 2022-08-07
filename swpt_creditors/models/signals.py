@@ -1,14 +1,9 @@
 from __future__ import annotations
 from flask import current_app
 from marshmallow import Schema, fields
+from swpt_pythonlib.utils import i64_to_hex_routing_key
 from swpt_creditors.extensions import db, CREDITORS_OUT_EXCHANGE
 from .common import Signal, CT_DIRECT
-
-
-def i64_to_hex_routing_key(n):
-    bytes_n = n.to_bytes(8, byteorder='big', signed=True)
-    assert(len(bytes_n) == 8)
-    return '.'.join([format(byte, '02x') for byte in bytes_n])
 
 
 class classproperty(object):
