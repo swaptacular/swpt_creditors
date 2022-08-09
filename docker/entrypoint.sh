@@ -26,7 +26,7 @@ export GUNICORN_THREADS=${WEBSERVER_THREADS:-3}
 perform_db_upgrade() {
     local retry_after=1
     local time_limit=$(($retry_after << 5))
-    local error_file="$APP_ROOT_DIR/flask-db-upgrade.error"
+    local error_file="$APP_ROOT_DIR/flask-setup-bindings.error"
     echo -n 'Running database schema upgrade ...'
     while [[ $retry_after -lt $time_limit ]]; do
         if flask db upgrade &>$error_file; then
