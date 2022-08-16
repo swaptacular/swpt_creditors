@@ -10,7 +10,7 @@ C_ID = 4294967296
 def _create_new_creditor(creditor_id: int, activate: bool = False):
     creditor = p.reserve_creditor(creditor_id)
     if activate:
-        p.activate_creditor(creditor_id, creditor.reservation_id)
+        p.activate_creditor(creditor_id, str(creditor.reservation_id))
 
 
 def test_process_ledger_entries(app, db_session, current_ts):

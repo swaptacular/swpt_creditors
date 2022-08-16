@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, post_dump
+from marshmallow import Schema, fields, post_dump, validate
 from swpt_pythonlib.utils import i64_to_u64
 from .common import type_registry, ValidateTypeMixin, PaginatedListSchema, URI_DESCRIPTION, TYPE_DESCRIPTION
 
@@ -51,13 +51,13 @@ class CreditorReservationSchema(ValidateTypeMixin, Schema):
         description='The moment at which the reservation was created.',
     )
     reservation_id = fields.Function(
-        lambda obj: obj.reservation_id or 0,
+        lambda obj: str(obj.reservation_id or 0),
         required=True,
         data_key='reservationId',
-        type='integer',
-        format='int64',
-        description='A number that will be needed in order to activate the creditor.',
-        example=12345,
+        validate=validate.Length(max=100),
+        type='string',
+        description='An opaque string that will be required in order to successfully activate the creditor.',
+        example='12345',
     )
     creditor_id = fields.Function(
         lambda obj: str(i64_to_u64(obj.creditor_id)),
@@ -89,15 +89,15 @@ class CreditorActivationRequestSchema(ValidateTypeMixin, Schema):
         description=TYPE_DESCRIPTION,
         example='CreditorActivationRequest',
     )
-    optional_reservation_id = fields.Integer(
+    optional_reservation_id = fields.String(
         load_only=True,
         data_key='reservationId',
-        format='int64',
         description='When this field is present, the server will try to activate an existing '
-                    'reservation with matching `creditorID` and `reservationID`. When this '
-                    'field is not present, the server will try to reserve the creditor ID '
-                    'specified in the path, and activate it at once.',
-        example=12345,
+                    'reservation with matching `creditorID` and `reservationID`.'
+                    '\n\n'
+                    'When this field is not present, the server will try to reserve the '
+                    'creditor ID specified in the path, and activate it at once.',
+        example='12345',
     )
 
 

@@ -860,7 +860,7 @@ def test_serialize_account_info(app):
 
 def test_serialize_account(db_session):
     creditor = procedures.reserve_creditor(C_ID)
-    procedures.activate_creditor(C_ID, creditor.reservation_id)
+    procedures.activate_creditor(C_ID, str(creditor.reservation_id))
     procedures.create_new_account(C_ID, D_ID)
     account = models.Account.get_instance((C_ID, D_ID))
     account_schema = schemas.AccountSchema(context=context)
@@ -1630,7 +1630,7 @@ def test_serialize_creditor_reservation(app):
     c = models.Creditor(
         creditor_id=C_ID,
         created_at=datetime(2020, 1, 1),
-        reservation_id=2,
+        reservation_id='2',
         status_flags=0,
         deactivation_date=None,
     )
@@ -1639,7 +1639,7 @@ def test_serialize_creditor_reservation(app):
         'type': 'CreditorReservation',
         'createdAt': '2020-01-01T00:00:00',
         'creditorId': '4294967296',
-        'reservationId': 2,
+        'reservationId': '2',
         'validUntil': '2020-01-15T00:00:00',
     }
 

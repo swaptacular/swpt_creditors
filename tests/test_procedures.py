@@ -23,7 +23,7 @@ def max_count(request):
 @pytest.fixture
 def creditor(db_session):
     creditor = p.reserve_creditor(C_ID)
-    p.activate_creditor(C_ID, creditor.reservation_id)
+    p.activate_creditor(C_ID, str(creditor.reservation_id))
     return creditor
 
 
@@ -45,8 +45,8 @@ def test_activate_new_creditor(db_session):
 
     assert not p.get_active_creditor(C_ID)
     with pytest.raises(p.InvalidReservationId):
-        p.activate_creditor(C_ID, -123)
-    p.activate_creditor(C_ID, creditor.reservation_id)
+        p.activate_creditor(C_ID, '-123')
+    p.activate_creditor(C_ID, str(creditor.reservation_id))
     creditor = p.get_active_creditor(C_ID)
     assert creditor
     assert creditor.is_activated

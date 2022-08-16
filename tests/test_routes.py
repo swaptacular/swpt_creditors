@@ -14,7 +14,7 @@ def client(app, db_session):
 @pytest.fixture(scope='function')
 def creditor(db_session):
     creditor = p.reserve_creditor(4294967296)
-    p.activate_creditor(4294967296, creditor.reservation_id)
+    p.activate_creditor(4294967296, str(creditor.reservation_id))
     return creditor
 
 
@@ -62,7 +62,7 @@ def test_auto_genereate_creditor_id(client):
     data = r.get_json()
     assert data['type'] == 'CreditorReservation'
     assert isinstance(data['creditorId'], str)
-    assert isinstance(data['reservationId'], int)
+    assert isinstance(data['reservationId'], str)
     assert datetime.fromisoformat(data['validUntil'])
     assert datetime.fromisoformat(data['createdAt'])
 
@@ -79,7 +79,7 @@ def test_create_creditor(client):
     data = r.get_json()
     assert data['type'] == 'CreditorReservation'
     assert data['creditorId'] == '4294967296'
-    assert isinstance(data['reservationId'], int)
+    assert isinstance(data['reservationId'], str)
     assert datetime.fromisoformat(data['validUntil'])
     assert datetime.fromisoformat(data['createdAt'])
     reservation_id = data['reservationId']
@@ -91,7 +91,7 @@ def test_create_creditor(client):
     assert r.status_code == 403
 
     r = client.post('/creditors/4294967296/activate', json={
-        'reservationId': 123,
+        'reservationId': '123',
     })
     assert r.status_code == 422
     assert 'reservationId' in r.get_json()['errors']['json']
@@ -113,7 +113,7 @@ def test_create_creditor(client):
     assert r.status_code == 200
 
     r = client.post('/creditors/4294967297/activate', json={
-        'reservationId': 123,
+        'reservationId': '123',
     })
     assert r.status_code == 422
     assert 'reservationId' in r.get_json()['errors']['json']
