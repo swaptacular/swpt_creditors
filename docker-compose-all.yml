@@ -173,7 +173,9 @@ services:
   # The purpose of this container is to create the database schema for
   # the `creditors-server` container, and all the necessary RabbitMQ
   # objects (queues, exchanges, etc.). It has to be run only once, but
-  # running it multiple times should not do any harm.
+  # running it multiple times should not do any harm. Set
+  # `SETUP_RABBITMQ_BINDINGS` to anything other than "yes", if you do
+  # not want RabbitMQ exchanges and bindings to be (re)configured.
   creditors-server-config:
     build:
       context: .
@@ -186,6 +188,7 @@ services:
       - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
       - 'MIN_CREDITOR_ID=4294967296'
       - 'MAX_CREDITOR_ID=8589934591'
+      - 'SETUP_RABBITMQ_BINDINGS=yes'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'

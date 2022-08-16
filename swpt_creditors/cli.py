@@ -142,6 +142,7 @@ def subscribe():  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
     messages.
 
+    This is mainly useful during development and testing.
     """
 
     from .extensions import ACCOUNTS_IN_EXCHANGE, \
