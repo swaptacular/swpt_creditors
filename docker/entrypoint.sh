@@ -82,10 +82,12 @@ generate_oathkeeper_configuration() {
 
 case $1 in
     develop-run-flask)
+        # Do not run this in production!
         shift
         exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
         ;;
     test)
+        # Do not run this in production!
         perform_db_upgrade
         exec pytest
         ;;
@@ -97,8 +99,11 @@ case $1 in
         generate_oathkeeper_configuration
         exec supervisord -c "$APP_ROOT_DIR/supervisord-webserver.conf"
         ;;
-    process_ledger_updates | process_log_additions | scan_creditors | scan_accounts | scan_committed_transfers \
-        | scan_ledger_entries | scan_log_entries | configure_interval | consume_messages)
+    consume_messages)
+        exec flask swpt_creditors "$@"
+        ;;
+    process_ledger_updates | process_log_additions | scan_creditors | scan_accounts \
+        | scan_committed_transfers | scan_ledger_entries | scan_log_entries | configure_interval)
         exec flask swpt_creditors "$@"
         ;;
     flush_configure_accounts  | flush_prepare_transfers | flush_finalize_transfers)
