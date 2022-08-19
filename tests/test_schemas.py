@@ -1702,3 +1702,39 @@ def test_deserialize_pin_info(app):
 
     with pytest.raises(ValidationError, match='When the PIN is "on", newPin is requred'):
         pss.load({'type': 'PinInfo', 'status': 'on', 'latestUpdateId': 2})
+
+
+def test_activate_debtor():
+    s = schemas.ActivateCreditorMessageSchema()
+
+    data = s.loads("""{
+    "type": "ActivateCreditor",
+    "creditor_id": -2000000000000000,
+    "reservation_id": "test_id",
+    "ts": "2022-01-01T00:00:00Z",
+    "unknown": "ignored"
+    }""")
+
+    assert data['type'] == 'ActivateCreditor'
+    assert data['creditor_id'] == -2000000000000000
+    assert data['reservation_id'] == 'test_id'
+    assert data['ts'] == datetime.fromisoformat('2022-01-01T00:00:00+00:00')
+    assert "unknown" not in data
+
+    wrong_type = data.copy()
+    wrong_type['type'] = 'WrongType'
+    wrong_type = s.dumps(wrong_type)
+    with pytest.raises(ValidationError, match='Invalid type.'):
+        s.loads(wrong_type)
+
+    wrong_reservation_id = data.copy()
+    wrong_reservation_id['reservation_id'] = 1000 * 'x'
+    wrong_reservation_id = s.dumps(wrong_reservation_id)
+    with pytest.raises(ValidationError, match='Longer than maximum length'):
+        s.loads(wrong_reservation_id)
+
+    try:
+        s.loads('{}')
+    except ValidationError as e:
+        assert len(e.messages) == len(data)
+        assert all(m == ['Missing data for required field.'] for m in e.messages.values())

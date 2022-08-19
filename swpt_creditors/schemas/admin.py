@@ -1,5 +1,6 @@
-from marshmallow import Schema, fields, post_dump, validate
+from marshmallow import Schema, fields, post_dump, validate, validates, ValidationError, EXCLUDE
 from swpt_pythonlib.utils import i64_to_u64
+from swpt_creditors.models import MIN_INT64, MAX_INT64
 from .common import type_registry, ValidateTypeMixin, PaginatedListSchema, URI_DESCRIPTION, TYPE_DESCRIPTION
 
 
@@ -108,3 +109,20 @@ class CreditorDeactivationRequestSchema(ValidateTypeMixin, Schema):
         description=TYPE_DESCRIPTION,
         example='CreditorDeactivationRequest',
     )
+
+
+class ActivateCreditorMessageSchema(Schema):
+    """``ActivateCreditor`` message schema."""
+
+    class Meta:
+        unknown = EXCLUDE
+
+    type = fields.String(required=True)
+    creditor_id = fields.Integer(required=True, validate=validate.Range(min=MIN_INT64, max=MAX_INT64))
+    reservation_id = fields.String(required=True, validate=validate.Length(max=100))
+    ts = fields.DateTime(required=True)
+
+    @validates('type')
+    def validate_type(self, value):
+        if f'{value}MessageSchema' != type(self).__name__:
+            raise ValidationError('Invalid type.')

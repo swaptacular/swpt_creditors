@@ -8,6 +8,7 @@ import swpt_pythonlib.protocol_schemas as ps
 from swpt_pythonlib import rabbitmq
 from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT, is_valid_creditor_id
+from swpt_creditors.schemas import ActivateCreditorMessageSchema
 
 
 def _on_rejected_config_signal(
@@ -224,6 +225,13 @@ def _on_finalized_direct_transfer_signal(
     )
 
 
+def _on_activate_creditor_signal(creditor_id: int, reservation_id: str, *args, **kwargs) -> None:
+    try:
+        procedures.activate_creditor(creditor_id, reservation_id)
+    except procedures.InvalidReservationId:
+        pass
+
+
 _MESSAGE_TYPES = {
     'RejectedConfig': (ps.RejectedConfigMessageSchema(), _on_rejected_config_signal),
     'AccountUpdate': (ps.AccountUpdateMessageSchema(), _on_account_update_signal),
@@ -232,6 +240,7 @@ _MESSAGE_TYPES = {
     'RejectedTransfer': (ps.RejectedTransferMessageSchema(), _on_rejected_direct_transfer_signal),
     'PreparedTransfer': (ps.PreparedTransferMessageSchema(), _on_prepared_direct_transfer_signal),
     'FinalizedTransfer': (ps.FinalizedTransferMessageSchema(), _on_finalized_direct_transfer_signal),
+    'ActivateCreditor': (ActivateCreditorMessageSchema(), _on_activate_creditor_signal),
 }
 
 _LOGGER = logging.getLogger(__name__)
