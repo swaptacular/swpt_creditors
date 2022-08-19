@@ -11,28 +11,36 @@ class CreditorSchema(ValidateTypeMixin, MutableResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/',
+        )
     )
     type = fields.String(
-        missing=type_registry.creditor,
-        default=type_registry.creditor,
-        description=TYPE_DESCRIPTION,
-        example='Creditor',
+        load_default=type_registry.creditor,
+        dump_default=type_registry.creditor,
+        metadata=dict(
+            description=TYPE_DESCRIPTION,
+            example='Creditor',
+        )
     )
     created_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='createdAt',
-        description='The moment at which the creditor was created.',
+        metadata=dict(
+            description='The moment at which the creditor was created.',
+        )
     )
     wallet = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Wallet`.",
-        example={'uri': '/creditors/2/wallet'},
+        metadata=dict(
+            description="The URI of the creditor's `Wallet`.",
+            example={'uri': '/creditors/2/wallet'},
+        )
     )
 
     @pre_dump
@@ -52,44 +60,54 @@ class PinInfoSchema(ValidateTypeMixin, MutableResourceSchema, PinProtectedResour
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/pin',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/pin',
+        )
     )
     type = fields.String(
-        missing=type_registry.pin_info,
-        default=type_registry.pin_info,
-        description=TYPE_DESCRIPTION,
-        example='PinInfo',
+        load_default=type_registry.pin_info,
+        dump_default=type_registry.pin_info,
+        metadata=dict(
+            description=TYPE_DESCRIPTION,
+            example='PinInfo',
+        )
     )
     status_name = fields.String(
         required=True,
         validate=validate.Regexp(f'^({"|".join(PinInfo.STATUS_NAMES)})$'),
         data_key='status',
-        description='The status of the PIN.'
-                    '\n\n'
-                    '* `"off"` means that the PIN is not required for potentially '
-                    '  dangerous operations.\n'
-                    '* `"on"` means that the PIN is required for potentially dangerous '
-                    '  operations.\n'
-                    '* `"blocked"` means that the PIN has been blocked.',
-        example=f'{PinInfo.STATUS_NAME_ON}',
+        metadata=dict(
+            description='The status of the PIN.'
+                        '\n\n'
+                        '* `"off"` means that the PIN is not required for potentially '
+                        '  dangerous operations.\n'
+                        '* `"on"` means that the PIN is required for potentially dangerous '
+                        '  operations.\n'
+                        '* `"blocked"` means that the PIN has been blocked.',
+            example=f'{PinInfo.STATUS_NAME_ON}',
+        )
     )
     optional_new_pin_value = fields.String(
         load_only=True,
         validate=validate.Regexp(PIN_REGEX),
         data_key='newPin',
-        description='The new PIN. When `status` is "on", this field must be present. Note '
-                    'that when changing the PIN, the `pin` field should contain the old '
-                    'PIN, and the `newPin` field should contain the new PIN.',
-        example='5678',
+        metadata=dict(
+            description='The new PIN. When `status` is "on", this field must be present. Note '
+                        'that when changing the PIN, the `pin` field should contain the old '
+                        'PIN, and the `newPin` field should contain the new PIN.',
+            example='5678',
+        )
     )
     wallet = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Wallet`.",
-        example={'uri': '/creditors/2/wallet'},
+        metadata=dict(
+            description="The URI of the creditor's `Wallet`.",
+            example={'uri': '/creditors/2/wallet'},
+        )
     )
 
     @validates_schema
@@ -115,23 +133,29 @@ class AccountsListSchema(PaginatedListSchema, MutableResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/accounts-list',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/accounts-list',
+        )
     )
     type = fields.Function(
         lambda obj: type_registry.accounts_list,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='AccountsList',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='AccountsList',
+        )
     )
     wallet = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Wallet` that contains the accounts list.",
-        example={'uri': '/creditors/2/wallet'},
+        metadata=dict(
+            description="The URI of the creditor's `Wallet` that contains the accounts list.",
+            example={'uri': '/creditors/2/wallet'},
+        )
     )
 
     @pre_dump
@@ -153,23 +177,29 @@ class TransfersListSchema(PaginatedListSchema, MutableResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/transfers-list',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/transfers-list',
+        )
     )
     type = fields.Function(
         lambda obj: type_registry.transfers_list,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='TransfersList',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='TransfersList',
+        )
     )
     wallet = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the creditor's `Wallet` that contains the transfers list.",
-        example={'uri': '/creditors/2/wallet'},
+        metadata=dict(
+            description="The URI of the creditor's `Wallet` that contains the transfers list.",
+            example={'uri': '/creditors/2/wallet'},
+        )
     )
 
     @pre_dump
@@ -191,134 +221,162 @@ class WalletSchema(Schema):
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/wallet',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/wallet',
+        )
     )
     type = fields.Function(
         lambda obj: type_registry.wallet,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='Wallet',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='Wallet',
+        )
     )
     creditor = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the `Creditor`.",
-        example={'uri': '/creditors/2/'},
+        metadata=dict(
+            description="The URI of the `Creditor`.",
+            example={'uri': '/creditors/2/'},
+        )
     )
     accounts_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='accountsList',
-        description="The URI of creditor's `AccountsList`. In other words: an URI of a paginated list "
-                    "of `ObjectReference`s to all `Account`s belonging to the creditor. The paginated "
-                    "list will not be sorted in any particular order.",
-        example={'uri': '/creditors/2/accounts-list'},
+        metadata=dict(
+            description="The URI of creditor's `AccountsList`. In other words: an URI of a paginated list "
+                        "of `ObjectReference`s to all `Account`s belonging to the creditor. The paginated "
+                        "list will not be sorted in any particular order.",
+            example={'uri': '/creditors/2/accounts-list'},
+        )
     )
     log = fields.Nested(
         PaginatedStreamSchema,
         required=True,
         dump_only=True,
-        description="A `PaginatedStream` of creditor's `LogEntry`s. The paginated stream will be "
-                    "sorted in chronological order (smaller entry IDs go first). The main "
-                    "purpose of the log stream is to allow the clients of the API to reliably "
-                    "and efficiently invalidate their caches, simply by following the \"log\".",
-        example={
-            'first': '/creditors/2/log',
-            'forthcoming': '/creditors/2/log?prev=12345',
-            'itemsType': 'LogEntry',
-            'type': 'PaginatedStream',
-        },
+        metadata=dict(
+            description="A `PaginatedStream` of creditor's `LogEntry`s. The paginated stream will be "
+                        "sorted in chronological order (smaller entry IDs go first). The main "
+                        "purpose of the log stream is to allow the clients of the API to reliably "
+                        "and efficiently invalidate their caches, simply by following the \"log\".",
+            example={
+                'first': '/creditors/2/log',
+                'forthcoming': '/creditors/2/log?prev=12345',
+                'itemsType': 'LogEntry',
+                'type': 'PaginatedStream',
+            },
+        )
     )
     last_log_entry_id = fields.Integer(
         required=True,
         dump_only=True,
-        format="int64",
         data_key='logLatestEntryId',
-        description="The ID of the latest entry in the creditor's log stream. If there are "
-                    "no entries yet, the value will be `0`.",
-        example=12345,
+        metadata=dict(
+            format="int64",
+            description="The ID of the latest entry in the creditor's log stream. If there are "
+                        "no entries yet, the value will be `0`.",
+            example=12345,
+        )
     )
     log_retention_days = fields.Method(
         'get_log_retention_days',
         required=True,
         dump_only=True,
-        type='integer',
-        format="int32",
         data_key='logRetentionDays',
-        description="The entries in the creditor's log stream will not be deleted for at least this "
-                    "number of days. Must be at least 30 days.",
-        example=30,
+        metadata=dict(
+            type='integer',
+            format="int32",
+            description="The entries in the creditor's log stream will not be deleted for at least this "
+                        "number of days. Must be at least 30 days.",
+            example=30,
+        )
     )
     transfers_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='transfersList',
-        description="The URI of creditor's `TransfersList`. In other words: an URI of a paginated list "
-                    "of `ObjectReference`s to all `Transfer`s initiated by the creditor, which have not "
-                    "been deleted yet. The paginated list will not be sorted in any particular order.",
-        example={'uri': '/creditors/2/transfers-list'},
+        metadata=dict(
+            description="The URI of creditor's `TransfersList`. In other words: an URI of a paginated list "
+                        "of `ObjectReference`s to all `Transfer`s initiated by the creditor, which have not "
+                        "been deleted yet. The paginated list will not be sorted in any particular order.",
+            example={'uri': '/creditors/2/transfers-list'},
+        )
     )
     create_account = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='createAccount',
-        description='A URI to which a `DebtorIdentity` object can be POST-ed to create a new `Account`.',
-        example={'uri': '/creditors/2/accounts/'},
+        metadata=dict(
+            description='A URI to which a `DebtorIdentity` object can be POST-ed to create a new `Account`.',
+            example={'uri': '/creditors/2/accounts/'},
+        )
     )
     create_transfer = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='createTransfer',
-        description='A URI to which a `TransferCreationRequest` can be POST-ed to '
-                    'create a new `Transfer`.',
-        example={'uri': '/creditors/2/transfers/'},
+        metadata=dict(
+            description='A URI to which a `TransferCreationRequest` can be POST-ed to '
+                        'create a new `Transfer`.',
+            example={'uri': '/creditors/2/transfers/'},
+        )
     )
     account_lookup = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='accountLookup',
-        description="A URI to which the recipient account's `AccountIdentity` can be POST-ed, "
-                    "trying to find the identify of the account's debtor. If the debtor has "
-                    "been identified successfully, the response will contain the debtor's "
-                    "`DebtorIdentity`. Otherwise, the response code will be 422.",
-        example={'uri': '/creditors/2/account-lookup'},
+        metadata=dict(
+            description="A URI to which the recipient account's `AccountIdentity` can be POST-ed, "
+                        "trying to find the identify of the account's debtor. If the debtor has "
+                        "been identified successfully, the response will contain the debtor's "
+                        "`DebtorIdentity`. Otherwise, the response code will be 422.",
+            example={'uri': '/creditors/2/account-lookup'},
+        )
     )
     debtor_lookup = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='debtorLookup',
-        description="A URI to which a `DebtorIdentity` object can be POST-ed, trying to find an "
-                    "existing account with this debtor. If an existing account is found, the "
-                    "response will redirect to the `Account` (response code 303). Otherwise, "
-                    "the response will be empty (response code 204).",
-        example={'uri': '/creditors/2/debtor-lookup'},
+        metadata=dict(
+            description="A URI to which a `DebtorIdentity` object can be POST-ed, trying to find an "
+                        "existing account with this debtor. If an existing account is found, the "
+                        "response will redirect to the `Account` (response code 303). Otherwise, "
+                        "the response will be empty (response code 204).",
+            example={'uri': '/creditors/2/debtor-lookup'},
+        )
     )
     pin_info_reference = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='pinInfo',
-        description="The URI of creditor's `PinInfo`.",
-        example={'uri': '/creditors/2/pin'},
+        metadata=dict(
+            description="The URI of creditor's `PinInfo`.",
+            example={'uri': '/creditors/2/pin'},
+        )
     )
     require_pin = fields.Boolean(
         required=True,
         dump_only=True,
         data_key='requirePin',
-        description="Whether the PIN is required for potentially dangerous operations."
-                    "\n\n"
-                    "**Note:** The PIN will never be required when in \"PIN reset\" mode.",
-        example=True,
+        metadata=dict(
+            description="Whether the PIN is required for potentially dangerous operations."
+                        "\n\n"
+                        "**Note:** The PIN will never be required when in \"PIN reset\" mode.",
+            example=True,
+        )
     )
 
     def get_log_retention_days(self, obj):
@@ -357,82 +415,98 @@ class LogEntrySchema(Schema):
     type = fields.Function(
         lambda obj: type_registry.log_entry,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='LogEntry',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='LogEntry',
+        )
     )
     entry_id = fields.Integer(
         required=True,
         dump_only=True,
-        format='int64',
         data_key='entryId',
-        description='The ID of the log entry. This will always be a positive number. The ID of '
-                    'the first log entry can by any positive number, but the IDs of all '
-                    'subsequent log entries will be equal to the ID of the previous log entry '
-                    'plus one.',
-        example=12345,
+        metadata=dict(
+            format='int64',
+            description='The ID of the log entry. This will always be a positive number. The ID of '
+                        'the first log entry can by any positive number, but the IDs of all '
+                        'subsequent log entries will be equal to the ID of the previous log entry '
+                        'plus one.',
+            example=12345,
+        )
     )
     added_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='addedAt',
-        description='The moment at which the entry was added to the log.',
+        metadata=dict(
+            description='The moment at which the entry was added to the log.',
+        )
     )
     object_type = fields.Method(
         'get_object_type',
         required=True,
         dump_only=True,
-        type='string',
         data_key='objectType',
-        description='The type of the object that has been created, updated, or deleted.',
-        example='Account',
+        metadata=dict(
+            type='string',
+            description='The type of the object that has been created, updated, or deleted.',
+            example='Account',
+        )
     )
     object = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description='The URI of the object that has been created, updated, or deleted.',
-        example={'uri': '/creditors/2/accounts/1/'},
+        metadata=dict(
+            description='The URI of the object that has been created, updated, or deleted.',
+            example={'uri': '/creditors/2/accounts/1/'},
+        )
     )
     is_deleted = fields.Function(
         lambda obj: bool(obj.is_deleted),
         required=True,
         dump_only=True,
-        type='boolean',
         data_key='deleted',
-        description='Whether the object has been deleted.',
-        example=False,
+        metadata=dict(
+            type='boolean',
+            description='Whether the object has been deleted.',
+            example=False,
+        )
     )
     optional_object_update_id = fields.Integer(
         dump_only=True,
         data_key='objectUpdateId',
-        format='int64',
-        description='A positive number which gets bigger after each change in the object. When '
-                    'this field is not present, this means that either the object is *immutable*, '
-                    'or it has been *deleted permanently*. For mutable objects which can be '
-                    'deleted and re-created with the same URI (accounts for example), this '
-                    'field will be present even when the `deleted` field is `true`.',
-        example=10,
+        metadata=dict(
+            format='int64',
+            description='A positive number which gets bigger after each change in the object. When '
+                        'this field is not present, this means that either the object is *immutable*, '
+                        'or it has been *deleted permanently*. For mutable objects which can be '
+                        'deleted and re-created with the same URI (accounts for example), this '
+                        'field will be present even when the `deleted` field is `true`.',
+            example=10,
+        )
     )
     optional_data = fields.Dict(
         dump_only=True,
         data_key='data',
-        description='Optional information about the new state of the created/updated object. When '
-                    'present, this information can be used to avoid making a network request to '
-                    'obtain the new state. What properties the "data" object will have, depends '
-                    'on the value of the `objectType` field:'
-                    '\n\n'
-                    '### When the object type is "AccountLedger"\n'
-                    '`principal`, `nextEntryId`, and `firstPage` properties will  be present. The '
-                    '`firstPage` property will contain the value of the `entries.first` field from '
-                    'the corresponding account ledger object.'
-                    '\n\n'
-                    '### When the object type is "Transfer"\n'
-                    'If the transfer is finalized, `finalizedAt` and (only when there is an '
-                    'error) `errorCode` properties will be present. If the transfer is not '
-                    'finalized, the "data" object will not be present.'
-                    '\n\n'
-                    '**Note:** This field will never be present when the object has been deleted.',
+        metadata=dict(
+            description='Optional information about the new state of the created/updated object. When '
+                        'present, this information can be used to avoid making a network request to '
+                        'obtain the new state. What properties the "data" object will have, depends '
+                        'on the value of the `objectType` field:'
+                        '\n\n'
+                        '### When the object type is "AccountLedger"\n'
+                        '`principal`, `nextEntryId`, and `firstPage` properties will  be present. The '
+                        '`firstPage` property will contain the value of the `entries.first` field from '
+                        'the corresponding account ledger object.'
+                        '\n\n'
+                        '### When the object type is "Transfer"\n'
+                        'If the transfer is finalized, `finalizedAt` and (only when there is an '
+                        'error) `errorCode` properties will be present. If the transfer is not '
+                        'finalized, the "data" object will not be present.'
+                        '\n\n'
+                        '**Note:** This field will never be present when the object has been deleted.',
+        )
     )
 
     @pre_dump
@@ -458,12 +532,14 @@ class LogEntrySchema(Schema):
 
 class LogPaginationParamsSchema(Schema):
     prev = fields.Integer(
-        missing=0,
+        load_default=0,
         load_only=True,
         validate=validate.Range(min=0, max=MAX_INT64),
-        format='int64',
-        description='Start with the item that follows the item with this index.',
-        example=1,
+        metadata=dict(
+            format='int64',
+            description='Start with the item that follows the item with this index.',
+            example=1,
+        )
     )
 
 
@@ -471,38 +547,48 @@ class LogEntriesPageSchema(Schema):
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/log',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/log',
+        )
     )
     type = fields.Function(
         lambda obj: type_registry.log_entries_page,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='LogEntriesPage',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='LogEntriesPage',
+        )
     )
     items = fields.Nested(
         LogEntrySchema(many=True),
         required=True,
         dump_only=True,
-        description='An array of `LogEntry`s. Can be empty.',
+        metadata=dict(
+            description='An array of `LogEntry`s. Can be empty.',
+        )
     )
     next = fields.String(
         dump_only=True,
-        format='uri-reference',
-        description=PAGE_NEXT_DESCRIPTION.format(type='LogEntriesPage'),
-        example='?prev=12345',
+        metadata=dict(
+            format='uri-reference',
+            description=PAGE_NEXT_DESCRIPTION.format(type='LogEntriesPage'),
+            example='?prev=12345',
+        )
     )
     forthcoming = fields.String(
         dump_only=True,
-        format='uri-reference',
-        description='An URI of another `LogEntriesPage` object which would contain items that '
-                    'might be added in the future. That is: items that are not currently available, '
-                    'but may become available in the future. This is useful when we want to follow '
-                    'a continuous stream of log entries. This field will not be present if, and '
-                    'only if, the `next` field is present. This can be a relative URI.',
-        example='?prev=12345',
+        metadata=dict(
+            format='uri-reference',
+            description='An URI of another `LogEntriesPage` object which would contain items that '
+                        'might be added in the future. That is: items that are not currently available, '
+                        'but may become available in the future. This is useful when we want to follow '
+                        'a continuous stream of log entries. This field will not be present if, and '
+                        'only if, the `next` field is present. This can be a relative URI.',
+            example='?prev=12345',
+        )
     )
 
     @post_dump

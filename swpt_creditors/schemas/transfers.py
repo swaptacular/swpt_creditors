@@ -27,44 +27,50 @@ class TransferErrorSchema(Schema):
     type = fields.Function(
         lambda obj: type_registry.transfer_error,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='TransferError',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='TransferError',
+        )
     )
     error_code = fields.String(
         required=True,
         dump_only=True,
         data_key='errorCode',
-        description='The error code.'
-                    '\n\n'
-                    '* `"CANCELED_BY_THE_SENDER"` signifies that the transfer has been '
-                    '  canceled by the sender.\n'
-                    '* `"SENDER_DOES_NOT_EXIST"` signifies that the sender\'s account '
-                    '  does not exist.\n'
-                    '* `"RECIPIENT_IS_UNREACHABLE"` signifies that the recipient\'s'
-                    '  account does not exist, or does not accept incoming transfers.\n'
-                    '* `"TRANSFER_NOTE_IS_TOO_LONG"` signifies that the transfer has been '
-                    '  rejected because the byte-length of the transfer note is too big.\n'
-                    '* `"INSUFFICIENT_AVAILABLE_AMOUNT"` signifies that the transfer '
-                    '  has been rejected due to insufficient amount available on the '
-                    '  sender\'s account.\n'
-                    '* `"TERMINATED"` signifies that the transfer has been terminated '
-                    '  due to expired deadline, unapproved interest rate change, or '
-                    '  some other *temporary or correctable condition*. If the client '
-                    '  verifies the transer options and retries the transfer, chances '
-                    '  are that it will be committed successfully.\n',
-        example='INSUFFICIENT_AVAILABLE_AMOUNT',
+        metadata=dict(
+            description='The error code.'
+                        '\n\n'
+                        '* `"CANCELED_BY_THE_SENDER"` signifies that the transfer has been '
+                        '  canceled by the sender.\n'
+                        '* `"SENDER_DOES_NOT_EXIST"` signifies that the sender\'s account '
+                        '  does not exist.\n'
+                        '* `"RECIPIENT_IS_UNREACHABLE"` signifies that the recipient\'s'
+                        '  account does not exist, or does not accept incoming transfers.\n'
+                        '* `"TRANSFER_NOTE_IS_TOO_LONG"` signifies that the transfer has been '
+                        '  rejected because the byte-length of the transfer note is too big.\n'
+                        '* `"INSUFFICIENT_AVAILABLE_AMOUNT"` signifies that the transfer '
+                        '  has been rejected due to insufficient amount available on the '
+                        '  sender\'s account.\n'
+                        '* `"TERMINATED"` signifies that the transfer has been terminated '
+                        '  due to expired deadline, unapproved interest rate change, or '
+                        '  some other *temporary or correctable condition*. If the client '
+                        '  verifies the transer options and retries the transfer, chances '
+                        '  are that it will be committed successfully.\n',
+            example='INSUFFICIENT_AVAILABLE_AMOUNT',
+        )
     )
     total_locked_amount = fields.Method(
         'get_total_locked_amount',
-        type='integer',
-        format='int64',
         data_key='totalLockedAmount',
-        description='This field will be present only when the transfer has been rejected '
-                    'due to insufficient available amount. In this case, it will contain '
-                    'the total sum secured (locked) for transfers on the account, '
-                    '*after* this transfer has been finalized.',
-        example=0,
+        metadata=dict(
+            type='integer',
+            format='int64',
+            description='This field will be present only when the transfer has been rejected '
+                        'due to insufficient available amount. In this case, it will contain '
+                        'the total sum secured (locked) for transfers on the account, '
+                        '*after* this transfer has been finalized.',
+            example=0,
+        )
     )
 
     @post_dump
@@ -80,38 +86,46 @@ class TransferErrorSchema(Schema):
 
 class TransferOptionsSchema(Schema):
     type = fields.String(
-        missing=type_registry.transfer_options,
-        default=type_registry.transfer_options,
-        description=TYPE_DESCRIPTION,
-        example='TransferOptions',
+        load_default=type_registry.transfer_options,
+        dump_default=type_registry.transfer_options,
+        metadata=dict(
+            description=TYPE_DESCRIPTION,
+            example='TransferOptions',
+        )
     )
     min_interest_rate = fields.Float(
-        missing=-100.0,
+        load_default=-100.0,
         validate=validate.Range(min=-100.0),
         data_key='minInterestRate',
-        format='float',
-        description='The minimal approved interest rate. If the interest rate on the '
-                    'account becomes lower than this value, the transfer will not be '
-                    'successful. This can be useful when the transferred amount may need '
-                    'to be decreased if the interest rate on the account has decreased.',
-        example=-100.0,
+        metadata=dict(
+            format='float',
+            description='The minimal approved interest rate. If the interest rate on the '
+                        'account becomes lower than this value, the transfer will not be '
+                        'successful. This can be useful when the transferred amount may need '
+                        'to be decreased if the interest rate on the account has decreased.',
+            example=-100.0,
+        )
     )
     optional_deadline = fields.DateTime(
         data_key='deadline',
-        description='The transfer will be successful only if it is committed before this moment. '
-                    'This can be useful, for example, when the transferred amount may need to be '
-                    'changed if the transfer can not be committed in time. When this field is '
-                    'not present, this means that the deadline for the transfer will not be '
-                    'earlier than normal.',
+        metadata=dict(
+            description='The transfer will be successful only if it is committed before this moment. '
+                        'This can be useful, for example, when the transferred amount may need to be '
+                        'changed if the transfer can not be committed in time. When this field is '
+                        'not present, this means that the deadline for the transfer will not be '
+                        'earlier than normal.',
+        )
     )
     locked_amount = fields.Integer(
-        missing=0,
+        load_default=0,
         validate=validate.Range(min=0, max=MAX_INT64),
-        format='int64',
         data_key='lockedAmount',
-        description="The amount that should to be locked when the transer is prepared. This must "
-                    "be a non-negative number.",
-        example=0,
+        metadata=dict(
+            format='int64',
+            description="The amount that should to be locked when the transer is prepared. This must "
+                        "be a non-negative number.",
+            example=0,
+        )
     )
 
 
@@ -119,31 +133,39 @@ class TransferResultSchema(Schema):
     type = fields.Function(
         lambda obj: type_registry.transfer_result,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='TransferResult',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='TransferResult',
+        )
     )
     finalized_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='finalizedAt',
-        description='The moment at which the transfer was finalized.',
+        metadata=dict(
+            description='The moment at which the transfer was finalized.',
+        )
     )
     committed_amount = fields.Integer(
         required=True,
         dump_only=True,
-        format='int64',
         data_key='committedAmount',
-        description='The transferred amount. If the transfer has been successful, the value will '
-                    'be equal to the requested transfer amount (always a positive number). If '
-                    'the transfer has been unsuccessful, the value will be zero.',
-        example=0,
+        metadata=dict(
+            format='int64',
+            description='The transferred amount. If the transfer has been successful, the value will '
+                        'be equal to the requested transfer amount (always a positive number). If '
+                        'the transfer has been unsuccessful, the value will be zero.',
+            example=0,
+        )
     )
     error = fields.Nested(
         TransferErrorSchema,
         dump_only=True,
-        description='An error that has occurred during the execution of the transfer. This field '
-                    'will be present if, and only if, the transfer has been unsuccessful.',
+        metadata=dict(
+            description='An error that has occurred during the execution of the transfer. This field '
+                        'will be present if, and only if, the transfer has been unsuccessful.',
+        )
     )
 
     @post_dump
@@ -155,50 +177,64 @@ class TransferResultSchema(Schema):
 
 class TransferCreationRequestSchema(ValidateTypeMixin, PinProtectedResourceSchema):
     type = fields.String(
-        missing=type_registry.transfer_creation_request,
-        default=type_registry.transfer_creation_request,
-        description=TYPE_DESCRIPTION,
-        example='TransferCreationRequest',
+        load_default=type_registry.transfer_creation_request,
+        dump_default=type_registry.transfer_creation_request,
+        metadata=dict(
+            description=TYPE_DESCRIPTION,
+            example='TransferCreationRequest',
+        )
     )
     transfer_uuid = fields.UUID(
         required=True,
         data_key='transferUuid',
-        description="A client-generated UUID for the transfer.",
-        example='123e4567-e89b-12d3-a456-426655440000',
+        metadata=dict(
+            description="A client-generated UUID for the transfer.",
+            example='123e4567-e89b-12d3-a456-426655440000',
+        )
     )
     recipient_identity = fields.Nested(
         AccountIdentitySchema,
         required=True,
         data_key='recipient',
-        description="The recipient's `AccountIdentity` information.",
-        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
+        metadata=dict(
+            description="The recipient's `AccountIdentity` information.",
+            example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
+        )
     )
     amount = fields.Integer(
         required=True,
         validate=validate.Range(min=0, max=MAX_INT64),
-        format='int64',
-        description="The amount that has to be transferred. Must be a non-negative "
-                    "number. Setting this value to zero can be useful when the sender wants to "
-                    "verify whether the recipient's account exists and accepts incoming transfers.",
-        example=1000,
+        metadata=dict(
+            format='int64',
+            description="The amount that has to be transferred. Must be a non-negative "
+                        "number. Setting this value to zero can be useful when the sender wants to "
+                        "verify whether the recipient's account exists and accepts incoming transfers.",
+            example=1000,
+        )
     )
     transfer_note_format = fields.String(
-        missing='',
+        load_default='',
         validate=validate.Regexp(TRANSFER_NOTE_FORMAT_REGEX),
         data_key='noteFormat',
-        description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
-        example='',
+        metadata=dict(
+            description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
+            example='',
+        )
     )
     transfer_note = fields.String(
-        missing='',
+        load_default='',
         validate=validate.Length(max=TRANSFER_NOTE_MAX_BYTES),
         data_key='note',
-        description=_TRANSFER_NOTE_DESCRIPTION,
-        example='Hello, World!',
+        metadata=dict(
+            description=_TRANSFER_NOTE_DESCRIPTION,
+            example='Hello, World!',
+        )
     )
     options = fields.Nested(
         TransferOptionsSchema,
-        description="Optional `TransferOptions`.",
+        metadata=dict(
+            description="Optional `TransferOptions`.",
+        )
     )
 
     @pre_load
@@ -218,72 +254,90 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/transfers/123e4567-e89b-12d3-a456-426655440000',
+        )
     )
     type = fields.Function(
         lambda obj: type_registry.transfer,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='Transfer',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='Transfer',
+        )
     )
     transfers_list = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
         data_key='transfersList',
-        description="The URI of creditor's `TransfersList`.",
-        example={'uri': '/creditors/2/transfers-list'},
+        metadata=dict(
+            description="The URI of creditor's `TransfersList`.",
+            example={'uri': '/creditors/2/transfers-list'},
+        )
     )
     transfer_note_format = fields.String(
         required=True,
         dump_only=True,
         data_key='noteFormat',
-        pattern=TRANSFER_NOTE_FORMAT_REGEX,
-        description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
-        example='',
+        metadata=dict(
+            pattern=TRANSFER_NOTE_FORMAT_REGEX,
+            description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
+            example='',
+        )
     )
     transfer_note = fields.String(
         required=True,
         dump_only=True,
         data_key='note',
-        description=_TRANSFER_NOTE_DESCRIPTION,
-        example='Hello, World!',
+        metadata=dict(
+            description=_TRANSFER_NOTE_DESCRIPTION,
+            example='Hello, World!',
+        )
     )
     options = fields.Nested(
         TransferOptionsSchema,
         required=True,
         dump_only=True,
-        description="Transfer's `TransferOptions`.",
+        metadata=dict(
+            description="Transfer's `TransferOptions`.",
+        )
     )
     initiated_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='initiatedAt',
-        description='The moment at which the transfer was initiated.',
+        metadata=dict(
+            description='The moment at which the transfer was initiated.',
+        )
     )
     checkup_at = fields.Method(
         'get_checkup_at_string',
-        type='string',
-        format='date-time',
         data_key='checkupAt',
-        description="The moment at which the sender is advised to look at the transfer "
-                    "again, to see if it's status has changed. If this field is not present, "
-                    "this means either that the status of the transfer is not expected to "
-                    "change, or that the moment of the expected change can not be predicted."
-                    "\n\n"
-                    "**Note:** The value of this field is calculated on-the-fly, so it may "
-                    "change from one request to another, and no `LogEntry` for the change "
-                    "will be added to the log.",
+        metadata=dict(
+            type='string',
+            format='date-time',
+            description="The moment at which the sender is advised to look at the transfer "
+                        "again, to see if it's status has changed. If this field is not present, "
+                        "this means either that the status of the transfer is not expected to "
+                        "change, or that the moment of the expected change can not be predicted."
+                        "\n\n"
+                        "**Note:** The value of this field is calculated on-the-fly, so it may "
+                        "change from one request to another, and no `LogEntry` for the change "
+                        "will be added to the log.",
+        )
     )
     result = fields.Nested(
         TransferResultSchema,
         dump_only=True,
-        description='Contains information about the outcome of the transfer. This field will '
-                    'be preset if, and only if, the transfer has been finalized. Note that a '
-                    'finalized transfer can be either successful, or unsuccessful.',
+        metadata=dict(
+            description='Contains information about the outcome of the transfer. This field will '
+                        'be preset if, and only if, the transfer has been finalized. Note that a '
+                        'finalized transfer can be either successful, or unsuccessful.',
+        )
     )
 
     @pre_dump
@@ -326,10 +380,12 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
 
 class TransferCancelationRequestSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing=type_registry.transfer_cancelation_request,
-        default=type_registry.transfer_cancelation_request,
-        description=TYPE_DESCRIPTION,
-        example='TransferCancelationRequest',
+        load_default=type_registry.transfer_cancelation_request,
+        dump_default=type_registry.transfer_cancelation_request,
+        metadata=dict(
+            description=TYPE_DESCRIPTION,
+            example='TransferCancelationRequest',
+        )
     )
 
 
@@ -337,80 +393,100 @@ class CommittedTransferSchema(Schema):
     uri = fields.String(
         required=True,
         dump_only=True,
-        format='uri-reference',
-        description=URI_DESCRIPTION,
-        example='/creditors/2/accounts/1/transfers/18444-999',
+        metadata=dict(
+            format='uri-reference',
+            description=URI_DESCRIPTION,
+            example='/creditors/2/accounts/1/transfers/18444-999',
+        )
     )
     type = fields.Function(
         lambda obj: type_registry.committed_transfer,
         required=True,
-        type='string',
-        description=TYPE_DESCRIPTION,
-        example='CommittedTransfer',
+        metadata=dict(
+            type='string',
+            description=TYPE_DESCRIPTION,
+            example='CommittedTransfer',
+        )
     )
     account = fields.Nested(
         ObjectReferenceSchema,
         required=True,
         dump_only=True,
-        description="The URI of the affected `Account`.",
-        example={'uri': '/creditors/2/accounts/1/'},
+        metadata=dict(
+            description="The URI of the affected `Account`.",
+            example={'uri': '/creditors/2/accounts/1/'},
+        )
     )
     rationale = fields.String(
         dump_only=True,
-        description='This field will be present only for system transfers. Its value '
-                    'indicates the subsystem which originated the transfer. For interest '
-                    'payments the value will be `"interest"`. For transfers that create '
-                    'new money into existence, the value will be `"issuing"`.',
-        example='interest',
+        metadata=dict(
+            description='This field will be present only for system transfers. Its value '
+                        'indicates the subsystem which originated the transfer. For interest '
+                        'payments the value will be `"interest"`. For transfers that create '
+                        'new money into existence, the value will be `"issuing"`.',
+            example='interest',
+        )
     )
     sender_identity = fields.Nested(
         AccountIdentitySchema,
         required=True,
         dump_only=True,
         data_key='sender',
-        description="The sender's `AccountIdentity` information.",
-        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
+        metadata=dict(
+            description="The sender's `AccountIdentity` information.",
+            example={'type': 'AccountIdentity', 'uri': 'swpt:1/2'}
+        )
     )
     recipient_identity = fields.Nested(
         AccountIdentitySchema,
         required=True,
         dump_only=True,
         data_key='recipient',
-        description="The recipient's `AccountIdentity` information.",
-        example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
+        metadata=dict(
+            description="The recipient's `AccountIdentity` information.",
+            example={'type': 'AccountIdentity', 'uri': 'swpt:1/2222'}
+        )
     )
     acquired_amount = fields.Integer(
         required=True,
         dump_only=True,
-        format='int64',
         data_key='acquiredAmount',
-        description="The amount that this transfer has added to the account's principal. This "
-                    "can be a positive number (an incoming transfer), a negative number (an "
-                    "outgoing transfer), but can not be zero.",
-        example=1000,
+        metadata=dict(
+            format='int64',
+            description="The amount that this transfer has added to the account's principal. This "
+                        "can be a positive number (an incoming transfer), a negative number (an "
+                        "outgoing transfer), but can not be zero.",
+            example=1000,
+        )
     )
     transfer_note_format = fields.String(
         required=True,
         dump_only=True,
         data_key='noteFormat',
-        pattern=TRANSFER_NOTE_FORMAT_REGEX,
-        description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
-        example='',
+        metadata=dict(
+            pattern=TRANSFER_NOTE_FORMAT_REGEX,
+            description=_TRANSFER_NOTE_FORMAT_DESCRIPTION,
+            example='',
+        )
     )
     transfer_note = fields.String(
         required=True,
         dump_only=True,
         data_key='note',
-        description='A note from the committer of the transfer. Can be any string that '
-                    'contains information which whoever committed the transfer wants the '
-                    'recipient (and the sender) to see. Can be an empty string.',
-        example='',
+        metadata=dict(
+            description='A note from the committer of the transfer. Can be any string that '
+                        'contains information which whoever committed the transfer wants the '
+                        'recipient (and the sender) to see. Can be an empty string.',
+            example='',
+        )
     )
     committed_at = fields.DateTime(
         required=True,
         dump_only=True,
         data_key='committedAt',
-        description='The moment at which the transfer was committed.',
+        metadata=dict(
+            description='The moment at which the transfer was committed.',
+        )
     )
 
     @pre_dump
@@ -448,7 +524,9 @@ class CommittedTransferSchema(Schema):
 class TransfersPaginationParamsSchema(Schema):
     prev = fields.UUID(
         load_only=True,
-        description='The returned fragment will begin with the first transfer that follows the '
-                    'transfer whose transfer UUID is equal to value of this parameter.',
-        example='123e4567-e89b-12d3-a456-426655440000',
+        metadata=dict(
+            description='The returned fragment will begin with the first transfer that follows the '
+                        'transfer whose transfer UUID is equal to value of this parameter.',
+            example='123e4567-e89b-12d3-a456-426655440000',
+        )
     )
