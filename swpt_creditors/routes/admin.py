@@ -1,3 +1,4 @@
+from random import randint
 from flask import current_app, request, g
 from flask.views import MethodView
 from flask_smorest import abort
@@ -6,7 +7,7 @@ from swpt_creditors.schemas import examples, CreditorSchema, CreditorReservation
     ObjectReferencesPageSchema
 from swpt_creditors import procedures
 from swpt_creditors.schemas import type_registry, CreditorsListSchema
-from swpt_creditors.models import MIN_INT64
+from swpt_creditors.models import MIN_INT64, is_valid_creditor_id
 from .common import context, path_builder, ensure_admin, Blueprint
 from .specs import CID
 from . import specs
@@ -24,7 +25,7 @@ admin_api.before_request(ensure_admin)
 @admin_api.route('/.creditor-reserve')
 class RandomCreditorReserveEndpoint(MethodView):
     @admin_api.arguments(CreditorReservationRequestSchema)
-    @admin_api.response(CreditorReservationSchema(context=context))
+    @admin_api.response(200, CreditorReservationSchema(context=context))
     @admin_api.doc(operationId='reserveRandomCreditor',
                    security=specs.SCOPE_ACTIVATE,
                    responses={409: specs.CONFLICTING_CREDITOR})
@@ -35,11 +36,12 @@ class RandomCreditorReserveEndpoint(MethodView):
         creditor ID.
 
         """
-
+        min_creditor_id = current_app.config['MIN_CREDITOR_ID']
+        max_creditor_id = current_app.config['MAX_CREDITOR_ID']
         for _ in range(100):
-            creditor_id = procedures.generate_new_creditor_id()
+            creditor_id = randint(min_creditor_id, max_creditor_id)
             try:
-                creditor = procedures.reserve_creditor(creditor_id, verify_correctness=False)
+                creditor = procedures.reserve_creditor(creditor_id)
                 break
             except procedures.CreditorExists:  # pragma: no cover
                 pass
@@ -51,7 +53,7 @@ class RandomCreditorReserveEndpoint(MethodView):
 
 @admin_api.route('/.list')
 class CreditorsListEndpoint(MethodView):
-    @admin_api.response(CreditorsListSchema, example=examples.CREDITORS_LIST_EXAMPLE)
+    @admin_api.response(200, CreditorsListSchema, example=examples.CREDITORS_LIST_EXAMPLE)
     @admin_api.doc(operationId='getCreditorsList', security=specs.SCOPE_ACCESS_READONLY)
     def get(self):
         """Return a paginated list of links to all active creditors."""
@@ -65,7 +67,7 @@ class CreditorsListEndpoint(MethodView):
 
 @admin_api.route('/<i64:creditorId>/enumerate', parameters=[CID])
 class CreditorEnumerateEndpoint(MethodView):
-    @admin_api.response(ObjectReferencesPageSchema(context=context), example=examples.CREDITOR_LINKS_EXAMPLE)
+    @admin_api.response(200, ObjectReferencesPageSchema(context=context), example=examples.CREDITOR_LINKS_EXAMPLE)
     @admin_api.doc(operationId='getCreditorsPage', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId):
         """Return a collection of active creditors.
@@ -104,7 +106,7 @@ class CreditorEnumerateEndpoint(MethodView):
 @admin_api.route('/<i64:creditorId>/reserve', parameters=[CID])
 class CreditorReserveEndpoint(MethodView):
     @admin_api.arguments(CreditorReservationRequestSchema)
-    @admin_api.response(CreditorReservationSchema(context=context))
+    @admin_api.response(200, CreditorReservationSchema(context=context))
     @admin_api.doc(operationId='reserveCreditor',
                    security=specs.SCOPE_ACTIVATE,
                    responses={409: specs.CONFLICTING_CREDITOR})
@@ -119,12 +121,13 @@ class CreditorReserveEndpoint(MethodView):
 
         """
 
+        if not is_valid_creditor_id(creditorId):  # pragma: no cover
+            abort(500, message='The agent is not responsible for this creditor.')
+
         try:
             creditor = procedures.reserve_creditor(creditorId)
         except procedures.CreditorExists:
             abort(409)
-        except procedures.InvalidCreditor:  # pragma: no cover
-            abort(500, message='The agent is not responsible for this creditor.')
 
         return creditor
 
@@ -132,12 +135,15 @@ class CreditorReserveEndpoint(MethodView):
 @admin_api.route('/<i64:creditorId>/activate', parameters=[CID])
 class CreditorActivateEndpoint(MethodView):
     @admin_api.arguments(CreditorActivationRequestSchema)
-    @admin_api.response(CreditorSchema(context=context))
+    @admin_api.response(200, CreditorSchema(context=context))
     @admin_api.doc(operationId='activateCreditor',
                    security=specs.SCOPE_ACTIVATE,
                    responses={409: specs.CONFLICTING_CREDITOR})
     def post(self, creditor_activation_request, creditorId):
         """Activate a creditor."""
+
+        if not is_valid_creditor_id(creditorId):  # pragma: no cover
+            abort(500, message='The agent is not responsible for this creditor.')
 
         reservation_id = creditor_activation_request.get('optional_reservation_id')
         try:
@@ -149,8 +155,6 @@ class CreditorActivateEndpoint(MethodView):
             abort(409)
         except procedures.InvalidReservationId:
             abort(422, errors={'json': {'reservationId': ['Invalid ID.']}})
-        except procedures.InvalidCreditor:  # pragma: no cover
-            abort(500, message='The agent is not responsible for this creditor.')
 
         return creditor
 
@@ -158,7 +162,7 @@ class CreditorActivateEndpoint(MethodView):
 @admin_api.route('/<i64:creditorId>/deactivate', parameters=[CID])
 class CreditorDeactivateEndpoint(MethodView):
     @admin_api.arguments(CreditorDeactivationRequestSchema)
-    @admin_api.response(code=204)
+    @admin_api.response(204)
     @admin_api.doc(operationId='deactivateCreditor', security=specs.SCOPE_DEACTIVATE)
     def post(self, creditor_deactivation_request, creditorId):
         """Deactivate a creditor."""

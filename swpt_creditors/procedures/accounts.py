@@ -86,7 +86,7 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
         raise errors.AccountDoesNotExist()
 
     display = get_account_display(creditor_id, debtor_id)
-    if display is None:
+    if display is None:  # pragma: no cover
         raise errors.AccountDoesNotExist()
 
     if not (data.is_deletion_safe or data.allow_unsafe_deletion or display.debtor_name is None):

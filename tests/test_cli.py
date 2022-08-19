@@ -1,7 +1,5 @@
-import logging
 from datetime import date, timedelta
 from swpt_creditors import procedures as p
-from swpt_creditors import models as m
 
 D_ID = -1
 C_ID = 4294967296
@@ -95,56 +93,20 @@ def test_process_log_additions(app, db_session, current_ts):
     assert len(entries2) > len(entries1)
 
 
-def test_configure_interval(app, db_session, current_ts, caplog):
-    caplog.at_level(logging.ERROR)
+def test_spawn_worker_processes():
+    from swpt_creditors.multiproc_utils import spawn_worker_processes, HANDLED_SIGNALS, try_unblock_signals
 
-    ac = m.AgentConfig.query.one_or_none()
-    if ac and ac.min_creditor_id == m.MIN_INT64:
-        min_creditor_id = m.MIN_INT64 + 1
-        max_creditor_id = m.MAX_INT64
-    else:
-        min_creditor_id = m.MIN_INT64
-        max_creditor_id = m.MAX_INT64
+    def _quit():
+        assert len(HANDLED_SIGNALS) > 0
+        try_unblock_signals()
+
+    spawn_worker_processes(
+        processes=2,
+        target=_quit,
+    )
+
+
+def test_consume_messages(app):
     runner = app.test_cli_runner()
-
-    caplog.clear()
-    result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', str(m.MIN_INT64 - 1), '-1'])
-    assert result.exit_code != 0
-    assert 'not a valid creditor ID' in caplog.text
-
-    caplog.clear()
-    result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', '1', str(m.MAX_INT64 + 1)])
-    assert result.exit_code != 0
-    assert 'not a valid creditor ID' in caplog.text
-
-    caplog.clear()
-    result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', '2', '1'])
-    assert result.exit_code != 0
-    assert 'invalid interval' in caplog.text
-
-    caplog.clear()
-    result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', '-1', '1'])
-    assert result.exit_code != 0
-    assert 'contains 0' in caplog.text
-
-    caplog.clear()
-    result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', '1', str(max_creditor_id)])
-    assert result.exit_code == 0
-    assert not result.output
-    ac = m.AgentConfig.query.one()
-    assert ac.min_creditor_id == 1
-    assert ac.max_creditor_id == max_creditor_id
-
-    caplog.clear()
-    result = runner.invoke(args=[
-        'swpt_creditors', 'configure_interval', '--', str(min_creditor_id), '-1'])
-    assert result.exit_code == 0
-    assert not result.output
-    ac = m.AgentConfig.query.one()
-    assert ac.min_creditor_id == min_creditor_id
-    assert ac.max_creditor_id == -1
+    result = runner.invoke(args=['swpt_creditors', 'consume_messages', '--url=INVALID'])
+    assert result.exit_code == 1

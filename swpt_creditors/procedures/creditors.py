@@ -1,12 +1,10 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
-from random import randint
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func
-from sqlalchemy.orm import exc, joinedload
+from sqlalchemy.orm import joinedload
 from swpt_creditors.extensions import db
-from swpt_creditors.models import AgentConfig, Creditor, LogEntry, PendingLogEntry, PinInfo, Account, \
-    RunningTransfer, MAX_INT64
+from swpt_creditors.models import Creditor, LogEntry, PendingLogEntry, PinInfo, Account, RunningTransfer
 from .common import get_paths_and_types
 from . import errors
 
@@ -67,52 +65,26 @@ def update_pin_info(
 
 
 @atomic
-def generate_new_creditor_id() -> int:
-    agent_config = _get_agent_config()
-    return randint(agent_config.min_creditor_id, agent_config.max_creditor_id)
-
-
-@atomic
-def configure_agent(min_creditor_id: int, max_creditor_id: int) -> None:
-    agent_config = AgentConfig.query.with_for_update().one_or_none()
-
-    if agent_config:
-        agent_config.min_creditor_id = min_creditor_id
-        agent_config.max_creditor_id = max_creditor_id
-    else:  # pragma: no cover
-        with db.retry_on_integrity_error():
-            db.session.add(AgentConfig(
-                min_creditor_id=min_creditor_id,
-                max_creditor_id=max_creditor_id,
-            ))
-
-
-@atomic
 def get_creditor_ids(start_from: int, count: int = 1) -> Tuple[List[int], Optional[int]]:
+    assert(count >= 1)
     query = db.session.\
         query(Creditor.creditor_id).\
         filter(Creditor.creditor_id >= start_from).\
         filter(Creditor.status_flags.op('&')(ACTIVATION_STATUS_MASK) == Creditor.STATUS_IS_ACTIVATED_FLAG).\
         order_by(Creditor.creditor_id).\
-        limit(count)
+        limit(count + 1)
     creditor_ids = [t[0] for t in query.all()]
 
-    if len(creditor_ids) > 0:
-        next_creditor_id = creditor_ids[-1] + 1
+    if len(creditor_ids) > count:
+        next_creditor_id = creditor_ids.pop()
     else:
-        next_creditor_id = _get_agent_config().max_creditor_id + 1
-
-    if next_creditor_id > MAX_INT64 or next_creditor_id <= start_from:
         next_creditor_id = None
 
     return creditor_ids, next_creditor_id
 
 
 @atomic
-def reserve_creditor(creditor_id, verify_correctness=True) -> Creditor:
-    if verify_correctness and not _is_correct_creditor_id(creditor_id):
-        raise errors.InvalidCreditor()
-
+def reserve_creditor(creditor_id) -> Creditor:
     creditor = Creditor(creditor_id=creditor_id)
     db.session.add(creditor)
     try:
@@ -351,22 +323,3 @@ def _delete_creditor_running_transfers(creditor_id: int) -> None:
     RunningTransfer.query.\
         filter_by(creditor_id=creditor_id).\
         delete(synchronize_session=False)
-
-
-def _get_agent_config() -> AgentConfig:
-    try:
-        return AgentConfig.query.one()
-    except exc.NoResultFound:  # pragma: no cover
-        raise errors.MisconfiguredAgent() from None
-
-
-def _is_correct_creditor_id(creditor_id: int) -> bool:
-    try:
-        config = _get_agent_config()
-    except errors.MisconfiguredAgent:  # pragma: no cover
-        return False
-
-    if not config.min_creditor_id <= creditor_id <= config.max_creditor_id:
-        return False
-
-    return True

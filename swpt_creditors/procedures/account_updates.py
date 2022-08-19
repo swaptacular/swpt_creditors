@@ -10,7 +10,6 @@ from swpt_creditors.models import AccountData, ConfigureAccountSignal, \
 from .common import ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, LOAD_ONLY_CONFIG_RELATED_COLUMNS, \
     LOAD_ONLY_INFO_RELATED_COLUMNS
 from .common import contain_principal_overflow
-from .creditors import _is_correct_creditor_id
 from .accounts import _insert_info_update_pending_log_entry
 from .transfers import ensure_pending_ledger_update
 
@@ -303,20 +302,19 @@ def _fix_missing_last_transfer_if_necessary(
 
 
 def _discard_orphaned_account(creditor_id: int, debtor_id: int, config_flags: int, negligible_amount: float) -> None:
-    if _is_correct_creditor_id(creditor_id):
-        scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        safely_huge_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT
-        is_already_discarded = config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_amount
+    scheduled_for_deletion_flag = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    safely_huge_amount = (1 - EPS) * HUGE_NEGLIGIBLE_AMOUNT
+    is_already_discarded = config_flags & scheduled_for_deletion_flag and negligible_amount >= safely_huge_amount
 
-        if not is_already_discarded:
-            db.session.add(ConfigureAccountSignal(
-                creditor_id=creditor_id,
-                debtor_id=debtor_id,
-                ts=datetime.now(tz=timezone.utc),
-                seqnum=0,
-                negligible_amount=HUGE_NEGLIGIBLE_AMOUNT,
-                config_flags=DEFAULT_CONFIG_FLAGS | scheduled_for_deletion_flag,
-            ))
+    if not is_already_discarded:
+        db.session.add(ConfigureAccountSignal(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            ts=datetime.now(tz=timezone.utc),
+            seqnum=0,
+            negligible_amount=HUGE_NEGLIGIBLE_AMOUNT,
+            config_flags=DEFAULT_CONFIG_FLAGS | scheduled_for_deletion_flag,
+        ))
 
 
 def _update_ledger(

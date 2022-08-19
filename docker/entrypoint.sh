@@ -68,7 +68,7 @@ setup_rabbitmq_bindings() {
 # initialization. Make sure that it is idempotent.
 # (https://en.wikipedia.org/wiki/Idempotence)
 perform_db_initialization() {
-    flask swpt_creditors configure_interval -- $MIN_CREDITOR_ID $MAX_CREDITOR_ID
+    return 0
 }
 
 generate_oathkeeper_configuration() {
@@ -103,7 +103,7 @@ case $1 in
         exec flask swpt_creditors "$@"
         ;;
     process_ledger_updates | process_log_additions | scan_creditors | scan_accounts \
-        | scan_committed_transfers | scan_ledger_entries | scan_log_entries | configure_interval)
+        | scan_committed_transfers | scan_ledger_entries | scan_log_entries)
         exec flask swpt_creditors "$@"
         ;;
     flush_configure_accounts  | flush_prepare_transfers | flush_finalize_transfers)

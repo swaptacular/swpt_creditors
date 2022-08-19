@@ -1,5 +1,6 @@
 from datetime import datetime, date
 import pytest
+from swpt_pythonlib.rabbitmq import MessageProperties
 
 D_ID = -1
 C_ID = 4294967296
@@ -127,3 +128,42 @@ def test_on_finalized_direct_transfer_signal(db_session, actors):
         prepared_at=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
         ts=datetime.fromisoformat('2019-10-01T00:00:00+00:00'),
     )
+
+
+def test_consumer(db_session, actors):
+    consumer = actors.SmpConsumer()
+
+    props = MessageProperties(content_type="xxx")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="xxx")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="AccountPurge")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="AccountPurge")
+    assert consumer.process_message(b'{}', props) is False
+
+    props = MessageProperties(content_type="application/json", type="AccountPurge")
+    with pytest.raises(RuntimeError, match='The agent is not responsible for this creditor.'):
+        consumer.process_message(b'''
+        {
+          "type": "AccountPurge",
+          "debtor_id": 1,
+          "creditor_id": 2,
+          "creation_date": "2098-12-31",
+          "ts": "2099-12-31T00:00:00+00:00"
+        }
+        ''', props)
+
+    props = MessageProperties(content_type="application/json", type="AccountPurge")
+    assert consumer.process_message(b'''
+    {
+      "type": "AccountPurge",
+      "debtor_id": 1,
+      "creditor_id": 4294967296,
+      "creation_date": "2098-12-31",
+      "ts": "2099-12-31T00:00:00+00:00"
+    }
+    ''', props) is True

@@ -4,31 +4,19 @@ import hmac
 from math import exp
 from typing import Dict, Optional
 from datetime import datetime, timezone, timedelta
+from flask import current_app
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import func, true, null, or_, and_
+from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, ROOT_CREDITOR_ID
 
 DEFAULT_CREDITOR_STATUS = 0
 
 
-class AgentConfig(db.Model):
-    is_effective = db.Column(db.BOOLEAN, primary_key=True, default=True)
-    min_creditor_id = db.Column(db.BigInteger, nullable=False)
-    max_creditor_id = db.Column(db.BigInteger, nullable=False)
-    __table_args__ = (
-        db.CheckConstraint(is_effective == true()),
-        db.CheckConstraint(min_creditor_id <= max_creditor_id),
-        db.CheckConstraint(or_(
-            min_creditor_id > ROOT_CREDITOR_ID,
-            max_creditor_id < ROOT_CREDITOR_ID,
-        )),
-        {
-            'comment': 'Represents the global agent configuration (a singleton). The '
-                       'agent is responsible only for creditor IDs that are within the '
-                       'interval [min_creditor_id, max_creditor_id].',
-        }
-    )
+def is_valid_creditor_id(creditor_id: int) -> bool:
+    min_creditor_id = current_app.config['MIN_CREDITOR_ID']
+    max_creditor_id = current_app.config['MAX_CREDITOR_ID']
+    return min_creditor_id <= creditor_id <= max_creditor_id
 
 
 class Creditor(db.Model):

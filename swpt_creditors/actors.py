@@ -7,7 +7,7 @@ from flask import current_app
 import swpt_pythonlib.protocol_schemas as ps
 from swpt_pythonlib import rabbitmq
 from swpt_creditors import procedures
-from swpt_creditors.models import CT_DIRECT
+from swpt_creditors.models import CT_DIRECT, is_valid_creditor_id
 
 
 def _on_rejected_config_signal(
@@ -150,7 +150,7 @@ def _on_rejected_direct_transfer_signal(
         ts: datetime,
         *args, **kwargs) -> None:
 
-    if coordinator_type != CT_DIRECT:
+    if coordinator_type != CT_DIRECT:  # pragma: no cover
         _LOGGER.error('Unexpected coordinator type: "%s"', coordinator_type)
         return
 
@@ -179,7 +179,7 @@ def _on_prepared_direct_transfer_signal(
         ts: datetime,
         *args, **kwargs) -> None:
 
-    if coordinator_type != CT_DIRECT:
+    if coordinator_type != CT_DIRECT:  # pragma: no cover
         _LOGGER.error('Unexpected coordinator type: "%s"', coordinator_type)
         return
 
@@ -208,7 +208,7 @@ def _on_finalized_direct_transfer_signal(
         ts: datetime,
         *args, **kwargs) -> None:
 
-    if coordinator_type != CT_DIRECT:
+    if coordinator_type != CT_DIRECT:  # pragma: no cover
         _LOGGER.error('Unexpected coordinator type: "%s"', coordinator_type)
         return
 
@@ -244,22 +244,12 @@ class SmpConsumer(rabbitmq.Consumer):
     """Passes messages to proper handlers (actors)."""
 
     def process_message(self, body, properties):
-        try:
-            content_type = properties.content_type
-        except AttributeError:
-            _LOGGER.error('Missing message content type header')
-            return False
-
+        content_type = getattr(properties, 'content_type', None)
         if content_type != 'application/json':
             _LOGGER.error('Unknown message content type: "%s"', content_type)
             return False
 
-        try:
-            massage_type = properties.type
-        except AttributeError:
-            _LOGGER.error('Missing message type header')
-            return False
-
+        massage_type = getattr(properties, 'type', None)
         try:
             schema, actor = _MESSAGE_TYPES[massage_type]
         except KeyError:
@@ -277,6 +267,9 @@ class SmpConsumer(rabbitmq.Consumer):
         except ValidationError as e:
             _LOGGER.error('Message validation error: %s', str(e))
             return False
+
+        if not is_valid_creditor_id(message_content['creditor_id']):
+            raise RuntimeError('The agent is not responsible for this creditor.')
 
         actor(**message_content)
         return True

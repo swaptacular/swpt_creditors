@@ -10,10 +10,6 @@ class AlreadyUpToDate(Exception):
     """Trying to update a resource which is already up-to-date."""
 
 
-class InvalidCreditor(Exception):
-    """The agent is not responsible for this creditor."""
-
-
 class CreditorDoesNotExist(Exception):
     """The creditor does not exist."""
 
