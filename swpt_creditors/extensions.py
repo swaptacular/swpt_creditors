@@ -6,6 +6,8 @@ from flask_migrate import Migrate
 from swpt_pythonlib.flask_signalbus import SignalBusMixin, AtomicProceduresMixin
 from swpt_pythonlib import rabbitmq
 from flask_smorest import Api
+from swpt_creditors.flask_redis import FlaskRedis
+
 
 TO_COORDINATORS_EXCHANGE = 'to_coordinators'
 TO_DEBTORS_EXCHANGE = 'to_debtors'
@@ -34,5 +36,6 @@ class CustomAlchemy(AtomicProceduresMixin, SignalBusMixin, SQLAlchemy):
 db = CustomAlchemy()
 db.signalbus.autoflush = False
 migrate = Migrate()
+redis_store = FlaskRedis(socket_timeout=5)
 publisher = rabbitmq.Publisher(url_config_key='PROTOCOL_BROKER_URL')
 api = Api()

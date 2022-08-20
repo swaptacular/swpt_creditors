@@ -2,6 +2,13 @@ version: '3.6'
 
 services:
 
+  tests-redis:
+    image: redis:$REDIS_VERSION
+    env_file: .env
+    ports:
+      - $REDIS_LOCAL_PORT:6379
+    restart: always
+
   tests-pg:
     image: postgres:$POSTGRES_VERSION
     environment:
@@ -26,9 +33,11 @@ services:
     environment:
       - 'PYTHONDONTWRITEBYTECODE=1'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@tests-pg:5432/${POSTGRES_DB}'
+      - 'REDIS_URL=redis://tests-redis:6379/0?health_check_interval=30'
     command: configure
     depends_on:
       - tests-pg
+      - tests-redis
 
 
   tests-web:
@@ -44,6 +53,7 @@ services:
       - 'PYTHONDONTWRITEBYTECODE=1'
       - 'PYTHONBREAKPOINT=web_pdb.set_trace'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors:swpt_creditors@tests-pg:5432/${POSTGRES_DB}'
+      - 'REDIS_URL=redis://tests-redis:6379/0?health_check_interval=30'
     ports:
       - $PORT:8080
     command: develop-run-flask
