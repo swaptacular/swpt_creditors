@@ -24,29 +24,17 @@ def _calc_initiations_key(creditor_id: int) -> bytes:
     return b'I' + creditor_id.to_bytes(8, byteorder='big', signed=True)
 
 
-def _limit(key: bytes, maximum: int) -> None:
+def _default_zero(n) -> int:
     try:
-        value = int(redis_store.get(key))
+        return int(n)
     except (ValueError, TypeError):  # pragma: no cover
-        value = 0
+        return 0
 
+
+def _limit(key: bytes, maximum: int) -> None:
+    value = _default_zero(redis_store.get(key))
     if value >= maximum:
         raise ForbiddenOperation
-
-
-def _allow_transfer_initiation(creditor_id: int, debtor_id: int) -> None:
-    """May Raise `ForbiddenOperation`."""
-
-    key = _calc_initiations_key(creditor_id)
-    _limit(key, current_app.config['APP_MAX_CREDITOR_INITIATIONS'])
-
-
-def _register_transfer_initiation(creditor_id: int, debtor_id: int) -> None:
-    key = _calc_initiations_key(creditor_id)
-    expiration_seconds = int(3600 * current_app.config['APP_CREDITOR_DOS_STATS_CLEAR_HOURS'])
-    with redis_store.pipeline() as p:
-        p.incrby(key)
-        p.expire(key, expiration_seconds, nx=True)
 
 
 def allow_account_creation(creditor_id: int, debtor_id: int) -> None:
@@ -65,14 +53,31 @@ def register_account_creation(creditor_id: int, debtor_id: int) -> None:
 def allow_transfer_creation(creditor_id: int, debtor_id: int) -> None:
     """May Raise `ForbiddenOperation`."""
 
-    key = _calc_transfers_key(creditor_id)
-    _limit(key, current_app.config['APP_MAX_CREDITOR_TRANSFERS'])
-    _allow_transfer_initiation(creditor_id, debtor_id)
+    tkey = _calc_transfers_key(creditor_id)
+    ikey = _calc_initiations_key(creditor_id)
+
+    with redis_store.pipeline() as p:
+        p.get(tkey)
+        p.get(ikey)
+        transfers_count, initiations_count = [_default_zero(n) for n in p.execute()]
+
+    if (
+        transfers_count >= current_app.config['APP_MAX_CREDITOR_TRANSFERS']
+        or initiations_count >= current_app.config['APP_MAX_CREDITOR_INITIATIONS']
+    ):
+        raise ForbiddenOperation
 
 
 def register_transfer_creation(creditor_id: int, debtor_id: int) -> None:
-    increment_transfer_number(creditor_id, debtor_id)
-    _register_transfer_initiation(creditor_id, debtor_id)
+    tkey = _calc_transfers_key(creditor_id)
+    ikey = _calc_initiations_key(creditor_id)
+    expiration_seconds = int(3600 * current_app.config['APP_CREDITOR_DOS_STATS_CLEAR_HOURS'])
+
+    with redis_store.pipeline() as p:
+        p.incr(tkey)
+        p.incr(ikey)
+        p.expire(ikey, expiration_seconds, nx=True)
+        p.execute()
 
 
 def allow_account_reconfig(creditor_id: int, debtor_id: int) -> None:
@@ -86,8 +91,9 @@ def register_account_reconfig(creditor_id: int, debtor_id: int) -> None:
     key = _calc_reconfigs_key(creditor_id)
     expiration_seconds = int(3600 * current_app.config['APP_CREDITOR_DOS_STATS_CLEAR_HOURS'])
     with redis_store.pipeline() as p:
-        p.incrby(key)
+        p.incr(key)
         p.expire(key, expiration_seconds, nx=True)
+        p.execute()
 
 
 def increment_account_number(creditor_id: int, debtor_id: int) -> None:

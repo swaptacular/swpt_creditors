@@ -19,6 +19,3 @@ def test_forbidden_operations(app):
 
     with pytest.raises(inspect_ops.ForbiddenOperation):
         inspect_ops.allow_account_reconfig(C_ID, D_ID)
-
-    with pytest.raises(inspect_ops.ForbiddenOperation):
-        inspect_ops._allow_transfer_initiation(C_ID, D_ID)
