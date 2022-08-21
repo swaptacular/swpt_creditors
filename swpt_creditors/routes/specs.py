@@ -159,15 +159,18 @@ SCOPE_DEACTIVATE = [
     {'oauth2': ['deactivate']},
 ]
 
-API_DESCRIPTION = """This API can be used to:
-1. Get information about creditors, create new creditors.
-2. Create, view, update, and delete accounts, view account's transaction history.
-3. Make transfers from one account to another account.
+API_DESCRIPTION = """In order to allow currency holders to use client applications of
+their choice, Swaptacular recommends this `Payments Web API`.  The API
+allows for efficient client-side caching, as well as efficient cache
+and data synchronization between two or more clients.
 
-The API allows for efficient client-side caching, as well as efficient
-cache and data synchronization between two or more clients.
+Note that every potentially dangerous operation, that the creditor is
+allowed to perform via this API, can optionally be protected by a PIN
+(Personal Identification Number). This allows users to stay logged in
+for a long time, without compromising the security of their wallets.
 
-"""
+This API is organized in four separate sections: **admin**,
+**creditors**, **accounts**, **transfers**."""
 
 API_SPEC_OPTIONS = {
     'info': {

@@ -45,7 +45,12 @@ accounts_api = Blueprint(
     'accounts',
     __name__,
     url_prefix='/creditors',
-    description="Create, view, update, and delete accounts, view account's transaction history.",
+    description="""**Create, view, update, and delete accounts. View accounts'
+    ledgers.** Every account record consists of a "master" account
+    object, which contains references to several account sub-objects
+    (account configuration, account status, account ledger etc). Each
+    of these sub-objects contain different kind of information about
+    the account, and each sub-object can be updated separately.""",
 )
 accounts_api.before_request(ensure_creditor_permissions)
 
@@ -444,7 +449,13 @@ class AccountKnowledgeEndpoint(MethodView):
         exceed 8000 bytes (JSON, UTF-8 encoded, excluding `type` and
         `latestUpdateId` properties).
 
-        **Note:** This is an idempotent operation.
+        **Example:** To be able to detect a change in the interest
+        rate on the account, the client application can use this
+        endpoint to store the interest rate acknowledged by the user,
+        and later, compare the stored value with the current interest
+        rate on the account. This way, the change in the interest rate
+        will be correctly detected, even if the user uses several
+        different client devices (or applications).
 
         """
 

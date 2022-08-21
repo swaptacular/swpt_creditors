@@ -17,7 +17,16 @@ transfers_api = Blueprint(
     'transfers',
     __name__,
     url_prefix='/creditors',
-    description="Make transfers from one account to another account.",
+    description="""**Make transfers from one account to another account.** A new
+    transfer record will be created for every initiated transfer. The
+    client itself is responsible for the deletion of each transfer
+    record, once the client does not need it anymore. Sometime after
+    the transfer has been initiated, it will be automatically
+    finalized as either successful or unsuccessful. Changes in the
+    statuses of transfer records will be recorded to the corresponding
+    creditor's "log". Note that the client may try to cancel an
+    erroneously initiated transfer, but there are no guarantees for
+    success.""",
 )
 transfers_api.before_request(ensure_creditor_permissions)
 
@@ -181,7 +190,12 @@ class CommittedTransferEndpoint(MethodView):
     @transfers_api.response(200, CommittedTransferSchema(context=context))
     @transfers_api.doc(operationId='getCommittedTransfer', security=specs.SCOPE_ACCESS_READONLY)
     def get(self, creditorId, debtorId, transferId):
-        """Return information about sent or received transfer."""
+        """Return information about sent or received transfer.
+
+        Note that the creditor can be either the sender of the
+        recipient of the transfer.
+
+        """
 
         try:
             creation_date, transfer_number = parse_transfer_slug(transferId)

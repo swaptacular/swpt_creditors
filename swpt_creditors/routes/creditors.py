@@ -14,7 +14,17 @@ creditors_api = Blueprint(
     'creditors',
     __name__,
     url_prefix='/creditors',
-    description="Get information about creditors, create new creditors.",
+    description="""**Obtain information about existing creditors, change creditors'
+    PINs.** There are two important concepts here: Each creditor has a
+    *"wallet"*, which contains references to various kinds of
+    information about the creditor (like creditor's list of accounts
+    and transfers). The other important concept is the creditor's
+    *"log"*. Whenever there is new information that the creditor
+    should be aware of, a record will be added to the creditor's log,
+    referring to the created/updated/deleted object. The purpose of
+    the log is to allow the clients of the API to reliably synchronize
+    their local databases with the server, simply by following the
+    "log".""",
 )
 creditors_api.before_request(ensure_creditor_permissions)
 

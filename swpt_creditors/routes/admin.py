@@ -17,7 +17,13 @@ admin_api = Blueprint(
     'admin',
     __name__,
     url_prefix='/creditors',
-    description="View creditors list, create new creditors.",
+    description="""**View creditors list, create new creditors, deactivate inactive
+    creditors.** The creation of new creditors can optionally be done
+    in two-phases: First a creditor ID can be *reserved*, and only
+    then, the creditor can be *activated*. This is useful when the
+    client wants to know the new creditor ID in advance. If this is
+    not needed, the creditor can also be activated directly, by a
+    single request.""",
 )
 admin_api.before_request(ensure_admin)
 
