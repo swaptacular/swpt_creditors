@@ -1,5 +1,6 @@
 """Implement functions that inspect operations susceptible to DOS attacks."""
 
+from base64 import b16encode
 from flask import current_app
 from swpt_creditors.extensions import redis_store
 
@@ -9,19 +10,19 @@ class ForbiddenOperation(Exception):
 
 
 def _calc_accounts_key(creditor_id: int) -> bytes:
-    return b'A' + creditor_id.to_bytes(8, byteorder='big', signed=True)
+    return b'a' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
 
 
 def _calc_transfers_key(creditor_id: int) -> bytes:
-    return b'T' + creditor_id.to_bytes(8, byteorder='big', signed=True)
+    return b't' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
 
 
 def _calc_reconfigs_key(creditor_id: int) -> bytes:
-    return b'R' + creditor_id.to_bytes(8, byteorder='big', signed=True)
+    return b'r' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
 
 
 def _calc_initiations_key(creditor_id: int) -> bytes:
-    return b'I' + creditor_id.to_bytes(8, byteorder='big', signed=True)
+    return b'i' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
 
 
 def _default_zero(n) -> int:
