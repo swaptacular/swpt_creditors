@@ -77,9 +77,9 @@ MAX_CREDITOR_ID=8589934591
 
 # To improve the security of their accounts, creditors may configure
 # PINs (Personal Identification Numbers). The PINs will be stored in
-# the database encrypted. This variable determines the encryption
-# key. If a malicious attacker knows the encryption key, and has a
-# copy of the database, he/she will be able to decrypt all the
+# the database encrypted. This variable determines the encryption key
+# (default ""). If a malicious attacker knows the encryption key, and
+# has a copy of the database, he/she will be able to decrypt all the
 # PINs. If you lose this encryption key, the users' PINs will not be
 # verified correctly, until each user configures a new PIN.
 PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret
