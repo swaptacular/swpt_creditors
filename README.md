@@ -75,6 +75,15 @@ example values:
 MIN_CREDITOR_ID=4294967296
 MAX_CREDITOR_ID=8589934591
 
+# To improve the security of their accounts, creditors may configure
+# PINs (Personal Identification Numbers). The PINs will be stored in
+# the database encrypted. This variable determines the encryption
+# key. If a malicious attacker knows the encryption key, and has a
+# copy of the database, he/she will be able to decrypt all the
+# PINs. If you lose the encryption key, the users' PINs will not be
+# verified as correct, until the user configures a new PIN.
+PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret
+
 # The specified number of processes ("$WEBSERVER_PROCESSES") will be
 # spawned to handle "Payments Web API" requests (default 1),
 # each process will run "$WEBSERVER_THREADS" threads in parallel
