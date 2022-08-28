@@ -80,8 +80,8 @@ MAX_CREDITOR_ID=8589934591
 # the database encrypted. This variable determines the encryption
 # key. If a malicious attacker knows the encryption key, and has a
 # copy of the database, he/she will be able to decrypt all the
-# PINs. If you lose the encryption key, the users' PINs will not be
-# verified as correct, until the user configures a new PIN.
+# PINs. If you lose this encryption key, the users' PINs will not be
+# verified correctly, until each user configures a new PIN.
 PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret
 
 # The specified number of processes ("$WEBSERVER_PROCESSES") will be
