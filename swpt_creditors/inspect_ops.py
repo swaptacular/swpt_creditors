@@ -1,4 +1,4 @@
-"""Implement functions that inspect operations susceptible to DOS attacks."""
+"""Implement functions that inspect operations susceptible to DoS attacks."""
 
 from base64 import b16encode
 from flask import current_app

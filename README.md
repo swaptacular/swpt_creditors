@@ -47,7 +47,11 @@ following servers:
    RabbitMQ queues, exchanges, and the bindings between them. However,
    this works only for the most basic setup.
 
-3. [Redis] server instance, which ...
+3. [Redis] server instance, which stores Denial of Service attack
+   protection statistics for the creditors stored on the PostgreSQL
+   server instance. For this kind of information, the tolerance for
+   data loss is high, but nevertheless, the Redis server instance must
+   be configured as persistent (on-disk) database.
 
 4. [OAuth 2.0] authorization server, which authorizes clients'
    requests to the [Payments Web API]. There is a plethora of popular
