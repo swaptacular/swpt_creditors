@@ -1,11 +1,19 @@
 __version__ = '0.1.0'
 
 import logging
+import json
 import sys
 import os
 import os.path
 from typing import List
 from flask_cors import CORS
+
+
+def _parse_dict(s: str) -> dict:
+    try:
+        return json.loads(s)
+    except ValueError:  # pragma: no cover
+        raise ValueError(f'Invalid JSON configuration value: {s}')
 
 
 def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
@@ -139,12 +147,11 @@ class Configuration(metaclass=MetaEnvReader):
     MAX_CREDITOR_ID: int = None
 
     SQLALCHEMY_DATABASE_URI = ''
-    SQLALCHEMY_POOL_SIZE: int = None
-    SQLALCHEMY_POOL_TIMEOUT: int = None
-    SQLALCHEMY_POOL_RECYCLE: int = None
-    SQLALCHEMY_MAX_OVERFLOW: int = None
+    SQLALCHEMY_ENGINE_OPTIONS: _parse_dict = _parse_dict('{"pool_size": 0}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
+
+    REDIS_URL = 'redis://localhost:6379/0?health_check_interval=30'
 
     PROTOCOL_BROKER_URL = 'amqp://guest:guest@localhost:5672'
     PROTOCOL_BROKER_QUEUE = 'swpt_creditors'
@@ -154,7 +161,8 @@ class Configuration(metaclass=MetaEnvReader):
     PROTOCOL_BROKER_PREFETCH_SIZE = 0
     PROTOCOL_BROKER_PREFETCH_COUNT = 1
 
-    REDIS_URL = 'redis://localhost:6379/0?health_check_interval=30'
+    PROCESS_LOG_ADDITIONS_THREADS = 1
+    PROCESS_LEDGER_UPDATES_THREADS = 1
 
     API_TITLE = 'Creditors API'
     API_VERSION = 'v1'
@@ -166,12 +174,10 @@ class Configuration(metaclass=MetaEnvReader):
     OPENAPI_SWAGGER_UI_URL = None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
 
     APP_ENABLE_CORS = False
-    APP_PROCESS_LOG_ADDITIONS_THREADS = 1
     APP_PROCESS_LOG_ADDITIONS_WAIT = 5.0
-    APP_PROCESS_LOG_ADDITIONS_MAX_COUNT = 500000
-    APP_PROCESS_LEDGER_UPDATES_THREADS = 1
+    APP_PROCESS_LOG_ADDITIONS_MAX_COUNT = 100000
     APP_PROCESS_LEDGER_UPDATES_BURST = 1000
-    APP_PROCESS_LEDGER_UPDATES_MAX_COUNT = 500000
+    APP_PROCESS_LEDGER_UPDATES_MAX_COUNT = 100000
     APP_PROCESS_LEDGER_UPDATES_WAIT = 5.0
     APP_FLUSH_CONFIGURE_ACCOUNTS_BURST_COUNT = 10000
     APP_FLUSH_PREPARE_TRANSFERS_BURST_COUNT = 10000

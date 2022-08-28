@@ -26,7 +26,12 @@ def subscribe():  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
     messages.
 
+    The value of the PROTOCOL_BROKER_QUEUE_ROUTING_KEY configuration
+    variable will be used as a binding key for the created queue. The
+    default binding key is "#".
+
     This is mainly useful during development and testing.
+
     """
 
     from .extensions import ACCOUNTS_IN_EXCHANGE, \
@@ -95,7 +100,7 @@ def process_log_additions(threads, wait, quit_early):
     """Process pending log additions.
 
     If --threads is not specified, the value of the configuration
-    variable APP_PROCESS_LOG_ADDITIONS_THREADS is taken. If it is not
+    variable PROCESS_LOG_ADDITIONS_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
     If --wait is not specified, the value of the configuration
@@ -113,7 +118,7 @@ def process_log_additions(threads, wait, quit_early):
     #       CPU-bound, which is unlikely, especially if we
     #       re-implement the logic in stored procedures.
 
-    threads = threads or current_app.config['APP_PROCESS_LOG_ADDITIONS_THREADS']
+    threads = threads or current_app.config['PROCESS_LOG_ADDITIONS_THREADS']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_LOG_ADDITIONS_WAIT']
     max_count = current_app.config['APP_PROCESS_LOG_ADDITIONS_MAX_COUNT']
 
@@ -143,7 +148,7 @@ def process_ledger_updates(threads, burst, wait, quit_early):
     """Process all pending ledger updates.
 
     If --threads is not specified, the value of the configuration
-    variable APP_PROCESS_LEDGER_UPDATES_THREADS is taken. If it is not
+    variable PROCESS_LEDGER_UPDATES_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
     If --burst is not specified, the value of the configuration
@@ -156,7 +161,7 @@ def process_ledger_updates(threads, burst, wait, quit_early):
 
     """
 
-    threads = threads or current_app.config['APP_PROCESS_LEDGER_UPDATES_THREADS']
+    threads = threads or current_app.config['PROCESS_LEDGER_UPDATES_THREADS']
     burst = burst or current_app.config['APP_PROCESS_LEDGER_UPDATES_BURST']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_LEDGER_UPDATES_WAIT']
     max_count = current_app.config['APP_PROCESS_LEDGER_UPDATES_MAX_COUNT']
