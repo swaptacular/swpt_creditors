@@ -146,6 +146,8 @@ class Configuration(metaclass=MetaEnvReader):
     MIN_CREDITOR_ID: int = None
     MAX_CREDITOR_ID: int = None
 
+    PIN_PROTECTION_SECRET = ''
+
     SQLALCHEMY_DATABASE_URI = ''
     SQLALCHEMY_ENGINE_OPTIONS: _parse_dict = _parse_dict('{"pool_size": 0}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -211,7 +213,6 @@ class Configuration(metaclass=MetaEnvReader):
     APP_MAX_TRANSFER_DELAY_DAYS = 14.0
     APP_MAX_CONFIG_DELAY_HOURS = 24.0
     APP_PIN_FAILURES_RESET_DAYS = 7.0
-    APP_PIN_PROTECTION_SECRET = ''
     APP_MAX_CREDITOR_ACCOUNTS = 1000
     APP_MAX_CREDITOR_TRANSFERS = 20000
     APP_MAX_CREDITOR_RECONFIGS = 5000

@@ -47,7 +47,7 @@ following servers:
    RabbitMQ queues, exchanges, and the bindings between them. However,
    this works only for the most basic setup.
 
-3. [Redis] server
+3. [Redis] server instance, which ...
 
 4. [OAuth 2.0] authorization server, which authorizes clients'
    requests to the [Payments Web API]. There is a plethora of popular
@@ -57,7 +57,7 @@ following servers:
 
 To increase security and performance, it is highly recommended that
 you configure HTTP reverse-proxy server(s) (like [nginx]) between your
-clients and your "Payments Web API. In addition, this approach allows
+clients and your "Payments Web API". In addition, this approach allows
 different creditors to be located on different database servers
 (sharding).
 
@@ -90,12 +90,13 @@ WEBSERVER_PORT=8003
 # of the token, internally, a request is made to the OAuth 2.0
 # authorization server. This is called "token introspection". This
 # variable sets the URL at which internal token introspection requests
-# will be send.
+# will be sent.
 OAUTH2_INTROSPECT_URL=http://localhost:4445/oauth2/introspect
 
 # Connection string for a PostgreSQL database server to connect to.
 POSTGRES_URL=postgresql://swpt_creditors:swpt_creditors@localhost:5435/test
 
+# Connection string for a Redis database server to connect to.
 REDIS_URL=redis://localhost:6380/0?health_check_interval=30
 
 # Parameters for the communication with the RabbitMQ server which is
@@ -116,7 +117,7 @@ PROTOCOL_BROKER_PROCESSES=1
 PROTOCOL_BROKER_THREADS=3
 PROTOCOL_BROKER_PREFETCH_COUNT=10
 
-# The processing of each transfer consists of several stages. The
+# The processing of incoming events consists of several stages. The
 # following configuration variables control the number of worker
 # threads that will be involved on each respective stage (default
 # 1). You must set this to a reasonable value, and increase it when

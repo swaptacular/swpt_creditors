@@ -274,7 +274,7 @@ class AccountConfigEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
-                    secret=current_app.config['APP_PIN_PROTECTION_SECRET'],
+                    secret=current_app.config['PIN_PROTECTION_SECRET'],
                     pin_value=account_config.get('optional_pin'),
                     pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )
@@ -329,7 +329,7 @@ class AccountDisplayEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
-                    secret=current_app.config['APP_PIN_PROTECTION_SECRET'],
+                    secret=current_app.config['PIN_PROTECTION_SECRET'],
                     pin_value=account_display.get('optional_pin'),
                     pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )
@@ -385,7 +385,7 @@ class AccountExchangeEndpoint(MethodView):
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
-                    secret=current_app.config['APP_PIN_PROTECTION_SECRET'],
+                    secret=current_app.config['PIN_PROTECTION_SECRET'],
                     pin_value=account_exchange.get('optional_pin'),
                     pin_failures_reset_interval=timedelta(days=current_app.config['APP_PIN_FAILURES_RESET_DAYS']),
                 )
