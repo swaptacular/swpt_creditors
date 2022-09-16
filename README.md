@@ -263,7 +263,7 @@ at http://localhost:8025/
 
 [Swaptacular]: https://swaptacular.github.io/overview
 [docker images]: https://www.geeksforgeeks.org/what-is-docker-images/
-[Payments Web API]: https://swaptacular.org/public/docs/swpt_creditors/redoc.html
+[Payments Web API]: https://swaptacular.github.io/public/docs/swpt_creditors/redoc.html
 ["wallet" client application]: https://github.com/swaptacular/swpt_creditors_ui
 [Swagger UI]: https://swagger.io/tools/swagger-ui/
 [JSON Serialization for the Swaptacular Messaging Protocol]: https://github.com/swaptacular/swpt_accounts/blob/master/protocol-json.rst
