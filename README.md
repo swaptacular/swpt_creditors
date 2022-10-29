@@ -104,6 +104,17 @@ WEBSERVER_PORT=8003
 # authorization server. This is called "token introspection". This
 # variable sets the URL at which internal token introspection requests
 # will be sent.
+#
+# NOTE: The response to the "token introspection" request will contain
+# a "username" field. The OAuth 2.0 authorization server must be
+# configured to return usernames that match one of the following
+# regular expressions: ^creditors-superuser$, ^creditors-supervisor$,
+# ^creditors:([0-9]+)$. The "creditors-superuser" account will be
+# allowed to do everything; the "creditors-supervisor" account will be
+# allowed to view creditors' data, and to create new creditors; the
+# "creditors:<CREDITOR_ID>" accounts will only be allowed access to
+# the creditor with the specified <CREDITOR_ID> (an unsigned 64-bit
+# integer).
 OAUTH2_INTROSPECT_URL=http://localhost:4445/oauth2/introspect
 
 # Connection string for a PostgreSQL database server to connect to.
