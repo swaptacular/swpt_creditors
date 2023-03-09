@@ -92,7 +92,7 @@ PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret
 # spawned to handle "Payments Web API" requests (default 1),
 # each process will run "$WEBSERVER_THREADS" threads in parallel
 # (default 3). The container will listen for "Payments Web API"
-# requests on port "$WEBSERVER_PORT" (default 80).
+# requests on port "$WEBSERVER_PORT" (default 8080).
 WEBSERVER_PROCESSES=2
 WEBSERVER_THREADS=10
 WEBSERVER_PORT=8003
