@@ -74,8 +74,13 @@ variables. Here are the most important settings with some random
 example values:
 
 ```shell
-# The creditors agent will be responsible only for creditor IDs between
-# "$MIN_CREDITOR_ID" and "$MAX_CREDITOR_ID".
+# The creditors agent will be responsible only for creditor IDs
+# between "$MIN_CREDITOR_ID" and "$MAX_CREDITOR_ID". This can be
+# passed as a decimal number (like "4294967296"), or a
+# hexadecimal number (like "0x100000000"). Numbers between
+# 0x8000000000000000 and 0xffffffffffffffff will be automatically
+# converted to their corresponding two's complement negative
+# numbers.
 MIN_CREDITOR_ID=4294967296
 MAX_CREDITOR_ID=8589934591
 
