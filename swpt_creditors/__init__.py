@@ -7,6 +7,8 @@ import os
 import os.path
 from typing import List
 from flask_cors import CORS
+from ast import literal_eval
+from swpt_pythonlib.utils import u64_to_i64
 
 
 def _parse_dict(s: str) -> dict:
@@ -14,6 +16,15 @@ def _parse_dict(s: str) -> dict:
         return json.loads(s)
     except ValueError:  # pragma: no cover
         raise ValueError(f'Invalid JSON configuration value: {s}')
+
+
+def _parse_creditor_id(s: str) -> int:
+    n = literal_eval(s.strip())
+    if not isinstance(n, int) or n < (-1 << 63) or n >= (1 << 64):  # pragma: no cover
+        raise ValueError(f'Invalid creditor ID: {s}')
+    if n < 0:  # pragma: no cover
+        return n
+    return u64_to_i64(n)
 
 
 def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
@@ -143,8 +154,8 @@ class MetaEnvReader(type):
 
 
 class Configuration(metaclass=MetaEnvReader):
-    MIN_CREDITOR_ID: int = None
-    MAX_CREDITOR_ID: int = None
+    MIN_CREDITOR_ID: _parse_creditor_id = None
+    MAX_CREDITOR_ID: _parse_creditor_id = None
 
     PIN_PROTECTION_SECRET = ''
 
