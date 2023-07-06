@@ -32,7 +32,7 @@ class Signal(db.Model):
 
     @classmethod
     def send_signalbus_messages(cls, objects):  # pragma: no cover
-        assert(all(isinstance(obj, cls) for obj in objects))
+        assert all(isinstance(obj, cls) for obj in objects)
         messages = [obj._create_message() for obj in objects]
         publisher.publish_messages(messages)
 
@@ -71,7 +71,7 @@ class Signal(db.Model):
             routing_key=self.routing_key,
             body=body,
             properties=properties,
-            mandatory=True,
+            mandatory=message_type == 'FinalizeTransfer',
         )
 
     inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
