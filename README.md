@@ -35,11 +35,11 @@ following servers:
    that all incoming SMP messages for the creditors stored on the
    PostgreSQL server instance, are routed to this queue.
 
-   Also, a [RabbitMQ exchange] named **`creditors_out`** must be
-   configured on the broker instance. This exchange is for messages
-   that must be sent to accounting authorities. The routing key will
-   represent the debtor ID as hexadecimal. For example, for debtor ID
-   equal to 2, the routing key will be "00.00.00.00.00.00.00.02".
+   Also, a [RabbitMQ exchange] named **`creditors_out`** must be configured
+   on the broker instance. This exchange is for messages that must be sent
+   to accounting authorities. The routing key will represent the debtor ID
+   as hexadecimal (lowercase). For example, for debtor ID equal to 2, the
+   routing key will be "00.00.00.00.00.00.00.02".
 
    **Note:** If you execute the "configure" command (see below), with
    the environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an
