@@ -62,8 +62,8 @@ services:
       dockerfile: Dockerfile
       target: app-image
     environment:
-      - 'MIN_CREDITOR_ID=4294967296'
-      - 'MAX_CREDITOR_ID=8589934591'
+      - 'MIN_CREDITOR_ID=0x0000010000000000'
+      - 'MAX_CREDITOR_ID=0x000001ffffffffff'
       - 'PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret'
       - 'WEBSERVER_PROCESSES=1'
       - 'WEBSERVER_THREADS=3'
