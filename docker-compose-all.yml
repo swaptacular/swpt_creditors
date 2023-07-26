@@ -28,7 +28,7 @@ services:
 
 
   redis:
-    image: redis:6.0.9
+    image: redis:$REDIS_VERSION
     volumes:
       - 'redis-data-volume:/data'
 
@@ -49,6 +49,7 @@ services:
       - 'CREDITORS_LOGIN_URL=http://creditors-login:8080'
       - 'CREDITORS_SERVER_URL=http://creditors-server:8080'
       - 'CREDITORS_SWAGGER_UI_URL=http://creditors-swagger-ui:8080'
+      - 'CREDITORS_WEBAPP_URL=http://creditors-webapp:80'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
     depends_on:
       - creditors-server
@@ -125,6 +126,19 @@ services:
       - 'OAUTH2_REDIRECT_URL=https://$PUBLIC_HOST/creditors-swagger-ui/oauth2-redirect.html'
 
 
+  creditors-webapp:
+    image: ghcr.io/swaptacular/swpt_creditors_ui:$SWPT_CREDITORS_UI_VERSION
+    environment:
+      - 'SERVER_API_ENTRYPOINT=https://$PUBLIC_HOST/creditors/.wallet'
+      - 'SERVER_API_TIMEOUT=8000'
+      - 'AUTHORIZATION_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/auth'
+      - 'TOKEN_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'CLIENT_ID=creditors-webapp'
+      - 'REDIRECT_URL=https://$PUBLIC_HOST/creditors-webapp/'
+      - 'TRANSFER_DELETION_DELAY_SECONDS=1296000'
+      - 'DEBTOR_INFOS_REVISION_DAYS=7'
+
+
   # This container runs an OAuth 2.0 authorization server, which
   # maintains its own user database, and provides UI for user
   # registration, login, and authorization consent.
@@ -166,6 +180,7 @@ services:
       - 'APP_LOG_FORMAT=json'
       - 'HYDRA_LOG_LEVEL=warning'
       - 'HYDRA_LOG_FORMAT=json'
+      - 'APP_SIGNUP_REDIRECT_URL=https://$PUBLIC_HOST/creditors-webapp/'
     depends_on:
       - pg
       - redis
@@ -195,13 +210,16 @@ services:
     volumes:
       - './docker/hydra:/etc/hydra-config'
     command:
+      sh -c 'hydra clients get creditors-webapp --fake-tls-termination ||
       hydra clients import
       /etc/hydra-config/creditors-supervisor.json
       /etc/hydra-config/swagger-ui.json
+      /etc/hydra-config/creditors-webapp.json
       --fake-tls-termination
-      --fail-after 5m
+      --fail-after 5m'
     depends_on:
       - creditors-login
+    restart: on-failure
 
 
   creditors-stomp-server:

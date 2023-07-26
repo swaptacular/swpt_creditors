@@ -260,14 +260,16 @@ How to setup a development environment
 How to run all services (production-like)
 -----------------------------------------
 
-To start the "Creditors Agent" server, along with a Swagger UI client,
-a PostgerSQL server, a RabbitMQ server, a Redis server, an OAuth 2.0
-authorization server, and a HTTP reverse-proxy server, use this
-command:
+To start the "Creditors Agent" server, along with creditors UI webapp,
+Swagger UI client, STOMP server, STOMP client, PostgerSQL server, RabbitMQ
+server, Redis server, OAuth 2.0 authorization server, and HTTP reverse-proxy
+server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
 
 Then, you can open a browser window at
+https://localhost:44301/creditors-webapp/ to use the creditors UI webapp, or
+if you want to experiment with the Swagger UI client, go to
 https://localhost:44301/creditors-swagger-ui/ and use client ID
 `swagger-ui`, and client secret `swagger-ui` to authorize Swagger UI
 to use the server API. In this testing environment, user registration
