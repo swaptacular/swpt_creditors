@@ -44,8 +44,7 @@ following servers:
    **Note:** If you execute the "configure" command (see below), with
    the environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an
    attempt will be made to automatically setup all the required
-   RabbitMQ queues, exchanges, and the bindings between them. However,
-   this works only for the most basic setup.
+   RabbitMQ queues, exchanges, and the bindings between them.
 
 3. [Redis] server instance, which stores Denial of Service attack
    protection statistics for the creditors stored on the PostgreSQL
@@ -261,20 +260,25 @@ How to setup a development environment
 How to run all services (production-like)
 -----------------------------------------
 
-To start the "Creditors Agent" server, along with a Swagger UI client,
-a PostgerSQL server, a RabbitMQ server, a Redis server, an OAuth 2.0
-authorization server, and a HTTP reverse-proxy server, use this
-command:
+To start the "Creditors Agent" server, along with creditors UI webapp,
+Swagger UI client, STOMP server, STOMP client, PostgerSQL server, RabbitMQ
+server, Redis server, OAuth 2.0 authorization server, and HTTP reverse-proxy
+server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
 
 Then, you can open a browser window at
+https://localhost:44301/creditors-webapp/ to use the creditors UI webapp, or
+if you want to experiment with the Swagger UI client, go to
 https://localhost:44301/creditors-swagger-ui/ and use client ID
 `swagger-ui`, and client secret `swagger-ui` to authorize Swagger UI
 to use the server API. In this testing environment, user registration
 emails will be sent to a fake email server, whose messages can be read
 at http://localhost:8025/
 
+Note that the `docker/nodedata` directory contains an already populated
+[root-CA database](https://github.com/swaptacular/swpt_ca_scripts), which
+can be used for end-to-end testing.
 
 
 [Swaptacular]: https://swaptacular.github.io/overview
