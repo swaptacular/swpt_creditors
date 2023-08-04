@@ -145,6 +145,19 @@ PROTOCOL_BROKER_PROCESSES=1
 PROTOCOL_BROKER_THREADS=3
 PROTOCOL_BROKER_PREFETCH_COUNT=10
 
+# The binding key with which the "$PROTOCOL_BROKER_QUEUE"
+# RabbitMQ queue is bound to the "creditors_in" RabbitMQ topic
+# exchange exchange (default "#"). The binding key must consist
+# of zero or more 0s or 1s, separated by dots, ending with a hash
+# symbol. For example: "0.1.#", "1.#", or "#".
+PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#
+
+# Set this to "true" (default "false") after splitting a parent
+# database shard into two children shards. Set this back
+# to "false", once all left-over records have been deleted from
+# the child shard.
+IGNORE_PARENT_SHARD_MESSAGES=false
+
 # The processing of incoming events consists of several stages. The
 # following configuration variables control the number of worker
 # threads that will be involved on each respective stage (default

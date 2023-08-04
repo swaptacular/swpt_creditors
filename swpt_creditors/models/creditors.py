@@ -4,19 +4,12 @@ import hmac
 from math import exp
 from typing import Dict, Optional
 from datetime import datetime, timezone, timedelta
-from flask import current_app
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_creditors.extensions import db
 from .common import get_now_utc, ROOT_CREDITOR_ID
 
 DEFAULT_CREDITOR_STATUS = 0
-
-
-def is_valid_creditor_id(creditor_id: int) -> bool:
-    min_creditor_id = current_app.config['MIN_CREDITOR_ID']
-    max_creditor_id = current_app.config['MAX_CREDITOR_ID']
-    return min_creditor_id <= creditor_id <= max_creditor_id
 
 
 class Creditor(db.Model):

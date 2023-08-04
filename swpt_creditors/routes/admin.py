@@ -46,6 +46,8 @@ class RandomCreditorReserveEndpoint(MethodView):
         max_creditor_id = current_app.config['MAX_CREDITOR_ID']
         for _ in range(100):
             creditor_id = randint(min_creditor_id, max_creditor_id)
+            if not is_valid_creditor_id(creditor_id):  # pragma: no cover
+                abort(500, message='The /.creditor-reserve endpoint does not support shards.')
             try:
                 creditor = procedures.reserve_creditor(creditor_id)
                 break
@@ -93,7 +95,11 @@ class CreditorEnumerateEndpoint(MethodView):
 
         n = current_app.config['APP_CREDITORS_PER_PAGE']
         creditor_ids, next_creditor_id = procedures.get_creditor_ids(start_from=creditorId, count=n)
-        creditor_uris = [{'uri': path_builder.creditor(creditorId=creditor_id)} for creditor_id in creditor_ids]
+        creditor_uris = [
+            {'uri': path_builder.creditor(creditorId=creditor_id)}
+            for creditor_id in creditor_ids
+            if is_valid_creditor_id(creditor_id)
+        ]
 
         if next_creditor_id is None:
             # The last page does not have a 'next' link.
@@ -172,6 +178,9 @@ class CreditorDeactivateEndpoint(MethodView):
     @admin_api.doc(operationId='deactivateCreditor', security=specs.SCOPE_DEACTIVATE)
     def post(self, creditor_deactivation_request, creditorId):
         """Deactivate a creditor."""
+
+        if not is_valid_creditor_id(creditorId):  # pragma: no cover
+            abort(500, message='The agent is not responsible for this creditor.')
 
         if not g.superuser:
             abort(403)

@@ -81,8 +81,15 @@ def ensure_creditor_permissions():
     # everything.
 
     user_type, creditor_id = parse_swpt_user_id_header()
+    url_creditor_id = request.view_args.get('creditorId')
+    if url_creditor_id is None:
+        url_creditor_id = creditor_id
+    else:
+        assert isinstance(url_creditor_id, int)
+        if not current_app.config['SHARDING_REALM'].match(url_creditor_id):
+            abort(500)  # pragma: no cover
 
-    if user_type == UserType.CREDITOR and creditor_id != request.view_args.get('creditorId', creditor_id):
+    if user_type == UserType.CREDITOR and creditor_id != url_creditor_id:
         abort(403)
 
     if user_type == UserType.SUPERVISOR and request.method not in READ_ONLY_METHODS:
