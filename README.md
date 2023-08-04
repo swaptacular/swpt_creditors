@@ -147,9 +147,9 @@ PROTOCOL_BROKER_PREFETCH_COUNT=10
 
 # The binding key with which the "$PROTOCOL_BROKER_QUEUE"
 # RabbitMQ queue is bound to the "creditors_in" RabbitMQ topic
-# exchange exchange (default "#"). The binding key must consist
-# of zero or more 0s or 1s, separated by dots, ending with a hash
-# symbol. For example: "0.1.#", "1.#", or "#".
+# exchange (default "#"). The binding key must consist of zero or
+# more 0s or 1s, separated by dots, ending with a hash symbol.
+# For example: "0.1.#", "1.#", or "#".
 PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#
 
 # Set this to "true" (default "false") after splitting a parent
