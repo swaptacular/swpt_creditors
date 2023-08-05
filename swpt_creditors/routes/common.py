@@ -5,7 +5,7 @@ from datetime import date, timedelta, datetime, timezone
 from flask import url_for, current_app, request, g
 from flask_smorest import abort, Blueprint as BlueprintOrig
 from swpt_pythonlib.utils import u64_to_i64
-from swpt_creditors.models import MAX_INT64, DATE0, PinInfo
+from swpt_creditors.models import MAX_INT64, DATE0, PinInfo, is_valid_creditor_id
 from swpt_creditors.schemas import type_registry
 
 NOT_REQUIED = 'false'
@@ -86,8 +86,8 @@ def ensure_creditor_permissions():
         url_creditor_id = creditor_id
     else:
         assert isinstance(url_creditor_id, int)
-        if not current_app.config['SHARDING_REALM'].match(url_creditor_id):
-            abort(500)  # pragma: no cover
+        if not is_valid_creditor_id(url_creditor_id):
+            abort(403)
 
     if user_type == UserType.CREDITOR and creditor_id != url_creditor_id:
         abort(403)

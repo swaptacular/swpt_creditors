@@ -63,7 +63,7 @@ class Signal(db.Model):
                 # previous splitting of the parent shard into children
                 # shards. Therefore we should ignore it.
                 return None
-            raise RuntimeError(f'The agent is not responsible for creditor {creditor_id}.')
+            raise RuntimeError('The agent is not responsible for this creditor.')
 
         headers = {
             'message-type': message_type,
