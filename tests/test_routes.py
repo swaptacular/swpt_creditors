@@ -1491,7 +1491,7 @@ def test_unauthorized_creditor_id(creditor, client):
     assert r.status_code == 403
 
     r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-User-Id': 'creditors:18446744073709551615'})
-    assert r.status_code == 403
+    assert r.status_code == 404
 
     r = client.get('/creditors/18446744073709551615/', headers={'X-Swpt-User-Id': 'INVALID_USER_ID'})
     assert r.status_code == 403

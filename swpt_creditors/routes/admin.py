@@ -134,7 +134,7 @@ class CreditorReserveEndpoint(MethodView):
         """
 
         if not is_valid_creditor_id(creditorId):  # pragma: no cover
-            abort(403)
+            abort(404)
 
         try:
             creditor = procedures.reserve_creditor(creditorId)
@@ -155,7 +155,7 @@ class CreditorActivateEndpoint(MethodView):
         """Activate a creditor."""
 
         if not is_valid_creditor_id(creditorId):  # pragma: no cover
-            abort(403)
+            abort(404)
 
         reservation_id = creditor_activation_request.get('optional_reservation_id')
         try:
@@ -180,7 +180,7 @@ class CreditorDeactivateEndpoint(MethodView):
         """Deactivate a creditor."""
 
         if not is_valid_creditor_id(creditorId):  # pragma: no cover
-            abort(403)
+            abort(404)
 
         if not g.superuser:
             abort(403)

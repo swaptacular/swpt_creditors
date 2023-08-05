@@ -87,7 +87,7 @@ def ensure_creditor_permissions():
     else:
         assert isinstance(url_creditor_id, int)
         if not is_valid_creditor_id(url_creditor_id):
-            abort(403)
+            abort(404)
 
     if user_type == UserType.CREDITOR and creditor_id != url_creditor_id:
         abort(403)
