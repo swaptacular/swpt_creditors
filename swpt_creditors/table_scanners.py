@@ -139,9 +139,14 @@ class LogEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        delete_parent_shard_records = current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts]
+        pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts or (
+            delete_parent_shard_records
+            and not is_valid_creditor_id(row[0])
+            and is_valid_creditor_id(row[0], match_parent=True)
+        )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
@@ -167,9 +172,14 @@ class LedgerEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        delete_parent_shard_records = current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts]
+        pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts or (
+            delete_parent_shard_records
+            and not is_valid_creditor_id(row[0])
+            and is_valid_creditor_id(row[0], match_parent=True)
+        )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
@@ -209,9 +219,14 @@ class CommittedTransferScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        delete_parent_shard_records = current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts]
+        pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts or(
+            delete_parent_shard_records
+            and not is_valid_creditor_id(row[0])
+            and is_valid_creditor_id(row[0], match_parent=True)
+        )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 

@@ -78,8 +78,9 @@ def test_delete_parent_creditors(app_unsafe_session, current_ts):
 
     db.session.commit()
     app = app_unsafe_session
-    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = True
+    orig_sharding_realm = app.config['SHARDING_REALM']
     app.config['SHARDING_REALM'] = ShardingRealm('1.#')
+    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = True
     assert len(m.Creditor.query.all()) == 1
     assert len(m.Account.query.all()) == 2
     assert len(m.AccountExchange.query.all()) == 2
@@ -96,6 +97,8 @@ def test_delete_parent_creditors(app_unsafe_session, current_ts):
 
     m.Creditor.query.delete()
     db.session.commit()
+    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = False
+    app.config['SHARDING_REALM'] = orig_sharding_realm
 
 
 @pytest.mark.unsafe
