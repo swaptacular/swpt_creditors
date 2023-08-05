@@ -7,7 +7,7 @@ from sqlalchemy.dialects import postgresql
 from swpt_pythonlib.scan_table import TableScanner
 from .extensions import db
 from .models import Creditor, AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, \
-    PendingLedgerUpdate, uid_seq
+    PendingLedgerUpdate, uid_seq, is_valid_creditor_id
 from .procedures import contain_principal_overflow, get_paths_and_types, \
     ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
 
@@ -41,6 +41,8 @@ class CreditorScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
+        if current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']:
+            self._delete_parent_shard_creditors(rows, current_ts)
         self._delete_creditors_not_activated_for_long_time(rows, current_ts)
         self._delete_creditors_deactivated_long_time_ago(rows, current_ts)
 
@@ -90,6 +92,25 @@ class CreditorScanner(TableScanner):
                     Creditor.deactivation_date == null(),
                     Creditor.deactivation_date < deactivated_cutoff_date),
                 ).\
+                with_for_update(skip_locked=True).\
+                all()
+
+            for creditor in to_delete:
+                db.session.delete(creditor)
+
+    def _delete_parent_shard_creditors(self, rows, current_ts):
+        c = self.table.c
+
+        def belongs_to_parent_shard(row) -> bool:
+            return (
+                not is_valid_creditor_id(row[c.creditor_id])
+                and is_valid_creditor_id(row[c.creditor_id], match_parent=True)
+            )
+
+        ids_to_delete = [row[c.creditor_id] for row in rows if belongs_to_parent_shard(row)]
+        if ids_to_delete:
+            to_delete = Creditor.query.\
+                filter(Creditor.creditor_id.in_(ids_to_delete)).\
                 with_for_update(skip_locked=True).\
                 all()
 

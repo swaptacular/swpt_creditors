@@ -187,7 +187,6 @@ class Configuration(metaclass=MetaEnvReader):
     OPENAPI_SWAGGER_UI_URL = None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
 
     APP_ENABLE_CORS = False
-    APP_DELETE_PARENT_SHARD_RECORDS = True
     APP_PROCESS_LOG_ADDITIONS_WAIT = 5.0
     APP_PROCESS_LOG_ADDITIONS_MAX_COUNT = 100000
     APP_PROCESS_LEDGER_UPDATES_BURST = 1000
@@ -233,6 +232,11 @@ class Configuration(metaclass=MetaEnvReader):
     APP_SUPERUSER_SUBJECT_REGEX = '^creditors-superuser$'
     APP_SUPERVISOR_SUBJECT_REGEX = '^creditors-supervisor$'
     APP_CREDITOR_SUBJECT_REGEX = '^creditors:([0-9]+)$'
+
+    # Set this to "true" after splitting a parent database shard into two
+    # children shards. Set this back to "false", once all left-over records
+    # have been deleted from the child shard.
+    APP_DELETE_PARENT_SHARD_RECORDS = False
 
 
 assert Configuration.APP_LOG_RETENTION_DAYS >= 30, 'APP_LOG_RETENTION_DAYS must be at least 30.'
