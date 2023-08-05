@@ -174,8 +174,6 @@ class Configuration(metaclass=MetaEnvReader):
     PROTOCOL_BROKER_PREFETCH_SIZE = 0
     PROTOCOL_BROKER_PREFETCH_COUNT = 1
 
-    IGNORE_PARENT_SHARD_MESSAGES = False
-
     PROCESS_LOG_ADDITIONS_THREADS = 1
     PROCESS_LEDGER_UPDATES_THREADS = 1
 
@@ -189,6 +187,7 @@ class Configuration(metaclass=MetaEnvReader):
     OPENAPI_SWAGGER_UI_URL = None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
 
     APP_ENABLE_CORS = False
+    APP_DELETE_PARENT_SHARD_RECORDS = True
     APP_PROCESS_LOG_ADDITIONS_WAIT = 5.0
     APP_PROCESS_LOG_ADDITIONS_MAX_COUNT = 100000
     APP_PROCESS_LEDGER_UPDATES_BURST = 1000

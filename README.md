@@ -152,12 +152,6 @@ PROTOCOL_BROKER_PREFETCH_COUNT=10
 # For example: "0.1.#", "1.#", or "#".
 PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#
 
-# Set this to "true" (default "false") after splitting a parent
-# database shard into two children shards. Set this back
-# to "false", once all left-over records have been deleted from
-# the child shard.
-IGNORE_PARENT_SHARD_MESSAGES=false
-
 # The processing of incoming events consists of several stages. The
 # following configuration variables control the number of worker
 # threads that will be involved on each respective stage (default

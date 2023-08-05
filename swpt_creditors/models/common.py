@@ -57,11 +57,11 @@ class Signal(db.Model):
         debtor_id = data['debtor_id']
 
         if not is_valid_creditor_id(creditor_id):
-            if (current_app.config['IGNORE_PARENT_SHARD_MESSAGES']
+            if (current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
                     and is_valid_creditor_id(creditor_id, match_parent=True)):
                 # This message most probably is a left-over from the
                 # previous splitting of the parent shard into children
-                # shards. Therefore we should ignore it.
+                # shards. Therefore we should just ignore it.
                 return None
             raise RuntimeError('The agent is not responsible for this creditor.')
 
