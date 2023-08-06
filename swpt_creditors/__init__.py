@@ -8,7 +8,7 @@ import os.path
 from typing import List
 from flask_cors import CORS
 from ast import literal_eval
-from swpt_pythonlib.utils import u64_to_i64
+from swpt_pythonlib.utils import u64_to_i64, ShardingRealm
 
 
 def _parse_dict(s: str) -> dict:
@@ -177,6 +177,8 @@ class Configuration(metaclass=MetaEnvReader):
     PROCESS_LOG_ADDITIONS_THREADS = 1
     PROCESS_LEDGER_UPDATES_THREADS = 1
 
+    DELETE_PARENT_SHARD_RECORDS = False
+
     API_TITLE = 'Creditors API'
     API_VERSION = 'v1'
     OPENAPI_VERSION = '3.0.2'
@@ -254,6 +256,7 @@ def create_app(config_dict={}):
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
     app.config['API_SPEC_OPTIONS'] = specs.API_SPEC_OPTIONS
+    app.config['SHARDING_REALM'] = ShardingRealm(Configuration.PROTOCOL_BROKER_QUEUE_ROUTING_KEY)
     if app.config['APP_ENABLE_CORS']:
         CORS(app, max_age=24 * 60 * 60, vary_header=False, expose_headers=['Location'])
     db.init_app(app)

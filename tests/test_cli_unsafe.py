@@ -3,6 +3,7 @@ from datetime import timedelta, date
 from swpt_creditors.extensions import db
 from swpt_creditors import procedures as p
 from swpt_creditors import models as m
+from swpt_pythonlib.utils import ShardingRealm
 
 D_ID = -1
 C_ID = 4294967296
@@ -54,6 +55,50 @@ def test_scan_creditors(app_unsafe_session, current_ts):
 
     m.Creditor.query.delete()
     db.session.commit()
+
+
+@pytest.mark.unsafe
+def test_delete_parent_creditors(app_unsafe_session, current_ts):
+    m.Creditor.query.delete()
+    db.session.commit()
+
+    _create_new_creditor(C_ID, activate=True)
+    a2 = p.create_new_account(C_ID, 2)
+    a3 = p.create_new_account(C_ID, 3)
+
+    # Create a reference cycle in `AccountExchange`.
+    p.update_account_exchange(
+        C_ID, 2, policy=None, min_principal=0, max_principal=0,
+        peg_exchange_rate=1.0, peg_debtor_id=3,
+        latest_update_id=a2.exchange.latest_update_id + 1)
+    p.update_account_exchange(
+        C_ID, 3, policy=None, min_principal=0, max_principal=0,
+        peg_exchange_rate=1.0, peg_debtor_id=2,
+        latest_update_id=a3.exchange.latest_update_id + 1)
+
+    db.session.commit()
+    app = app_unsafe_session
+    orig_sharding_realm = app.config['SHARDING_REALM']
+    app.config['SHARDING_REALM'] = ShardingRealm('1.#')
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = True
+    assert len(m.Creditor.query.all()) == 1
+    assert len(m.Account.query.all()) == 2
+    assert len(m.AccountExchange.query.all()) == 2
+
+    db.engine.execute('ANALYZE account')
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_creditors', 'scan_creditors', '--days', '0.000001', '--quit-early'])
+    assert result.exit_code == 0
+
+    creditors = m.Creditor.query.all()
+    assert len(creditors) == 0
+    assert len(m.Account.query.all()) == 0
+    assert len(m.AccountExchange.query.all()) == 0
+
+    m.Creditor.query.delete()
+    db.session.commit()
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = False
+    app.config['SHARDING_REALM'] = orig_sharding_realm
 
 
 @pytest.mark.unsafe

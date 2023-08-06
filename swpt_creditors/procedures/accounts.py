@@ -306,7 +306,7 @@ def update_account_exchange(
         max_principal: int,
         peg_exchange_rate: Optional[float],
         peg_debtor_id: Optional[int],
-        latest_update_id: int) -> AccountKnowledge:
+        latest_update_id: int) -> AccountExchange:
 
     current_ts = datetime.now(tz=timezone.utc)
 

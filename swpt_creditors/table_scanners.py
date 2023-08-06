@@ -7,7 +7,7 @@ from sqlalchemy.dialects import postgresql
 from swpt_pythonlib.scan_table import TableScanner
 from .extensions import db
 from .models import Creditor, AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, \
-    PendingLedgerUpdate, uid_seq
+    PendingLedgerUpdate, uid_seq, is_valid_creditor_id
 from .procedures import contain_principal_overflow, get_paths_and_types, \
     ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
 
@@ -41,6 +41,8 @@ class CreditorScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
+        if current_app.config['DELETE_PARENT_SHARD_RECORDS']:
+            self._delete_parent_shard_creditors(rows, current_ts)
         self._delete_creditors_not_activated_for_long_time(rows, current_ts)
         self._delete_creditors_deactivated_long_time_ago(rows, current_ts)
 
@@ -96,6 +98,25 @@ class CreditorScanner(TableScanner):
             for creditor in to_delete:
                 db.session.delete(creditor)
 
+    def _delete_parent_shard_creditors(self, rows, current_ts):
+        c = self.table.c
+
+        def belongs_to_parent_shard(row) -> bool:
+            return (
+                not is_valid_creditor_id(row[c.creditor_id])
+                and is_valid_creditor_id(row[c.creditor_id], match_parent=True)
+            )
+
+        ids_to_delete = [row[c.creditor_id] for row in rows if belongs_to_parent_shard(row)]
+        if ids_to_delete:
+            to_delete = Creditor.query.\
+                filter(Creditor.creditor_id.in_(ids_to_delete)).\
+                with_for_update(skip_locked=True).\
+                all()
+
+            for creditor in to_delete:
+                db.session.delete(creditor)
+
 
 class LogEntryScanner(TableScanner):
     """Garbage-collects staled log entries."""
@@ -118,9 +139,14 @@ class LogEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts]
+        pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts or (
+            delete_parent_shard_records
+            and not is_valid_creditor_id(row[0])
+            and is_valid_creditor_id(row[0], match_parent=True)
+        )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
@@ -146,9 +172,14 @@ class LedgerEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts]
+        pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts or (
+            delete_parent_shard_records
+            and not is_valid_creditor_id(row[0])
+            and is_valid_creditor_id(row[0], match_parent=True)
+        )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
@@ -188,9 +219,14 @@ class CommittedTransferScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts]
+        pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts or(
+            delete_parent_shard_records
+            and not is_valid_creditor_id(row[0])
+            and is_valid_creditor_id(row[0], match_parent=True)
+        )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
