@@ -177,6 +177,8 @@ class Configuration(metaclass=MetaEnvReader):
     PROCESS_LOG_ADDITIONS_THREADS = 1
     PROCESS_LEDGER_UPDATES_THREADS = 1
 
+    DELETE_PARENT_SHARD_RECORDS = False
+
     API_TITLE = 'Creditors API'
     API_VERSION = 'v1'
     OPENAPI_VERSION = '3.0.2'
@@ -232,11 +234,6 @@ class Configuration(metaclass=MetaEnvReader):
     APP_SUPERUSER_SUBJECT_REGEX = '^creditors-superuser$'
     APP_SUPERVISOR_SUBJECT_REGEX = '^creditors-supervisor$'
     APP_CREDITOR_SUBJECT_REGEX = '^creditors:([0-9]+)$'
-
-    # Set this to "true" after splitting a parent database shard into two
-    # children shards. Set this back to "false", once all left-over records
-    # have been deleted from the child shard.
-    APP_DELETE_PARENT_SHARD_RECORDS = False
 
 
 assert Configuration.APP_LOG_RETENTION_DAYS >= 30, 'APP_LOG_RETENTION_DAYS must be at least 30.'

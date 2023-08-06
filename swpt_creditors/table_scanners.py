@@ -41,7 +41,7 @@ class CreditorScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
-        if current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']:
+        if current_app.config['DELETE_PARENT_SHARD_RECORDS']:
             self._delete_parent_shard_creditors(rows, current_ts)
         self._delete_creditors_not_activated_for_long_time(rows, current_ts)
         self._delete_creditors_deactivated_long_time_ago(rows, current_ts)
@@ -139,7 +139,7 @@ class LogEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
-        delete_parent_shard_records = current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
+        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
         pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts or (
@@ -172,7 +172,7 @@ class LedgerEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
-        delete_parent_shard_records = current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
+        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
         pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts or (
@@ -219,7 +219,7 @@ class CommittedTransferScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
-        delete_parent_shard_records = current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
+        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
         pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts or(
