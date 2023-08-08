@@ -5,15 +5,19 @@ import json
 import sys
 import os
 import os.path
+from json import dumps
 from typing import List
 from flask_cors import CORS
 from ast import literal_eval
 from swpt_pythonlib.utils import u64_to_i64, ShardingRealm
 
 
-def _parse_dict(s: str) -> dict:
+def _engine_options(s: str) -> dict:
     try:
-        return json.loads(s)
+        options = json.loads(s)
+        options["json_serializer"] = lambda obj: dumps(
+            obj, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+        return options
     except ValueError:  # pragma: no cover
         raise ValueError(f'Invalid JSON configuration value: {s}')
 
@@ -160,7 +164,7 @@ class Configuration(metaclass=MetaEnvReader):
     PIN_PROTECTION_SECRET = ''
 
     SQLALCHEMY_DATABASE_URI = ''
-    SQLALCHEMY_ENGINE_OPTIONS: _parse_dict = _parse_dict('{"pool_size": 0}')
+    SQLALCHEMY_ENGINE_OPTIONS: _engine_options = _engine_options('{"pool_size": 0}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
 
