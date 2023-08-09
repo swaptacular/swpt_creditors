@@ -1,3 +1,4 @@
+import pytest
 from datetime import date, timedelta
 from swpt_creditors.extensions import db
 from swpt_creditors import procedures as p
@@ -13,6 +14,7 @@ def _create_new_creditor(creditor_id: int, activate: bool = False):
         p.activate_creditor(creditor_id, str(creditor.reservation_id))
 
 
+@pytest.mark.unsafe
 def test_process_ledger_entries(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     m.Account.query.delete()
@@ -93,6 +95,7 @@ def test_process_ledger_entries(app_unsafe_session, current_ts):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_process_log_additions(app_unsafe_session, current_ts):
     m.Creditor.query.delete()
     m.Account.query.delete()
