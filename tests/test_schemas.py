@@ -862,7 +862,8 @@ def test_serialize_account(db_session):
     creditor = procedures.reserve_creditor(C_ID)
     procedures.activate_creditor(C_ID, str(creditor.reservation_id))
     procedures.create_new_account(C_ID, D_ID)
-    account = models.Account.get_instance((C_ID, D_ID))
+    account = models.Account.query.filter_by(
+        creditor_id=C_ID, debtor_id=D_ID).one()
     account_schema = schemas.AccountSchema(context=context)
     ads = schemas.AccountDisplaySchema(context=context)
     acs = schemas.AccountConfigSchema(context=context)

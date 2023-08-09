@@ -139,14 +139,20 @@ class LogEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_entry_id = c.entry_id
+        c_added_at = c.added_at
         delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1]) for row in rows if row[2] < cutoff_ts or (
-            delete_parent_shard_records
-            and not is_valid_creditor_id(row[0])
-            and is_valid_creditor_id(row[0], match_parent=True)
-        )]
+        pks_to_delete = [
+            (row[c_creditor_id], row[c_entry_id])
+            for row in rows if row[c_added_at] < cutoff_ts or (
+                    delete_parent_shard_records
+                    and not is_valid_creditor_id(row[c_creditor_id])
+                    and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
+            )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
@@ -172,14 +178,21 @@ class LedgerEntryScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_debtor_id = c.debtor_id
+        c_entry_id = c.entry_id
+        c_added_at = c.added_at
         delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1], row[2]) for row in rows if row[3] < cutoff_ts or (
-            delete_parent_shard_records
-            and not is_valid_creditor_id(row[0])
-            and is_valid_creditor_id(row[0], match_parent=True)
-        )]
+        pks_to_delete = [
+            (row[c_creditor_id], row[c_debtor_id], row[c_entry_id])
+            for row in rows if row[c_added_at] < cutoff_ts or (
+                    delete_parent_shard_records
+                    and not is_valid_creditor_id(row[c_creditor_id])
+                    and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
+            )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 
@@ -219,14 +232,22 @@ class CommittedTransferScanner(TableScanner):
 
     @atomic
     def process_rows(self, rows):
+        c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_debtor_id = c.debtor_id
+        c_creation_date = c.creation_date
+        c_transfer_number = c.transfer_number
+        c_committed_at = c.committed_at
         delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
-        pks_to_delete = [(row[0], row[1], row[2], row[3]) for row in rows if row[4] < cutoff_ts or(
-            delete_parent_shard_records
-            and not is_valid_creditor_id(row[0])
-            and is_valid_creditor_id(row[0], match_parent=True)
-        )]
+        pks_to_delete = [
+            (row[c_creditor_id], row[c_debtor_id], row[c_creation_date], row[c_transfer_number])
+            for row in rows if row[c_committed_at] < cutoff_ts or(
+                    delete_parent_shard_records
+                    and not is_valid_creditor_id(row[c_creditor_id])
+                    and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
+            )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
 

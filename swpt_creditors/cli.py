@@ -110,6 +110,7 @@ def process_log_additions(threads, wait, quit_early):
         get_args_collection=get_args_collection,
         process_func=procedures.process_pending_log_entries,
         wait_seconds=wait,
+        max_count=max_count,
     ).run(quit_early=quit_early)
 
 
@@ -160,6 +161,7 @@ def process_ledger_updates(threads, burst, wait, quit_early):
         get_args_collection=get_args_collection,
         process_func=process_ledger_update,
         wait_seconds=wait,
+        max_count=max_count,
     ).run(quit_early=quit_early)
 
 

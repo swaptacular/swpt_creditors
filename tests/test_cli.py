@@ -1,5 +1,8 @@
+import pytest
 from datetime import date, timedelta
+from swpt_creditors.extensions import db
 from swpt_creditors import procedures as p
+from swpt_creditors import models as m
 
 D_ID = -1
 C_ID = 4294967296
@@ -11,7 +14,18 @@ def _create_new_creditor(creditor_id: int, activate: bool = False):
         p.activate_creditor(creditor_id, str(creditor.reservation_id))
 
 
-def test_process_ledger_entries(app, db_session, current_ts):
+@pytest.mark.unsafe
+def test_process_ledger_entries(app_unsafe_session, current_ts):
+    m.Creditor.query.delete()
+    m.Account.query.delete()
+    m.LogEntry.query.delete()
+    m.LedgerEntry.query.delete()
+    m.PendingLogEntry.query.delete()
+    m.PendingLedgerUpdate.query.delete()
+    m.CommittedTransfer.query.delete()
+    db.session.commit()
+
+    app = app_unsafe_session
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
 
@@ -71,8 +85,28 @@ def test_process_ledger_entries(app, db_session, current_ts):
     assert not result.output
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 2
 
+    m.Creditor.query.delete()
+    m.Account.query.delete()
+    m.LogEntry.query.delete()
+    m.LedgerEntry.query.delete()
+    m.PendingLogEntry.query.delete()
+    m.PendingLedgerUpdate.query.delete()
+    m.CommittedTransfer.query.delete()
+    db.session.commit()
 
-def test_process_log_additions(app, db_session, current_ts):
+
+@pytest.mark.unsafe
+def test_process_log_additions(app_unsafe_session, current_ts):
+    m.Creditor.query.delete()
+    m.Account.query.delete()
+    m.LogEntry.query.delete()
+    m.LedgerEntry.query.delete()
+    m.PendingLogEntry.query.delete()
+    m.PendingLedgerUpdate.query.delete()
+    m.CommittedTransfer.query.delete()
+    db.session.commit()
+
+    app = app_unsafe_session
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
@@ -91,6 +125,15 @@ def test_process_log_additions(app, db_session, current_ts):
     assert not result.output
     entries2, _ = p.get_log_entries(C_ID, count=10000)
     assert len(entries2) > len(entries1)
+
+    m.Creditor.query.delete()
+    m.Account.query.delete()
+    m.LogEntry.query.delete()
+    m.LedgerEntry.query.delete()
+    m.PendingLogEntry.query.delete()
+    m.PendingLedgerUpdate.query.delete()
+    m.CommittedTransfer.query.delete()
+    db.session.commit()
 
 
 def test_spawn_worker_processes():
