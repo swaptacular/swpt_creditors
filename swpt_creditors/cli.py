@@ -286,7 +286,7 @@ def scan_committed_transfers(days, quit_early):
 @click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
 @click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
 @click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
-def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):  # pragma: no cover
+def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):
     """Consume and process incoming Swaptacular Messaging Protocol
     messages.
 
@@ -307,7 +307,7 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 
     """
 
-    def _consume_messages(url, queue, threads, prefetch_size, prefetch_count):
+    def _consume_messages(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
         """Consume messages in a subprocess."""
 
         from swpt_creditors.actors import SmpConsumer, TerminatedConsumtion
