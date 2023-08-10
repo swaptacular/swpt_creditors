@@ -146,6 +146,7 @@ services:
       - 'OAUTH2_REDIRECT_URL=https://$PUBLIC_HOST/creditors-swagger-ui/oauth2-redirect.html'
 
 
+  # Serves the creditors UI webapp (useful for testing).
   creditors-webapp:
     image: ghcr.io/swaptacular/swpt_creditors_ui:$SWPT_CREDITORS_UI_VERSION
     environment:
