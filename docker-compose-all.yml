@@ -57,6 +57,11 @@ services:
       - creditors-login
 
 
+  # This container acts as a reverse proxy. It extracts the the creditor ID
+  # from the the incoming HTTP request, calculates a sharding key, and then,
+  # based on the sharding key, decides to which server to forward the
+  # incoming request. In this simple example, `creditors-server` is the only
+  # shard.
   creditors-apiproxy:
     image: ghcr.io/swaptacular/swpt_apiproxy:latest
     volumes:
