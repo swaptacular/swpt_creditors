@@ -69,6 +69,8 @@ class CreditorScanner(TableScanner):
             for creditor in to_delete:
                 db.session.delete(creditor)
 
+            db.session.commit()
+
     def _delete_creditors_deactivated_long_time_ago(self, rows, current_ts):
         c = self.table.c
         deactivated_flag = Creditor.STATUS_IS_DEACTIVATED_FLAG
@@ -98,6 +100,8 @@ class CreditorScanner(TableScanner):
             for creditor in to_delete:
                 db.session.delete(creditor)
 
+            db.session.commit()
+
     def _delete_parent_shard_creditors(self, rows, current_ts):
         c = self.table.c
 
@@ -116,6 +120,8 @@ class CreditorScanner(TableScanner):
 
             for creditor in to_delete:
                 db.session.delete(creditor)
+
+            db.session.commit()
 
 
 class LogEntryScanner(TableScanner):
@@ -155,6 +161,7 @@ class LogEntryScanner(TableScanner):
             )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+            db.session.commit()
 
 
 class LedgerEntryScanner(TableScanner):
@@ -195,6 +202,7 @@ class LedgerEntryScanner(TableScanner):
             )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+            db.session.commit()
 
 
 class CommittedTransferScanner(TableScanner):
@@ -250,6 +258,7 @@ class CommittedTransferScanner(TableScanner):
             )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+            db.session.commit()
 
 
 class AccountScanner(TableScanner):
@@ -328,6 +337,7 @@ class AccountScanner(TableScanner):
 
             db.session.bulk_save_objects(ledger_update_pending_log_entries, preserve_order=False)
             db.session.execute(uid_seq)
+            db.session.commit()
 
     def _update_ledger(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
         creditor_id = data.creditor_id
@@ -385,6 +395,7 @@ class AccountScanner(TableScanner):
                 {'creditor_id': creditor_id, 'debtor_id': debtor_id}
                 for creditor_id, debtor_id in pks_to_repair
             ])
+            db.session.commit()
 
     def _set_config_errors_if_necessary(self, rows, current_ts):
         c = self.table.c
@@ -429,6 +440,7 @@ class AccountScanner(TableScanner):
 
             db.session.bulk_save_objects(info_update_pending_log_entries, preserve_order=False)
             db.session.execute(uid_seq)
+            db.session.commit()
 
     def _set_config_error(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
         data.config_error = 'CONFIGURATION_IS_NOT_EFFECTUAL'
