@@ -358,7 +358,9 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 @click.option('-p', '--processes', type=int, help='Then umber of worker processes.'
               ' If not specified, the value of the FLUSH_PROCESSES environment'
               ' variable will be used, defaulting to 1 if empty.')
-@click.option('-w', '--wait', type=float, default=2.0, help='Flush every FLOAT seconds (defalut 2).')
+@click.option('-w', '--wait', type=float, help='Flush every FLOAT seconds.'
+              ' If not specified, the value of the FLUSH_PERIOD environment'
+              ' variable will be used, defaulting to 2 seconds if empty.')
 @click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
 @click.argument('message_types', nargs=-1)
 def flush_messages(
@@ -433,6 +435,7 @@ def flush_messages(
                    else current_app.config['FLUSH_PROCESSES']),
         target=_flush,
         models_to_flush=models_to_flush,
-        wait=wait,
+        wait=(wait if wait is not None
+              else current_app.config['FLUSH_PERIOD']),
     )
     sys.exit(1)

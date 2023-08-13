@@ -158,10 +158,10 @@ PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#
 # processes ("$FLUSH_PROCESSES") will be spawned to flush
 # messages (default 1). Note that FLUSH_PROCESSES can be set to
 # 0, in which case, the container will not flush any messages.
-# The "$FLUSH_ALL_WAIT" value specifies the number of seconds to
-# wait between two sequential collective flushes (default 2).
+# The "$FLUSH_PERIOD" value specifies the number of seconds to
+# wait between two sequential flushes (default 2).
 FLUSH_PROCESSES=2
-FLUSH_ALL_WAIT=1.5
+FLUSH_PERIOD=1.5
 
 # The processing of incoming events consists of several stages. The
 # following configuration variables control the number of worker
@@ -226,28 +226,16 @@ container allows you to execute the following *documented commands*:
 
 * `flush_all`
 
-  Starts processes that send all types of outgoing messages to the RabbitMQ
-  broker, and remove them from the PostgreSQL database.
-
-  The "FLUSH_PROCESSES" environment variable specifies the number of started
-  worker processes. The "FLUSH_ALL_WAIT" environment variable controls the
-  number of seconds to wait between two sequential collective flushes
-  (default 2).
+  Starts only the worker processes that send outgoing messages to the
+  RabbitMQ broker, and remove them from the PostgreSQL database.
 
 * `flush_configure_accounts`, `flush_prepare_transfers`,
   `flush_finalize_transfers`
 
-  Starts processes that send outgoing messages to the RabbitMQ broker, and
-  remove them from the PostgreSQL database. These commands allow you to
-  start additional processes, dedicated to the flushing of particular type
-  of messages, to handle the load.
-
-  The "FLUSH_PROCESSES" environment variable specifies the number of started
-  worker processes. The "FLUSH_*message-type*_WAIT" environment variables
-  control the number of seconds to wait between two sequential flushes
-  (default 2). For example, configuring "FLUSH_PREPARE_TRANSFERS_WAIT=0.5"
-  will try to flush the outgoing "PrapareTransfer" messages every 0.5
-  seconds.
+  Starts additional worker processes that send particular type of outgoing
+  messages to the RabbitMQ broker, and remove them from the PostgreSQL
+  database. These commands allow you to start processes, dedicated to the
+  flushing of particular type of messages, to keep up with the load.
 
 This [docker-compose example](../master/docker-compose-all.yml) shows
 how to use the generated docker images, along with the PostgerSQL
