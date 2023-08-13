@@ -234,9 +234,9 @@ container allows you to execute the following *documented commands*:
 
   Starts additional worker processes that send particular type of outgoing
   messages to the RabbitMQ broker, and remove them from the PostgreSQL
-  database. These commands allow you to start processes, dedicated to the
-  flushing of particular type of messages, to keep up with the load. (See
-  "FLUSH_PROCESSES" and "FLUSH_PERIOD" environment variables.)
+  database. These commands allow you to start processes dedicated to the
+  flushing of particular type of messages. (See "FLUSH_PROCESSES" and
+  "FLUSH_PERIOD" environment variables.)
 
 This [docker-compose example](../master/docker-compose-all.yml) shows
 how to use the generated docker images, along with the PostgerSQL
