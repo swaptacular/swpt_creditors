@@ -181,6 +181,8 @@ class Configuration(metaclass=MetaEnvReader):
     PROCESS_LOG_ADDITIONS_THREADS = 1
     PROCESS_LEDGER_UPDATES_THREADS = 1
 
+    FLUSH_PROCESSES = 1
+
     DELETE_PARENT_SHARD_RECORDS = False
 
     API_TITLE = 'Creditors API'

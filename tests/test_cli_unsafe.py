@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import Mock
 from datetime import timedelta, date
 from swpt_creditors.extensions import db
 from swpt_creditors import procedures as p
@@ -316,3 +317,34 @@ def test_scan_committed_transfers(app_unsafe_session, current_ts):
     m.Account.query.delete()
     m.CommittedTransfer.query.delete()
     db.session.commit()
+
+
+@pytest.mark.unsafe
+def test_flush_messages(mocker, app_unsafe_session):
+    send_signalbus_message = Mock()
+    mocker.patch('swpt_creditors.models.FinalizeTransferSignal.send_signalbus_message',
+                 new_callable=send_signalbus_message)
+    m.FinalizeTransferSignal.query.delete()
+    db.session.commit()
+    fts = m.FinalizeTransferSignal(
+        creditor_id=0x0000010000000000,
+        debtor_id=D_ID,
+        transfer_id=666,
+        coordinator_id=C_ID,
+        coordinator_request_id=777,
+        committed_amount=0,
+        transfer_note_format='',
+        transfer_note='',
+    )
+    db.session.add(fts)
+    db.session.commit()
+    assert len(m.FinalizeTransferSignal.query.all()) == 1
+    db.session.commit()
+    app = app_unsafe_session
+
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_creditors', 'flush_messages',
+                                 'FinalizeTransferSignal', '--wait', '0.1', '--quit-early'])
+    assert result.exit_code == 1
+    assert send_signalbus_message.called_once()
+    assert len(m.FinalizeTransferSignal.query.all()) == 0
