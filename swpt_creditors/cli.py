@@ -355,13 +355,17 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 
 @swpt_creditors.command('flush_messages')
 @with_appcontext
-@click.option('-p', '--processes', type=int, help='Then umber of worker processes.'
-              ' If not specified, the value of the FLUSH_PROCESSES environment'
-              ' variable will be used, defaulting to 1 if empty.')
-@click.option('-w', '--wait', type=float, help='Flush every FLOAT seconds.'
-              ' If not specified, the value of the FLUSH_PERIOD environment'
-              ' variable will be used, defaulting to 2 seconds if empty.')
-@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+@click.option(
+    '-p', '--processes', type=int, help='Then umber of worker processes.'
+    ' If not specified, the value of the FLUSH_PROCESSES environment'
+    ' variable will be used, defaulting to 1 if empty.')
+@click.option(
+    '-w', '--wait', type=float, help='Flush every FLOAT seconds.'
+    ' If not specified, the value of the FLUSH_PERIOD environment'
+    ' variable will be used, defaulting to 2 seconds if empty.')
+@click.option(
+    '--quit-early', is_flag=True, default=False,
+    help='Exit after some time (mainly useful during testing).')
 @click.argument('message_types', nargs=-1)
 def flush_messages(
         message_types: list[str],
@@ -418,11 +422,13 @@ def flush_messages(
                 try:
                     count = signalbus.flushmany(models_to_flush)
                 except Exception:
-                    logger.exception('Caught error while sending pending signals.')
+                    logger.exception(
+                        'Caught error while sending pending signals.')
                     sys.exit(1)
 
                 if count > 0:
-                    logger.info('%i signals have been successfully processed.', count)
+                    logger.info(
+                        '%i signals have been successfully processed.', count)
                 else:
                     logger.debug('0 signals have been processed.')
 
