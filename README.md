@@ -227,15 +227,15 @@ container allows you to execute the following *documented commands*:
 * `flush_all`
 
   Starts only the worker processes that send outgoing messages to the
-  RabbitMQ broker, and remove them from the PostgreSQL database.
+  RabbitMQ broker, and remove the messages from the PostgreSQL database.
 
 * `flush_configure_accounts`, `flush_prepare_transfers`,
   `flush_finalize_transfers`
 
   Starts additional worker processes that send particular type of outgoing
-  messages to the RabbitMQ broker, and remove them from the PostgreSQL
-  database. These commands allow you to start processes dedicated to the
-  flushing of particular type of messages. (See "FLUSH_PROCESSES" and
+  messages to the RabbitMQ broker, and remove the messages from the
+  PostgreSQL database. These commands allow you to start processes dedicated
+  to the flushing of particular type of messages. (See "FLUSH_PROCESSES" and
   "FLUSH_PERIOD" environment variables.)
 
 This [docker-compose example](../master/docker-compose-all.yml) shows
