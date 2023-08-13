@@ -226,13 +226,13 @@ container allows you to execute the following *documented commands*:
 
 * `flush_all`
 
-  Starts processes that sends every possible type of outgoing messages to
-  the RabbitMQ broker, and remove them from the PostgreSQL database.
+  Starts processes that sends all types of outgoing messages to the RabbitMQ
+  broker, and remove them from the PostgreSQL database.
 
-  The "FLUSH_PROCESSES" environment variables specifies the number of
-  started worker processes. The "FLUSH_ALL_WAIT" environment variables
-  control the number of seconds to wait between two sequential collective
-  flushes (default 2).
+  The "FLUSH_PROCESSES" environment variable specifies the number of started
+  worker processes. The "FLUSH_ALL_WAIT" environment variable control the
+  number of seconds to wait between two sequential collective flushes
+  (default 2).
 
 * `flush_configure_accounts`, `flush_prepare_transfers`,
   `flush_finalize_transfers`
