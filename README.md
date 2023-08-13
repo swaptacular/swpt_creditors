@@ -237,17 +237,17 @@ container allows you to execute the following *documented commands*:
 * `flush_configure_accounts`, `flush_prepare_transfers`,
   `flush_finalize_transfers`
 
-  Starts processes that sends outgoing messages to the RabbitMQ broker, and
+  Starts processes that send outgoing messages to the RabbitMQ broker, and
   remove them from the PostgreSQL database. These commands allow you to
   start additional processes, dedicated to the flushing of particular type
   of messages, to handle the load.
 
-  The "FLUSH_PROCESSES" environment variables specifies the number of
-  started worker processes. The "FLUSH_*message-type*_WAIT" environment
-  variables control the number of seconds to wait between two sequential
-  flushes (default 2). For example, configuring
-  "FLUSH_PREPARE_TRANSFERS_WAIT=0.5" will try to flush the outgoing
-  "PrapareTransfer" messages every 0.5 seconds.
+  The "FLUSH_PROCESSES" environment variable specifies the number of started
+  worker processes. The "FLUSH_*message-type*_WAIT" environment variables
+  control the number of seconds to wait between two sequential flushes
+  (default 2). For example, configuring "FLUSH_PREPARE_TRANSFERS_WAIT=0.5"
+  will try to flush the outgoing "PrapareTransfer" messages every 0.5
+  seconds.
 
 This [docker-compose example](../master/docker-compose-all.yml) shows
 how to use the generated docker images, along with the PostgerSQL
