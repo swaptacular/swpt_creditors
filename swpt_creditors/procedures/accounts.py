@@ -165,7 +165,7 @@ def update_account_config(
         object_uri=paths.account_config(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
     ))
-    db.session.execute(uid_seq)
+    db.session.scalar(uid_seq)
 
     assert not data.is_deletion_safe
     if deletion_was_safe_before_the_update:
@@ -238,7 +238,7 @@ def update_account_display(
         object_uri=paths.account_display(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
     ))
-    db.session.execute(uid_seq)
+    db.session.scalar(uid_seq)
 
     return display
 
@@ -282,7 +282,7 @@ def update_account_knowledge(
         object_uri=paths.account_knowledge(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
     ))
-    db.session.execute(uid_seq)
+    db.session.scalar(uid_seq)
 
     return knowledge
 
@@ -339,7 +339,7 @@ def update_account_exchange(
         object_uri=paths.account_exchange(creditorId=creditor_id, debtorId=debtor_id),
         object_update_id=latest_update_id,
     ))
-    db.session.execute(uid_seq)
+    db.session.scalar(uid_seq)
 
     return exchange
 
@@ -430,7 +430,7 @@ def _insert_account(creditor: Creditor, debtor_id: int, current_ts: datetime) ->
 def _log_account_deletion(creditor: Creditor, debtor_id: int, current_ts: datetime) -> None:
     creditor_id = creditor.creditor_id
     paths, types = get_paths_and_types()
-    object_update_id = db.session.execute(uid_seq)
+    object_update_id = db.session.scalar(uid_seq)
 
     creditor.accounts_list_latest_update_id += 1
     creditor.accounts_list_latest_update_ts = current_ts
@@ -473,4 +473,4 @@ def _insert_info_update_pending_log_entry(data: AccountData, current_ts: datetim
         object_uri=paths.account_info(creditorId=data.creditor_id, debtorId=data.debtor_id),
         object_update_id=data.info_latest_update_id,
     ))
-    db.session.execute(uid_seq)
+    db.session.scalar(uid_seq)

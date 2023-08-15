@@ -5,6 +5,7 @@ from uuid import UUID
 from swpt_pythonlib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
+from swpt_creditors.extensions import db
 from swpt_creditors.models import Creditor, AccountData, ConfigureAccountSignal, LogEntry, \
     CommittedTransfer, PendingLedgerUpdate, PrepareTransferSignal, RunningTransfer, \
     FinalizeTransferSignal
@@ -52,7 +53,7 @@ def test_activate_new_creditor(db_session):
         p.reserve_creditor(C_ID)
 
 
-def test_create_account(db_session, creditor):
+def test_create_account(creditor):
     with pytest.raises(p.CreditorDoesNotExist):
         p.create_new_account(666, D_ID)
 
@@ -62,7 +63,7 @@ def test_create_account(db_session, creditor):
     assert account.debtor_id == D_ID
 
 
-def test_deactivate_creditor(db_session, creditor, account):
+def test_deactivate_creditor(account):
     assert p.get_active_creditor(C_ID)
     assert len(models.Account.query.all()) == 1
     assert len(models.PinInfo.query.all()) == 1
@@ -72,12 +73,12 @@ def test_deactivate_creditor(db_session, creditor, account):
     assert len(models.PinInfo.query.all()) == 0
 
 
-def test_delete_account_without_debtor_name(db_session, account, current_ts):
+def test_delete_account_without_debtor_name(account, current_ts):
     p.delete_account(C_ID, D_ID)
     assert not p.get_account(C_ID, D_ID)
 
 
-def test_delete_account(db_session, account, current_ts):
+def test_delete_account(account, current_ts):
     with pytest.raises(p.AccountDoesNotExist):
         p.delete_account(C_ID, 1234)
 
@@ -142,7 +143,7 @@ def test_delete_account(db_session, account, current_ts):
     assert not p.get_account(C_ID, D_ID)
 
 
-def test_process_account_update_signal(db_session, account):
+def test_process_account_update_signal(account):
     AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).update({
         'ledger_principal': 1001,
         'ledger_last_entry_id': 88,
@@ -343,14 +344,14 @@ def test_process_rejected_config_signal(account):
     assert len(LogEntry.query.all()) == ple_count + 1
 
 
-def test_process_account_purge_signal(db_session, creditor, account, current_ts):
+def test_process_account_purge_signal(account, current_ts):
     AccountData.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).update({
         AccountData.creation_date: date(2020, 1, 2),
         AccountData.has_server_account: True,
         AccountData.principal: 1000,
         AccountData.interest: 15.0,
     }, synchronize_session=False)
-    db_session.commit()
+    db.session.commit()
     data = AccountData.query.one()
     assert data.debtor_id == D_ID
     assert data.creditor_id == C_ID
@@ -465,7 +466,7 @@ def test_update_account_config(account, current_ts):
     assert get_info_entries_count() == 3
 
 
-def test_process_account_transfer_signal(db_session, account, current_ts):
+def test_process_account_transfer_signal(account, current_ts):
     def get_committed_tranfer_entries_count():
         p.process_pending_log_entries(C_ID)
         return len(LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_COMMITTED_TRANSFER).all())
@@ -475,7 +476,7 @@ def test_process_account_transfer_signal(db_session, account, current_ts):
 
     def delete_pending_ledger_update():
         PendingLedgerUpdate.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).delete()
-        db_session.commit()
+        db.session.commit()
 
     assert not has_pending_ledger_update()
     p.process_account_update_signal(
@@ -738,7 +739,7 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     assert data.ledger_latest_update_id == ledger_latest_update_id + 1
 
 
-def test_process_rejected_direct_transfer_signal(db_session, account, current_ts):
+def test_process_rejected_direct_transfer_signal(account, current_ts):
     rt = p.initiate_running_transfer(
         creditor_id=C_ID,
         transfer_uuid=TEST_UUID,
@@ -813,7 +814,7 @@ def test_process_rejected_direct_transfer_signal(db_session, account, current_ts
     assert le.data_error_code == rt.error_code
 
 
-def test_process_rejected_direct_transfer_unexpected_error(db_session, account, current_ts):
+def test_process_rejected_direct_transfer_unexpected_error(account, current_ts):
     rt = p.initiate_running_transfer(
         creditor_id=C_ID,
         transfer_uuid=TEST_UUID,
@@ -846,7 +847,7 @@ def test_process_rejected_direct_transfer_unexpected_error(db_session, account, 
     assert rt.latest_update_id == 2
 
 
-def test_successful_transfer(db_session, account, current_ts):
+def test_successful_transfer(account, current_ts):
     rt = p.initiate_running_transfer(
         creditor_id=C_ID,
         transfer_uuid=TEST_UUID,
@@ -922,7 +923,7 @@ def test_successful_transfer(db_session, account, current_ts):
     assert le.data_error_code is None
 
 
-def test_unsuccessful_transfer(db_session, account, current_ts):
+def test_unsuccessful_transfer(account, current_ts):
     rt = p.initiate_running_transfer(
         creditor_id=C_ID,
         transfer_uuid=TEST_UUID,
@@ -969,7 +970,7 @@ def test_unsuccessful_transfer(db_session, account, current_ts):
     assert rt.total_locked_amount == 100
 
 
-def test_unsuccessful_transfer_unexpected_error(db_session, account, current_ts):
+def test_unsuccessful_transfer_unexpected_error(account, current_ts):
     rt = p.initiate_running_transfer(
         creditor_id=C_ID,
         transfer_uuid=TEST_UUID,
