@@ -4,6 +4,7 @@ from swpt_creditors import models as m
 
 def test_sibnalbus_burst_count(app):
     from swpt_creditors import models as m
+
     assert isinstance(m.ConfigureAccountSignal.signalbus_burst_count, int)
     assert isinstance(m.PrepareTransferSignal.signalbus_burst_count, int)
     assert isinstance(m.FinalizeTransferSignal.signalbus_burst_count, int)
@@ -39,8 +40,8 @@ def test_log_entry(db_session, current_ts):
         creditor_id=1,
         entry_id=2,
         added_at=current_ts,
-        object_type='Object',
-        object_uri='/object/1',
+        object_type="Object",
+        object_uri="/object/1",
         object_update_id=1,
         is_deleted=False,
         data={},

@@ -17,11 +17,11 @@ SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 TS0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
 DATE0 = TS0.date()
-PIN_REGEX = r'^[0-9]{4,10}$'
+PIN_REGEX = r"^[0-9]{4,10}$"
 TRANSFER_NOTE_MAX_BYTES = 500
-TRANSFER_NOTE_FORMAT_REGEX = r'^[0-9A-Za-z.-]{0,8}$'
+TRANSFER_NOTE_FORMAT_REGEX = r"^[0-9A-Za-z.-]{0,8}$"
 
-CT_DIRECT = 'direct'
+CT_DIRECT = "direct"
 
 
 def get_now_utc():
@@ -29,9 +29,9 @@ def get_now_utc():
 
 
 def is_valid_creditor_id(creditor_id: int, match_parent=False) -> bool:
-    sharding_realm = current_app.config['SHARDING_REALM']
-    min_creditor_id = current_app.config['MIN_CREDITOR_ID']
-    max_creditor_id = current_app.config['MAX_CREDITOR_ID']
+    sharding_realm = current_app.config["SHARDING_REALM"]
+    min_creditor_id = current_app.config["MIN_CREDITOR_ID"]
+    max_creditor_id = current_app.config["MAX_CREDITOR_ID"]
     return (
         min_creditor_id <= creditor_id <= max_creditor_id
         and sharding_realm.match(creditor_id, match_parent=match_parent)
@@ -52,32 +52,35 @@ class Signal(db.Model):
 
     def _create_message(self):  # pragma: no cover
         data = self.__marshmallow_schema__.dump(self)
-        message_type = data['type']
-        creditor_id = data['creditor_id']
-        debtor_id = data['debtor_id']
+        message_type = data["type"]
+        creditor_id = data["creditor_id"]
+        debtor_id = data["debtor_id"]
 
         if not is_valid_creditor_id(creditor_id):
-            if (current_app.config['DELETE_PARENT_SHARD_RECORDS']
-                    and is_valid_creditor_id(creditor_id, match_parent=True)):
+            if current_app.config[
+                "DELETE_PARENT_SHARD_RECORDS"
+            ] and is_valid_creditor_id(creditor_id, match_parent=True):
                 # This message most probably is a left-over from the
                 # previous splitting of the parent shard into children
                 # shards. Therefore we should just ignore it.
                 return None
-            raise RuntimeError('The agent is not responsible for this creditor.')
+            raise RuntimeError(
+                "The agent is not responsible for this creditor."
+            )
 
         headers = {
-            'message-type': message_type,
-            'debtor-id': debtor_id,
-            'creditor-id': creditor_id,
+            "message-type": message_type,
+            "debtor-id": debtor_id,
+            "creditor-id": creditor_id,
         }
-        if 'coordinator_id' in data:
-            headers['coordinator-id'] = data['coordinator_id']
-            headers['coordinator-type'] = data['coordinator_type']
+        if "coordinator_id" in data:
+            headers["coordinator-id"] = data["coordinator_id"]
+            headers["coordinator-type"] = data["coordinator_type"]
 
         properties = rabbitmq.MessageProperties(
             delivery_mode=2,
-            app_id='swpt_creditors',
-            content_type='application/json',
+            app_id="swpt_creditors",
+            content_type="application/json",
             type=message_type,
             headers=headers,
         )
@@ -86,15 +89,17 @@ class Signal(db.Model):
             ensure_ascii=False,
             check_circular=False,
             allow_nan=False,
-            separators=(',', ':'),
-        ).encode('utf8')
+            separators=(",", ":"),
+        ).encode("utf8")
 
         return rabbitmq.Message(
             exchange=self.exchange_name,
             routing_key=self.routing_key,
             body=body,
             properties=properties,
-            mandatory=message_type == 'FinalizeTransfer',
+            mandatory=message_type == "FinalizeTransfer",
         )
 
-    inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    inserted_at = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
+    )

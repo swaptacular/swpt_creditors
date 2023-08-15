@@ -1,4 +1,4 @@
-__version__ = '0.1.0'
+__version__ = "0.1.0"
 
 import logging
 import json
@@ -16,23 +16,28 @@ def _engine_options(s: str) -> dict:
     try:
         options = json.loads(s)
         options["json_serializer"] = lambda obj: dumps(
-            obj, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+            obj, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
         return options
     except ValueError:  # pragma: no cover
-        raise ValueError(f'Invalid JSON configuration value: {s}')
+        raise ValueError(f"Invalid JSON configuration value: {s}")
 
 
 def _parse_creditor_id(s: str) -> int:
     n = literal_eval(s.strip())
-    if not isinstance(n, int) or n < (-1 << 63) or n >= (1 << 64):  # pragma: no cover
-        raise ValueError(f'Invalid creditor ID: {s}')
+    if (
+        not isinstance(n, int) or n < (-1 << 63) or n >= (1 << 64)
+    ):  # pragma: no cover
+        raise ValueError(f"Invalid creditor ID: {s}")
     if n < 0:  # pragma: no cover
         return n
     return u64_to_i64(n)
 
 
 def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
-    logging.error("Uncaught exception occured", exc_info=(exc_type, exc_value, traceback))
+    logging.error(
+        "Uncaught exception occured", exc_info=(exc_type, exc_value, traceback)
+    )
 
 
 def _remove_handlers(logger):
@@ -42,15 +47,20 @@ def _remove_handlers(logger):
 
 def _add_console_hander(logger, format: str):
     handler = logging.StreamHandler(sys.stdout)
-    fmt = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+    fmt = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
 
-    if format == 'text':
-        handler.setFormatter(logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S%z"))
-    elif format == 'json':  # pragma: nocover
+    if format == "text":
+        handler.setFormatter(
+            logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S%z")
+        )
+    elif format == "json":  # pragma: nocover
         from pythonjsonlogger import jsonlogger
-        handler.setFormatter(jsonlogger.JsonFormatter(fmt, datefmt="%Y-%m-%dT%H:%M:%S%z"))
+
+        handler.setFormatter(
+            jsonlogger.JsonFormatter(fmt, datefmt="%Y-%m-%dT%H:%M:%S%z")
+        )
     else:  # pragma: nocover
-        raise RuntimeError(f'invalid log format: {format}')
+        raise RuntimeError(f"invalid log format: {format}")
 
     handler.addFilter(_filter_pika_connection_reset_errors)
     logger.addHandler(handler)
@@ -65,7 +75,9 @@ def _configure_root_logger(format: str) -> logging.Logger:
     return root_logger
 
 
-def _filter_pika_connection_reset_errors(record: logging.LogRecord) -> bool:  # pragma: nocover
+def _filter_pika_connection_reset_errors(
+    record: logging.LogRecord,
+) -> bool:  # pragma: nocover
     # NOTE: Currently, when one of Pika's connections to the RabbitMQ
     # server has not been used for some time, it will be closed by the
     # server. We successfully recover form these situations, but pika
@@ -75,22 +87,25 @@ def _filter_pika_connection_reset_errors(record: logging.LogRecord) -> bool:  # 
     message = record.getMessage()
     is_pika_connection_reset_error = record.levelno == logging.ERROR and (
         (
-            record.name == 'pika.adapters.utils.io_services_utils'
+            record.name == "pika.adapters.utils.io_services_utils"
             and message.startswith(
                 "_AsyncBaseTransport._produce() failed, aborting connection: "
                 "error=ConnectionResetError(104, 'Connection reset by peer'); "
             )
-        ) or (
-            record.name == 'pika.adapters.base_connection'
+        )
+        or (
+            record.name == "pika.adapters.base_connection"
             and message.startswith(
-                "connection_lost: StreamLostError: "
-                "(\"Stream connection lost: ConnectionResetError(104, 'Connection reset by peer')\",)"
+                'connection_lost: StreamLostError: ("Stream connection lost:'
+                " ConnectionResetError(104, 'Connection reset by peer')\",)"
             )
-        ) or (
-            record.name == 'pika.adapters.blocking_connection'
+        )
+        or (
+            record.name == "pika.adapters.blocking_connection"
             and message.startswith(
-                "Unexpected connection close detected: StreamLostError: "
-                "(\"Stream connection lost: ConnectionResetError(104, 'Connection reset by peer')\",)"
+                "Unexpected connection close detected: StreamLostError:"
+                ' ("Stream connection lost: ConnectionResetError(104,'
+                " 'Connection reset by peer')\",)"
             )
         )
     )
@@ -98,7 +113,9 @@ def _filter_pika_connection_reset_errors(record: logging.LogRecord) -> bool:  # 
     return not is_pika_connection_reset_error
 
 
-def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:
+def configure_logging(
+    level: str, format: str, associated_loggers: List[str]
+) -> None:
     root_logger = _configure_root_logger(format)
 
     # Set the log level for this app's logger.
@@ -121,7 +138,7 @@ def configure_logging(level: str, format: str, associated_loggers: List[str]) ->
     # docker container because everything goes to the stdout anyway),
     # and make sure that the gunicorn logger's log level is not lower
     # than the specified level.
-    gunicorn_logger = logging.getLogger('gunicorn.error')
+    gunicorn_logger = logging.getLogger("gunicorn.error")
     gunicorn_logger.propagate = True
     _remove_handlers(gunicorn_logger)
     if app_logger_level > gunicorn_logger.getEffectiveLevel():
@@ -141,8 +158,8 @@ class MetaEnvReader(type):
 
         super().__init__(name, bases, dct)
         NoneType = type(None)
-        annotations = dct.get('__annotations__', {})
-        falsy_values = {'false', 'off', 'no', ''}
+        annotations = dct.get("__annotations__", {})
+        falsy_values = {"false", "off", "no", ""}
         for key, value in os.environ.items():
             if hasattr(cls, key):
                 target_type = annotations.get(key) or type(getattr(cls, key))
@@ -161,18 +178,20 @@ class Configuration(metaclass=MetaEnvReader):
     MIN_CREDITOR_ID: _parse_creditor_id = None
     MAX_CREDITOR_ID: _parse_creditor_id = None
 
-    PIN_PROTECTION_SECRET = ''
+    PIN_PROTECTION_SECRET = ""
 
-    SQLALCHEMY_DATABASE_URI = ''
-    SQLALCHEMY_ENGINE_OPTIONS: _engine_options = _engine_options('{"pool_size": 0}')
+    SQLALCHEMY_DATABASE_URI = ""
+    SQLALCHEMY_ENGINE_OPTIONS: _engine_options = _engine_options(
+        '{"pool_size": 0}'
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
 
-    REDIS_URL = 'redis://localhost:6379/0?health_check_interval=30'
+    REDIS_URL = "redis://localhost:6379/0?health_check_interval=30"
 
-    PROTOCOL_BROKER_URL = 'amqp://guest:guest@localhost:5672'
-    PROTOCOL_BROKER_QUEUE = 'swpt_creditors'
-    PROTOCOL_BROKER_QUEUE_ROUTING_KEY = '#'
+    PROTOCOL_BROKER_URL = "amqp://guest:guest@localhost:5672"
+    PROTOCOL_BROKER_QUEUE = "swpt_creditors"
+    PROTOCOL_BROKER_QUEUE_ROUTING_KEY = "#"
     PROTOCOL_BROKER_PROCESSES = 1
     PROTOCOL_BROKER_THREADS = 1
     PROTOCOL_BROKER_PREFETCH_SIZE = 0
@@ -186,14 +205,18 @@ class Configuration(metaclass=MetaEnvReader):
 
     DELETE_PARENT_SHARD_RECORDS = False
 
-    API_TITLE = 'Creditors API'
-    API_VERSION = 'v1'
-    OPENAPI_VERSION = '3.0.2'
-    OPENAPI_URL_PREFIX = '/creditors/.docs'
-    OPENAPI_REDOC_PATH = ''
-    OPENAPI_REDOC_URL = 'https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js'
-    OPENAPI_SWAGGER_UI_PATH = 'swagger-ui'
-    OPENAPI_SWAGGER_UI_URL = None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
+    API_TITLE = "Creditors API"
+    API_VERSION = "v1"
+    OPENAPI_VERSION = "3.0.2"
+    OPENAPI_URL_PREFIX = "/creditors/.docs"
+    OPENAPI_REDOC_PATH = ""
+    OPENAPI_REDOC_URL = (
+        "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"
+    )
+    OPENAPI_SWAGGER_UI_PATH = "swagger-ui"
+    OPENAPI_SWAGGER_UI_URL = (
+        None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
+    )
 
     APP_ENABLE_CORS = False
     APP_PROCESS_LOG_ADDITIONS_WAIT = 5.0
@@ -238,12 +261,14 @@ class Configuration(metaclass=MetaEnvReader):
     APP_MAX_CREDITOR_RECONFIGS = 5000
     APP_MAX_CREDITOR_INITIATIONS = 20000
     APP_CREDITOR_DOS_STATS_CLEAR_HOURS = 168.0
-    APP_SUPERUSER_SUBJECT_REGEX = '^creditors-superuser$'
-    APP_SUPERVISOR_SUBJECT_REGEX = '^creditors-supervisor$'
-    APP_CREDITOR_SUBJECT_REGEX = '^creditors:([0-9]+)$'
+    APP_SUPERUSER_SUBJECT_REGEX = "^creditors-superuser$"
+    APP_SUPERVISOR_SUBJECT_REGEX = "^creditors-supervisor$"
+    APP_CREDITOR_SUBJECT_REGEX = "^creditors:([0-9]+)$"
 
 
-assert Configuration.APP_LOG_RETENTION_DAYS >= 30, 'APP_LOG_RETENTION_DAYS must be at least 30.'
+assert (
+    Configuration.APP_LOG_RETENTION_DAYS >= 30
+), "APP_LOG_RETENTION_DAYS must be at least 30."
 
 
 def create_app(config_dict={}):
@@ -251,7 +276,14 @@ def create_app(config_dict={}):
     from flask import Flask
     from swpt_pythonlib.utils import Int64Converter
     from .extensions import db, migrate, api, publisher, redis_store
-    from .routes import admin_api, creditors_api, accounts_api, transfers_api, path_builder, specs
+    from .routes import (
+        admin_api,
+        creditors_api,
+        accounts_api,
+        transfers_api,
+        path_builder,
+        specs,
+    )
     from .schemas import type_registry
     from .cli import swpt_creditors
     from . import procedures
@@ -259,13 +291,20 @@ def create_app(config_dict={}):
 
     app = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_port=1)
-    app.url_map.converters['i64'] = Int64Converter
+    app.url_map.converters["i64"] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
-    app.config['API_SPEC_OPTIONS'] = specs.API_SPEC_OPTIONS
-    app.config['SHARDING_REALM'] = ShardingRealm(Configuration.PROTOCOL_BROKER_QUEUE_ROUTING_KEY)
-    if app.config['APP_ENABLE_CORS']:
-        CORS(app, max_age=24 * 60 * 60, vary_header=False, expose_headers=['Location'])
+    app.config["API_SPEC_OPTIONS"] = specs.API_SPEC_OPTIONS
+    app.config["SHARDING_REALM"] = ShardingRealm(
+        Configuration.PROTOCOL_BROKER_QUEUE_ROUTING_KEY
+    )
+    if app.config["APP_ENABLE_CORS"]:
+        CORS(
+            app,
+            max_age=24 * 60 * 60,
+            vary_header=False,
+            expose_headers=["Location"],
+        )
     db.init_app(app)
     migrate.init_app(app, db)
     redis_store.init_app(app)
@@ -281,8 +320,8 @@ def create_app(config_dict={}):
 
 
 configure_logging(
-    level=os.environ.get('APP_LOG_LEVEL', 'warning'),
-    format=os.environ.get('APP_LOG_FORMAT', 'text'),
-    associated_loggers=os.environ.get('APP_ASSOCIATED_LOGGERS', '').split(),
+    level=os.environ.get("APP_LOG_LEVEL", "warning"),
+    format=os.environ.get("APP_LOG_FORMAT", "text"),
+    associated_loggers=os.environ.get("APP_ASSOCIATED_LOGGERS", "").split(),
 )
 sys.excepthook = _excepthook

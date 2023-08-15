@@ -16,7 +16,9 @@ class Creditor(db.Model):
     STATUS_IS_ACTIVATED_FLAG = 1 << 0
     STATUS_IS_DEACTIVATED_FLAG = 1 << 1
 
-    _ac_seq = db.Sequence('creditor_reservation_id_seq', metadata=db.Model.metadata)
+    _ac_seq = db.Sequence(
+        "creditor_reservation_id_seq", metadata=db.Model.metadata
+    )
 
     creditor_id = db.Column(db.BigInteger, primary_key=True)
 
@@ -29,44 +31,71 @@ class Creditor(db.Model):
         db.SmallInteger,
         nullable=False,
         default=DEFAULT_CREDITOR_STATUS,
-        comment="Creditor's status bits: "
-                f"{STATUS_IS_ACTIVATED_FLAG} - is activated, "
-                f"{STATUS_IS_DEACTIVATED_FLAG} - is deactivated.",
+        comment=(
+            "Creditor's status bits: "
+            f"{STATUS_IS_ACTIVATED_FLAG} - is activated, "
+            f"{STATUS_IS_DEACTIVATED_FLAG} - is deactivated."
+        ),
     )
 
-    created_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    reservation_id = db.Column(db.BigInteger, server_default=_ac_seq.next_value())
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
+    )
+    reservation_id = db.Column(
+        db.BigInteger, server_default=_ac_seq.next_value()
+    )
     last_log_entry_id = db.Column(db.BigInteger, nullable=False, default=0)
-    largest_historic_ledger_entry_id = db.Column(db.BigInteger, nullable=False, server_default='0')
-    creditor_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
-    creditor_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    accounts_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
-    accounts_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    transfers_list_latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
-    transfers_list_latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    largest_historic_ledger_entry_id = db.Column(
+        db.BigInteger, nullable=False, server_default="0"
+    )
+    creditor_latest_update_id = db.Column(
+        db.BigInteger, nullable=False, default=1
+    )
+    creditor_latest_update_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
+    )
+    accounts_list_latest_update_id = db.Column(
+        db.BigInteger, nullable=False, default=1
+    )
+    accounts_list_latest_update_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
+    )
+    transfers_list_latest_update_id = db.Column(
+        db.BigInteger, nullable=False, default=1
+    )
+    transfers_list_latest_update_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
+    )
     deactivation_date = db.Column(
         db.DATE,
-        comment='The date on which the creditor was deactivated. When a creditor gets '
-                'deactivated, all its belonging objects (account, transfers, etc.) are '
-                'removed. To be deactivated, the creditor must be activated first. Once '
-                'deactivated, a creditor stays deactivated until it is deleted. A '
-                '`NULL` value for this column means either that the creditor has not '
-                'been deactivated yet, or that the deactivation date is unknown.',
+        comment=(
+            "The date on which the creditor was deactivated. When a creditor"
+            " gets deactivated, all its belonging objects (account, transfers,"
+            " etc.) are removed. To be deactivated, the creditor must be"
+            " activated first. Once deactivated, a creditor stays deactivated"
+            " until it is deleted. A `NULL` value for this column means either"
+            " that the creditor has not been deactivated yet, or that the"
+            " deactivation date is unknown."
+        ),
     )
-    __mapper_args__ = {'eager_defaults': True}
+    __mapper_args__ = {"eager_defaults": True}
     __table_args__ = (
         db.CheckConstraint(creditor_id != ROOT_CREDITOR_ID),
         db.CheckConstraint(last_log_entry_id >= 0),
         db.CheckConstraint(creditor_latest_update_id > 0),
         db.CheckConstraint(accounts_list_latest_update_id > 0),
         db.CheckConstraint(transfers_list_latest_update_id > 0),
-        db.CheckConstraint(or_(
-            status_flags.op('&')(STATUS_IS_DEACTIVATED_FLAG) == 0,
-            status_flags.op('&')(STATUS_IS_ACTIVATED_FLAG) != 0,
-        )),
+        db.CheckConstraint(
+            or_(
+                status_flags.op("&")(STATUS_IS_DEACTIVATED_FLAG) == 0,
+                status_flags.op("&")(STATUS_IS_ACTIVATED_FLAG) != 0,
+            )
+        ),
     )
 
-    pin_info = db.relationship('PinInfo', uselist=False, cascade='all', passive_deletes=True)
+    pin_info = db.relationship(
+        "PinInfo", uselist=False, cascade="all", passive_deletes=True
+    )
 
     @property
     def is_activated(self):
@@ -94,59 +123,78 @@ class PinInfo(db.Model):
     STATUS_ON = 1
     STATUS_BLOCKED = 2
 
-    STATUS_NAME_OFF = 'off'
-    STATUS_NAME_ON = 'on'
-    STATUS_NAME_BLOCKED = 'blocked'
+    STATUS_NAME_OFF = "off"
+    STATUS_NAME_ON = "on"
+    STATUS_NAME_BLOCKED = "blocked"
 
     STATUS_NAMES = [STATUS_NAME_OFF, STATUS_NAME_ON, STATUS_NAME_BLOCKED]
 
-    creditor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    creditor_id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=False
+    )
     status = db.Column(
         db.SmallInteger,
         nullable=False,
         default=STATUS_OFF,
-        comment="PIN's status: "
-                f"{STATUS_OFF} - off, "
-                f"{STATUS_ON} - on, "
-                f"{STATUS_BLOCKED} - blocked.",
+        comment=(
+            "PIN's status: "
+            f"{STATUS_OFF} - off, "
+            f"{STATUS_ON} - on, "
+            f"{STATUS_BLOCKED} - blocked."
+        ),
     )
     cfa = db.Column(
         db.SmallInteger,
         nullable=False,
         default=0,
-        comment='The number of consecutive failed attempts. It gets reset to zero when either '
-                'of those events occur: 1) a correct PIN is entered; 2) the PIN is changed.',
+        comment=(
+            "The number of consecutive failed attempts. It gets reset to zero"
+            " when either of those events occur: 1) a correct PIN is entered;"
+            " 2) the PIN is changed."
+        ),
     )
     afa = db.Column(
         db.SmallInteger,
         nullable=False,
         default=0,
-        comment='The number of accumulated failed attempts. It gets reset to zero when either '
-                'of those events occur: 1) some time has passed since the previous reset; 2) the '
-                'PIN is blocked.',
+        comment=(
+            "The number of accumulated failed attempts. It gets reset to zero"
+            " when either of those events occur: 1) some time has passed since"
+            " the previous reset; 2) the PIN is blocked."
+        ),
     )
-    afa_last_reset_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    afa_last_reset_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
+    )
     pin_length = db.Column(db.SmallInteger, nullable=False, default=0)
     pin_hmac = db.Column(db.LargeBinary)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
-    latest_update_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    latest_update_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
+    )
     __table_args__ = (
-        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
+        db.ForeignKeyConstraint(
+            ["creditor_id"], ["creditor.creditor_id"], ondelete="CASCADE"
+        ),
         db.CheckConstraint(and_(status >= 0, status < 3)),
         db.CheckConstraint(or_(status != STATUS_ON, pin_hmac != null())),
         db.CheckConstraint(cfa >= 0),
         db.CheckConstraint(afa >= 0),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(pin_length >= 0),
-        db.CheckConstraint(or_(pin_hmac == null(), func.octet_length(pin_hmac) == 32)),
+        db.CheckConstraint(
+            or_(pin_hmac == null(), func.octet_length(pin_hmac) == 32)
+        ),
         {
-            'comment': "Represents creditor's Personal Identification Number",
-        }
+            "comment": "Represents creditor's Personal Identification Number",
+        },
     )
 
     @staticmethod
     def calc_hmac(secret: str, value: str) -> bytes:
-        return hmac.digest(secret.encode('utf8'), value.encode('utf8'), 'sha256')
+        return hmac.digest(
+            secret.encode("utf8"), value.encode("utf8"), "sha256"
+        )
 
     @property
     def is_required(self) -> bool:
@@ -210,7 +258,9 @@ class PinInfo(db.Model):
     def _register_successful_attempt(self) -> None:
         self.cfa = 0
 
-    def try_value(self, value: Optional[str], secret: str, afa_reset_interval: timedelta) -> bool:
+    def try_value(
+        self, value: Optional[str], secret: str, afa_reset_interval: timedelta
+    ) -> bool:
         if self.status == self.STATUS_BLOCKED:
             return False
 
@@ -250,7 +300,9 @@ class BaseLogEntry(db.Model):
     object_type = db.Column(db.String)
     object_uri = db.Column(db.String)
     object_update_id = db.Column(db.BigInteger)
-    is_deleted = db.Column(db.BOOLEAN, comment='NULL has the same meaning as FALSE.')
+    is_deleted = db.Column(
+        db.BOOLEAN, comment="NULL has the same meaning as FALSE."
+    )
     data = db.Column(pg.JSON)
 
     # NOTE: The following columns will be non-NULL for specific
@@ -259,11 +311,11 @@ class BaseLogEntry(db.Model):
     # and `object_type` columns can contain NULL for the most
     # frequently occuring log entries, saving space in the DB index.
     AUX_FIELDS = {
-        'object_type_hint',
-        'debtor_id',
-        'creation_date',
-        'transfer_number',
-        'transfer_uuid',
+        "object_type_hint",
+        "debtor_id",
+        "creation_date",
+        "transfer_number",
+        "transfer_uuid",
     }
     object_type_hint = db.Column(db.SmallInteger)
     debtor_id = db.Column(db.BigInteger)
@@ -280,10 +332,10 @@ class BaseLogEntry(db.Model):
         # The key is the name of the column in the table, the value is
         # the name of the corresponding JSON property in the `data`
         # dictionary.
-        'data_principal': 'principal',
-        'data_next_entry_id': 'nextEntryId',
-        'data_finalized_at': 'finalizedAt',
-        'data_error_code': 'errorCode',
+        "data_principal": "principal",
+        "data_next_entry_id": "nextEntryId",
+        "data_finalized_at": "finalizedAt",
+        "data_error_code": "errorCode",
     }
     data_principal = db.Column(db.BigInteger)
     data_next_entry_id = db.Column(db.BigInteger)
@@ -311,8 +363,8 @@ class BaseLogEntry(db.Model):
             return types.account_ledger
 
         logger = logging.getLogger(__name__)
-        logger.error('Log entry without an object type.')
-        return 'object'
+        logger.error("Log entry without an object type.")
+        return "object"
 
     def get_object_uri(self, paths) -> str:
         object_uri = self.object_uri
@@ -334,7 +386,11 @@ class BaseLogEntry(db.Model):
             debtor_id = self.debtor_id
             creation_date = self.creation_date
             transfer_number = self.transfer_number
-            if debtor_id is not None and creation_date is not None and transfer_number is not None:
+            if (
+                debtor_id is not None
+                and creation_date is not None
+                and transfer_number is not None
+            ):
                 return paths.committed_transfer(
                     creditorId=self.creditor_id,
                     debtorId=debtor_id,
@@ -350,18 +406,26 @@ class BaseLogEntry(db.Model):
                 )
 
         logger = logging.getLogger(__name__)
-        logger.error('Log entry without an object URI.')
-        return ''
+        logger.error("Log entry without an object URI.")
+        return ""
 
     def get_data_dict(self, paths) -> Optional[Dict]:
         if isinstance(self.data, dict):
             return self.data
 
         items = self.DATA_FIELDS.items()
-        data = {prop: self._jsonify_attribute(attr) for attr, prop in items if getattr(self, attr) is not None}
+        data = {
+            prop: self._jsonify_attribute(attr)
+            for attr, prop in items
+            if getattr(self, attr) is not None
+        }
         if self.data_next_entry_id is not None:
-            entries_path = paths.account_ledger_entries(creditorId=self.creditor_id, debtorId=self.debtor_id)
-            data['firstPage'] = f'{entries_path}?prev={self.data_next_entry_id}'
+            entries_path = paths.account_ledger_entries(
+                creditorId=self.creditor_id, debtorId=self.debtor_id
+            )
+            data[
+                "firstPage"
+            ] = f"{entries_path}?prev={self.data_next_entry_id}"
         return data or None
 
     def _jsonify_attribute(self, attr_name):
@@ -373,20 +437,27 @@ class BaseLogEntry(db.Model):
 
 class PendingLogEntry(BaseLogEntry):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    pending_entry_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    pending_entry_id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True
+    )
 
     __table_args__ = (
-        db.ForeignKeyConstraint(['creditor_id'], ['creditor.creditor_id'], ondelete='CASCADE'),
-        db.CheckConstraint('object_update_id > 0'),
-        db.CheckConstraint('transfer_number > 0'),
-        db.CheckConstraint('data_next_entry_id > 0'),
+        db.ForeignKeyConstraint(
+            ["creditor_id"], ["creditor.creditor_id"], ondelete="CASCADE"
+        ),
+        db.CheckConstraint("object_update_id > 0"),
+        db.CheckConstraint("transfer_number > 0"),
+        db.CheckConstraint("data_next_entry_id > 0"),
         {
-            'comment': 'Represents a log entry that should be added to the log. Adding entries '
-                       'to the creditor\'s log requires a lock on the `creditor` table row. To '
-                       'avoid obtaining the lock too often, log entries are queued to this table, '
-                       'allowing many log entries for one creditor to be added to the log in '
-                       'a single database transaction, thus reducing the lock contention.',
-        }
+            "comment": (
+                "Represents a log entry that should be added to the log."
+                " Adding entries to the creditor's log requires a lock on the"
+                " `creditor` table row. To avoid obtaining the lock too often,"
+                " log entries are queued to this table, allowing many log"
+                " entries for one creditor to be added to the log in a single"
+                " database transaction, thus reducing the lock contention."
+            ),
+        },
     )
 
 
@@ -401,8 +472,8 @@ class LogEntry(BaseLogEntry):
     # create a "normal" index, but create a "covering" index instead.
 
     __table_args__ = (
-        db.CheckConstraint('object_update_id > 0'),
-        db.CheckConstraint('transfer_number > 0'),
-        db.CheckConstraint('data_next_entry_id > 0'),
+        db.CheckConstraint("object_update_id > 0"),
+        db.CheckConstraint("transfer_number > 0"),
+        db.CheckConstraint("data_next_entry_id > 0"),
         db.CheckConstraint(entry_id > 0),
     )

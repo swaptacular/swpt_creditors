@@ -61,13 +61,17 @@ ACCOUNT_DATA_INFO_RELATED_COLUMNS = [
     AccountData.info_latest_update_ts,
 ]
 
-LOAD_ONLY_CONFIG_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)
-LOAD_ONLY_LEDGER_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)
+LOAD_ONLY_CONFIG_RELATED_COLUMNS = load_only(
+    *ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
+)
+LOAD_ONLY_LEDGER_RELATED_COLUMNS = load_only(
+    *ACCOUNT_DATA_LEDGER_RELATED_COLUMNS
+)
 LOAD_ONLY_INFO_RELATED_COLUMNS = load_only(*ACCOUNT_DATA_INFO_RELATED_COLUMNS)
 
 
 def init(path_builder, type_registry):
-    """"Must be called before using any of the functions in the package."""
+    """ "Must be called before using any of the functions in the package."""
 
     global paths, types
     paths = path_builder
@@ -78,7 +82,9 @@ def get_paths_and_types():
     return paths, types
 
 
-def allow_update(obj, update_id_field_name: str, update_id: int, update: Dict[str, Any]) -> Callable[[], None]:
+def allow_update(
+    obj, update_id_field_name: str, update_id: int, update: Dict[str, Any]
+) -> Callable[[], None]:
     """Return a function that performs the update on `obj`.
 
     Raises `UpdateConflict` if the update is not allowed. Raises
@@ -87,7 +93,12 @@ def allow_update(obj, update_id_field_name: str, update_id: int, update: Dict[st
     """
 
     def has_changes():
-        return any([getattr(obj, field_name) != value for field_name, value in update.items()])
+        return any(
+            [
+                getattr(obj, field_name) != value
+                for field_name, value in update.items()
+            ]
+        )
 
     def set_values():
         setattr(obj, update_id_field_name, update_id)
