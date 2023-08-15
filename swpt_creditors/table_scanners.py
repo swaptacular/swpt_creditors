@@ -336,7 +336,7 @@ class AccountScanner(TableScanner):
                 ledger_update_pending_log_entries.append(log_entry)
 
             db.session.bulk_save_objects(ledger_update_pending_log_entries, preserve_order=False)
-            db.session.execute(uid_seq)
+            db.session.scalar(uid_seq)
             db.session.commit()
 
     def _update_ledger(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
@@ -439,7 +439,7 @@ class AccountScanner(TableScanner):
                 info_update_pending_log_entries.append(log_entry)
 
             db.session.bulk_save_objects(info_update_pending_log_entries, preserve_order=False)
-            db.session.execute(uid_seq)
+            db.session.scalar(uid_seq)
             db.session.commit()
 
     def _set_config_error(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:

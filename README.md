@@ -122,7 +122,7 @@ WEBSERVER_PORT=8003
 OAUTH2_INTROSPECT_URL=http://localhost:4445/oauth2/introspect
 
 # Connection string for a PostgreSQL database server to connect to.
-POSTGRES_URL=postgresql://swpt_creditors:swpt_creditors@localhost:5435/test
+POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@localhost:5435/test
 
 # Connection string for a Redis database server to connect to.
 REDIS_URL=redis://localhost:6380/0?health_check_interval=30

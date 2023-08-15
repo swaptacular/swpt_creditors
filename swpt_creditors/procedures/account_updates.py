@@ -136,7 +136,7 @@ def process_account_update_signal(
     data.debtor_info_iri = debtor_info_iri
     data.debtor_info_content_type = debtor_info_content_type
     data.debtor_info_sha256 = debtor_info_sha256
-    data.last_transfer_number = last_transfer_number,
+    data.last_transfer_number = last_transfer_number
     data.last_transfer_committed_at = last_transfer_committed_at
     data.is_config_effectual = is_config_effectual
     data.config_error = config_error
@@ -154,7 +154,7 @@ def process_account_update_signal(
         )
         if log_entry:
             db.session.add(log_entry)
-            db.session.execute(uid_seq)
+            db.session.scalar(uid_seq)
 
         data.ledger_pending_transfer_ts = None
         ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
@@ -251,7 +251,7 @@ def process_pending_ledger_update(creditor_id: int, debtor_id: int, *, max_count
 
     if log_entry:
         db.session.add(log_entry)
-        db.session.execute(uid_seq)
+        db.session.scalar(uid_seq)
 
     return is_done
 

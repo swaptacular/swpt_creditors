@@ -2,6 +2,7 @@ from urllib.parse import urljoin, urlparse
 from datetime import datetime, timezone, timedelta, date
 import pytest
 from swpt_pythonlib.utils import u64_to_i64
+from swpt_creditors.extensions import db
 from swpt_creditors import models as m
 from swpt_creditors import procedures as p
 
@@ -24,13 +25,13 @@ def account(creditor):
 
 
 @pytest.fixture(scope='function')
-def ledger_entries(db_session, account, current_ts):
+def ledger_entries(account, current_ts):
     from swpt_creditors.procedures.account_updates import _update_ledger
 
     data = m.AccountData.query.one()
-    db_session.add(_update_ledger(data, 1, 100, 100, current_ts))
-    db_session.add(_update_ledger(data, 2, 200, 350, current_ts))
-    db_session.commit()
+    db.session.add(_update_ledger(data, 1, 100, 100, current_ts))
+    db.session.add(_update_ledger(data, 2, 200, 350, current_ts))
+    db.session.commit()
     p.process_pending_log_entries(4294967296)
 
 
