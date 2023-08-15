@@ -16,16 +16,7 @@ def _create_new_creditor(creditor_id: int, activate: bool = False):
         p.activate_creditor(creditor_id, str(creditor.reservation_id))
 
 
-def test_process_ledger_entries(app, current_ts):
-    m.Creditor.query.delete()
-    m.Account.query.delete()
-    m.LogEntry.query.delete()
-    m.LedgerEntry.query.delete()
-    m.PendingLogEntry.query.delete()
-    m.PendingLedgerUpdate.query.delete()
-    m.CommittedTransfer.query.delete()
-    db.session.commit()
-
+def test_process_ledger_entries(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
 
@@ -85,26 +76,8 @@ def test_process_ledger_entries(app, current_ts):
     assert not result.output
     assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000)) == 2
 
-    m.Creditor.query.delete()
-    m.Account.query.delete()
-    m.LogEntry.query.delete()
-    m.LedgerEntry.query.delete()
-    m.PendingLogEntry.query.delete()
-    m.PendingLedgerUpdate.query.delete()
-    m.CommittedTransfer.query.delete()
-    db.session.commit()
 
-
-def test_process_log_additions(app, current_ts):
-    m.Creditor.query.delete()
-    m.Account.query.delete()
-    m.LogEntry.query.delete()
-    m.LedgerEntry.query.delete()
-    m.PendingLogEntry.query.delete()
-    m.PendingLedgerUpdate.query.delete()
-    m.CommittedTransfer.query.delete()
-    db.session.commit()
-
+def test_process_log_additions(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
@@ -124,15 +97,6 @@ def test_process_log_additions(app, current_ts):
     entries2, _ = p.get_log_entries(C_ID, count=10000)
     assert len(entries2) > len(entries1)
 
-    m.Creditor.query.delete()
-    m.Account.query.delete()
-    m.LogEntry.query.delete()
-    m.LedgerEntry.query.delete()
-    m.PendingLogEntry.query.delete()
-    m.PendingLedgerUpdate.query.delete()
-    m.CommittedTransfer.query.delete()
-    db.session.commit()
-
 
 def test_consume_messages(app):
     runner = app.test_cli_runner()
@@ -140,10 +104,7 @@ def test_consume_messages(app):
     assert result.exit_code == 1
 
 
-def test_scan_creditors(app, current_ts):
-    m.Creditor.query.delete()
-    db.session.commit()
-
+def test_scan_creditors(app, db_session, current_ts):
     _create_new_creditor(C_ID + 1, activate=False)
     _create_new_creditor(C_ID + 2, activate=False)
     _create_new_creditor(C_ID + 3, activate=True)
@@ -178,14 +139,8 @@ def test_scan_creditors(app, current_ts):
     assert len(creditors) == 3
     assert sorted([c.creditor_id for c in creditors]) == [C_ID + 2, C_ID + 5, C_ID + 6]
 
-    m.Creditor.query.delete()
-    db.session.commit()
 
-
-def test_delete_parent_creditors(app, current_ts):
-    m.Creditor.query.delete()
-    db.session.commit()
-
+def test_delete_parent_creditors(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     a2 = p.create_new_account(C_ID, 2)
     a3 = p.create_new_account(C_ID, 3)
@@ -220,20 +175,11 @@ def test_delete_parent_creditors(app, current_ts):
     assert len(m.Account.query.all()) == 0
     assert len(m.AccountExchange.query.all()) == 0
 
-    m.Creditor.query.delete()
-    db.session.commit()
     app.config['DELETE_PARENT_SHARD_RECORDS'] = False
     app.config['SHARDING_REALM'] = orig_sharding_realm
 
 
-def test_scan_accounts(app, current_ts):
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    m.LedgerEntry.query.delete()
-    m.PendingLogEntry.query.delete()
-    m.PendingLedgerUpdate.query.delete()
-    db.session.commit()
-
+def test_scan_accounts(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, 2)
     p.create_new_account(C_ID, 3)
@@ -310,19 +256,8 @@ def test_scan_accounts(app, current_ts):
     assert result.exit_code == 0
     assert len(m.LedgerEntry.query.all())
 
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    m.LedgerEntry.query.delete()
-    m.PendingLogEntry.query.delete()
-    m.PendingLedgerUpdate.query.delete()
-    db.session.commit()
 
-
-def test_scan_log_entries(app, current_ts):
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    db.session.commit()
-
+def test_scan_log_entries(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     creditor = m.Creditor.query.one()
     creditor.creditor_latest_update_id += 1
@@ -356,20 +291,9 @@ def test_scan_log_entries(app, current_ts):
     le = m.LogEntry.query.one()
     assert le.added_at == current_ts
 
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    db.session.commit()
 
-
-def test_scan_ledger_entries(app, current_ts):
+def test_scan_ledger_entries(app, db_session, current_ts):
     from swpt_creditors.procedures.account_updates import _update_ledger
-
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    m.Account.query.delete()
-    m.LedgerEntry.query.delete()
-    db.session.commit()
-
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     data = m.AccountData.query.one()
@@ -388,20 +312,8 @@ def test_scan_ledger_entries(app, current_ts):
     le = m.LedgerEntry.query.one()
     assert le.added_at == current_ts
 
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    m.Account.query.delete()
-    m.LedgerEntry.query.delete()
-    db.session.commit()
 
-
-def test_scan_committed_transfers(app, current_ts):
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    m.Account.query.delete()
-    m.CommittedTransfer.query.delete()
-    db.session.commit()
-
+def test_scan_committed_transfers(app, db_session, current_ts):
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     params = {
@@ -438,19 +350,11 @@ def test_scan_committed_transfers(app, current_ts):
     ct = m.CommittedTransfer.query.one()
     assert ct.transfer_number == 2
 
-    m.Creditor.query.delete()
-    m.LogEntry.query.delete()
-    m.Account.query.delete()
-    m.CommittedTransfer.query.delete()
-    db.session.commit()
 
-
-def test_flush_messages(mocker, app):
+def test_flush_messages(mocker, app, db_session):
     send_signalbus_message = Mock()
     mocker.patch('swpt_creditors.models.FinalizeTransferSignal.send_signalbus_message',
                  new_callable=send_signalbus_message)
-    m.FinalizeTransferSignal.query.delete()
-    db.session.commit()
     fts = m.FinalizeTransferSignal(
         creditor_id=0x0000010000000000,
         debtor_id=D_ID,
