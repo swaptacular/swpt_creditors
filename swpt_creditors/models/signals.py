@@ -18,7 +18,7 @@ class ConfigureAccountSignal(Signal):
     exchange_name = CREDITORS_OUT_EXCHANGE
 
     class __marshmallow__(Schema):
-        type = fields.Constant('ConfigureAccount')
+        type = fields.Constant("ConfigureAccount")
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         ts = fields.DateTime()
@@ -34,7 +34,7 @@ class ConfigureAccountSignal(Signal):
     ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
     seqnum = db.Column(db.Integer, primary_key=True)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    config_data = db.Column(db.String, nullable=False, default='')
+    config_data = db.Column(db.String, nullable=False, default="")
     config_flags = db.Column(db.Integer, nullable=False)
 
     @property
@@ -43,25 +43,31 @@ class ConfigureAccountSignal(Signal):
 
     @classproperty
     def signalbus_burst_count(self):
-        return current_app.config['APP_FLUSH_CONFIGURE_ACCOUNTS_BURST_COUNT']
+        return current_app.config["APP_FLUSH_CONFIGURE_ACCOUNTS_BURST_COUNT"]
 
 
 class PrepareTransferSignal(Signal):
     exchange_name = CREDITORS_OUT_EXCHANGE
 
     class __marshmallow__(Schema):
-        type = fields.Constant('PrepareTransfer')
+        type = fields.Constant("PrepareTransfer")
         creditor_id = fields.Integer()
         debtor_id = fields.Integer()
         coordinator_type = fields.Constant(CT_DIRECT)
-        coordinator_id = fields.Integer(attribute='creditor_id', dump_only=True)
+        coordinator_id = fields.Integer(
+            attribute="creditor_id", dump_only=True
+        )
         coordinator_request_id = fields.Integer()
-        min_locked_amount = fields.Integer(attribute='locked_amount', dump_only=True)
-        max_locked_amount = fields.Integer(attribute='locked_amount', dump_only=True)
+        min_locked_amount = fields.Integer(
+            attribute="locked_amount", dump_only=True
+        )
+        max_locked_amount = fields.Integer(
+            attribute="locked_amount", dump_only=True
+        )
         recipient = fields.String()
         min_interest_rate = fields.Float()
         max_commit_delay = fields.Integer()
-        inserted_at = fields.DateTime(data_key='ts')
+        inserted_at = fields.DateTime(data_key="ts")
 
     __marshmallow_schema__ = __marshmallow__()
 
@@ -79,14 +85,14 @@ class PrepareTransferSignal(Signal):
 
     @classproperty
     def signalbus_burst_count(self):
-        return current_app.config['APP_FLUSH_PREPARE_TRANSFERS_BURST_COUNT']
+        return current_app.config["APP_FLUSH_PREPARE_TRANSFERS_BURST_COUNT"]
 
 
 class FinalizeTransferSignal(Signal):
     exchange_name = CREDITORS_OUT_EXCHANGE
 
     class __marshmallow__(Schema):
-        type = fields.Constant('FinalizeTransfer')
+        type = fields.Constant("FinalizeTransfer")
         creditor_id = fields.Integer()
         debtor_id = fields.Integer()
         transfer_id = fields.Integer()
@@ -96,7 +102,7 @@ class FinalizeTransferSignal(Signal):
         committed_amount = fields.Integer()
         transfer_note_format = fields.String()
         transfer_note = fields.String()
-        inserted_at = fields.DateTime(data_key='ts')
+        inserted_at = fields.DateTime(data_key="ts")
 
     __marshmallow_schema__ = __marshmallow__()
 
@@ -116,4 +122,4 @@ class FinalizeTransferSignal(Signal):
 
     @classproperty
     def signalbus_burst_count(self):
-        return current_app.config['APP_FLUSH_FINALIZE_TRANSFERS_BURST_COUNT']
+        return current_app.config["APP_FLUSH_FINALIZE_TRANSFERS_BURST_COUNT"]

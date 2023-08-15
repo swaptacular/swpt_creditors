@@ -6,42 +6,68 @@ from sqlalchemy.orm import load_only
 from sqlalchemy.dialects import postgresql
 from swpt_pythonlib.scan_table import TableScanner
 from .extensions import db
-from .models import Creditor, AccountData, PendingLogEntry, LogEntry, LedgerEntry, CommittedTransfer, \
-    PendingLedgerUpdate, uid_seq, is_valid_creditor_id
-from .procedures import contain_principal_overflow, get_paths_and_types, \
-    ACCOUNT_DATA_LEDGER_RELATED_COLUMNS, ACCOUNT_DATA_CONFIG_RELATED_COLUMNS
+from .models import (
+    Creditor,
+    AccountData,
+    PendingLogEntry,
+    LogEntry,
+    LedgerEntry,
+    CommittedTransfer,
+    PendingLedgerUpdate,
+    uid_seq,
+    is_valid_creditor_id,
+)
+from .procedures import (
+    contain_principal_overflow,
+    get_paths_and_types,
+    ACCOUNT_DATA_LEDGER_RELATED_COLUMNS,
+    ACCOUNT_DATA_CONFIG_RELATED_COLUMNS,
+)
 
-T = TypeVar('T')
+T = TypeVar("T")
 atomic: Callable[[T], T] = db.atomic
 
 TD_HOUR = timedelta(hours=1)
-ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(PendingLedgerUpdate.__table__).on_conflict_do_nothing()
+ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(
+    PendingLedgerUpdate.__table__
+).on_conflict_do_nothing()
 
 
 class CreditorScanner(TableScanner):
     """Garbage-collects inactive creditors."""
 
     table = Creditor.__table__
-    columns = [Creditor.creditor_id, Creditor.created_at, Creditor.status_flags, Creditor.deactivation_date]
-    pk = tuple_(table.c.creditor_id,)
+    columns = [
+        Creditor.creditor_id,
+        Creditor.created_at,
+        Creditor.status_flags,
+        Creditor.deactivation_date,
+    ]
+    pk = tuple_(
+        table.c.creditor_id,
+    )
 
     def __init__(self):
         super().__init__()
-        self.inactive_interval = timedelta(days=current_app.config['APP_INACTIVE_CREDITOR_RETENTION_DAYS'])
-        self.deactivated_interval = timedelta(days=current_app.config['APP_DEACTIVATED_CREDITOR_RETENTION_DAYS'])
+        self.inactive_interval = timedelta(
+            days=current_app.config["APP_INACTIVE_CREDITOR_RETENTION_DAYS"]
+        )
+        self.deactivated_interval = timedelta(
+            days=current_app.config["APP_DEACTIVATED_CREDITOR_RETENTION_DAYS"]
+        )
 
     @property
     def blocks_per_query(self) -> int:
-        return current_app.config['APP_CREDITORS_SCAN_BLOCKS_PER_QUERY']
+        return current_app.config["APP_CREDITORS_SCAN_BLOCKS_PER_QUERY"]
 
     @property
     def target_beat_duration(self) -> int:
-        return current_app.config['APP_CREDITORS_SCAN_BEAT_MILLISECS']
+        return current_app.config["APP_CREDITORS_SCAN_BEAT_MILLISECS"]
 
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
-        if current_app.config['DELETE_PARENT_SHARD_RECORDS']:
+        if current_app.config["DELETE_PARENT_SHARD_RECORDS"]:
             self._delete_parent_shard_creditors(rows, current_ts)
         self._delete_creditors_not_activated_for_long_time(rows, current_ts)
         self._delete_creditors_deactivated_long_time_ago(rows, current_ts)
@@ -57,14 +83,19 @@ class CreditorScanner(TableScanner):
                 and row[c.created_at] < inactive_cutoff_ts
             )
 
-        ids_to_delete = [row[c.creditor_id] for row in rows if not_activated_for_long_time(row)]
+        ids_to_delete = [
+            row[c.creditor_id]
+            for row in rows
+            if not_activated_for_long_time(row)
+        ]
         if ids_to_delete:
-            to_delete = Creditor.query.\
-                filter(Creditor.creditor_id.in_(ids_to_delete)).\
-                filter(Creditor.status_flags.op('&')(activated_flag) == 0).\
-                filter(Creditor.created_at < inactive_cutoff_ts).\
-                with_for_update(skip_locked=True).\
-                all()
+            to_delete = (
+                Creditor.query.filter(Creditor.creditor_id.in_(ids_to_delete))
+                .filter(Creditor.status_flags.op("&")(activated_flag) == 0)
+                .filter(Creditor.created_at < inactive_cutoff_ts)
+                .with_for_update(skip_locked=True)
+                .all()
+            )
 
             for creditor in to_delete:
                 db.session.delete(creditor)
@@ -74,28 +105,34 @@ class CreditorScanner(TableScanner):
     def _delete_creditors_deactivated_long_time_ago(self, rows, current_ts):
         c = self.table.c
         deactivated_flag = Creditor.STATUS_IS_DEACTIVATED_FLAG
-        deactivated_cutoff_date = (current_ts - self.deactivated_interval).date()
+        deactivated_cutoff_date = (
+            current_ts - self.deactivated_interval
+        ).date()
 
         def deactivated_long_time_ago(row) -> bool:
-            return (
-                row[c.status_flags] & deactivated_flag != 0
-                and (
-                    row[c.deactivation_date] is None
-                    or row[c.deactivation_date] < deactivated_cutoff_date
-                )
+            return row[c.status_flags] & deactivated_flag != 0 and (
+                row[c.deactivation_date] is None
+                or row[c.deactivation_date] < deactivated_cutoff_date
             )
 
-        ids_to_delete = [row[c.creditor_id] for row in rows if deactivated_long_time_ago(row)]
+        ids_to_delete = [
+            row[c.creditor_id]
+            for row in rows
+            if deactivated_long_time_ago(row)
+        ]
         if ids_to_delete:
-            to_delete = Creditor.query.\
-                filter(Creditor.creditor_id.in_(ids_to_delete)).\
-                filter(Creditor.status_flags.op('&')(deactivated_flag) != 0).\
-                filter(or_(
-                    Creditor.deactivation_date == null(),
-                    Creditor.deactivation_date < deactivated_cutoff_date),
-                ).\
-                with_for_update(skip_locked=True).\
-                all()
+            to_delete = (
+                Creditor.query.filter(Creditor.creditor_id.in_(ids_to_delete))
+                .filter(Creditor.status_flags.op("&")(deactivated_flag) != 0)
+                .filter(
+                    or_(
+                        Creditor.deactivation_date == null(),
+                        Creditor.deactivation_date < deactivated_cutoff_date,
+                    ),
+                )
+                .with_for_update(skip_locked=True)
+                .all()
+            )
 
             for creditor in to_delete:
                 db.session.delete(creditor)
@@ -106,17 +143,19 @@ class CreditorScanner(TableScanner):
         c = self.table.c
 
         def belongs_to_parent_shard(row) -> bool:
-            return (
-                not is_valid_creditor_id(row[c.creditor_id])
-                and is_valid_creditor_id(row[c.creditor_id], match_parent=True)
-            )
+            return not is_valid_creditor_id(
+                row[c.creditor_id]
+            ) and is_valid_creditor_id(row[c.creditor_id], match_parent=True)
 
-        ids_to_delete = [row[c.creditor_id] for row in rows if belongs_to_parent_shard(row)]
+        ids_to_delete = [
+            row[c.creditor_id] for row in rows if belongs_to_parent_shard(row)
+        ]
         if ids_to_delete:
-            to_delete = Creditor.query.\
-                filter(Creditor.creditor_id.in_(ids_to_delete)).\
-                with_for_update(skip_locked=True).\
-                all()
+            to_delete = (
+                Creditor.query.filter(Creditor.creditor_id.in_(ids_to_delete))
+                .with_for_update(skip_locked=True)
+                .all()
+            )
 
             for creditor in to_delete:
                 db.session.delete(creditor)
@@ -133,15 +172,17 @@ class LogEntryScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
-        self.retention_interval = timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS'])
+        self.retention_interval = timedelta(
+            days=current_app.config["APP_LOG_RETENTION_DAYS"]
+        )
 
     @property
     def blocks_per_query(self) -> int:
-        return int(current_app.config['APP_LOG_ENTRIES_SCAN_BLOCKS_PER_QUERY'])
+        return int(current_app.config["APP_LOG_ENTRIES_SCAN_BLOCKS_PER_QUERY"])
 
     @property
     def target_beat_duration(self) -> int:
-        return int(current_app.config['APP_LOG_ENTRIES_SCAN_BEAT_MILLISECS'])
+        return int(current_app.config["APP_LOG_ENTRIES_SCAN_BEAT_MILLISECS"])
 
     @atomic
     def process_rows(self, rows):
@@ -149,18 +190,25 @@ class LogEntryScanner(TableScanner):
         c_creditor_id = c.creditor_id
         c_entry_id = c.entry_id
         c_added_at = c.added_at
-        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
+        delete_parent_shard_records = current_app.config[
+            "DELETE_PARENT_SHARD_RECORDS"
+        ]
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
         pks_to_delete = [
             (row[c_creditor_id], row[c_entry_id])
-            for row in rows if row[c_added_at] < cutoff_ts or (
-                    delete_parent_shard_records
-                    and not is_valid_creditor_id(row[c_creditor_id])
-                    and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
-            )]
+            for row in rows
+            if row[c_added_at] < cutoff_ts
+            or (
+                delete_parent_shard_records
+                and not is_valid_creditor_id(row[c_creditor_id])
+                and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
+            )
+        ]
         if pks_to_delete:
-            db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+            db.session.execute(
+                self.table.delete().where(self.pk.in_(pks_to_delete))
+            )
             db.session.commit()
 
 
@@ -168,20 +216,31 @@ class LedgerEntryScanner(TableScanner):
     """Garbage-collects staled ledger entries."""
 
     table = LedgerEntry.__table__
-    columns = [LedgerEntry.creditor_id, LedgerEntry.debtor_id, LedgerEntry.entry_id, LedgerEntry.added_at]
+    columns = [
+        LedgerEntry.creditor_id,
+        LedgerEntry.debtor_id,
+        LedgerEntry.entry_id,
+        LedgerEntry.added_at,
+    ]
     pk = tuple_(table.c.creditor_id, table.c.debtor_id, table.c.entry_id)
 
     def __init__(self):
         super().__init__()
-        self.retention_interval = timedelta(days=current_app.config['APP_LEDGER_RETENTION_DAYS'])
+        self.retention_interval = timedelta(
+            days=current_app.config["APP_LEDGER_RETENTION_DAYS"]
+        )
 
     @property
     def blocks_per_query(self) -> int:
-        return int(current_app.config['APP_LEDGER_ENTRIES_SCAN_BLOCKS_PER_QUERY'])
+        return int(
+            current_app.config["APP_LEDGER_ENTRIES_SCAN_BLOCKS_PER_QUERY"]
+        )
 
     @property
     def target_beat_duration(self) -> int:
-        return int(current_app.config['APP_LEDGER_ENTRIES_SCAN_BEAT_MILLISECS'])
+        return int(
+            current_app.config["APP_LEDGER_ENTRIES_SCAN_BEAT_MILLISECS"]
+        )
 
     @atomic
     def process_rows(self, rows):
@@ -190,18 +249,25 @@ class LedgerEntryScanner(TableScanner):
         c_debtor_id = c.debtor_id
         c_entry_id = c.entry_id
         c_added_at = c.added_at
-        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
+        delete_parent_shard_records = current_app.config[
+            "DELETE_PARENT_SHARD_RECORDS"
+        ]
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
         pks_to_delete = [
             (row[c_creditor_id], row[c_debtor_id], row[c_entry_id])
-            for row in rows if row[c_added_at] < cutoff_ts or (
-                    delete_parent_shard_records
-                    and not is_valid_creditor_id(row[c_creditor_id])
-                    and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
-            )]
+            for row in rows
+            if row[c_added_at] < cutoff_ts
+            or (
+                delete_parent_shard_records
+                and not is_valid_creditor_id(row[c_creditor_id])
+                and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
+            )
+        ]
         if pks_to_delete:
-            db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+            db.session.execute(
+                self.table.delete().where(self.pk.in_(pks_to_delete))
+            )
             db.session.commit()
 
 
@@ -225,18 +291,24 @@ class CommittedTransferScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
-        self.retention_interval = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS']) + max(
-            timedelta(days=current_app.config['APP_LOG_RETENTION_DAYS']),
-            timedelta(days=current_app.config['APP_LEDGER_RETENTION_DAYS']),
+        self.retention_interval = timedelta(
+            days=current_app.config["APP_MAX_TRANSFER_DELAY_DAYS"]
+        ) + max(
+            timedelta(days=current_app.config["APP_LOG_RETENTION_DAYS"]),
+            timedelta(days=current_app.config["APP_LEDGER_RETENTION_DAYS"]),
         )
 
     @property
     def blocks_per_query(self) -> int:
-        return int(current_app.config['APP_COMMITTED_TRANSFERS_SCAN_BLOCKS_PER_QUERY'])
+        return int(
+            current_app.config["APP_COMMITTED_TRANSFERS_SCAN_BLOCKS_PER_QUERY"]
+        )
 
     @property
     def target_beat_duration(self) -> int:
-        return int(current_app.config['APP_COMMITTED_TRANSFERS_SCAN_BEAT_MILLISECS'])
+        return int(
+            current_app.config["APP_COMMITTED_TRANSFERS_SCAN_BEAT_MILLISECS"]
+        )
 
     @atomic
     def process_rows(self, rows):
@@ -246,18 +318,30 @@ class CommittedTransferScanner(TableScanner):
         c_creation_date = c.creation_date
         c_transfer_number = c.transfer_number
         c_committed_at = c.committed_at
-        delete_parent_shard_records = current_app.config['DELETE_PARENT_SHARD_RECORDS']
+        delete_parent_shard_records = current_app.config[
+            "DELETE_PARENT_SHARD_RECORDS"
+        ]
         cutoff_ts = datetime.now(tz=timezone.utc) - self.retention_interval
 
         pks_to_delete = [
-            (row[c_creditor_id], row[c_debtor_id], row[c_creation_date], row[c_transfer_number])
-            for row in rows if row[c_committed_at] < cutoff_ts or(
-                    delete_parent_shard_records
-                    and not is_valid_creditor_id(row[c_creditor_id])
-                    and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
-            )]
+            (
+                row[c_creditor_id],
+                row[c_debtor_id],
+                row[c_creation_date],
+                row[c_transfer_number],
+            )
+            for row in rows
+            if row[c_committed_at] < cutoff_ts
+            or (
+                delete_parent_shard_records
+                and not is_valid_creditor_id(row[c_creditor_id])
+                and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
+            )
+        ]
         if pks_to_delete:
-            db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+            db.session.execute(
+                self.table.delete().where(self.pk.in_(pks_to_delete))
+            )
             db.session.commit()
 
 
@@ -287,17 +371,23 @@ class AccountScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
-        self.max_heartbeat_delay = timedelta(days=current_app.config['APP_MAX_HEARTBEAT_DELAY_DAYS'])
-        self.max_transfer_delay = timedelta(days=current_app.config['APP_MAX_TRANSFER_DELAY_DAYS'])
-        self.max_config_delay = timedelta(hours=current_app.config['APP_MAX_CONFIG_DELAY_HOURS'])
+        self.max_heartbeat_delay = timedelta(
+            days=current_app.config["APP_MAX_HEARTBEAT_DELAY_DAYS"]
+        )
+        self.max_transfer_delay = timedelta(
+            days=current_app.config["APP_MAX_TRANSFER_DELAY_DAYS"]
+        )
+        self.max_config_delay = timedelta(
+            hours=current_app.config["APP_MAX_CONFIG_DELAY_HOURS"]
+        )
 
     @property
     def blocks_per_query(self) -> int:
-        return int(current_app.config['APP_ACCOUNTS_SCAN_BLOCKS_PER_QUERY'])
+        return int(current_app.config["APP_ACCOUNTS_SCAN_BLOCKS_PER_QUERY"])
 
     @property
     def target_beat_duration(self) -> int:
-        return int(current_app.config['APP_ACCOUNTS_SCAN_BEAT_MILLISECS'])
+        return int(current_app.config["APP_ACCOUNTS_SCAN_BEAT_MILLISECS"])
 
     @atomic
     def process_rows(self, rows):
@@ -313,33 +403,49 @@ class AccountScanner(TableScanner):
 
         def needs_update(row) -> bool:
             return (
-                row[c.last_transfer_number] == row[c.ledger_last_transfer_number]
+                row[c.last_transfer_number]
+                == row[c.ledger_last_transfer_number]
                 and row[c.ledger_principal] != row[c.principal]
                 and row[c.ledger_latest_update_ts] < latest_update_cutoff_ts
             )
 
-        pks_to_update = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if needs_update(row)]
+        pks_to_update = [
+            (row[c.creditor_id], row[c.debtor_id])
+            for row in rows
+            if needs_update(row)
+        ]
         if pks_to_update:
             ledger_update_pending_log_entries = []
 
-            to_update = AccountData.query.\
-                filter(self.pk.in_(pks_to_update)).\
-                filter(AccountData.last_transfer_number == AccountData.ledger_last_transfer_number).\
-                filter(AccountData.ledger_principal != AccountData.principal).\
-                filter(AccountData.ledger_latest_update_ts < latest_update_cutoff_ts).\
-                with_for_update(skip_locked=True).\
-                options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)).\
-                all()
+            to_update = (
+                AccountData.query.filter(self.pk.in_(pks_to_update))
+                .filter(
+                    AccountData.last_transfer_number
+                    == AccountData.ledger_last_transfer_number
+                )
+                .filter(AccountData.ledger_principal != AccountData.principal)
+                .filter(
+                    AccountData.ledger_latest_update_ts
+                    < latest_update_cutoff_ts
+                )
+                .with_for_update(skip_locked=True)
+                .options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+                .all()
+            )
 
             for data in to_update:
                 log_entry = self._update_ledger(data, current_ts)
                 ledger_update_pending_log_entries.append(log_entry)
 
-            db.session.bulk_save_objects(ledger_update_pending_log_entries, preserve_order=False)
+            db.session.bulk_save_objects(
+                ledger_update_pending_log_entries, preserve_order=False
+            )
             db.session.scalar(uid_seq)
             db.session.commit()
 
-    def _update_ledger(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
+    def _update_ledger(
+        self, data: AccountData, current_ts: datetime
+    ) -> PendingLogEntry:
         creditor_id = data.creditor_id
         debtor_id = data.debtor_id
         principal = data.principal
@@ -349,18 +455,22 @@ class AccountScanner(TableScanner):
 
         assert correction_amount != 0
         while correction_amount != 0:
-            safe_correction_amount = contain_principal_overflow(correction_amount)
+            safe_correction_amount = contain_principal_overflow(
+                correction_amount
+            )
             correction_amount -= safe_correction_amount
             ledger_principal += safe_correction_amount
             ledger_last_entry_id += 1
-            db.session.add(LedgerEntry(
-                creditor_id=creditor_id,
-                debtor_id=debtor_id,
-                entry_id=ledger_last_entry_id,
-                acquired_amount=safe_correction_amount,
-                principal=ledger_principal,
-                added_at=current_ts,
-            ))
+            db.session.add(
+                LedgerEntry(
+                    creditor_id=creditor_id,
+                    debtor_id=debtor_id,
+                    entry_id=ledger_last_entry_id,
+                    acquired_amount=safe_correction_amount,
+                    principal=ledger_principal,
+                    added_at=current_ts,
+                )
+            )
 
         data.ledger_last_entry_id = ledger_last_entry_id
         data.ledger_principal = principal
@@ -382,19 +492,29 @@ class AccountScanner(TableScanner):
         committed_at_cutoff = current_ts - self.max_transfer_delay
 
         def needs_repair(row) -> bool:
-            if row[c.last_transfer_number] <= row[c.ledger_last_transfer_number]:
+            if (
+                row[c.last_transfer_number]
+                <= row[c.ledger_last_transfer_number]
+            ):
                 return False
             ledger_pending_transfer_ts = row[c.ledger_pending_transfer_ts]
             if ledger_pending_transfer_ts is not None:
                 return ledger_pending_transfer_ts < committed_at_cutoff
             return row[c.last_transfer_committed_at] < committed_at_cutoff
 
-        pks_to_repair = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if needs_repair(row)]
+        pks_to_repair = [
+            (row[c.creditor_id], row[c.debtor_id])
+            for row in rows
+            if needs_repair(row)
+        ]
         if pks_to_repair:
-            db.session.execute(ENSURE_PENDING_LEDGER_UPDATE_STATEMENT, [
-                {'creditor_id': creditor_id, 'debtor_id': debtor_id}
-                for creditor_id, debtor_id in pks_to_repair
-            ])
+            db.session.execute(
+                ENSURE_PENDING_LEDGER_UPDATE_STATEMENT,
+                [
+                    {"creditor_id": creditor_id, "debtor_id": debtor_id}
+                    for creditor_id, debtor_id in pks_to_repair
+                ],
+            )
             db.session.commit()
 
     def _set_config_errors_if_necessary(self, rows, current_ts):
@@ -415,35 +535,47 @@ class AccountScanner(TableScanner):
                 and row[c.last_config_ts] < last_config_ts_cutoff
             )
 
-        pks_to_set = [(row[c.creditor_id], row[c.debtor_id]) for row in rows if has_unreported_config_problem(row)]
+        pks_to_set = [
+            (row[c.creditor_id], row[c.debtor_id])
+            for row in rows
+            if has_unreported_config_problem(row)
+        ]
         if pks_to_set:
             info_update_pending_log_entries = []
 
-            to_set = AccountData.query.\
-                filter(self.pk.in_(pks_to_set)).\
-                filter(or_(
-                    AccountData.is_config_effectual == false(),
-                    and_(
-                        AccountData.has_server_account == true(),
-                        AccountData.last_heartbeat_ts < last_heartbeat_ts_cutoff,
-                    ),
-                )).\
-                filter(AccountData.config_error == null()).\
-                filter(AccountData.last_config_ts < last_config_ts_cutoff).\
-                with_for_update(skip_locked=True).\
-                options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS)).\
-                all()
+            to_set = (
+                AccountData.query.filter(self.pk.in_(pks_to_set))
+                .filter(
+                    or_(
+                        AccountData.is_config_effectual == false(),
+                        and_(
+                            AccountData.has_server_account == true(),
+                            AccountData.last_heartbeat_ts
+                            < last_heartbeat_ts_cutoff,
+                        ),
+                    )
+                )
+                .filter(AccountData.config_error == null())
+                .filter(AccountData.last_config_ts < last_config_ts_cutoff)
+                .with_for_update(skip_locked=True)
+                .options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+                .all()
+            )
 
             for data in to_set:
                 log_entry = self._set_config_error(data, current_ts)
                 info_update_pending_log_entries.append(log_entry)
 
-            db.session.bulk_save_objects(info_update_pending_log_entries, preserve_order=False)
+            db.session.bulk_save_objects(
+                info_update_pending_log_entries, preserve_order=False
+            )
             db.session.scalar(uid_seq)
             db.session.commit()
 
-    def _set_config_error(self, data: AccountData, current_ts: datetime) -> PendingLogEntry:
-        data.config_error = 'CONFIGURATION_IS_NOT_EFFECTUAL'
+    def _set_config_error(
+        self, data: AccountData, current_ts: datetime
+    ) -> PendingLogEntry:
+        data.config_error = "CONFIGURATION_IS_NOT_EFFECTUAL"
         data.info_latest_update_id += 1
         data.info_latest_update_ts = current_ts
 
@@ -452,6 +584,8 @@ class AccountScanner(TableScanner):
             creditor_id=data.creditor_id,
             added_at=current_ts,
             object_type=types.account_info,
-            object_uri=paths.account_info(creditorId=data.creditor_id, debtorId=data.debtor_id),
+            object_uri=paths.account_info(
+                creditorId=data.creditor_id, debtorId=data.debtor_id
+            ),
             object_update_id=data.info_latest_update_id,
         )

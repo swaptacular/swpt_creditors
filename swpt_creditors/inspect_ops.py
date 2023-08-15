@@ -10,19 +10,27 @@ class ForbiddenOperation(Exception):
 
 
 def _calc_accounts_key(creditor_id: int) -> bytes:
-    return b'a' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
+    return b"a" + b16encode(
+        creditor_id.to_bytes(8, byteorder="big", signed=True)
+    )
 
 
 def _calc_transfers_key(creditor_id: int) -> bytes:
-    return b't' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
+    return b"t" + b16encode(
+        creditor_id.to_bytes(8, byteorder="big", signed=True)
+    )
 
 
 def _calc_reconfigs_key(creditor_id: int) -> bytes:
-    return b'r' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
+    return b"r" + b16encode(
+        creditor_id.to_bytes(8, byteorder="big", signed=True)
+    )
 
 
 def _calc_initiations_key(creditor_id: int) -> bytes:
-    return b'i' + b16encode(creditor_id.to_bytes(8, byteorder='big', signed=True))
+    return b"i" + b16encode(
+        creditor_id.to_bytes(8, byteorder="big", signed=True)
+    )
 
 
 def _default_zero(n) -> int:
@@ -42,7 +50,7 @@ def allow_account_creation(creditor_id: int, debtor_id: int) -> None:
     """May Raise `ForbiddenOperation`."""
 
     key = _calc_accounts_key(creditor_id)
-    _limit(key, current_app.config['APP_MAX_CREDITOR_ACCOUNTS'])
+    _limit(key, current_app.config["APP_MAX_CREDITOR_ACCOUNTS"])
     allow_account_reconfig(creditor_id, debtor_id)
 
 
@@ -60,11 +68,14 @@ def allow_transfer_creation(creditor_id: int, debtor_id: int) -> None:
     with redis_store.pipeline() as p:
         p.get(tkey)
         p.get(ikey)
-        transfers_count, initiations_count = [_default_zero(n) for n in p.execute()]
+        transfers_count, initiations_count = [
+            _default_zero(n) for n in p.execute()
+        ]
 
     if (
-        transfers_count >= current_app.config['APP_MAX_CREDITOR_TRANSFERS']
-        or initiations_count >= current_app.config['APP_MAX_CREDITOR_INITIATIONS']
+        transfers_count >= current_app.config["APP_MAX_CREDITOR_TRANSFERS"]
+        or initiations_count
+        >= current_app.config["APP_MAX_CREDITOR_INITIATIONS"]
     ):
         raise ForbiddenOperation
 
@@ -72,7 +83,9 @@ def allow_transfer_creation(creditor_id: int, debtor_id: int) -> None:
 def register_transfer_creation(creditor_id: int, debtor_id: int) -> None:
     tkey = _calc_transfers_key(creditor_id)
     ikey = _calc_initiations_key(creditor_id)
-    expiration_seconds = int(3600 * current_app.config['APP_CREDITOR_DOS_STATS_CLEAR_HOURS'])
+    expiration_seconds = int(
+        3600 * current_app.config["APP_CREDITOR_DOS_STATS_CLEAR_HOURS"]
+    )
 
     with redis_store.pipeline() as p:
         p.incr(tkey)
@@ -85,12 +98,14 @@ def allow_account_reconfig(creditor_id: int, debtor_id: int) -> None:
     """May Raise `ForbiddenOperation`."""
 
     key = _calc_reconfigs_key(creditor_id)
-    _limit(key, current_app.config['APP_MAX_CREDITOR_RECONFIGS'])
+    _limit(key, current_app.config["APP_MAX_CREDITOR_RECONFIGS"])
 
 
 def register_account_reconfig(creditor_id: int, debtor_id: int) -> None:
     key = _calc_reconfigs_key(creditor_id)
-    expiration_seconds = int(3600 * current_app.config['APP_CREDITOR_DOS_STATS_CLEAR_HOURS'])
+    expiration_seconds = int(
+        3600 * current_app.config["APP_CREDITOR_DOS_STATS_CLEAR_HOURS"]
+    )
     with redis_store.pipeline() as p:
         p.incr(key)
         p.expire(key, expiration_seconds, nx=True)

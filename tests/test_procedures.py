@@ -6,14 +6,22 @@ from swpt_pythonlib.utils import i64_to_u64
 from swpt_creditors import procedures as p
 from swpt_creditors import models
 from swpt_creditors.extensions import db
-from swpt_creditors.models import Creditor, AccountData, ConfigureAccountSignal, LogEntry, \
-    CommittedTransfer, PendingLedgerUpdate, PrepareTransferSignal, RunningTransfer, \
-    FinalizeTransferSignal
+from swpt_creditors.models import (
+    Creditor,
+    AccountData,
+    ConfigureAccountSignal,
+    LogEntry,
+    CommittedTransfer,
+    PendingLedgerUpdate,
+    PrepareTransferSignal,
+    RunningTransfer,
+    FinalizeTransferSignal,
+)
 
 D_ID = -1
 C_ID = 4294967296
-TEST_UUID = UUID('123e4567-e89b-12d3-a456-426655440000')
-TEST_UUID2 = UUID('123e4567-e89b-12d3-a456-426655440001')
+TEST_UUID = UUID("123e4567-e89b-12d3-a456-426655440000")
+TEST_UUID2 = UUID("123e4567-e89b-12d3-a456-426655440001")
 
 
 @pytest.fixture(params=[2, 1000000])
@@ -43,7 +51,7 @@ def test_activate_new_creditor(db_session):
 
     assert not p.get_active_creditor(C_ID)
     with pytest.raises(p.InvalidReservationId):
-        p.activate_creditor(C_ID, '-123')
+        p.activate_creditor(C_ID, "-123")
     p.activate_creditor(C_ID, str(creditor.reservation_id))
     creditor = p.get_active_creditor(C_ID)
     assert creditor
@@ -83,41 +91,41 @@ def test_delete_account(account, current_ts):
         p.delete_account(C_ID, 1234)
 
     display = p.get_account_display(C_ID, D_ID)
-    assert(display is not None)
+    assert display is not None
     p.update_account_display(
         C_ID,
         D_ID,
-        debtor_name='test_name',
+        debtor_name="test_name",
         amount_divisor=1.0,
         decimal_places=0,
-        unit='USD',
+        unit="USD",
         known_debtor=True,
         latest_update_id=display.latest_update_id + 1,
     )
     params = {
-        'debtor_id': D_ID,
-        'creditor_id': C_ID,
-        'last_change_ts': current_ts,
-        'last_change_seqnum': 1,
-        'principal': 1000,
-        'interest': 0.0,
-        'interest_rate': 5.0,
-        'last_interest_rate_change_ts': current_ts,
-        'last_transfer_number': 1,
-        'last_transfer_committed_at': current_ts,
-        'last_config_ts': current_ts,
-        'last_config_seqnum': 1,
-        'creation_date': date(2020, 1, 15),
-        'negligible_amount': 0.0,
-        'ts': current_ts,
-        'ttl': 1000000,
-        'account_id': str(C_ID),
-        'config_data': '',
-        'config_flags': 0,
-        'debtor_info_iri': 'http://example.com',
-        'debtor_info_content_type': None,
-        'debtor_info_sha256': None,
-        'transfer_note_max_bytes': 500,
+        "debtor_id": D_ID,
+        "creditor_id": C_ID,
+        "last_change_ts": current_ts,
+        "last_change_seqnum": 1,
+        "principal": 1000,
+        "interest": 0.0,
+        "interest_rate": 5.0,
+        "last_interest_rate_change_ts": current_ts,
+        "last_transfer_number": 1,
+        "last_transfer_committed_at": current_ts,
+        "last_config_ts": current_ts,
+        "last_config_seqnum": 1,
+        "creation_date": date(2020, 1, 15),
+        "negligible_amount": 0.0,
+        "ts": current_ts,
+        "ttl": 1000000,
+        "account_id": str(C_ID),
+        "config_data": "",
+        "config_flags": 0,
+        "debtor_info_iri": "http://example.com",
+        "debtor_info_content_type": None,
+        "debtor_info_sha256": None,
+        "transfer_note_max_bytes": 500,
     }
 
     p.process_account_update_signal(**params)
@@ -126,32 +134,42 @@ def test_delete_account(account, current_ts):
 
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
     p.update_account_config(
-        C_ID, D_ID,
-        is_scheduled_for_deletion=True, negligible_amount=0.0,
-        allow_unsafe_deletion=False, latest_update_id=latest_update_id + 1)
+        C_ID,
+        D_ID,
+        is_scheduled_for_deletion=True,
+        negligible_amount=0.0,
+        allow_unsafe_deletion=False,
+        latest_update_id=latest_update_id + 1,
+    )
 
     config = p.get_account_config(C_ID, D_ID)
-    params['last_change_seqnum'] += 1
-    params['last_config_ts'] = config.last_config_ts
-    params['last_config_seqnum'] = config.last_config_seqnum
-    params['negligible_amount'] = config.negligible_amount
-    params['config_flags'] = config.config_flags
+    params["last_change_seqnum"] += 1
+    params["last_config_ts"] = config.last_config_ts
+    params["last_config_seqnum"] = config.last_config_seqnum
+    params["negligible_amount"] = config.negligible_amount
+    params["config_flags"] = config.config_flags
     p.process_account_update_signal(**params)
-    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 15))
+    p.process_account_purge_signal(
+        debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 15)
+    )
 
     p.delete_account(C_ID, D_ID)
     assert not p.get_account(C_ID, D_ID)
 
 
 def test_process_account_update_signal(account):
-    AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).update({
-        'ledger_principal': 1001,
-        'ledger_last_entry_id': 88,
-        'ledger_last_transfer_number': 888,
-    })
+    AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).update(
+        {
+            "ledger_principal": 1001,
+            "ledger_last_entry_id": 88,
+            "ledger_last_transfer_number": 888,
+        }
+    )
 
     def get_data():
-        return AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+        return AccountData.query.filter_by(
+            creditor_id=C_ID, debtor_id=D_ID
+        ).one()
 
     ad = get_data()
     assert not ad.is_config_effectual
@@ -173,29 +191,29 @@ def test_process_account_update_signal(account):
     assert last_heartbeat_ts < current_ts
 
     params = {
-        'debtor_id': D_ID,
-        'creditor_id': C_ID,
-        'creation_date': creation_date,
-        'last_change_ts': current_ts,
-        'last_change_seqnum': 1,
-        'principal': 1000,
-        'interest': 12.0,
-        'interest_rate': 5.0,
-        'last_interest_rate_change_ts': current_ts - timedelta(days=1),
-        'transfer_note_max_bytes': 500,
-        'last_config_ts': last_ts,
-        'last_config_seqnum': last_seqnum,
-        'negligible_amount': negligible_amount,
-        'config_flags': config_flags,
-        'config_data': '',
-        'account_id': str(C_ID),
-        'debtor_info_iri': 'http://example.com',
-        'debtor_info_content_type': 'text/plain',
-        'debtor_info_sha256': 32 * b'\xff',
-        'last_transfer_number': 22,
-        'last_transfer_committed_at': current_ts - timedelta(days=2),
-        'ts': current_ts,
-        'ttl': 0,
+        "debtor_id": D_ID,
+        "creditor_id": C_ID,
+        "creation_date": creation_date,
+        "last_change_ts": current_ts,
+        "last_change_seqnum": 1,
+        "principal": 1000,
+        "interest": 12.0,
+        "interest_rate": 5.0,
+        "last_interest_rate_change_ts": current_ts - timedelta(days=1),
+        "transfer_note_max_bytes": 500,
+        "last_config_ts": last_ts,
+        "last_config_seqnum": last_seqnum,
+        "negligible_amount": negligible_amount,
+        "config_flags": config_flags,
+        "config_data": "",
+        "account_id": str(C_ID),
+        "debtor_info_iri": "http://example.com",
+        "debtor_info_content_type": "text/plain",
+        "debtor_info_sha256": 32 * b"\xff",
+        "last_transfer_number": 22,
+        "last_transfer_committed_at": current_ts - timedelta(days=2),
+        "ts": current_ts,
+        "ttl": 0,
     }
 
     p.process_account_update_signal(**params)
@@ -205,7 +223,7 @@ def test_process_account_update_signal(account):
     assert not ad.is_config_effectual
     assert ad.config_error is None
 
-    params['ttl'] = 10000
+    params["ttl"] = 10000
     p.process_account_update_signal(**params)
     ad = get_data()
     assert ad.last_heartbeat_ts > last_heartbeat_ts
@@ -221,9 +239,9 @@ def test_process_account_update_signal(account):
     assert ad.last_config_ts == last_ts
     assert ad.last_config_seqnum == last_seqnum
     assert ad.account_id == str(C_ID)
-    assert ad.debtor_info_iri == 'http://example.com'
-    assert ad.debtor_info_content_type == 'text/plain'
-    assert ad.debtor_info_sha256 == 32 * b'\xff'
+    assert ad.debtor_info_iri == "http://example.com"
+    assert ad.debtor_info_content_type == "text/plain"
+    assert ad.debtor_info_sha256 == 32 * b"\xff"
     assert ad.last_transfer_number == 22
     assert ad.last_transfer_committed_at == current_ts - timedelta(days=2)
     assert ad.config_error is None
@@ -237,17 +255,17 @@ def test_process_account_update_signal(account):
         config_ts=last_ts,
         config_seqnum=last_seqnum,
         negligible_amount=negligible_amount,
-        config_data='',
+        config_data="",
         config_flags=config_flags,
-        rejection_code='TEST_CONFIG_ERROR',
+        rejection_code="TEST_CONFIG_ERROR",
     )
     ad = get_data()
-    assert ad.config_error == 'TEST_CONFIG_ERROR'
+    assert ad.config_error == "TEST_CONFIG_ERROR"
 
-    params['last_change_seqnum'] = 2
-    params['principal'] = 1100
-    params['negligible_amount'] = 3.33
-    params['config_flags'] = 77
+    params["last_change_seqnum"] = 2
+    params["principal"] = 1100
+    params["negligible_amount"] = 3.33
+    params["config_flags"] = 77
     p.process_account_update_signal(**params)
     ad = get_data()
     assert ad.last_change_seqnum == 2
@@ -255,18 +273,18 @@ def test_process_account_update_signal(account):
     assert ad.negligible_amount == negligible_amount
     assert ad.config_flags == config_flags
     assert not ad.is_config_effectual
-    assert ad.config_error == 'TEST_CONFIG_ERROR'
+    assert ad.config_error == "TEST_CONFIG_ERROR"
 
-    params['last_change_seqnum'] = 3
-    params['negligible_amount'] = negligible_amount
-    params['config_flags'] = config_flags
+    params["last_change_seqnum"] = 3
+    params["negligible_amount"] = negligible_amount
+    params["config_flags"] = config_flags
     p.process_account_update_signal(**params)
     ad = get_data()
     assert ad.last_change_seqnum == 3
     assert ad.is_config_effectual
     assert ad.config_error is None
 
-    params['creation_date'] = creation_date + timedelta(days=2)
+    params["creation_date"] = creation_date + timedelta(days=2)
     p.process_account_update_signal(**params)
     ad = get_data()
     assert ad.last_change_seqnum == 3
@@ -278,25 +296,39 @@ def test_process_account_update_signal(account):
     assert ad.ledger_last_transfer_number == 0
 
     # Discard orphaned account.
-    params['debtor_id'] = 1235
-    params['last_change_seqnum'] = 1
-    params['negligible_amount'] = 2.0
+    params["debtor_id"] = 1235
+    params["last_change_seqnum"] = 1
+    params["negligible_amount"] = 2.0
     p.process_account_update_signal(**params)
-    cas = ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
+    cas = ConfigureAccountSignal.query.filter_by(
+        creditor_id=C_ID, debtor_id=1235
+    ).one()
     assert cas.negligible_amount > 1e22
     assert cas.config_flags & AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
-    params['last_change_seqnum'] = 2
-    params['negligible_amount'] = models.DEFAULT_NEGLIGIBLE_AMOUNT
-    params['config_flags'] = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    params["last_change_seqnum"] = 2
+    params["negligible_amount"] = models.DEFAULT_NEGLIGIBLE_AMOUNT
+    params["config_flags"] = AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     p.process_account_update_signal(**params)
-    assert ConfigureAccountSignal.query.filter_by(creditor_id=C_ID, debtor_id=1235).one()
+    assert ConfigureAccountSignal.query.filter_by(
+        creditor_id=C_ID, debtor_id=1235
+    ).one()
 
     assert list(p.get_creditors_with_pending_log_entries()) == [(C_ID,)]
     p.process_pending_log_entries(1235)
     p.process_pending_log_entries(C_ID)
-    assert len(models.LogEntry.query.filter_by(object_type='AccountInfo').all()) == 3
-    assert len(models.LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER).all()) == 1
+    assert (
+        len(models.LogEntry.query.filter_by(object_type="AccountInfo").all())
+        == 3
+    )
+    assert (
+        len(
+            models.LogEntry.query.filter_by(
+                object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER
+            ).all()
+        )
+        == 1
+    )
 
 
 def test_process_rejected_config_signal(account):
@@ -306,22 +338,34 @@ def test_process_rejected_config_signal(account):
     ple_count = len(models.LogEntry.query.all())
 
     params = {
-        'debtor_id': D_ID,
-        'creditor_id': C_ID,
-        'config_ts': c.last_config_ts,
-        'config_seqnum': c.last_config_seqnum,
-        'negligible_amount': c.negligible_amount,
-        'config_data': '',
-        'config_flags': c.config_flags,
-        'rejection_code': 'TEST_CODE',
+        "debtor_id": D_ID,
+        "creditor_id": C_ID,
+        "config_ts": c.last_config_ts,
+        "config_seqnum": c.last_config_seqnum,
+        "negligible_amount": c.negligible_amount,
+        "config_data": "",
+        "config_flags": c.config_flags,
+        "rejection_code": "TEST_CODE",
     }
-    p.process_rejected_config_signal(**{**params, 'config_data': 'UNEXPECTED'})
-    p.process_rejected_config_signal(**{**params, 'negligible_amount': c.negligible_amount * 1.0001})
-    p.process_rejected_config_signal(**{**params, 'config_flags': c.config_flags ^ 1})
-    p.process_rejected_config_signal(**{**params, 'config_seqnum': c.last_config_seqnum - 1})
-    p.process_rejected_config_signal(**{**params, 'config_seqnum': c.last_config_seqnum + 1})
-    p.process_rejected_config_signal(**{**params, 'config_ts': c.last_config_ts + timedelta(seconds=-1)})
-    p.process_rejected_config_signal(**{**params, 'config_ts': c.last_config_ts + timedelta(seconds=1)})
+    p.process_rejected_config_signal(**{**params, "config_data": "UNEXPECTED"})
+    p.process_rejected_config_signal(
+        **{**params, "negligible_amount": c.negligible_amount * 1.0001}
+    )
+    p.process_rejected_config_signal(
+        **{**params, "config_flags": c.config_flags ^ 1}
+    )
+    p.process_rejected_config_signal(
+        **{**params, "config_seqnum": c.last_config_seqnum - 1}
+    )
+    p.process_rejected_config_signal(
+        **{**params, "config_seqnum": c.last_config_seqnum + 1}
+    )
+    p.process_rejected_config_signal(
+        **{**params, "config_ts": c.last_config_ts + timedelta(seconds=-1)}
+    )
+    p.process_rejected_config_signal(
+        **{**params, "config_ts": c.last_config_ts + timedelta(seconds=1)}
+    )
     c = p.get_account_config(C_ID, D_ID)
     info_latest_update_id = c.info_latest_update_id
     info_latest_update_ts = c.info_latest_update_ts
@@ -330,27 +374,32 @@ def test_process_rejected_config_signal(account):
 
     p.process_rejected_config_signal(**params)
     c = p.get_account_config(C_ID, D_ID)
-    assert c.config_error == 'TEST_CODE'
+    assert c.config_error == "TEST_CODE"
     assert c.info_latest_update_id == info_latest_update_id + 1
     assert c.info_latest_update_ts >= info_latest_update_ts
 
     p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == ple_count + 1
-    ple = LogEntry.query.filter_by(object_type='AccountInfo', object_update_id=info_latest_update_id + 1).one()
+    ple = LogEntry.query.filter_by(
+        object_type="AccountInfo", object_update_id=info_latest_update_id + 1
+    ).one()
     assert ple.creditor_id == C_ID
-    assert '/info' in ple.object_uri
+    assert "/info" in ple.object_uri
 
     p.process_rejected_config_signal(**params)
     assert len(LogEntry.query.all()) == ple_count + 1
 
 
 def test_process_account_purge_signal(account, current_ts):
-    AccountData.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).update({
-        AccountData.creation_date: date(2020, 1, 2),
-        AccountData.has_server_account: True,
-        AccountData.principal: 1000,
-        AccountData.interest: 15.0,
-    }, synchronize_session=False)
+    AccountData.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).update(
+        {
+            AccountData.creation_date: date(2020, 1, 2),
+            AccountData.has_server_account: True,
+            AccountData.principal: 1000,
+            AccountData.interest: 15.0,
+        },
+        synchronize_session=False,
+    )
     db.session.commit()
     data = AccountData.query.one()
     assert data.debtor_id == D_ID
@@ -359,8 +408,12 @@ def test_process_account_purge_signal(account, current_ts):
     assert data.principal == 1000
     assert data.interest == 15.0
 
-    p.process_account_purge_signal(debtor_id=1111, creditor_id=2222, creation_date=date(2020, 1, 2))
-    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 1))
+    p.process_account_purge_signal(
+        debtor_id=1111, creditor_id=2222, creation_date=date(2020, 1, 2)
+    )
+    p.process_account_purge_signal(
+        debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 1)
+    )
     data = AccountData.query.one()
     assert data.has_server_account
     assert data.principal == 1000
@@ -368,7 +421,9 @@ def test_process_account_purge_signal(account, current_ts):
     p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 2
 
-    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 2))
+    p.process_account_purge_signal(
+        debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 2)
+    )
     data = AccountData.query.one()
     assert not data.has_server_account
     assert data.principal == 0
@@ -376,22 +431,29 @@ def test_process_account_purge_signal(account, current_ts):
 
     p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 3
-    entry = LogEntry.query.filter_by(object_type='AccountInfo').one()
-    assert entry.object_uri == f'/creditors/{i64_to_u64(C_ID)}/accounts/{i64_to_u64(D_ID)}/info'
+    entry = LogEntry.query.filter_by(object_type="AccountInfo").one()
+    assert (
+        entry.object_uri
+        == f"/creditors/{i64_to_u64(C_ID)}/accounts/{i64_to_u64(D_ID)}/info"
+    )
     assert not entry.is_deleted
 
-    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 2))
+    p.process_account_purge_signal(
+        debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 2)
+    )
     p.process_pending_log_entries(C_ID)
     assert len(LogEntry.query.all()) == 3
 
 
 def test_update_account_config(account, current_ts):
     def get_data():
-        return AccountData.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).one()
+        return AccountData.query.filter_by(
+            creditor_id=C_ID, debtor_id=D_ID
+        ).one()
 
     def get_info_entries_count():
         p.process_pending_log_entries(C_ID)
-        return len(LogEntry.query.filter_by(object_type='AccountInfo').all())
+        return len(LogEntry.query.filter_by(object_type="AccountInfo").all())
 
     creation_date = current_ts.date()
     data = get_data()
@@ -401,11 +463,14 @@ def test_update_account_config(account, current_ts):
     assert get_info_entries_count() == 0
 
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
-    p.update_account_config(C_ID, D_ID,
-                            is_scheduled_for_deletion=True,
-                            negligible_amount=1e30,
-                            allow_unsafe_deletion=False,
-                            latest_update_id=latest_update_id + 1)
+    p.update_account_config(
+        C_ID,
+        D_ID,
+        is_scheduled_for_deletion=True,
+        negligible_amount=1e30,
+        allow_unsafe_deletion=False,
+        latest_update_id=latest_update_id + 1,
+    )
 
     data = get_data()
     assert not data.is_config_effectual
@@ -415,29 +480,29 @@ def test_update_account_config(account, current_ts):
 
     data = get_data()
     params = {
-        'debtor_id': D_ID,
-        'creditor_id': C_ID,
-        'creation_date': creation_date,
-        'last_change_ts': current_ts,
-        'last_change_seqnum': 1,
-        'principal': 0,
-        'interest': 0.0,
-        'interest_rate': 0.0,
-        'last_interest_rate_change_ts': models.TS0,
-        'transfer_note_max_bytes': 500,
-        'last_config_ts': data.last_config_ts,
-        'last_config_seqnum': data.last_config_seqnum,
-        'negligible_amount': data.negligible_amount,
-        'config_flags': data.config_flags,
-        'config_data': '',
-        'account_id': str(C_ID),
-        'debtor_info_iri': 'http://example.com',
-        'debtor_info_content_type': None,
-        'debtor_info_sha256': None,
-        'last_transfer_number': 0,
-        'last_transfer_committed_at': models.TS0,
-        'ts': current_ts,
-        'ttl': 10000,
+        "debtor_id": D_ID,
+        "creditor_id": C_ID,
+        "creation_date": creation_date,
+        "last_change_ts": current_ts,
+        "last_change_seqnum": 1,
+        "principal": 0,
+        "interest": 0.0,
+        "interest_rate": 0.0,
+        "last_interest_rate_change_ts": models.TS0,
+        "transfer_note_max_bytes": 500,
+        "last_config_ts": data.last_config_ts,
+        "last_config_seqnum": data.last_config_seqnum,
+        "negligible_amount": data.negligible_amount,
+        "config_flags": data.config_flags,
+        "config_data": "",
+        "account_id": str(C_ID),
+        "debtor_info_iri": "http://example.com",
+        "debtor_info_content_type": None,
+        "debtor_info_sha256": None,
+        "last_transfer_number": 0,
+        "last_transfer_committed_at": models.TS0,
+        "ts": current_ts,
+        "ttl": 10000,
     }
     p.process_account_update_signal(**params)
     data = get_data()
@@ -446,7 +511,9 @@ def test_update_account_config(account, current_ts):
     assert data.has_server_account
     assert get_info_entries_count() == 1
 
-    p.process_account_purge_signal(debtor_id=D_ID, creditor_id=C_ID, creation_date=creation_date)
+    p.process_account_purge_signal(
+        debtor_id=D_ID, creditor_id=C_ID, creation_date=creation_date
+    )
     data = get_data()
     assert data.is_config_effectual
     assert data.is_deletion_safe
@@ -454,11 +521,14 @@ def test_update_account_config(account, current_ts):
     assert get_info_entries_count() == 2
 
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
-    p.update_account_config(C_ID, D_ID,
-                            is_scheduled_for_deletion=True,
-                            negligible_amount=1e30,
-                            allow_unsafe_deletion=False,
-                            latest_update_id=latest_update_id + 1)
+    p.update_account_config(
+        C_ID,
+        D_ID,
+        is_scheduled_for_deletion=True,
+        negligible_amount=1e30,
+        allow_unsafe_deletion=False,
+        latest_update_id=latest_update_id + 1,
+    )
     data = get_data()
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
@@ -469,13 +539,26 @@ def test_update_account_config(account, current_ts):
 def test_process_account_transfer_signal(account, current_ts):
     def get_committed_tranfer_entries_count():
         p.process_pending_log_entries(C_ID)
-        return len(LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_COMMITTED_TRANSFER).all())
+        return len(
+            LogEntry.query.filter_by(
+                object_type_hint=LogEntry.OTH_COMMITTED_TRANSFER
+            ).all()
+        )
 
     def has_pending_ledger_update():
-        return len(PendingLedgerUpdate.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).all()) > 0
+        return (
+            len(
+                PendingLedgerUpdate.query.filter_by(
+                    creditor_id=C_ID, debtor_id=D_ID
+                ).all()
+            )
+            > 0
+        )
 
     def delete_pending_ledger_update():
-        PendingLedgerUpdate.query.filter_by(creditor_id=C_ID, debtor_id=D_ID).delete()
+        PendingLedgerUpdate.query.filter_by(
+            creditor_id=C_ID, debtor_id=D_ID
+        ).delete()
         db.session.commit()
 
     assert not has_pending_ledger_update()
@@ -494,9 +577,9 @@ def test_process_account_transfer_signal(account, current_ts):
         last_config_seqnum=0,
         negligible_amount=100.0,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
-        config_data='',
+        config_data="",
         account_id=str(C_ID),
-        debtor_info_iri='http://example.com',
+        debtor_info_iri="http://example.com",
         debtor_info_content_type=None,
         debtor_info_sha256=None,
         last_transfer_number=123,
@@ -508,40 +591,40 @@ def test_process_account_transfer_signal(account, current_ts):
     delete_pending_ledger_update()
 
     params = {
-        'debtor_id': D_ID,
-        'creditor_id': C_ID,
-        'creation_date': date(2020, 1, 2),
-        'transfer_number': 1,
-        'coordinator_type': 'direct',
-        'sender': '666',
-        'recipient': str(C_ID),
-        'acquired_amount': 100,
-        'transfer_note_format': 'json',
-        'transfer_note': '{"message": "test"}',
-        'committed_at': current_ts,
-        'principal': 1000,
-        'ts': current_ts - timedelta(days=6),
-        'previous_transfer_number': 0,
-        'retention_interval': timedelta(days=5),
+        "debtor_id": D_ID,
+        "creditor_id": C_ID,
+        "creation_date": date(2020, 1, 2),
+        "transfer_number": 1,
+        "coordinator_type": "direct",
+        "sender": "666",
+        "recipient": str(C_ID),
+        "acquired_amount": 100,
+        "transfer_note_format": "json",
+        "transfer_note": '{"message": "test"}',
+        "committed_at": current_ts,
+        "principal": 1000,
+        "ts": current_ts - timedelta(days=6),
+        "previous_transfer_number": 0,
+        "retention_interval": timedelta(days=5),
     }
     p.process_account_transfer_signal(**params)
     assert len(CommittedTransfer.query.all()) == 0
     assert get_committed_tranfer_entries_count() == 0
     assert not has_pending_ledger_update()
 
-    params['retention_interval'] = timedelta(days=7)
+    params["retention_interval"] = timedelta(days=7)
     p.process_account_transfer_signal(**params)
     ct = CommittedTransfer.query.one()
     assert ct.debtor_id == D_ID
     assert ct.creditor_id == C_ID
-    assert ct.creation_date == params['creation_date']
+    assert ct.creation_date == params["creation_date"]
     assert ct.transfer_number == 1
-    assert ct.coordinator_type == 'direct'
-    assert ct.sender == '666'
+    assert ct.coordinator_type == "direct"
+    assert ct.sender == "666"
     assert ct.recipient == str(C_ID)
     assert ct.acquired_amount == 100
-    assert ct.transfer_note_format == params['transfer_note_format']
-    assert ct.transfer_note == params['transfer_note']
+    assert ct.transfer_note_format == params["transfer_note_format"]
+    assert ct.transfer_note == params["transfer_note"]
     assert ct.committed_at == current_ts
     assert ct.principal == 1000
     assert ct.previous_transfer_number == 0
@@ -549,20 +632,22 @@ def test_process_account_transfer_signal(account, current_ts):
     assert has_pending_ledger_update()
     delete_pending_ledger_update()
 
-    params['retention_interval'] = timedelta(days=7)
+    params["retention_interval"] = timedelta(days=7)
     p.process_account_transfer_signal(**params)
     assert len(CommittedTransfer.query.all()) == 1
     assert get_committed_tranfer_entries_count() == 1
-    le = LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_COMMITTED_TRANSFER).one()
+    le = LogEntry.query.filter_by(
+        object_type_hint=LogEntry.OTH_COMMITTED_TRANSFER
+    ).one()
     assert le.creditor_id == C_ID
     assert le.debtor_id == D_ID
-    assert le.creation_date == params['creation_date']
+    assert le.creation_date == params["creation_date"]
     assert le.transfer_number == 1
     assert not le.is_deleted
     assert le.object_update_id is None
     assert not has_pending_ledger_update()
 
-    params['creditor_id'] = 1235
+    params["creditor_id"] = 1235
     p.process_account_transfer_signal(**params)
     assert len(CommittedTransfer.query.all()) == 1
     assert get_committed_tranfer_entries_count() == 1
@@ -576,37 +661,41 @@ def test_get_pending_ledger_updates(db_session):
 def test_process_pending_ledger_update(account, max_count, current_ts):
     def get_ledger_update_entries_count():
         p.process_pending_log_entries(C_ID)
-        return len(LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER).all())
+        return len(
+            LogEntry.query.filter_by(
+                object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER
+            ).all()
+        )
 
     creation_date = date(2020, 1, 2)
 
     params = {
-        'debtor_id': D_ID,
-        'creditor_id': C_ID,
-        'creation_date': creation_date,
-        'transfer_number': 1,
-        'coordinator_type': 'direct',
-        'sender': '666',
-        'recipient': str(C_ID),
-        'acquired_amount': 1000,
-        'transfer_note_format': 'json',
-        'transfer_note': '{"message": "test"}',
-        'committed_at': current_ts,
-        'principal': 1100,
-        'ts': current_ts,
-        'previous_transfer_number': 0,
-        'retention_interval': timedelta(days=5),
+        "debtor_id": D_ID,
+        "creditor_id": C_ID,
+        "creation_date": creation_date,
+        "transfer_number": 1,
+        "coordinator_type": "direct",
+        "sender": "666",
+        "recipient": str(C_ID),
+        "acquired_amount": 1000,
+        "transfer_note_format": "json",
+        "transfer_note": '{"message": "test"}',
+        "committed_at": current_ts,
+        "principal": 1100,
+        "ts": current_ts,
+        "previous_transfer_number": 0,
+        "retention_interval": timedelta(days=5),
     }
     p.process_account_transfer_signal(**params)
 
-    params['transfer_number'] = 20
-    params['previous_transfer_number'] = 1
-    params['principal'] = 2100
+    params["transfer_number"] = 20
+    params["previous_transfer_number"] = 1
+    params["principal"] = 2100
     p.process_account_transfer_signal(**params)
 
-    params['transfer_number'] = 22
-    params['previous_transfer_number'] = 21
-    params['principal'] = 4150
+    params["transfer_number"] = 22
+    params["previous_transfer_number"] = 21
+    params["principal"] = 4150
     p.process_account_transfer_signal(**params)
 
     assert get_ledger_update_entries_count() == 0
@@ -627,9 +716,9 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
         last_config_seqnum=0,
         negligible_amount=10.0,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
-        config_data='',
+        config_data="",
         account_id=str(C_ID),
-        debtor_info_iri='http://example.com',
+        debtor_info_iri="http://example.com",
         debtor_info_content_type=None,
         debtor_info_sha256=None,
         last_transfer_number=0,
@@ -639,33 +728,50 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     )
     assert get_ledger_update_entries_count() == 0
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
-    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 0
+    assert (
+        len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000))
+        == 0
+    )
 
-    assert p.process_pending_ledger_update(2222, D_ID, max_count=max_count, max_delay=timedelta(days=10000))
-    assert p.process_pending_ledger_update(C_ID, 1111, max_count=max_count, max_delay=timedelta(days=10000))
+    assert p.process_pending_ledger_update(
+        2222, D_ID, max_count=max_count, max_delay=timedelta(days=10000)
+    )
+    assert p.process_pending_ledger_update(
+        C_ID, 1111, max_count=max_count, max_delay=timedelta(days=10000)
+    )
 
     n = 0
-    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)):
+    while not p.process_pending_ledger_update(
+        C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)
+    ):
         x = len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000))
         assert x > n
         n = x
 
     lue_count = get_ledger_update_entries_count()
     assert lue_count > 0
-    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 3
+    assert (
+        len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000))
+        == 3
+    )
     assert p.get_pending_ledger_updates() == []
 
-    params['transfer_number'] = 21
-    params['previous_transfer_number'] = 20
-    params['principal'] = 3150
+    params["transfer_number"] = 21
+    params["previous_transfer_number"] = 20
+    params["principal"] = 3150
     p.process_account_transfer_signal(**params)
 
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
-    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)):
+    while not p.process_pending_ledger_update(
+        C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)
+    ):
         pass
     assert get_ledger_update_entries_count() > lue_count
     assert p.get_pending_ledger_updates() == []
-    assert len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000)) == 6
+    assert (
+        len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000))
+        == 6
+    )
 
     log_entry = p.get_log_entries(C_ID, count=1000)[0][-1]
     assert log_entry.creditor_id == C_ID
@@ -675,14 +781,22 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     assert not log_entry.is_deleted
 
 
-def test_process_pending_ledger_update_missing_last_transfer(account, max_count, current_ts):
+def test_process_pending_ledger_update_missing_last_transfer(
+    account, max_count, current_ts
+):
     def get_ledger_update_entries_count():
         p.process_pending_log_entries(C_ID)
-        return len(LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER).all())
+        return len(
+            LogEntry.query.filter_by(
+                object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER
+            ).all()
+        )
 
     creation_date = date(2020, 1, 2)
     assert get_ledger_update_entries_count() == 0
-    ledger_latest_update_id = p.get_account_ledger(C_ID, D_ID).ledger_latest_update_id
+    ledger_latest_update_id = p.get_account_ledger(
+        C_ID, D_ID
+    ).ledger_latest_update_id
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -699,7 +813,7 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
         last_config_seqnum=0,
         negligible_amount=10.0,
         config_flags=models.DEFAULT_CONFIG_FLAGS,
-        config_data='',
+        config_data="",
         account_id=str(C_ID),
         debtor_info_iri=None,
         debtor_info_content_type=None,
@@ -712,7 +826,9 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
 
     assert len(PendingLedgerUpdate.query.all()) == 1
     max_delay = timedelta(days=30)
-    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
+    while not p.process_pending_ledger_update(
+        C_ID, D_ID, max_count=max_count, max_delay=max_delay
+    ):
         pass
     assert len(PendingLedgerUpdate.query.all()) == 0
     lue_count = get_ledger_update_entries_count()
@@ -728,7 +844,9 @@ def test_process_pending_ledger_update_missing_last_transfer(account, max_count,
     max_delay = timedelta(days=10)
     p.ensure_pending_ledger_update(C_ID, D_ID)
     assert len(PendingLedgerUpdate.query.all()) == 1
-    while not p.process_pending_ledger_update(C_ID, D_ID, max_count=max_count, max_delay=max_delay):
+    while not p.process_pending_ledger_update(
+        C_ID, D_ID, max_count=max_count, max_delay=max_delay
+    ):
         pass
     lue_count = get_ledger_update_entries_count()
     assert lue_count == 1
@@ -745,10 +863,10 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
         transfer_uuid=TEST_UUID,
         debtor_id=D_ID,
         amount=1000,
-        recipient_uri='swpt:18446744073709551615/666',
-        recipient='666',
-        transfer_note_format='json',
-        transfer_note='{}',
+        recipient_uri="swpt:18446744073709551615/666",
+        recipient="666",
+        transfer_note_format="json",
+        transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
         min_interest_rate=10.0,
     )
@@ -756,10 +874,10 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
     assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
-    assert rt.recipient_uri == 'swpt:18446744073709551615/666'
-    assert rt.recipient == '666'
-    assert rt.transfer_note_format == 'json'
-    assert rt.transfer_note == '{}'
+    assert rt.recipient_uri == "swpt:18446744073709551615/666"
+    assert rt.recipient == "666"
+    assert rt.transfer_note_format == "json"
+    assert rt.transfer_note == "{}"
     assert isinstance(rt.initiated_at, datetime)
     assert rt.finalized_at is None
     assert rt.error_code is None
@@ -782,7 +900,7 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
     p.process_rejected_direct_transfer_signal(
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
-        status_code='TEST_ERROR',
+        status_code="TEST_ERROR",
         total_locked_amount=600,
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -792,13 +910,13 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
     assert rt.transfer_uuid == TEST_UUID
     assert rt.debtor_id == D_ID
     assert rt.amount == 1000
-    assert rt.recipient_uri == 'swpt:18446744073709551615/666'
-    assert rt.recipient == '666'
-    assert rt.transfer_note_format == 'json'
-    assert rt.transfer_note == '{}'
+    assert rt.recipient_uri == "swpt:18446744073709551615/666"
+    assert rt.recipient == "666"
+    assert rt.transfer_note_format == "json"
+    assert rt.transfer_note == "{}"
     assert isinstance(rt.initiated_at, datetime)
     assert rt.finalized_at is not None
-    assert rt.error_code == 'TEST_ERROR'
+    assert rt.error_code == "TEST_ERROR"
     assert rt.total_locked_amount == 600
     assert rt.deadline == current_ts + timedelta(seconds=1000)
     assert rt.min_interest_rate == 10.0
@@ -808,29 +926,35 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
     assert isinstance(rt.latest_update_ts, datetime)
 
     p.process_pending_log_entries(C_ID)
-    le = LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_TRANSFER).filter(LogEntry.object_update_id > 1).one()
+    le = (
+        LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_TRANSFER)
+        .filter(LogEntry.object_update_id > 1)
+        .one()
+    )
     assert le.data is None
     assert le.data_finalized_at == rt.finalized_at
     assert le.data_error_code == rt.error_code
 
 
-def test_process_rejected_direct_transfer_unexpected_error(account, current_ts):
+def test_process_rejected_direct_transfer_unexpected_error(
+    account, current_ts
+):
     rt = p.initiate_running_transfer(
         creditor_id=C_ID,
         transfer_uuid=TEST_UUID,
         debtor_id=D_ID,
         amount=1000,
-        recipient_uri='swpt:18446744073709551615/666',
-        recipient='666',
-        transfer_note_format='json',
-        transfer_note='{}',
+        recipient_uri="swpt:18446744073709551615/666",
+        recipient="666",
+        transfer_note_format="json",
+        transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
         min_interest_rate=10.0,
     )
     p.process_rejected_direct_transfer_signal(
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
-        status_code='TEST_ERROR',
+        status_code="TEST_ERROR",
         total_locked_amount=600,
         debtor_id=D_ID,
         creditor_id=666,
@@ -853,10 +977,10 @@ def test_successful_transfer(account, current_ts):
         transfer_uuid=TEST_UUID,
         debtor_id=D_ID,
         amount=1000,
-        recipient_uri='swpt:18446744073709551615/666',
-        recipient='666',
-        transfer_note_format='json',
-        transfer_note='{}',
+        recipient_uri="swpt:18446744073709551615/666",
+        recipient="666",
+        transfer_note_format="json",
+        transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
         min_interest_rate=10.0,
     )
@@ -867,17 +991,19 @@ def test_successful_transfer(account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id + 1,
         locked_amount=0,
-        recipient='666',
+        recipient="666",
     )
     assert len(FinalizeTransferSignal.query.all()) == 1
-    fts = FinalizeTransferSignal.query.filter_by(coordinator_request_id=rt.coordinator_request_id + 1).one()
+    fts = FinalizeTransferSignal.query.filter_by(
+        coordinator_request_id=rt.coordinator_request_id + 1
+    ).one()
     assert fts.creditor_id == C_ID
     assert fts.debtor_id == D_ID
     assert fts.transfer_id == 123
     assert fts.coordinator_id == C_ID
     assert fts.committed_amount == 0
-    assert fts.transfer_note_format == ''
-    assert fts.transfer_note == ''
+    assert fts.transfer_note_format == ""
+    assert fts.transfer_note == ""
     p.process_prepared_direct_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -885,17 +1011,19 @@ def test_successful_transfer(account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         locked_amount=0,
-        recipient='666',
+        recipient="666",
     )
     assert len(FinalizeTransferSignal.query.all()) == 2
-    fts = FinalizeTransferSignal.query.filter_by(coordinator_request_id=rt.coordinator_request_id).one()
+    fts = FinalizeTransferSignal.query.filter_by(
+        coordinator_request_id=rt.coordinator_request_id
+    ).one()
     assert fts.creditor_id == C_ID
     assert fts.debtor_id == D_ID
     assert fts.transfer_id == 123
     assert fts.coordinator_id == C_ID
     assert fts.committed_amount == 1000
-    assert fts.transfer_note_format == 'json'
-    assert fts.transfer_note == '{}'
+    assert fts.transfer_note_format == "json"
+    assert fts.transfer_note == "{}"
     rt = RunningTransfer.query.one()
     assert rt.finalized_at is None
     assert rt.transfer_id == 123
@@ -908,7 +1036,7 @@ def test_successful_transfer(account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=1000,
-        status_code='OK',
+        status_code="OK",
         total_locked_amount=100,
     )
     assert rt.finalized_at is not None
@@ -917,7 +1045,11 @@ def test_successful_transfer(account, current_ts):
     assert rt.total_locked_amount is None
 
     p.process_pending_log_entries(C_ID)
-    le = LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_TRANSFER).filter(LogEntry.object_update_id > 1).one()
+    le = (
+        LogEntry.query.filter_by(object_type_hint=LogEntry.OTH_TRANSFER)
+        .filter(LogEntry.object_update_id > 1)
+        .one()
+    )
     assert le.data is None
     assert le.data_finalized_at == rt.finalized_at
     assert le.data_error_code is None
@@ -929,10 +1061,10 @@ def test_unsuccessful_transfer(account, current_ts):
         transfer_uuid=TEST_UUID,
         debtor_id=D_ID,
         amount=1000,
-        recipient_uri='swpt:18446744073709551615/666',
-        recipient='666',
-        transfer_note_format='json',
-        transfer_note='{}',
+        recipient_uri="swpt:18446744073709551615/666",
+        recipient="666",
+        transfer_note_format="json",
+        transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
         min_interest_rate=10.0,
     )
@@ -943,7 +1075,7 @@ def test_unsuccessful_transfer(account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         locked_amount=0,
-        recipient='666',
+        recipient="666",
     )
     with pytest.raises(p.ForbiddenTransferCancellation):
         p.cancel_running_transfer(C_ID, TEST_UUID)
@@ -960,13 +1092,13 @@ def test_unsuccessful_transfer(account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=0,
-        status_code='TEST_ERROR',
+        status_code="TEST_ERROR",
         total_locked_amount=100,
     )
     rt = RunningTransfer.query.one()
     assert rt.finalized_at is not None
     assert rt.transfer_id == 123
-    assert rt.error_code == 'TEST_ERROR'
+    assert rt.error_code == "TEST_ERROR"
     assert rt.total_locked_amount == 100
 
 
@@ -976,10 +1108,10 @@ def test_unsuccessful_transfer_unexpected_error(account, current_ts):
         transfer_uuid=TEST_UUID,
         debtor_id=D_ID,
         amount=1000,
-        recipient_uri='swpt:18446744073709551615/666',
-        recipient='666',
-        transfer_note_format='json',
-        transfer_note='{}',
+        recipient_uri="swpt:18446744073709551615/666",
+        recipient="666",
+        transfer_note_format="json",
+        transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
         min_interest_rate=10.0,
     )
@@ -990,7 +1122,7 @@ def test_unsuccessful_transfer_unexpected_error(account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         locked_amount=0,
-        recipient='666',
+        recipient="666",
     )
     p.process_finalized_direct_transfer_signal(
         debtor_id=D_ID,
@@ -999,7 +1131,7 @@ def test_unsuccessful_transfer_unexpected_error(account, current_ts):
         coordinator_id=C_ID,
         coordinator_request_id=rt.coordinator_request_id,
         committed_amount=999,
-        status_code='TEST_ERROR',
+        status_code="TEST_ERROR",
         total_locked_amount=100,
     )
     rt = RunningTransfer.query.one()

@@ -6,10 +6,10 @@ C_ID = 4294967296
 
 
 def test_forbidden_operations(app):
-    app.config['APP_MAX_CREDITOR_RECONFIGS'] = 0
-    app.config['APP_MAX_CREDITOR_TRANSFERS'] = 0
-    app.config['APP_MAX_CREDITOR_ACCOUNTS'] = 0
-    app.config['APP_MAX_CREDITOR_INITIATIONS'] = 0
+    app.config["APP_MAX_CREDITOR_RECONFIGS"] = 0
+    app.config["APP_MAX_CREDITOR_TRANSFERS"] = 0
+    app.config["APP_MAX_CREDITOR_ACCOUNTS"] = 0
+    app.config["APP_MAX_CREDITOR_INITIATIONS"] = 0
 
     with pytest.raises(inspect_ops.ForbiddenOperation):
         inspect_ops.allow_account_creation(C_ID, D_ID)
