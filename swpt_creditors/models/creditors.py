@@ -423,9 +423,9 @@ class BaseLogEntry(db.Model):
             entries_path = paths.account_ledger_entries(
                 creditorId=self.creditor_id, debtorId=self.debtor_id
             )
-            data[
-                "firstPage"
-            ] = f"{entries_path}?prev={self.data_next_entry_id}"
+            data["firstPage"] = (
+                f"{entries_path}?prev={self.data_next_entry_id}"
+            )
         return data or None
 
     def _jsonify_attribute(self, attr_name):
