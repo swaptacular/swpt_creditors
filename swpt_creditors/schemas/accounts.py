@@ -595,9 +595,9 @@ class AccountInfoSchema(MutableResourceSchema):
         if obj.debtor_info_iri is not None:
             debtor_info = {"iri": obj.debtor_info_iri}
             if obj.debtor_info_content_type is not None:
-                debtor_info[
-                    "optional_content_type"
-                ] = obj.debtor_info_content_type
+                debtor_info["optional_content_type"] = (
+                    obj.debtor_info_content_type
+                )
             if obj.debtor_info_sha256 is not None:
                 debtor_info["optional_sha256"] = b16encode(
                     obj.debtor_info_sha256
