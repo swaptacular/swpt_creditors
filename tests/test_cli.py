@@ -101,6 +101,7 @@ def test_process_log_additions(app, db_session, current_ts):
         is_scheduled_for_deletion=True,
         negligible_amount=1e30,
         allow_unsafe_deletion=False,
+        config_data="",
         latest_update_id=latest_update_id + 1,
     )
     entries1, _ = p.get_log_entries(C_ID, count=10000)

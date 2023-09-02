@@ -1054,6 +1054,7 @@ def test_account_config(client, account):
         "negligibleAmount": 100.0,
         "allowUnsafeDeletion": True,
         "scheduledForDeletion": True,
+        "configData": "TEST_CONFIG",
         "latestUpdateId": latestUpdateId + 1,
     }
 
@@ -1078,6 +1079,7 @@ def test_account_config(client, account):
     assert data["scheduledForDeletion"] is True
     assert data["allowUnsafeDeletion"] is True
     assert data["negligibleAmount"] == 100.0
+    assert data["configData"] == "TEST_CONFIG"
     assert data["account"] == {"uri": "/creditors/4294967296/accounts/1/"}
 
     request_data["negligibleAmount"] = 1.0

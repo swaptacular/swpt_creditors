@@ -163,6 +163,7 @@ def update_account_config(
     is_scheduled_for_deletion: bool,
     negligible_amount: float,
     allow_unsafe_deletion: bool,
+    config_data: str,
     latest_update_id: int
 ) -> AccountData:
     current_ts = datetime.now(tz=timezone.utc)
@@ -180,6 +181,7 @@ def update_account_config(
                 "is_scheduled_for_deletion": is_scheduled_for_deletion,
                 "negligible_amount": negligible_amount,
                 "allow_unsafe_deletion": allow_unsafe_deletion,
+                "config_data": config_data,
             },
         )
     except errors.AlreadyUpToDate:
@@ -217,6 +219,7 @@ def update_account_config(
             ts=data.last_config_ts,
             seqnum=data.last_config_seqnum,
             negligible_amount=data.negligible_amount,
+            config_data=data.config_data,
             config_flags=data.config_flags,
         )
     )

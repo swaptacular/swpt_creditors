@@ -139,6 +139,7 @@ def test_delete_account(account, current_ts):
         is_scheduled_for_deletion=True,
         negligible_amount=0.0,
         allow_unsafe_deletion=False,
+        config_data="",
         latest_update_id=latest_update_id + 1,
     )
 
@@ -460,6 +461,8 @@ def test_update_account_config(account, current_ts):
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
     assert not data.has_server_account
+    assert data.config_data == ""
+    assert data.config_flags == models.DEFAULT_CONFIG_FLAGS
     assert get_info_entries_count() == 0
 
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
@@ -469,6 +472,7 @@ def test_update_account_config(account, current_ts):
         is_scheduled_for_deletion=True,
         negligible_amount=1e30,
         allow_unsafe_deletion=False,
+        config_data="TEST_CONFIG",
         latest_update_id=latest_update_id + 1,
     )
 
@@ -476,6 +480,11 @@ def test_update_account_config(account, current_ts):
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
     assert not data.has_server_account
+    assert data.config_data == "TEST_CONFIG"
+    assert data.config_flags == (
+        models.DEFAULT_CONFIG_FLAGS
+        | AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    )
     assert get_info_entries_count() == 0
 
     data = get_data()
@@ -494,7 +503,7 @@ def test_update_account_config(account, current_ts):
         "last_config_seqnum": data.last_config_seqnum,
         "negligible_amount": data.negligible_amount,
         "config_flags": data.config_flags,
-        "config_data": "",
+        "config_data": data.config_data,
         "account_id": str(C_ID),
         "debtor_info_iri": "http://example.com",
         "debtor_info_content_type": None,
@@ -509,6 +518,11 @@ def test_update_account_config(account, current_ts):
     assert data.is_config_effectual
     assert not data.is_deletion_safe
     assert data.has_server_account
+    assert data.config_data == "TEST_CONFIG"
+    assert data.config_flags == (
+        models.DEFAULT_CONFIG_FLAGS
+        | AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    )
     assert get_info_entries_count() == 1
 
     p.process_account_purge_signal(
@@ -518,6 +532,11 @@ def test_update_account_config(account, current_ts):
     assert data.is_config_effectual
     assert data.is_deletion_safe
     assert not data.has_server_account
+    assert data.config_data == "TEST_CONFIG"
+    assert data.config_flags == (
+        models.DEFAULT_CONFIG_FLAGS
+        | AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    )
     assert get_info_entries_count() == 2
 
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
@@ -527,12 +546,19 @@ def test_update_account_config(account, current_ts):
         is_scheduled_for_deletion=True,
         negligible_amount=1e30,
         allow_unsafe_deletion=False,
+        config_data="",
         latest_update_id=latest_update_id + 1,
     )
     data = get_data()
     assert not data.is_config_effectual
     assert not data.is_deletion_safe
     assert not data.has_server_account
+    assert data.config_data == ""
+    assert data.config_flags == (
+        models.DEFAULT_CONFIG_FLAGS
+        | AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    )
+    assert data.config_error is None
     assert get_info_entries_count() == 3
 
 

@@ -372,6 +372,7 @@ class AccountConfigEndpoint(MethodView):
                 ],
                 negligible_amount=account_config["negligible_amount"],
                 allow_unsafe_deletion=account_config["allow_unsafe_deletion"],
+                config_data=account_config["config_data"],
                 latest_update_id=account_config["latest_update_id"],
             )
         except (inspect_ops.ForbiddenOperation, procedures.WrongPinValue):
