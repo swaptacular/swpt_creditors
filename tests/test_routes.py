@@ -768,6 +768,7 @@ def test_create_account(client, creditor):
             "allowUnsafeDeletion": False,
             "negligibleAmount": 1e30,
             "scheduledForDeletion": False,
+            "configData": "",
             "latestUpdateAt": latestUpdateAt,
         },
         "display": {
