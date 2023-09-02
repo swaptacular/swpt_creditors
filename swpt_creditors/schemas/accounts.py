@@ -6,6 +6,7 @@ from marshmallow import (
     fields,
     ValidationError,
     validate,
+    validates,
     validates_schema,
     pre_dump,
     post_dump,
@@ -15,7 +16,12 @@ from marshmallow import (
 from swpt_pythonlib.utils import i64_to_u64
 from swpt_pythonlib.swpt_uris import make_account_uri
 from swpt_creditors import models
-from swpt_creditors.models import MIN_INT64, MAX_INT64, TRANSFER_NOTE_MAX_BYTES
+from swpt_creditors.models import (
+    MIN_INT64,
+    MAX_INT64,
+    TRANSFER_NOTE_MAX_BYTES,
+    CONFIG_DATA_MAX_BYTES,
+)
 from .common import (
     ObjectReferenceSchema,
     AccountIdentitySchema,
@@ -835,6 +841,27 @@ class AccountConfigSchema(
             example=False,
         ),
     )
+    config_data = fields.String(
+        load_default="",
+        validate=validate.Length(max=CONFIG_DATA_MAX_BYTES),
+        data_key="configData",
+        metadata=dict(
+            description=(
+                "The creditor's configuration data. Different implementations"
+                " may use different formats for this field. Will always be"
+                " present in the responses from the server."
+            ),
+            example="",
+        ),
+    )
+
+    @validates("config_data")
+    def validate_config_data(self, value):
+        if len(value.encode("utf8")) > CONFIG_DATA_MAX_BYTES:
+            raise ValidationError(
+                "The total byte-length of the config exceeds"
+                f" {CONFIG_DATA_MAX_BYTES} bytes."
+            )
 
     @pre_dump
     def process_account_data_instance(self, obj, many):

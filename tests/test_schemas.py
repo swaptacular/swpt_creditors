@@ -751,6 +751,7 @@ def test_serialize_account_config(app):
         config_flags=models.DEFAULT_CONFIG_FLAGS
         | models.AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
         allow_unsafe_deletion=True,
+        config_data="",
         config_latest_update_id=1,
         config_latest_update_ts=datetime(2020, 1, 1),
     )
@@ -764,12 +765,14 @@ def test_serialize_account_config(app):
         "negligibleAmount": 101.0,
         "scheduledForDeletion": True,
         "allowUnsafeDeletion": True,
+        "configData": "",
         "latestUpdateId": 1,
         "latestUpdateAt": "2020-01-01T00:00:00",
     }
 
     ac.negligible_amount = models.DEFAULT_NEGLIGIBLE_AMOUNT
     ac.config_flags = 0
+    ac.config_data = 'TEST_CONFIG_DATA'
     ac.allow_unsafe_deletion = False
     assert acs.dump(ac) == {
         "type": "AccountConfig",
@@ -780,6 +783,7 @@ def test_serialize_account_config(app):
         "negligibleAmount": models.DEFAULT_NEGLIGIBLE_AMOUNT,
         "scheduledForDeletion": False,
         "allowUnsafeDeletion": False,
+        "configData": "TEST_CONFIG_DATA",
         "latestUpdateId": 1,
         "latestUpdateAt": "2020-01-01T00:00:00",
     }
@@ -802,6 +806,7 @@ def test_deserialize_account_config(app):
         "is_scheduled_for_deletion": True,
         "allow_unsafe_deletion": False,
         "latest_update_id": 2,
+        "config_data": "",
     }
 
     data = acs.load(
@@ -811,6 +816,7 @@ def test_deserialize_account_config(app):
             "allowUnsafeDeletion": True,
             "scheduledForDeletion": False,
             "latestUpdateId": 2,
+            "configData": "TEST_CONFIG",
         }
     )
     assert data == {
@@ -819,6 +825,7 @@ def test_deserialize_account_config(app):
         "is_scheduled_for_deletion": False,
         "allow_unsafe_deletion": True,
         "latest_update_id": 2,
+        "config_data": "TEST_CONFIG",
     }
 
     with pytest.raises(ValidationError, match="Invalid type."):
@@ -876,6 +883,31 @@ def test_deserialize_account_config(app):
             "scheduledForDeletion": false,
             "latestUpdateId": 1
         }"""
+        )
+
+    with pytest.raises(ValidationError, match="Longer than maximum length"):
+        acs.loads(
+            """{
+            "negligibleAmount": 1e10,
+            "allowUnsafeDeletion": true,
+            "scheduledForDeletion": false,
+            "latestUpdateId": 1,
+            "configData": "%s"
+        }""" % (2001 * 'x')
+        )
+
+    with pytest.raises(
+            ValidationError,
+            match="The total byte-length of the config exceeds",
+    ):
+        acs.loads(
+            """{
+            "negligibleAmount": 1e10,
+            "allowUnsafeDeletion": true,
+            "scheduledForDeletion": false,
+            "latestUpdateId": 1,
+            "configData": "%s"
+        }""" % (1001 * 'Щ')
         )
 
 
