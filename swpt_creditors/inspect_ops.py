@@ -10,25 +10,25 @@ class ForbiddenOperation(Exception):
 
 
 def _calc_accounts_key(creditor_id: int) -> bytes:
-    return b"a" + b16encode(
+    return b"a{%s}" % b16encode(
         creditor_id.to_bytes(8, byteorder="big", signed=True)
     )
 
 
 def _calc_transfers_key(creditor_id: int) -> bytes:
-    return b"t" + b16encode(
+    return b"t{%s}" % b16encode(
         creditor_id.to_bytes(8, byteorder="big", signed=True)
     )
 
 
 def _calc_reconfigs_key(creditor_id: int) -> bytes:
-    return b"r" + b16encode(
+    return b"r{%s}" % b16encode(
         creditor_id.to_bytes(8, byteorder="big", signed=True)
     )
 
 
 def _calc_initiations_key(creditor_id: int) -> bytes:
-    return b"i" + b16encode(
+    return b"i{%s}" % b16encode(
         creditor_id.to_bytes(8, byteorder="big", signed=True)
     )
 
