@@ -41,10 +41,12 @@ following servers:
    as hexadecimal (lowercase). For example, for debtor ID equal to 10, the
    routing key will be "00.00.00.00.00.00.00.0a".
 
-   **Note:** If you execute the "configure" command (see below), with
-   the environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an
-   attempt will be made to automatically setup all the required
-   RabbitMQ queues, exchanges, and the bindings between them.
+   **Note:** If you execute the "configure" command (see below), with the
+   environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an attempt
+   will be made to automatically setup all the required RabbitMQ queues,
+   exchanges, and the bindings between them. For this to work, the
+   `rabbitmq_random_exchange` plugin must be enabled on the RabbitMQ server
+   instance.
 
 3. [Redis] server instance, which stores Denial of Service attack
    protection statistics for the creditors stored on the PostgreSQL
@@ -146,7 +148,7 @@ PROTOCOL_BROKER_THREADS=3
 PROTOCOL_BROKER_PREFETCH_COUNT=10
 
 # The binding key with which the "$PROTOCOL_BROKER_QUEUE"
-# RabbitMQ queue is bound to the "creditors_in" RabbitMQ topic
+# RabbitMQ queue is bound to the "ca.creditors" RabbitMQ topic
 # exchange (default "#"). The binding key must consist of zero or
 # more 0s or 1s, separated by dots, ending with a hash symbol.
 # For example: "0.1.#", "1.#", or "#".
