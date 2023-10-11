@@ -19,6 +19,7 @@ CREDITORS_OUT_EXCHANGE = "creditors_out"
 CREDITORS_IN_EXCHANGE = "creditors_in"
 DEBTORS_OUT_EXCHANGE = "debtors_out"
 DEBTORS_IN_EXCHANGE = "debtors_in"
+POLICIES_OUT_EXCHANGE = "policies_out"
 
 
 warnings.filterwarnings(

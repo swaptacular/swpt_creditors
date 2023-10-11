@@ -14,6 +14,7 @@ from .models import (
     LedgerEntry,
     CommittedTransfer,
     PendingLedgerUpdate,
+    UpdatedLedgerSignal,
     uid_seq,
     is_valid_creditor_id,
 )
@@ -407,6 +408,7 @@ class AccountScanner(TableScanner):
                 == row[c.ledger_last_transfer_number]
                 and row[c.ledger_principal] != row[c.principal]
                 and row[c.ledger_latest_update_ts] < latest_update_cutoff_ts
+                and is_valid_creditor_id(row[c.creditor_id])
             )
 
         pks_to_update = [
@@ -476,6 +478,17 @@ class AccountScanner(TableScanner):
         data.ledger_principal = principal
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
+
+        db.session.add(UpdatedLedgerSignal(
+            creditor_id=data.creditor_id,
+            debtor_id=data.debtor_id,
+            update_id=data.ledger_latest_update_id,
+            account_id=data.account_id,
+            creation_date=data.creation_date,
+            principal=principal,
+            last_transfer_number=data.ledger_last_transfer_number,
+            ts=current_ts,
+        ))
 
         return PendingLogEntry(
             creditor_id=creditor_id,

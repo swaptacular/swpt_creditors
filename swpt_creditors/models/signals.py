@@ -1,8 +1,12 @@
 from __future__ import annotations
 from flask import current_app
 from marshmallow import Schema, fields
-from swpt_pythonlib.utils import i64_to_hex_routing_key
-from swpt_creditors.extensions import db, CREDITORS_OUT_EXCHANGE
+from swpt_pythonlib.utils import i64_to_hex_routing_key, calc_bin_routing_key
+from swpt_creditors.extensions import (
+    db,
+    CREDITORS_OUT_EXCHANGE,
+    POLICIES_OUT_EXCHANGE,
+)
 from .common import Signal, CT_DIRECT
 
 
@@ -123,3 +127,73 @@ class FinalizeTransferSignal(Signal):
     @classproperty
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_FINALIZE_TRANSFERS_BURST_COUNT"]
+
+
+class UpdatedLedgerSignal(Signal):
+    exchange_name = POLICIES_OUT_EXCHANGE
+
+    class __marshmallow__(Schema):
+        type = fields.Constant("UpdatedLedger")
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        update_id = fields.Integer()
+        account_id = fields.String()
+        creation_date = fields.Date()
+        principal = fields.Integer()
+        last_transfer_number = fields.Integer()
+        ts = fields.DateTime()
+
+    __marshmallow_schema__ = __marshmallow__()
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    update_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, nullable=False)
+    account_id = db.Column(db.String, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
+    last_transfer_number = db.Column(db.BigInteger, nullable=False)
+    ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return calc_bin_routing_key(self.creditor_id)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config["APP_FLUSH_UPDATED_LEDGER_BURST_COUNT"]
+
+
+class UpdatedPolicySignal(Signal):
+    exchange_name = POLICIES_OUT_EXCHANGE
+
+    class __marshmallow__(Schema):
+        type = fields.Constant("UpdatedPolicy")
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        update_id = fields.Integer()
+        policy_name = fields.String()
+        min_principal = fields.Integer()
+        max_principal = fields.Integer()
+        peg_exchange_rate = fields.Float()
+        peg_debtor_id = fields.Integer()
+        ts = fields.DateTime()
+
+    __marshmallow_schema__ = __marshmallow__()
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    update_id = db.Column(db.BigInteger, primary_key=True)
+    policy_name = db.Column(db.String)
+    min_principal = db.Column(db.BigInteger, nullable=False)
+    max_principal = db.Column(db.BigInteger, nullable=False)
+    peg_exchange_rate = db.Column(db.FLOAT)
+    peg_debtor_id = db.Column(db.BigInteger)
+    ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return calc_bin_routing_key(self.creditor_id)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config["APP_FLUSH_UPDATED_POLICY_BURST_COUNT"]

@@ -115,11 +115,13 @@ case $1 in
         exec flask swpt_creditors "$@"
         ;;
     flush_configure_accounts | flush_prepare_transfers | flush_finalize_transfers \
-        | flush_all)
+        | flush_updated_ledgers | flush_updated_policies | flush_all)
 
         flush_configure_accounts=ConfigureAccountSignal
         flush_prepare_transfers=PrepareTransferSignal
         flush_finalize_transfers=FinalizeTransferSignal
+        flush_updated_ledgers=UpdatedLedgerSignal
+        flush_updated_policies=UpdatedPolicySignal
         flush_all=
 
         # For example: if `$1` is "flush_configure_accounts",

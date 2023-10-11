@@ -7,6 +7,8 @@ from swpt_creditors.models import (
     Account,
     AccountData,
     ConfigureAccountSignal,
+    UpdatedPolicySignal,
+    UpdatedLedgerSignal,
     AccountDisplay,
     AccountKnowledge,
     AccountExchange,
@@ -15,6 +17,9 @@ from swpt_creditors.models import (
     Creditor,
     DEFAULT_NEGLIGIBLE_AMOUNT,
     DEFAULT_CONFIG_FLAGS,
+    DATE0,
+    MIN_INT64,
+    MAX_INT64,
     uid_seq,
 )
 from .common import (
@@ -407,6 +412,18 @@ def update_account_exchange(
     perform_update()
     exchange.latest_update_ts = current_ts
 
+    db.session.add(UpdatedPolicySignal(
+        creditor_id=exchange.creditor_id,
+        debtor_id=exchange.debtor_id,
+        update_id=latest_update_id,
+        policy_name=exchange.policy,
+        min_principal=exchange.min_principal,
+        max_principal=exchange.max_principal,
+        peg_exchange_rate=exchange.peg_exchange_rate,
+        peg_debtor_id=exchange.peg_debtor_id,
+        ts=current_ts,
+    ))
+
     paths, types = get_paths_and_types()
     db.session.add(
         PendingLogEntry(
@@ -578,6 +595,29 @@ def _log_account_deletion(
             added_at=current_ts,
             is_deleted=True,
         )
+
+    db.session.add(UpdatedLedgerSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        account_id='',
+        creation_date=DATE0,
+        principal=0,
+        last_transfer_number=0,
+        ts=current_ts,
+    ))
+
+    db.session.add(UpdatedPolicySignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        policy_name=None,
+        min_principal=MIN_INT64,
+        max_principal=MAX_INT64,
+        peg_exchange_rate=None,
+        peg_debtor_id=None,
+        ts=current_ts,
+    ))
 
 
 def _insert_info_update_pending_log_entry(
