@@ -11,7 +11,6 @@ from flask import current_app
 from flask.cli import with_appcontext
 from flask_sqlalchemy.model import Model
 from swpt_creditors import procedures
-from swpt_creditors.models import is_valid_creditor_id
 from .extensions import db
 from .table_scanners import (
     CreditorScanner,
@@ -250,11 +249,10 @@ def process_ledger_updates(threads, burst, wait, quit_early):
         return procedures.get_pending_ledger_updates(max_count=max_count)
 
     def process_ledger_update(creditor_id, debtor_id):
-        if is_valid_creditor_id(creditor_id):
-            while not procedures.process_pending_ledger_update(
-                creditor_id, debtor_id, max_count=burst, max_delay=max_delay
-            ):
-                pass
+        while not procedures.process_pending_ledger_update(
+            creditor_id, debtor_id, max_count=burst, max_delay=max_delay
+        ):
+            pass
 
     logger = logging.getLogger(__name__)
     logger.info("Started ledger updates processor.")

@@ -408,7 +408,6 @@ class AccountScanner(TableScanner):
                 == row[c.ledger_last_transfer_number]
                 and row[c.ledger_principal] != row[c.principal]
                 and row[c.ledger_latest_update_ts] < latest_update_cutoff_ts
-                and is_valid_creditor_id(row[c.creditor_id])
             )
 
         pks_to_update = [
