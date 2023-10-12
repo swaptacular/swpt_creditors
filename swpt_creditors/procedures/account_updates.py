@@ -180,6 +180,11 @@ def process_account_update_signal(
             ledger_principal = 0
             ledger_last_transfer_number = 0
         else:  # pragma: no cover
+            # When the `account_id` field is changed, we should send a
+            # corresponding `UpdatedLedgerSignal` message. To do this
+            # consistently with the Web API, first we need to add a ledger
+            # update log entry, even when the ledger did not really change.
+            assert is_account_id_changed
             ledger_principal = data.ledger_principal
             ledger_last_transfer_number = data.ledger_last_transfer_number
 

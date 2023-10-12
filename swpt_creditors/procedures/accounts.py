@@ -413,8 +413,8 @@ def update_account_exchange(
     exchange.latest_update_ts = current_ts
 
     db.session.add(UpdatedPolicySignal(
-        creditor_id=exchange.creditor_id,
-        debtor_id=exchange.debtor_id,
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
         update_id=latest_update_id,
         policy_name=exchange.policy,
         min_principal=exchange.min_principal,
