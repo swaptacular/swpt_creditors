@@ -10,6 +10,7 @@ def test_sibnalbus_burst_count(app):
     assert isinstance(m.FinalizeTransferSignal.signalbus_burst_count, int)
     assert isinstance(m.UpdatedLedgerSignal.signalbus_burst_count, int)
     assert isinstance(m.UpdatedPolicySignal.signalbus_burst_count, int)
+    assert isinstance(m.UpdatedFlagsSignal.signalbus_burst_count, int)
 
 
 def test_account_data(db_session):

@@ -134,6 +134,7 @@ def test_delete_account(account, current_ts):
     with pytest.raises(p.UnsafeAccountDeletion):
         p.delete_account(C_ID, D_ID)
 
+    assert len(models.UpdatedFlagsSignal.query.all()) == 0
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
     p.update_account_config(
         C_ID,
@@ -144,6 +145,14 @@ def test_delete_account(account, current_ts):
         config_data="",
         latest_update_id=latest_update_id + 1,
     )
+    ufs = models.UpdatedFlagsSignal.query.one()
+    assert ufs.creditor_id == C_ID
+    assert ufs.debtor_id == D_ID
+    assert ufs.config_flags == (
+        models.DEFAULT_CONFIG_FLAGS
+        | AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    )
+    assert isinstance(ufs.ts, date)
 
     config = p.get_account_config(C_ID, D_ID)
     params["last_change_seqnum"] += 1
@@ -179,6 +188,14 @@ def test_delete_account(account, current_ts):
     assert ups.peg_exchange_rate is None
     assert ups.peg_debtor_id is None
     assert isinstance(ups.ts, date)
+
+    assert len(models.UpdatedLedgerSignal.query.all()) == 2
+    ufs = models.UpdatedFlagsSignal.query.filter_by(
+        config_flags=models.DEFAULT_CONFIG_FLAGS
+    ).one()
+    assert ufs.creditor_id == C_ID
+    assert ufs.debtor_id == D_ID
+    assert isinstance(ufs.ts, date)
 
 
 def test_process_account_update_signal(account):

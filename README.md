@@ -241,7 +241,7 @@ container allows you to execute the following *documented commands*:
 
 * `flush_configure_accounts`, `flush_prepare_transfers`,
   `flush_finalize_transfers`, `flush_updated_ledgers`,
-  `flush_updated_policies`
+  `flush_updated_policies`, `flush_updated_flags`
 
   Starts additional worker processes that send particular type of outgoing
   messages to the RabbitMQ broker, and remove the messages from the

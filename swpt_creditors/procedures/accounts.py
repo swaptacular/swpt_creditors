@@ -9,6 +9,7 @@ from swpt_creditors.models import (
     ConfigureAccountSignal,
     UpdatedPolicySignal,
     UpdatedLedgerSignal,
+    UpdatedFlagsSignal,
     AccountDisplay,
     AccountKnowledge,
     AccountExchange,
@@ -198,6 +199,14 @@ def update_account_config(
     data.last_config_ts = max(current_ts, data.last_config_ts)
     data.last_config_seqnum = increment_seqnum(data.last_config_seqnum)
     data.is_config_effectual = False
+
+    db.session.add(UpdatedFlagsSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=latest_update_id,
+        config_flags=data.config_flags,
+        ts=current_ts,
+    ))
 
     paths, types = get_paths_and_types()
     db.session.add(
@@ -616,6 +625,14 @@ def _log_account_deletion(
         max_principal=MAX_INT64,
         peg_exchange_rate=None,
         peg_debtor_id=None,
+        ts=current_ts,
+    ))
+
+    db.session.add(UpdatedFlagsSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        config_flags=DEFAULT_CONFIG_FLAGS,
         ts=current_ts,
     ))
 

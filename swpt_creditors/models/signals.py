@@ -197,3 +197,31 @@ class UpdatedPolicySignal(Signal):
     @classproperty
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_UPDATED_POLICY_BURST_COUNT"]
+
+
+class UpdatedFlagsSignal(Signal):
+    exchange_name = POLICIES_OUT_EXCHANGE
+
+    class __marshmallow__(Schema):
+        type = fields.Constant("UpdatedFlags")
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        update_id = fields.Integer()
+        config_flags = fields.Integer()
+        ts = fields.DateTime()
+
+    __marshmallow_schema__ = __marshmallow__()
+
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    update_id = db.Column(db.BigInteger, primary_key=True)
+    config_flags = db.Column(db.BigInteger, nullable=False)
+    ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return calc_bin_routing_key(self.creditor_id)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config["APP_FLUSH_UPDATED_FLAGS_BURST_COUNT"]
