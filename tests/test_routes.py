@@ -1066,11 +1066,21 @@ def test_account_config(client, account):
     r = client.patch(
         "/creditors/4294967296/accounts/1/config", json=request_data
     )
+
+    assert len(m.UpdatedPolicySignal.query.all()) == 0
     assert r.status_code == 200
     r = client.patch(
         "/creditors/4294967296/accounts/1/config", json=request_data
     )
     assert r.status_code == 200
+    ufs = m.UpdatedFlagsSignal.query.one()
+    assert ufs.debtor_id == 1
+    assert ufs.creditor_id == 4294967296
+    assert ufs.config_flags == (
+        m.DEFAULT_CONFIG_FLAGS
+        | m.AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    )
+
     data = r.get_json()
     assert data["type"] == "AccountConfig"
     assert data["uri"] == "/creditors/4294967296/accounts/1/config"
@@ -1323,6 +1333,7 @@ def test_account_exchange(client, account):
         "latestUpdateId": latestUpdateId + 1,
     }
 
+    assert len(m.UpdatedPolicySignal.query.all()) == 0
     r = client.patch(
         "/creditors/4294967296/accounts/1111/exchange", json=request_data
     )
@@ -1332,10 +1343,20 @@ def test_account_exchange(client, account):
         "/creditors/4294967296/accounts/1/exchange", json=request_data
     )
     assert r.status_code == 200
+    ups = m.UpdatedPolicySignal.query.one()
+    assert ups.debtor_id == 1
+    assert ups.creditor_id == 4294967296
+    assert ups.policy_name is None
+    assert ups.min_principal == 1000
+    assert ups.max_principal == 2000
+    assert ups.peg_exchange_rate is None
+    assert ups.peg_debtor_id is None
+
     r = client.patch(
         "/creditors/4294967296/accounts/1/exchange", json=request_data
     )
     assert r.status_code == 200
+
     data = r.get_json()
     assert data["type"] == "AccountExchange"
     assert data["uri"] == "/creditors/4294967296/accounts/1/exchange"
