@@ -50,7 +50,7 @@ def subscribe():  # pragma: no cover
     from .extensions import (
         CREDITORS_IN_EXCHANGE,
         CREDITORS_OUT_EXCHANGE,
-        POLICIES_OUT_EXCHANGE,
+        TO_TRADE_EXCHANGE,
     )
 
     CA_CREDITORS_EXCHANGE = "ca.creditors"
@@ -73,7 +73,7 @@ def subscribe():  # pragma: no cover
         CREDITORS_OUT_EXCHANGE, exchange_type="topic", durable=True
     )
     channel.exchange_declare(
-        POLICIES_OUT_EXCHANGE, exchange_type="topic", durable=True
+        TO_TRADE_EXCHANGE, exchange_type="topic", durable=True
     )
 
     # declare exchange bindings

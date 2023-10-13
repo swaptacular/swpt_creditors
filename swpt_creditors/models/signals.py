@@ -5,7 +5,7 @@ from swpt_pythonlib.utils import i64_to_hex_routing_key, calc_bin_routing_key
 from swpt_creditors.extensions import (
     db,
     CREDITORS_OUT_EXCHANGE,
-    POLICIES_OUT_EXCHANGE,
+    TO_TRADE_EXCHANGE,
 )
 from .common import Signal, CT_DIRECT
 
@@ -130,7 +130,7 @@ class FinalizeTransferSignal(Signal):
 
 
 class UpdatedLedgerSignal(Signal):
-    exchange_name = POLICIES_OUT_EXCHANGE
+    exchange_name = TO_TRADE_EXCHANGE
 
     class __marshmallow__(Schema):
         type = fields.Constant("UpdatedLedger")
@@ -164,7 +164,7 @@ class UpdatedLedgerSignal(Signal):
 
 
 class UpdatedPolicySignal(Signal):
-    exchange_name = POLICIES_OUT_EXCHANGE
+    exchange_name = TO_TRADE_EXCHANGE
 
     class __marshmallow__(Schema):
         type = fields.Constant("UpdatedPolicy")
@@ -200,7 +200,7 @@ class UpdatedPolicySignal(Signal):
 
 
 class UpdatedFlagsSignal(Signal):
-    exchange_name = POLICIES_OUT_EXCHANGE
+    exchange_name = TO_TRADE_EXCHANGE
 
     class __marshmallow__(Schema):
         type = fields.Constant("UpdatedFlags")

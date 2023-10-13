@@ -43,8 +43,8 @@ following servers:
      hexadecimal (lowercase). For example, for debtor ID equal to 10, the
      routing key will be "00.00.00.00.00.00.00.0a".
 
-   - **`policies_out`**: For policy change notifications that must be sent
-     to the subsystem that is responsible for performing automatic circular
+   - **`to_trade`**: For policy change notifications that must be sent to
+     the subsystem that is responsible for performing automatic circular
      trades. The routing key will represent the highest 24 bits of the MD5
      digest of the creditor ID. For example, if the creditor ID is 123, the
      routing key will be "1.1.1.1.1.1.0.0.0.0.0.1.0.0.0.0.0.1.1.0.0.0.1.1".
