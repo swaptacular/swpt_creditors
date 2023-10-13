@@ -251,6 +251,7 @@ def test_scan_accounts(app, db_session, current_ts):
     data2.principal = 1000
     data2.ledger_latest_update_ts = current_ts - timedelta(days=60)
     data2.last_config_ts = current_ts - timedelta(days=1000)
+    data2_creation_date = data2.creation_date
 
     data3 = m.AccountData.query.filter_by(debtor_id=3).one()
     data3.last_transfer_number = 1
@@ -290,6 +291,14 @@ def test_scan_accounts(app, db_session, current_ts):
     assert le.acquired_amount == 1000
     assert le.principal == 1000
     assert le.added_at >= current_ts
+
+    uls = m.UpdatedLedgerSignal.query.one()
+    assert uls.creditor_id == C_ID
+    assert uls.debtor_id == 2
+    assert uls.creation_date == data2_creation_date
+    assert uls.principal == 1000
+    assert uls.last_transfer_number == 0
+    assert isinstance(uls.ts, date)
 
     data2 = m.AccountData.query.filter_by(debtor_id=2).one()
 
