@@ -215,7 +215,7 @@ class UpdatedFlagsSignal(Signal):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     update_id = db.Column(db.BigInteger, primary_key=True)
-    config_flags = db.Column(db.BigInteger, nullable=False)
+    config_flags = db.Column(db.Integer, nullable=False)
     ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     @property
