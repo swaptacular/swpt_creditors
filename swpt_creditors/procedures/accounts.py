@@ -605,6 +605,11 @@ def _log_account_deletion(
             is_deleted=True,
         )
 
+    # NOTE: When an account has been deleted, notification messages must be
+    # sent to the subsystem that performs automatic circular trades. These
+    # are otherwise regular notifications, but they contain the default safe
+    # values for all of the fields. (The default values forbid all automatic
+    # circular trades for the account.)
     db.session.add(UpdatedLedgerSignal(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
@@ -615,7 +620,6 @@ def _log_account_deletion(
         last_transfer_number=0,
         ts=current_ts,
     ))
-
     db.session.add(UpdatedPolicySignal(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
@@ -627,7 +631,6 @@ def _log_account_deletion(
         peg_debtor_id=None,
         ts=current_ts,
     ))
-
     db.session.add(UpdatedFlagsSignal(
         creditor_id=creditor_id,
         debtor_id=debtor_id,
