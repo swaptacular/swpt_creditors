@@ -130,6 +130,15 @@ class FinalizeTransferSignal(Signal):
 
 
 class UpdatedLedgerSignal(Signal):
+    """Notifies about a change in account's principal balance.
+
+    In addition to the new principal balance, the notification contains the
+    account's identity (a string), the account's creation date, and the ID
+    (a number) of latest transfer to/from the account. The subsystem that
+    performs automatic circular trades needs this information to do its
+    work.
+    """
+
     exchange_name = TO_TRADE_EXCHANGE
 
     class __marshmallow__(Schema):
@@ -164,6 +173,12 @@ class UpdatedLedgerSignal(Signal):
 
 
 class UpdatedPolicySignal(Signal):
+    """Notifies about a change in account's automatic exchange policy.
+
+    The subsystem that performs automatic circular trades needs this
+    information to do its work.
+    """
+
     exchange_name = TO_TRADE_EXCHANGE
 
     class __marshmallow__(Schema):
@@ -200,6 +215,12 @@ class UpdatedPolicySignal(Signal):
 
 
 class UpdatedFlagsSignal(Signal):
+    """Notifies about a change in account's configuration flags.
+
+    The subsystem that performs automatic circular trades needs this
+    information to do its work.
+    """
+
     exchange_name = TO_TRADE_EXCHANGE
 
     class __marshmallow__(Schema):
