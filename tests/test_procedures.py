@@ -128,10 +128,13 @@ def test_delete_account(account, current_ts):
         "transfer_note_max_bytes": 500,
     }
 
+    assert len(models.UpdatedLedgerSignal.query.all()) == 0
     p.process_account_update_signal(**params)
+    assert len(models.UpdatedLedgerSignal.query.all()) == 1
     with pytest.raises(p.UnsafeAccountDeletion):
         p.delete_account(C_ID, D_ID)
 
+    assert len(models.UpdatedFlagsSignal.query.all()) == 0
     latest_update_id = p.get_account_config(C_ID, D_ID).config_latest_update_id
     p.update_account_config(
         C_ID,
@@ -142,6 +145,14 @@ def test_delete_account(account, current_ts):
         config_data="",
         latest_update_id=latest_update_id + 1,
     )
+    ufs = models.UpdatedFlagsSignal.query.one()
+    assert ufs.creditor_id == C_ID
+    assert ufs.debtor_id == D_ID
+    assert ufs.config_flags == (
+        models.DEFAULT_CONFIG_FLAGS
+        | AccountData.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    )
+    assert isinstance(ufs.ts, date)
 
     config = p.get_account_config(C_ID, D_ID)
     params["last_change_seqnum"] += 1
@@ -150,12 +161,41 @@ def test_delete_account(account, current_ts):
     params["negligible_amount"] = config.negligible_amount
     params["config_flags"] = config.config_flags
     p.process_account_update_signal(**params)
+
+    assert len(models.UpdatedLedgerSignal.query.all()) == 1
+    assert len(models.UpdatedPolicySignal.query.all()) == 0
     p.process_account_purge_signal(
         debtor_id=D_ID, creditor_id=C_ID, creation_date=date(2020, 1, 15)
     )
-
     p.delete_account(C_ID, D_ID)
     assert not p.get_account(C_ID, D_ID)
+    assert len(models.UpdatedLedgerSignal.query.all()) == 2
+
+    uls = models.UpdatedLedgerSignal.query.filter_by(account_id='').one()
+    assert uls.creditor_id == C_ID
+    assert uls.debtor_id == D_ID
+    assert uls.creation_date == models.DATE0
+    assert uls.principal == 0
+    assert uls.last_transfer_number == 0
+    assert isinstance(uls.ts, date)
+
+    ups = models.UpdatedPolicySignal.query.one()
+    assert ups.creditor_id == C_ID
+    assert ups.debtor_id == D_ID
+    assert ups.policy_name is None
+    assert ups.min_principal == models.MIN_INT64
+    assert ups.max_principal == models.MAX_INT64
+    assert ups.peg_exchange_rate is None
+    assert ups.peg_debtor_id is None
+    assert isinstance(ups.ts, date)
+
+    assert len(models.UpdatedLedgerSignal.query.all()) == 2
+    ufs = models.UpdatedFlagsSignal.query.filter_by(
+        config_flags=models.DEFAULT_CONFIG_FLAGS
+    ).one()
+    assert ufs.creditor_id == C_ID
+    assert ufs.debtor_id == D_ID
+    assert isinstance(ufs.ts, date)
 
 
 def test_process_account_update_signal(account):
@@ -246,6 +286,15 @@ def test_process_account_update_signal(account):
     assert ad.last_transfer_number == 22
     assert ad.last_transfer_committed_at == current_ts - timedelta(days=2)
     assert ad.config_error is None
+    uls = models.UpdatedLedgerSignal.query.one()
+    assert uls.creditor_id == C_ID
+    assert uls.debtor_id == D_ID
+    assert uls.update_id == ad.ledger_latest_update_id
+    assert uls.account_id == str(C_ID)
+    assert uls.creation_date == creation_date
+    assert uls.principal == 0
+    assert uls.last_transfer_number == 0
+    assert uls.ts == ad.ledger_latest_update_ts
 
     p.process_account_update_signal(**params)
     assert ad.last_change_seqnum == 1
@@ -295,6 +344,17 @@ def test_process_account_update_signal(account):
     assert ad.ledger_principal == 0
     assert ad.ledger_last_entry_id == 89
     assert ad.ledger_last_transfer_number == 0
+    assert len(models.UpdatedLedgerSignal.query.all()) == 2
+    uls = models.UpdatedLedgerSignal.query.filter_by(
+        creation_date=creation_date + timedelta(days=2)
+    ).one()
+    assert uls.creditor_id == C_ID
+    assert uls.debtor_id == D_ID
+    assert uls.update_id == ad.ledger_latest_update_id
+    assert uls.account_id == str(C_ID)
+    assert uls.principal == 0
+    assert uls.last_transfer_number == 0
+    assert uls.ts == ad.ledger_latest_update_ts
 
     # Discard orphaned account.
     params["debtor_id"] = 1235
@@ -328,8 +388,9 @@ def test_process_account_update_signal(account):
                 object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER
             ).all()
         )
-        == 1
+        == 2
     )
+    assert len(models.UpdatedLedgerSignal.query.all()) == 2
 
 
 def test_process_rejected_config_signal(account):
@@ -752,7 +813,8 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
         ts=current_ts,
         ttl=10000,
     )
-    assert get_ledger_update_entries_count() == 0
+    assert get_ledger_update_entries_count() == 1
+    assert len(models.UpdatedLedgerSignal.query.all()) == 1
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
     assert (
         len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000))
@@ -765,6 +827,8 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     assert p.process_pending_ledger_update(
         C_ID, 1111, max_count=max_count, max_delay=timedelta(days=10000)
     )
+    assert get_ledger_update_entries_count() == 1
+    assert len(models.UpdatedLedgerSignal.query.all()) == 1
 
     n = 0
     while not p.process_pending_ledger_update(
@@ -781,6 +845,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
         == 3
     )
     assert p.get_pending_ledger_updates() == []
+    assert len(models.UpdatedLedgerSignal.query.all()) == lue_count
 
     params["transfer_number"] = 21
     params["previous_transfer_number"] = 20
@@ -858,13 +923,14 @@ def test_process_pending_ledger_update_missing_last_transfer(
         pass
     assert len(PendingLedgerUpdate.query.all()) == 0
     lue_count = get_ledger_update_entries_count()
-    assert lue_count == 0
+    assert lue_count == 1
+    assert len(models.UpdatedLedgerSignal.query.all()) == lue_count
     data = p.get_account_ledger(C_ID, D_ID)
     ledger_last_entry_id = data.ledger_last_entry_id
     assert data.ledger_principal == 0
     assert data.ledger_last_entry_id >= 0
     assert data.ledger_last_transfer_number == 0
-    assert data.ledger_latest_update_id == ledger_latest_update_id
+    assert data.ledger_latest_update_id == ledger_latest_update_id + 1
     assert len(PendingLedgerUpdate.query.all()) == 0
 
     max_delay = timedelta(days=10)
@@ -875,12 +941,13 @@ def test_process_pending_ledger_update_missing_last_transfer(
     ):
         pass
     lue_count = get_ledger_update_entries_count()
-    assert lue_count == 1
+    assert lue_count == 2
+    assert len(models.UpdatedLedgerSignal.query.all()) == lue_count
     data = p.get_account_ledger(C_ID, D_ID)
     assert data.ledger_principal == 1000
     assert data.ledger_last_entry_id == ledger_last_entry_id + 1
     assert data.ledger_last_transfer_number == 3
-    assert data.ledger_latest_update_id == ledger_latest_update_id + 1
+    assert data.ledger_latest_update_id == ledger_latest_update_id + 2
 
 
 def test_process_rejected_direct_transfer_signal(account, current_ts):

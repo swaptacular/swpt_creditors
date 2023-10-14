@@ -7,6 +7,7 @@ from swpt_creditors.extensions import db
 from swpt_creditors.models import (
     AccountData,
     ConfigureAccountSignal,
+    UpdatedLedgerSignal,
     LogEntry,
     PendingLogEntry,
     PendingLedgerUpdate,
@@ -130,6 +131,7 @@ def process_account_update_signal(
 
     assert creation_date >= data.creation_date
     is_new_server_account = creation_date > data.creation_date
+    is_account_id_changed = account_id != data.account_id
     is_config_effectual = (
         last_config_ts == data.last_config_ts
         and last_config_seqnum == data.last_config_seqnum
@@ -172,19 +174,44 @@ def process_account_update_signal(
     if is_info_updated:
         _insert_info_update_pending_log_entry(data, current_ts)
 
-    if is_new_server_account:
+    if is_new_server_account or is_account_id_changed:
+        if is_new_server_account:
+            data.ledger_pending_transfer_ts = None
+            ledger_principal = 0
+            ledger_last_transfer_number = 0
+        else:  # pragma: no cover
+            # When the `account_id` field is changed, we should send a
+            # corresponding `UpdatedLedgerSignal` message. To do this
+            # consistently with the Web API, first we need to add a ledger
+            # update log entry, even when the ledger did not really change.
+            assert is_account_id_changed
+            ledger_principal = data.ledger_principal
+            ledger_last_transfer_number = data.ledger_last_transfer_number
+
         log_entry = _update_ledger(
             data=data,
-            transfer_number=0,
+            transfer_number=ledger_last_transfer_number,
             acquired_amount=0,
-            principal=0,
+            principal=ledger_principal,
             current_ts=current_ts,
+            always_insert_ledger_update_log_entry=True,
         )
         if log_entry:
+            db.session.add(
+                UpdatedLedgerSignal(
+                    creditor_id=creditor_id,
+                    debtor_id=debtor_id,
+                    update_id=data.ledger_latest_update_id,
+                    account_id=data.account_id,
+                    creation_date=data.creation_date,
+                    principal=ledger_principal,
+                    last_transfer_number=ledger_last_transfer_number,
+                    ts=current_ts,
+                )
+            )
             db.session.add(log_entry)
             db.session.scalar(uid_seq)
 
-        data.ledger_pending_transfer_ts = None
         ensure_pending_ledger_update(data.creditor_id, data.debtor_id)
 
 
@@ -303,6 +330,16 @@ def process_pending_ledger_update(
         db.session.delete(pending_ledger_update)
 
     if log_entry:
+        db.session.add(UpdatedLedgerSignal(
+            creditor_id=creditor_id,
+            debtor_id=debtor_id,
+            update_id=data.ledger_latest_update_id,
+            account_id=data.account_id,
+            creation_date=data.creation_date,
+            principal=data.ledger_principal,
+            last_transfer_number=data.ledger_last_transfer_number,
+            ts=current_ts,
+        ))
         db.session.add(log_entry)
         db.session.scalar(uid_seq)
 
@@ -393,6 +430,7 @@ def _update_ledger(
     acquired_amount: int,
     principal: int,
     current_ts: datetime,
+    always_insert_ledger_update_log_entry: bool = False,
 ) -> Optional[PendingLogEntry]:
     should_insert_ledger_update_log_entry = (
         _make_correcting_ledger_entry_if_necessary(
@@ -426,7 +464,10 @@ def _update_ledger(
     data.ledger_principal = principal
     data.ledger_last_transfer_number = transfer_number
 
-    if should_insert_ledger_update_log_entry:
+    if (
+        should_insert_ledger_update_log_entry
+        or always_insert_ledger_update_log_entry
+    ):
         data.ledger_latest_update_id += 1
         data.ledger_latest_update_ts = current_ts
 

@@ -27,6 +27,7 @@ ACCOUNT_DATA_LEDGER_RELATED_COLUMNS = [
     AccountData.creditor_id,
     AccountData.debtor_id,
     AccountData.creation_date,
+    AccountData.account_id,
     AccountData.ledger_principal,
     AccountData.ledger_last_entry_id,
     AccountData.ledger_last_transfer_number,

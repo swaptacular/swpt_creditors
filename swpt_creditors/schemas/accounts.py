@@ -412,10 +412,11 @@ class AccountLedgerSchema(MutableResourceSchema):
             format="int64",
             description=(
                 "The `entryID` of the next ledger entry to come. This will"
-                " always be a positive number. The first ledger entry for each"
-                " account will have an ID of `1`, and the ID of each"
-                " subsequent ledger entry will be equal to the ID of the"
-                " previous ledger entry plus one."
+                " always be a positive number. Normally, the entry ID of the"
+                " first ledger entry for each account will be `1`, but this is"
+                " not guaranteed. What is guaranteed though, is that the ID"
+                " of each subsequent ledger entry will be equal to the ID of"
+                " the previous ledger entry plus one."
             ),
             example=123,
         ),

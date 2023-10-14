@@ -47,8 +47,13 @@ def subscribe():  # pragma: no cover
 
     """
 
-    from .extensions import CREDITORS_IN_EXCHANGE, CREDITORS_OUT_EXCHANGE
+    from .extensions import (
+        CREDITORS_IN_EXCHANGE,
+        CREDITORS_OUT_EXCHANGE,
+        TO_TRADE_EXCHANGE,
+    )
 
+    CA_CREDITORS_EXCHANGE = "ca.creditors"
     logger = logging.getLogger(__name__)
     queue_name = current_app.config["PROTOCOL_BROKER_QUEUE"]
     routing_key = current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
@@ -59,10 +64,31 @@ def subscribe():  # pragma: no cover
 
     # declare exchanges
     channel.exchange_declare(
-        CREDITORS_IN_EXCHANGE, exchange_type="topic", durable=True
+        CREDITORS_IN_EXCHANGE, exchange_type="headers", durable=True
+    )
+    channel.exchange_declare(
+        CA_CREDITORS_EXCHANGE, exchange_type="topic", durable=True
     )
     channel.exchange_declare(
         CREDITORS_OUT_EXCHANGE, exchange_type="topic", durable=True
+    )
+    channel.exchange_declare(
+        TO_TRADE_EXCHANGE, exchange_type="topic", durable=True
+    )
+
+    # declare exchange bindings
+    channel.exchange_bind(
+        source=CREDITORS_IN_EXCHANGE,
+        destination=CA_CREDITORS_EXCHANGE,
+        arguments={
+            "x-match": "all",
+            "ca-creditors": True,
+        },
+    )
+    logger.info(
+        'Created a binding from "%s" to the "%s" exchange.',
+        CREDITORS_IN_EXCHANGE,
+        CA_CREDITORS_EXCHANGE,
     )
 
     # declare a corresponding dead-letter queue
@@ -82,13 +108,13 @@ def subscribe():  # pragma: no cover
 
     # bind the queue
     channel.queue_bind(
-        exchange=CREDITORS_IN_EXCHANGE,
+        exchange=CA_CREDITORS_EXCHANGE,
         queue=queue_name,
         routing_key=routing_key,
     )
     logger.info(
         'Created a binding from "%s" to "%s" with routing key "%s".',
-        CREDITORS_IN_EXCHANGE,
+        CA_CREDITORS_EXCHANGE,
         queue_name,
         routing_key,
     )

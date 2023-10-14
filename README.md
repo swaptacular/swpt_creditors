@@ -35,11 +35,21 @@ following servers:
    that all incoming SMP messages for the creditors stored on the
    PostgreSQL server instance, are routed to this queue.
 
-   Also, a [RabbitMQ exchange] named **`creditors_out`** must be configured
-   on the broker instance. This exchange is for messages that must be sent
-   to accounting authorities. The routing key will represent the debtor ID
-   as hexadecimal (lowercase). For example, for debtor ID equal to 10, the
-   routing key will be "00.00.00.00.00.00.00.0a".
+   Also, the following [RabbitMQ exchanges] must be configured on the
+   broker instance:
+
+   - **`creditors_out`**: For messages that must be sent to accounting
+     authorities. The routing key will represent the debtor ID as
+     hexadecimal (lowercase). For example, for debtor ID equal to 10, the
+     routing key will be "00.00.00.00.00.00.00.0a".
+
+   - **`to_trade`**: For policy change notifications that must be sent to
+     the subsystem that is responsible for performing automatic circular
+     trades. The routing key will represent the highest 24 bits of the MD5
+     digest of the creditor ID. For example, if the creditor ID is 123, the
+     routing key will be "1.1.1.1.1.1.0.0.0.0.0.1.0.0.0.0.0.1.1.0.0.0.1.1".
+     This allows different creditor accounts to be handled by different
+     database servers (sharding).
 
    **Note:** If you execute the "configure" command (see below), with
    the environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an
@@ -146,7 +156,7 @@ PROTOCOL_BROKER_THREADS=3
 PROTOCOL_BROKER_PREFETCH_COUNT=10
 
 # The binding key with which the "$PROTOCOL_BROKER_QUEUE"
-# RabbitMQ queue is bound to the "creditors_in" RabbitMQ topic
+# RabbitMQ queue is bound to the incoming messages' topic
 # exchange (default "#"). The binding key must consist of zero or
 # more 0s or 1s, separated by dots, ending with a hash symbol.
 # For example: "0.1.#", "1.#", or "#".
@@ -230,7 +240,8 @@ container allows you to execute the following *documented commands*:
   RabbitMQ broker, and remove the messages from the PostgreSQL database.
 
 * `flush_configure_accounts`, `flush_prepare_transfers`,
-  `flush_finalize_transfers`
+  `flush_finalize_transfers`, `flush_updated_ledgers`,
+  `flush_updated_policies`, `flush_updated_flags`
 
   Starts additional worker processes that send particular type of outgoing
   messages to the RabbitMQ broker, and remove the messages from the
@@ -328,7 +339,7 @@ can be used for end-to-end testing.
 [Swaptacular Messaging Protocol]: https://github.com/swaptacular/swpt_accounts/blob/master/protocol.rst
 [RabbitMQ]: https://www.rabbitmq.com/
 [RabbitMQ queue]: https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html
-[RabbitMQ exchange]: https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html
+[RabbitMQ exchanges]: https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html
 [Redis]: https://redis.io/
 [OAuth 2.0]: https://oauth.net/2/
 [nginx]: https://en.wikipedia.org/wiki/Nginx
