@@ -8,7 +8,6 @@ from swpt_creditors.models import (
     AccountData,
     ConfigureAccountSignal,
     UpdatedPolicySignal,
-    UpdatedLedgerSignal,
     UpdatedFlagsSignal,
     AccountDisplay,
     AccountKnowledge,
@@ -18,14 +17,12 @@ from swpt_creditors.models import (
     Creditor,
     DEFAULT_NEGLIGIBLE_AMOUNT,
     DEFAULT_CONFIG_FLAGS,
-    DATE0,
-    MIN_INT64,
-    MAX_INT64,
     uid_seq,
 )
 from .common import (
     allow_update,
     get_paths_and_types,
+    stop_account_trade,
     LOAD_ONLY_CONFIG_RELATED_COLUMNS,
     LOAD_ONLY_INFO_RELATED_COLUMNS,
     LOAD_ONLY_LEDGER_RELATED_COLUMNS,
@@ -605,39 +602,7 @@ def _log_account_deletion(
             is_deleted=True,
         )
 
-    # NOTE: When an account has been deleted, notification messages must be
-    # sent to the subsystem that performs automatic circular trades. These
-    # are otherwise regular notifications, but they contain the default safe
-    # values for all of the fields. (The default values forbid all automatic
-    # circular trades for the account.)
-    db.session.add(UpdatedLedgerSignal(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        update_id=object_update_id,
-        account_id='',
-        creation_date=DATE0,
-        principal=0,
-        last_transfer_number=0,
-        ts=current_ts,
-    ))
-    db.session.add(UpdatedPolicySignal(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        update_id=object_update_id,
-        policy_name=None,
-        min_principal=MIN_INT64,
-        max_principal=MAX_INT64,
-        peg_exchange_rate=None,
-        peg_debtor_id=None,
-        ts=current_ts,
-    ))
-    db.session.add(UpdatedFlagsSignal(
-        creditor_id=creditor_id,
-        debtor_id=debtor_id,
-        update_id=object_update_id,
-        config_flags=DEFAULT_CONFIG_FLAGS,
-        ts=current_ts,
-    ))
+    stop_account_trade(creditor_id, debtor_id, object_update_id, current_ts)
 
 
 def _insert_info_update_pending_log_entry(

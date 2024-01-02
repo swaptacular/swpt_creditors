@@ -11,8 +11,9 @@ from swpt_creditors.models import (
     PinInfo,
     Account,
     RunningTransfer,
+    uid_seq,
 )
-from .common import get_paths_and_types
+from .common import get_paths_and_types, stop_account_trade
 from . import errors
 
 T = TypeVar("T")
@@ -356,9 +357,18 @@ def _delete_creditor_pin_info(creditor_id: int) -> None:
 
 
 def _delete_creditor_accounts(creditor_id: int) -> None:
-    Account.query.filter_by(creditor_id=creditor_id).delete(
-        synchronize_session=False
+    current_ts = datetime.now(tz=timezone.utc)
+    object_update_id = db.session.scalar(uid_seq)
+    accounts = (
+        Account.query.filter_by(creditor_id=creditor_id)
+        .with_for_update()
+        .all()
     )
+    for account in accounts:
+        stop_account_trade(
+            creditor_id, account.debtor_id, object_update_id, current_ts
+        )
+        db.session.delete(account)
 
 
 def _delete_creditor_running_transfers(creditor_id: int) -> None:

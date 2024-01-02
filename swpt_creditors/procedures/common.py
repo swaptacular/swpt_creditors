@@ -1,6 +1,17 @@
 from typing import Callable, Dict, Any
+from datetime import datetime
 from sqlalchemy.orm import load_only
-from swpt_creditors.models import MIN_INT64, MAX_INT64, AccountData
+from swpt_creditors.extensions import db
+from swpt_creditors.models import (
+    MIN_INT64,
+    MAX_INT64,
+    DATE0,
+    DEFAULT_CONFIG_FLAGS,
+    AccountData,
+    UpdatedLedgerSignal,
+    UpdatedPolicySignal,
+    UpdatedFlagsSignal,
+)
 from . import errors
 
 ACCOUNT_DATA_CONFIG_RELATED_COLUMNS = [
@@ -123,3 +134,44 @@ def contain_principal_overflow(value: int) -> int:
     if value > MAX_INT64:  # pragma: no cover
         return MAX_INT64
     return value
+
+
+def stop_account_trade(
+    creditor_id: int,
+    debtor_id: int,
+    object_update_id: int,
+    current_ts: datetime,
+) -> None:
+    # NOTE: When an account has been deleted, notification messages must be
+    # sent to the subsystem that performs automatic circular trades. These
+    # are otherwise regular notifications, but they contain the default safe
+    # values for all of the fields. (The default values forbid all automatic
+    # circular trades for the account.)
+    db.session.add(UpdatedLedgerSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        account_id='',
+        creation_date=DATE0,
+        principal=0,
+        last_transfer_number=0,
+        ts=current_ts,
+    ))
+    db.session.add(UpdatedPolicySignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        policy_name=None,
+        min_principal=MIN_INT64,
+        max_principal=MAX_INT64,
+        peg_exchange_rate=None,
+        peg_debtor_id=None,
+        ts=current_ts,
+    ))
+    db.session.add(UpdatedFlagsSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        config_flags=DEFAULT_CONFIG_FLAGS,
+        ts=current_ts,
+    ))
