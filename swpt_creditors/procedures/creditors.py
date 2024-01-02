@@ -5,15 +5,22 @@ from sqlalchemy.sql.expression import func
 from sqlalchemy.orm import joinedload
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
+    MIN_INT64,
+    MAX_INT64,
+    DATE0,
+    DEFAULT_CONFIG_FLAGS,
     Creditor,
     LogEntry,
     PendingLogEntry,
     PinInfo,
     Account,
     RunningTransfer,
+    UpdatedLedgerSignal,
+    UpdatedFlagsSignal,
+    UpdatedPolicySignal,
     uid_seq,
 )
-from .common import get_paths_and_types, stop_account_trade
+from .common import get_paths_and_types
 from . import errors
 
 T = TypeVar("T")
@@ -356,6 +363,47 @@ def _delete_creditor_pin_info(creditor_id: int) -> None:
     )
 
 
+def _stop_account_trade(
+    creditor_id: int,
+    debtor_id: int,
+    object_update_id: int,
+    current_ts: datetime,
+) -> None:
+    # NOTE: When an account has been deleted, notification messages must be
+    # sent to the subsystem that performs automatic circular trades. These
+    # are otherwise regular notifications, but they contain the default safe
+    # values for all of the fields. (The default values forbid all automatic
+    # circular trades for the account.)
+    db.session.add(UpdatedLedgerSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        account_id='',
+        creation_date=DATE0,
+        principal=0,
+        last_transfer_number=0,
+        ts=current_ts,
+    ))
+    db.session.add(UpdatedPolicySignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        policy_name=None,
+        min_principal=MIN_INT64,
+        max_principal=MAX_INT64,
+        peg_exchange_rate=None,
+        peg_debtor_id=None,
+        ts=current_ts,
+    ))
+    db.session.add(UpdatedFlagsSignal(
+        creditor_id=creditor_id,
+        debtor_id=debtor_id,
+        update_id=object_update_id,
+        config_flags=DEFAULT_CONFIG_FLAGS,
+        ts=current_ts,
+    ))
+
+
 def _delete_creditor_accounts(creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     object_update_id = db.session.scalar(uid_seq)
@@ -365,7 +413,7 @@ def _delete_creditor_accounts(creditor_id: int) -> None:
         .all()
     )
     for account in accounts:
-        stop_account_trade(
+        _stop_account_trade(
             creditor_id, account.debtor_id, object_update_id, current_ts
         )
         db.session.delete(account)

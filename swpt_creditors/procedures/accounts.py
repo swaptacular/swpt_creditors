@@ -22,12 +22,16 @@ from swpt_creditors.models import (
 from .common import (
     allow_update,
     get_paths_and_types,
-    stop_account_trade,
     LOAD_ONLY_CONFIG_RELATED_COLUMNS,
     LOAD_ONLY_INFO_RELATED_COLUMNS,
     LOAD_ONLY_LEDGER_RELATED_COLUMNS,
 )
-from .creditors import get_active_creditor, _get_creditor, _add_log_entry
+from .creditors import (
+    get_active_creditor,
+    _stop_account_trade,
+    _get_creditor,
+    _add_log_entry,
+)
 from . import errors
 
 T = TypeVar("T")
@@ -602,7 +606,7 @@ def _log_account_deletion(
             is_deleted=True,
         )
 
-    stop_account_trade(creditor_id, debtor_id, object_update_id, current_ts)
+    _stop_account_trade(creditor_id, debtor_id, object_update_id, current_ts)
 
 
 def _insert_info_update_pending_log_entry(
