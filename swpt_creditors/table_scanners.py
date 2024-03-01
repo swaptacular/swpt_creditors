@@ -413,7 +413,7 @@ class AccountScanner(TableScanner):
         pks_to_update = [
             (row[c.creditor_id], row[c.debtor_id])
             for row in rows
-            if needs_update(row)
+            if needs_update(row) and is_valid_creditor_id(row[c.creditor_id])
         ]
         if pks_to_update:
             ledger_update_pending_log_entries = []
@@ -517,7 +517,7 @@ class AccountScanner(TableScanner):
         pks_to_repair = [
             (row[c.creditor_id], row[c.debtor_id])
             for row in rows
-            if needs_repair(row)
+            if needs_repair(row) and is_valid_creditor_id(row[c.creditor_id])
         ]
         if pks_to_repair:
             db.session.execute(
@@ -550,7 +550,10 @@ class AccountScanner(TableScanner):
         pks_to_set = [
             (row[c.creditor_id], row[c.debtor_id])
             for row in rows
-            if has_unreported_config_problem(row)
+            if (
+                has_unreported_config_problem(row)
+                and is_valid_creditor_id(row[c.creditor_id])
+            )
         ]
         if pks_to_set:
             info_update_pending_log_entries = []
