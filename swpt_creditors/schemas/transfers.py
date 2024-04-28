@@ -74,12 +74,12 @@ class TransferErrorSchema(Schema):
                 ' note is too big.\n* `"INSUFFICIENT_AVAILABLE_AMOUNT"`'
                 " signifies that the transfer   has been rejected due to"
                 " insufficient amount available on the   sender's account.\n*"
-                ' `"TERMINATED"` signifies that the transfer has been'
-                " terminated   due to expired deadline, unapproved interest"
-                " rate change, or   some other *temporary or correctable"
-                " condition*. If the client   verifies the transer options and"
-                " retries the transfer, chances   are that it will be"
-                " committed successfully.\n"
+                ' `"TIMEOUT"` signifies that the transfer has been terminated'
+                " due to expired deadline.\n*"
+                ' `"TOO_LOW_INTEREST_RATE"` signifies that the transfer has'
+                " been terminated because the current interest rate on the"
+                " account is smaller than the minimal approved interest"
+                " rate.\n"
             ),
             example="INSUFFICIENT_AVAILABLE_AMOUNT",
         ),
