@@ -18,6 +18,7 @@ from swpt_creditors.models import (
     SC_CANCELED_BY_THE_SENDER,
     SC_UNEXPECTED_ERROR,
     MAX_INT32,
+    T_INFINITY,
 )
 from .creditors import get_active_creditor
 from . import errors
@@ -67,7 +68,7 @@ def initiate_running_transfer(
     transfer_note_format: str,
     transfer_note: str,
     deadline: datetime = None,
-    min_interest_rate: float = -100.0,
+    final_interest_rate_ts: datetime = T_INFINITY,
     locked_amount: int = 0
 ) -> RunningTransfer:
     current_ts = datetime.now(tz=timezone.utc)
@@ -84,7 +85,7 @@ def initiate_running_transfer(
         "transfer_note_format": transfer_note_format,
         "transfer_note": transfer_note,
         "deadline": deadline,
-        "min_interest_rate": min_interest_rate,
+        "final_interest_rate_ts": final_interest_rate_ts,
         "locked_amount": locked_amount,
     }
 
@@ -125,7 +126,7 @@ def initiate_running_transfer(
             debtor_id=debtor_id,
             recipient=recipient,
             locked_amount=locked_amount,
-            min_interest_rate=min_interest_rate,
+            final_interest_rate_ts=final_interest_rate_ts,
             max_commit_delay=_calc_max_commit_delay(current_ts, deadline),
             inserted_at=current_ts,
         )

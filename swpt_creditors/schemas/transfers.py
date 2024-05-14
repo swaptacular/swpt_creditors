@@ -14,6 +14,7 @@ from swpt_pythonlib.utils import i64_to_u64
 from swpt_pythonlib.swpt_uris import make_account_uri
 from swpt_creditors import models
 from swpt_creditors.models import (
+    T_INFINITY,
     MAX_INT64,
     CT_DIRECT,
     TRANSFER_NOTE_MAX_BYTES,
@@ -76,10 +77,10 @@ class TransferErrorSchema(Schema):
                 " insufficient amount available on the   sender's account.\n*"
                 ' `"TIMEOUT"` signifies that the transfer has been terminated'
                 " due to expired deadline.\n*"
-                ' `"TOO_LOW_INTEREST_RATE"` signifies that the transfer has'
+                ' `"NEWER_INTEREST_RATE"` signifies that the transfer has'
                 " been terminated because the current interest rate on the"
-                " account is smaller than the minimal approved interest"
-                " rate.\n"
+                " account is more recent than the specified final interest"
+                " rate timestamp.\n"
             ),
             example="INSUFFICIENT_AVAILABLE_AMOUNT",
         ),
@@ -120,20 +121,19 @@ class TransferOptionsSchema(Schema):
             example="TransferOptions",
         ),
     )
-    min_interest_rate = fields.Float(
-        load_default=-100.0,
-        validate=validate.Range(min=-100.0),
-        data_key="minInterestRate",
+    final_interest_rate_ts = fields.DateTime(
+        load_default=T_INFINITY,
+        data_key="finalInterestRateTimestamp",
         metadata=dict(
-            format="float",
             description=(
-                "The minimal approved interest rate. If the interest rate on"
-                " the account becomes lower than this value, the transfer will"
-                " not be successful. This can be useful when the transferred"
-                " amount may need to be decreased if the interest rate on the"
-                " account has decreased."
+                "When the transferred amount would need to be changed if the"
+                " interest rate on the account had been changed unexpectedly"
+                " by the server, this field specifies the onset moment of the"
+                " account's current interest rate, from the client's"
+                " perspective. The default value is appropriate for normal"
+                " transfers."
             ),
-            example=-100.0,
+            example="9999-12-31T23:59:59+00:00",
         ),
     )
     optional_deadline = fields.DateTime(
@@ -409,7 +409,7 @@ class TransferSchema(TransferCreationRequestSchema, MutableResourceSchema):
         }
         obj.recipient_identity = {"uri": obj.recipient_uri}
         obj.options = {
-            "min_interest_rate": obj.min_interest_rate,
+            "final_interest_rate_ts": obj.final_interest_rate_ts,
             "locked_amount": obj.locked_amount,
         }
 

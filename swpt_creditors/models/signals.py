@@ -69,7 +69,7 @@ class PrepareTransferSignal(Signal):
             attribute="locked_amount", dump_only=True
         )
         recipient = fields.String()
-        min_interest_rate = fields.Float()
+        final_interest_rate_ts = fields.DateTime()
         max_commit_delay = fields.Integer()
         inserted_at = fields.DateTime(data_key="ts")
 
@@ -80,7 +80,9 @@ class PrepareTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, nullable=False)
     recipient = db.Column(db.String, nullable=False)
     locked_amount = db.Column(db.BigInteger, nullable=False)
-    min_interest_rate = db.Column(db.Float, nullable=False)
+    final_interest_rate_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False
+    )
     max_commit_delay = db.Column(db.Integer, nullable=False)
 
     @property

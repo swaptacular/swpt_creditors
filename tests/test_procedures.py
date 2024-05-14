@@ -961,7 +961,7 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
         transfer_note_format="json",
         transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
-        min_interest_rate=10.0,
+        final_interest_rate_ts=current_ts + timedelta(seconds=2000),
     )
     assert rt.creditor_id == C_ID
     assert rt.transfer_uuid == TEST_UUID
@@ -976,7 +976,7 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
     assert rt.error_code is None
     assert rt.total_locked_amount is None
     assert rt.deadline == current_ts + timedelta(seconds=1000)
-    assert rt.min_interest_rate == 10.0
+    assert rt.final_interest_rate_ts == current_ts + timedelta(seconds=2000)
     assert rt.coordinator_request_id is not None
     assert rt.transfer_id is None
     assert rt.latest_update_id == 1
@@ -987,7 +987,7 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
     assert pts.debtor_id == D_ID
     assert pts.coordinator_request_id == rt.coordinator_request_id
     assert pts.recipient == rt.recipient
-    assert pts.min_interest_rate == rt.min_interest_rate
+    assert pts.final_interest_rate_ts == current_ts + timedelta(seconds=2000)
     assert 500 <= pts.max_commit_delay <= 1500
 
     p.process_rejected_direct_transfer_signal(
@@ -1012,7 +1012,7 @@ def test_process_rejected_direct_transfer_signal(account, current_ts):
     assert rt.error_code == "TEST_ERROR"
     assert rt.total_locked_amount == 600
     assert rt.deadline == current_ts + timedelta(seconds=1000)
-    assert rt.min_interest_rate == 10.0
+    assert rt.final_interest_rate_ts == current_ts + timedelta(seconds=2000)
     assert rt.coordinator_request_id is not None
     assert rt.transfer_id is None
     assert rt.latest_update_id == 2
@@ -1042,7 +1042,7 @@ def test_process_rejected_direct_transfer_unexpected_error(
         transfer_note_format="json",
         transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
-        min_interest_rate=10.0,
+        final_interest_rate_ts=current_ts + timedelta(seconds=2000),
     )
     p.process_rejected_direct_transfer_signal(
         coordinator_id=C_ID,
@@ -1075,7 +1075,7 @@ def test_successful_transfer(account, current_ts):
         transfer_note_format="json",
         transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
-        min_interest_rate=10.0,
+        final_interest_rate_ts=current_ts + timedelta(seconds=2000),
     )
     p.process_prepared_direct_transfer_signal(
         debtor_id=D_ID,
@@ -1159,7 +1159,7 @@ def test_unsuccessful_transfer(account, current_ts):
         transfer_note_format="json",
         transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
-        min_interest_rate=10.0,
+        final_interest_rate_ts=current_ts + timedelta(seconds=2000),
     )
     p.process_prepared_direct_transfer_signal(
         debtor_id=D_ID,
@@ -1206,7 +1206,7 @@ def test_unsuccessful_transfer_unexpected_error(account, current_ts):
         transfer_note_format="json",
         transfer_note="{}",
         deadline=current_ts + timedelta(seconds=1000),
-        min_interest_rate=10.0,
+        final_interest_rate_ts=current_ts + timedelta(seconds=2000),
     )
     p.process_prepared_direct_transfer_signal(
         debtor_id=D_ID,

@@ -1618,7 +1618,7 @@ def test_deserialize_transfer_creation_request(app):
         "transfer_note": "",
         "options": {
             "type": "TransferOptions",
-            "min_interest_rate": -100.0,
+            "final_interest_rate_ts": models.T_INFINITY,
             "locked_amount": 0,
         },
     }
@@ -1641,7 +1641,7 @@ def test_deserialize_transfer_creation_request(app):
         "transfer_note": models.TRANSFER_NOTE_MAX_BYTES * "x",
         "options": {
             "type": "TransferOptions",
-            "min_interest_rate": -100.0,
+            "final_interest_rate_ts": models.T_INFINITY,
             "locked_amount": 0,
         },
     }
@@ -1651,13 +1651,15 @@ def test_deserialize_transfer_creation_request(app):
             **base_data,
             "options": {
                 "deadline": "1970-01-01T00:00:00+00:00",
-                "minInterestRate": -5,
+                "finalInterestRateTimestamp": "2099-08-24T14:15:22+00:00",
                 "lockedAmount": 1000,
             },
         }
     )
     assert data["options"]["optional_deadline"] == models.TS0
-    assert data["options"]["min_interest_rate"] == -5.0
+    assert data["options"]["final_interest_rate_ts"] == datetime.fromisoformat(
+        "2099-08-24T14:15:22+00:00"
+    )
     assert data["options"]["locked_amount"] == 1000
 
     with pytest.raises(ValidationError):
@@ -1777,7 +1779,7 @@ def test_serialize_transfer(app):
         "transfer_note_format": "json",
         "transfer_note": '{"note": "test"}',
         "deadline": datetime(2020, 1, 1),
-        "min_interest_rate": -50.0,
+        "final_interest_rate_ts": models.T_INFINITY,
         "locked_amount": 1000,
         "latest_update_id": 2,
         "latest_update_ts": datetime(2020, 1, 2),
@@ -1804,7 +1806,7 @@ def test_serialize_transfer(app):
         "note": '{"note": "test"}',
         "options": {
             "type": "TransferOptions",
-            "minInterestRate": -50.0,
+            "finalInterestRateTimestamp": "9999-12-31T23:59:59+00:00",
             "deadline": "2020-01-01T00:00:00",
             "lockedAmount": 1000,
         },
@@ -1821,7 +1823,9 @@ def test_serialize_transfer(app):
         "latestUpdateAt": "2020-01-02T00:00:00",
         "latestUpdateId": 2,
     }
-    assert ts.dumps(dt).find('"minInterestRate": -50.0') != -1
+    assert ts.dumps(dt).find(
+        '"finalInterestRateTimestamp": "9999-12-31T23:59:59+00:00"'
+    ) != -1
 
     dt.error_code = None
     dt.deadline = None
@@ -1841,7 +1845,7 @@ def test_serialize_transfer(app):
         "note": '{"note": "test"}',
         "options": {
             "type": "TransferOptions",
-            "minInterestRate": -50.0,
+            "finalInterestRateTimestamp": "9999-12-31T23:59:59+00:00",
             "lockedAmount": 1000,
         },
         "result": {
@@ -1871,7 +1875,7 @@ def test_serialize_transfer(app):
         "note": '{"note": "test"}',
         "options": {
             "type": "TransferOptions",
-            "minInterestRate": -50.0,
+            "finalInterestRateTimestamp": "9999-12-31T23:59:59+00:00",
             "lockedAmount": 1000,
         },
         "latestUpdateAt": "2020-01-02T00:00:00",
