@@ -150,8 +150,8 @@ class TransfersEndpoint(MethodView):
                     "transfer_note_format"
                 ],
                 transfer_note=transfer_creation_request["transfer_note"],
-                min_interest_rate=transfer_creation_request["options"][
-                    "min_interest_rate"
+                final_interest_rate_ts=transfer_creation_request["options"][
+                    "final_interest_rate_ts"
                 ],
                 deadline=transfer_creation_request["options"].get(
                     "optional_deadline"

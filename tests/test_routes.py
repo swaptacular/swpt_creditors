@@ -1901,7 +1901,7 @@ def test_create_transfer(client, account):
         "note": '{"message": "test"}',
         "options": {
             "type": "TransferOptions",
-            "minInterestRate": -10,
+            "finalInterestRateTimestamp": "2099-08-24T14:15:22+00:00",
             "deadline": "2009-08-24T14:15:22+00:00",
             "lockedAmount": 1000,
         },
@@ -1941,7 +1941,7 @@ def test_create_transfer(client, account):
     assert datetime.fromisoformat(data["checkupAt"])
     assert data["options"] == {
         "type": "TransferOptions",
-        "minInterestRate": -10.0,
+        "finalInterestRateTimestamp": "2099-08-24T14:15:22+00:00",
         "deadline": "2009-08-24T14:15:22+00:00",
         "lockedAmount": 1000,
     }
@@ -2172,7 +2172,7 @@ def test_pin_cfa_reset(client, creditor, account):
         "note": '{"message": "test"}',
         "options": {
             "type": "TransferOptions",
-            "minInterestRate": -10,
+            "finalInterestRateTimestamp": "2099-08-24T14:15:22+00:00",
             "deadline": "2009-08-24T14:15:22+00:00",
             "lockedAmount": 1000,
         },
@@ -2259,7 +2259,7 @@ def test_pin_afa_reset(app, client, creditor, account, reset_days):
         "note": '{"message": "test"}',
         "options": {
             "type": "TransferOptions",
-            "minInterestRate": -10,
+            "finalInterestRateTimestamp": "2099-08-24T14:15:22+00:00",
             "deadline": "2009-08-24T14:15:22+00:00",
             "lockedAmount": 1000,
         },
