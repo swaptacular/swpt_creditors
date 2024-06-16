@@ -328,11 +328,11 @@ services:
       dockerfile: /home/evgeni/src/swpt_trade/Dockerfile
       target: app-image
     environment:
-      - 'TURN_PERIOD=5m'
+      - 'TURN_PERIOD=10m'
       - 'TURN_PERIOD_OFFSET=0'
       - 'TURN_CHECK_INTERVAL=5s'
-      - 'TURN_PHASE1_DURATION=30s'
-      - 'TURN_PHASE2_DURATION=2m'
+      - 'TURN_PHASE1_DURATION=1m'
+      - 'TURN_PHASE2_DURATION=5m'
       - 'BASE_DEBTOR_INFO_LOCATOR=https://host.docker.internal:44302/debtors/1311862288440738828/public'
       - 'BASE_DEBTOR_ID=1311862288440738828'
       - 'MAX_DISTANCE_TO_BASE=10'
