@@ -337,6 +337,8 @@ services:
       - 'BASE_DEBTOR_ID=1311862288440738828'
       - 'MAX_DISTANCE_TO_BASE=10'
       - 'MIN_TRADE_AMOUNT=1000'
+      - 'MIN_COLLECTOR_ID=0x0000010000000000'
+      - 'MAX_COLLECTOR_ID=0x00000100000007ff'
       - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
       - 'WEBSERVER_PROCESSES=1'
       - 'WEBSERVER_THREADS=3'
@@ -398,6 +400,8 @@ services:
       dockerfile: /home/evgeni/src/swpt_trade/Dockerfile
       target: app-image
     environment:
+      - 'MIN_COLLECTOR_ID=0x0000010000000000'
+      - 'MAX_COLLECTOR_ID=0x00000100000007ff'
       - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
       - 'WORKER_POSTGRES_URL=postgresql+psycopg://swpt_worker:swpt_worker@pg:5432/${POSTGRES_DB}'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
