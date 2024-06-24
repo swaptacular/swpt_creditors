@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from typing import TypeVar, Callable, List, Optional
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql.expression import null
 from swpt_pythonlib.utils import increment_seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -128,15 +127,9 @@ def delete_account(creditor_id: int, debtor_id: int) -> None:
     ):
         raise errors.UnsafeAccountDeletion()
 
-    pegged_accounts_query = (
-        AccountExchange.query
-        .filter(
-            AccountExchange.creditor_id == creditor_id,
-            AccountExchange.peg_debtor_id == debtor_id,
-            AccountExchange.peg_debtor_id != null(),
-            AccountExchange.debtor_id != debtor_id,
-        )
-    )
+    pegged_accounts_query = AccountExchange.query.filter_by(
+        creditor_id=creditor_id, peg_debtor_id=debtor_id
+    ).filter(AccountExchange.debtor_id != debtor_id)
     if db.session.query(pegged_accounts_query.exists()).scalar():
         raise errors.ForbiddenPegDeletion()
 
@@ -297,13 +290,8 @@ def update_account_display(
         return display
 
     if debtor_name not in [display.debtor_name, None]:
-        debtor_name_query = (
-            AccountDisplay.query
-            .filter(
-                AccountDisplay.creditor_id == creditor_id,
-                AccountDisplay.debtor_name == debtor_name,
-                AccountDisplay.debtor_name != null(),
-            )
+        debtor_name_query = AccountDisplay.query.filter_by(
+            creditor_id=creditor_id, debtor_name=debtor_name
         )
         if db.session.query(debtor_name_query.exists()).scalar():
             raise errors.DebtorNameConflict()
