@@ -1,0 +1,423 @@
+version: '3.6'
+
+services:
+
+  pg:
+    image: postgres:$POSTGRES_VERSION
+    environment:
+      - 'POSTGRES_DB=$POSTGRES_DB'
+      - 'POSTGRES_USER=$POSTGRES_USER'
+      - 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD'
+    volumes:
+      - 'pg-data-volume:/var/lib/postgresql/data'
+      - './docker/pg/create-users.sql:/docker-entrypoint-initdb.d/create-users.sql'
+    command: -c log_min_messages=FATAL
+
+
+  rabbitmq:
+    image: rabbitmq:$RABBITMQ_VERSION
+    hostname: rabbitmq
+    volumes:
+      - './docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf'
+      - './docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins'
+      - 'rabbitmq-data-volume:/var/lib/rabbitmq/mnesia/rabbit@rabbitmq'
+    environment:
+      - 'RABBITMQ_LOGS=-'
+    ports:
+      - $RABBITMQ_MANAGEMENT_LOCAL_PORT:15672
+
+
+  redis:
+    image: redis:$REDIS_VERSION
+    volumes:
+      - 'redis-data-volume:/data'
+
+
+  # This acts as HTTP reverse proxy for all the other containers.
+  nginx:
+    image: nginx:1.19.4
+    volumes:
+      - './docker/nginx/nginx.conf:/etc/nginx/nginx.conf'
+      - './docker/nginx/templates:/etc/nginx/templates'
+      - './docker/nginx/ssl/cert.pem:/etc/nginx/ssl/cert.pem'
+      - './docker/nginx/ssl/key.pem:/etc/nginx/ssl/key.pem'
+    ports:
+      - $PUBLIC_PORT:$PUBLIC_PORT
+    environment:
+      - 'PORT=$PUBLIC_PORT'
+      - 'CREDITORS_HYDRA_URL=http://creditors-login:4444'
+      - 'CREDITORS_LOGIN_URL=http://creditors-login:8080'
+      - 'CREDITORS_SERVER_URL=http://creditors-apiproxy:8080'
+      - 'CREDITORS_SWAGGER_UI_URL=http://creditors-swagger-ui:8080'
+      - 'CREDITORS_WEBAPP_URL=http://creditors-webapp:80'
+      - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
+    depends_on:
+      - creditors-server
+      - creditors-swagger-ui
+      - creditors-login
+
+
+  # This container acts as a reverse proxy. It extracts the the creditor ID
+  # from the the incoming HTTP request, calculates a sharding key, and then,
+  # based on the sharding key, decides to which server to forward the
+  # incoming request. In this simple example, `creditors-server` is the only
+  # shard.
+  creditors-apiproxy:
+    image: ghcr.io/swaptacular/swpt_apiproxy:latest
+    volumes:
+      - './docker/apiproxy/creditors.conf:/etc/apiproxy.conf'
+    environment:
+      - 'MIN_CREDITOR_ID=$MIN_CREDITOR_ID'
+      - 'MAX_CREDITOR_ID=$MAX_CREDITOR_ID'
+      - 'APIPROXY_PORT=8080'
+      - 'APIPROXY_CONFIG_FILE=/etc/apiproxy.conf'
+    restart: always
+
+
+  creditors-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-image
+    environment:
+      - 'MIN_CREDITOR_ID=$MIN_CREDITOR_ID'
+      - 'MAX_CREDITOR_ID=$MAX_CREDITOR_ID'
+      - 'PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret'
+      - 'WEBSERVER_PROCESSES=1'
+      - 'WEBSERVER_THREADS=3'
+      - 'WEBSERVER_PORT=8080'
+      - 'OAUTH2_INTROSPECT_URL=http://creditors-login:4445/oauth2/introspect'
+      - 'POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
+      - 'REDIS_URL=redis://redis:6379/1?health_check_interval=30'
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'PROTOCOL_BROKER_QUEUE=swpt_creditors'
+      - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
+      - 'PROTOCOL_BROKER_PROCESSES=1'
+      - 'PROTOCOL_BROKER_THREADS=3'
+      - 'PROTOCOL_BROKER_PREFETCH_COUNT=10'
+      - 'FLUSH_PROCESSES=1'
+      - 'FLUSH_PERIOD=1.5'
+      - 'DELETE_PARENT_SHARD_RECORDS=false'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    depends_on:
+      - pg
+
+
+  # The purpose of this container is to create the database schema for
+  # the `creditors-server` container, and all the necessary RabbitMQ
+  # objects (queues, exchanges, etc.). It has to be run only once, but
+  # running it multiple times should not do any harm. Set
+  # `SETUP_RABBITMQ_BINDINGS` to anything other than "yes", if you do
+  # not want RabbitMQ exchanges and bindings to be (re)configured.
+  creditors-server-config:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-image
+    environment:
+      - 'MIN_CREDITOR_ID=$MIN_CREDITOR_ID'
+      - 'MAX_CREDITOR_ID=$MAX_CREDITOR_ID'
+      - 'POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'PROTOCOL_BROKER_QUEUE=swpt_creditors'
+      - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
+      - 'SETUP_RABBITMQ_BINDINGS=yes'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    command: configure
+    depends_on:
+      - pg
+
+
+  # From the `swagger-ui-image`, runs a Swagger UI cleint for the
+  # "Payments Web API".
+  creditors-swagger-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: swagger-ui-image
+    environment:
+      - 'BASE_URL=/creditors-swagger-ui'
+      - 'API_ROOT=https://$PUBLIC_HOST/'
+      - 'OAUTH2_AUTHORIZATION_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/auth'
+      - 'OAUTH2_TOKEN_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'OAUTH2_REFRESH_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'OAUTH2_REDIRECT_URL=https://$PUBLIC_HOST/creditors-swagger-ui/oauth2-redirect.html'
+
+
+  # Serves the creditors UI webapp (useful for testing).
+  creditors-webapp:
+    image: ghcr.io/swaptacular/swpt_creditors_ui:$SWPT_CREDITORS_UI_VERSION
+    environment:
+      - 'SERVER_API_ENTRYPOINT=https://$PUBLIC_HOST/creditors/.wallet'
+      - 'SERVER_API_TIMEOUT=8000'
+      - 'AUTHORIZATION_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/auth'
+      - 'TOKEN_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'CLIENT_ID=creditors-webapp'
+      - 'REDIRECT_URL=https://$PUBLIC_HOST/creditors-webapp/'
+      - 'TRANSFER_DELETION_DELAY_SECONDS=1296000'
+      - 'DEBTOR_INFOS_REVISION_DAYS=7'
+
+
+  # This container runs an OAuth 2.0 authorization server, which
+  # maintains its own user database, and provides UI for user
+  # registration, login, and authorization consent.
+  creditors-login:
+    image: ghcr.io/swaptacular/swpt_login:$SWPT_LOGIN_VERSION
+    environment:
+      - 'SERVE_PUBLIC_PORT=4444'
+      - 'SERVE_ADMIN_PORT=4445'
+      - 'SERVE_TLS_ALLOW_TERMINATION_FROM=0.0.0.0/0'
+      - 'WEBSERVER_PORT=8080'
+      - 'WEBSERVER_PROCESSES=1'
+      - 'WEBSERVER_THREADS=3'
+      - 'SUBJECT_PREFIX=creditors:'
+      - 'TTL_ACCESS_TOKEN=168h'
+      - 'TTL_REFRESH_TOKEN=720h'
+      - 'SECRETS_SYSTEM=$HYDRA_SYSTEM_SECRET'
+      - 'URLS_SELF_ISSUER=https://$PUBLIC_HOST/creditors-hydra/'
+      - 'URLS_LOGIN=https://$PUBLIC_HOST/creditors-login/'
+      - 'URLS_CONSENT=https://$PUBLIC_HOST/creditors-consent/'
+      - 'URLS_ERROR=https://github.com/swaptacular/swpt_login'
+      - 'HYDRA_DSN=postgres://hydra_creditors:hydra_creditors@pg/${POSTGRES_DB}?sslmode=disable&max_conns=2&max_idle_conns=1&max_conn_lifetime=30s'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors_login:swpt_creditors_login@pg/${POSTGRES_DB}'
+      - 'REDIS_URL=redis://redis:6379/0?health_check_interval=30'
+      - 'HYDRA_ADMIN_URL=http://creditors-login:4445'
+      - 'SITE_TITLE=Swaptacular'
+      - 'STYLE_URL='
+      - 'ABOUT_URL=https://swaptacular.github.io/overview'
+      - 'RECAPTCHA_PUBLIC_KEY=6Lc902MUAAAAAJL22lcbpY3fvg3j4LSERDDQYe37'
+      - 'RECAPTCHA_PIVATE_KEY=6Lc902MUAAAAAN--r4vUr8Vr7MU1PF16D9k2Ds9Q'
+      - 'MAIL_SERVER=mail'
+      - 'MAIL_PORT=1025'
+      - 'MAIL_DEFAULT_SENDER=Swaptacular <no-reply@example.com>'
+      - 'API_AUTH2_TOKEN_URL=https://nginx:$PUBLIC_PORT/creditors-hydra/oauth2/token'
+      - 'API_RESOURCE_SERVER=https://nginx:$PUBLIC_PORT'
+      - 'API_TIMEOUT_SECONDS=5'
+      - 'SUPERVISOR_CLIENT_ID=creditors-supervisor'
+      - 'SUPERVISOR_CLIENT_SECRET=creditors-supervisor'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
+      - 'HYDRA_LOG_LEVEL=warning'
+      - 'HYDRA_LOG_FORMAT=json'
+      - 'APP_SIGNUP_REDIRECT_URL=https://$PUBLIC_HOST/creditors-webapp/'
+    depends_on:
+      - pg
+      - redis
+      - mail
+
+
+  # The purpose of this container is to create the database schemas
+  # for the `creditors-login` container. It has to be run only once,
+  # but running it multiple times should not do any harm.
+  creditors-login-config:
+    image: ghcr.io/swaptacular/swpt_login:$SWPT_LOGIN_VERSION
+    environment:
+      - 'HYDRA_DSN=postgres://hydra_creditors:hydra_creditors@pg/${POSTGRES_DB}?sslmode=disable&max_conns=2&max_idle_conns=1&max_conn_lifetime=30s'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_creditors_login:swpt_creditors_login@pg/${POSTGRES_DB}'
+    command: configure
+    depends_on:
+      - pg
+
+
+  # The purpose of this container is to create a predefined set of
+  # OAuth2 clients (like "swagger-ui"). It has to be run only once,
+  # but running it multiple times should not do any harm.
+  creditors-hydra-config:
+    image: ghcr.io/swaptacular/swpt_login:$SWPT_LOGIN_VERSION
+    environment:
+      - 'HYDRA_ADMIN_URL=http://creditors-login:4445'
+    volumes:
+      - './docker/hydra:/etc/hydra-config'
+    command:
+      sh -c 'hydra clients get creditors-webapp --fake-tls-termination ||
+      hydra clients import
+      /etc/hydra-config/creditors-supervisor.json
+      /etc/hydra-config/swagger-ui.json
+      /etc/hydra-config/creditors-webapp.json
+      --fake-tls-termination
+      --fail-after 5m'
+    depends_on:
+      - creditors-login
+    restart: on-failure
+
+
+  creditors-stomp-server:
+    image: ghcr.io/swaptacular/swpt_stomp:$SWPT_STOMP_VERSION
+    environment:
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'SWPT_SERVER_PORT=1234'
+      - 'SWPT_SERVER_CERT=/etc/swpt/server.crt'
+      - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
+      - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
+      - 'APP_LOG_LEVEL=info'
+      - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    volumes:
+      - './docker/nodedata/server.crt:/etc/swpt/server.crt'
+      - './docker/nodedata/server.key:/secrets/swpt-server.key'
+      - './docker/nodedata:/var/lib/swpt-nodedata'
+    ports:
+      - $SWPT_SERVER_LOCAL_PORT:1234
+    command: swpt-server
+    restart: always
+
+
+  # The purpose of this container is to create and configure the RabbitMQ
+  # queue, from which the "creditors-peer-1234abcd" container will consume
+  # messages (to send them to the given peer). It has to be run only once,
+  # but running it multiple times should not do any harm.
+  creditors-peer-1234abcd-config:
+    image: ghcr.io/swaptacular/swpt_stomp:$SWPT_STOMP_VERSION
+    environment:
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'SWPT_SERVER_CERT=/etc/swpt/server.crt'
+      - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
+      - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
+      - 'APP_LOG_LEVEL=info'
+      - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    volumes:
+      - './docker/nodedata/server.crt:/etc/swpt/server.crt'
+      - './docker/nodedata/server.key:/secrets/swpt-server.key'
+      - './docker/nodedata:/var/lib/swpt-nodedata'
+    command: configure-queue 1234abcd ca.1234abcd
+    restart: on-failure
+
+
+  # The purpose of this container is to open and maintain a permanent client
+  # STOMP connection to the "1234abcd" peer, sending outgoing Swaptacular
+  # Messaging Protocol messages to this peer.
+  #
+  # NOTE: Similar containers must be configured for every added peer!
+  creditors-peer-1234abcd:
+    image: ghcr.io/swaptacular/swpt_stomp:$SWPT_STOMP_VERSION
+    environment:
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'SWPT_SERVER_CERT=/etc/swpt/server.crt'
+      - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
+      - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
+      - 'APP_LOG_LEVEL=info'
+      - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    volumes:
+      - './docker/nodedata/server.crt:/etc/swpt/server.crt'
+      - './docker/nodedata/server.key:/secrets/swpt-server.key'
+      - './docker/nodedata:/var/lib/swpt-nodedata'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: swpt-client 1234abcd ca.1234abcd
+    restart: always
+
+
+  # The `creditors-login` container needs access to a mail server
+  # instance. This runs a dummy mail server which is useful only for
+  # testing.
+  mail:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - $MAILHOG_LOCAL_PORT:8025
+
+
+  trade-solver:
+    build:
+      context: /home/evgeni/src/swpt_trade/
+      dockerfile: /home/evgeni/src/swpt_trade/Dockerfile
+      target: app-image
+    environment:
+      - 'TURN_PERIOD=10m'
+      - 'TURN_PERIOD_OFFSET=0'
+      - 'TURN_CHECK_INTERVAL=5s'
+      - 'TURN_PHASE1_DURATION=1m'
+      - 'TURN_PHASE2_DURATION=5m'
+      - 'BASE_DEBTOR_INFO_LOCATOR=https://host.docker.internal:44302/debtors/1311862288440738828/public'
+      - 'BASE_DEBTOR_ID=1311862288440738828'
+      - 'MAX_DISTANCE_TO_BASE=10'
+      - 'MIN_TRADE_AMOUNT=1000'
+      - 'MIN_COLLECTOR_ID=0x0000010000000000'
+      - 'MAX_COLLECTOR_ID=0x00000100000007ff'
+      - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
+      - 'WEBSERVER_PROCESSES=1'
+      - 'WEBSERVER_THREADS=3'
+      - 'WEBSERVER_PORT=8080'
+      - 'OAUTH2_INTROSPECT_URL=http://creditors-login:4445/oauth2/introspect'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
+    command: solver
+    depends_on:
+      - pg
+
+
+  trade-worker:
+    build:
+      context: /home/evgeni/src/swpt_trade/
+      dockerfile: /home/evgeni/src/swpt_trade/Dockerfile
+      target: app-image
+    environment:
+      - 'MIN_COLLECTOR_ID=0x0000010000000000'
+      - 'MAX_COLLECTOR_ID=0x00000100000007ff'
+      - 'WORKER_POSTGRES_URL=postgresql+psycopg://swpt_worker:swpt_worker@pg:5432/${POSTGRES_DB}'
+      - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'PROTOCOL_BROKER_QUEUE=swpt_trade'
+      - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
+      - 'PROTOCOL_BROKER_PROCESSES=1'
+      - 'PROTOCOL_BROKER_THREADS=3'
+      - 'PROTOCOL_BROKER_PREFETCH_COUNT=10'
+      - 'PROCESS_PRISTINE_COLLECTORS_THREADS=1'
+      - 'FLUSH_PROCESSES=1'
+      - 'FLUSH_PERIOD=1.5'
+      - 'FETCH_PROCESSES=1'
+      - 'FETCH_PERIOD=2.0'
+      - 'FETCH_CONNECTIONS=100'
+      - 'FETCH_TIMEOUT=10.0'
+      - 'DELETE_PARENT_SHARD_RECORDS=false'
+      - 'APP_ROLL_WORKER_TURNS_WAIT=5'
+      - 'APP_VERIFY_SSL_CERTS=false'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: worker
+    depends_on:
+      - pg
+
+
+  # The purpose of this container is to create the database schema for
+  # `trade-solver` and `trade-worker` containers, and all the
+  # necessary RabbitMQ objects (queues, exchanges, etc.). It has to be
+  # run only once, but running it multiple times should not do any
+  # harm. Set `SETUP_RABBITMQ_BINDINGS` to anything other than "yes",
+  # if you do not want RabbitMQ exchanges and bindings to be
+  # (re)configured.
+  trade-config:
+    build:
+      context: /home/evgeni/src/swpt_trade/
+      dockerfile: /home/evgeni/src/swpt_trade/Dockerfile
+      target: app-image
+    environment:
+      - 'MIN_COLLECTOR_ID=0x0000010000000000'
+      - 'MAX_COLLECTOR_ID=0x00000100000007ff'
+      - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
+      - 'WORKER_POSTGRES_URL=postgresql+psycopg://swpt_worker:swpt_worker@pg:5432/${POSTGRES_DB}'
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'PROTOCOL_BROKER_QUEUE=swpt_trade'
+      - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
+      - 'APP_ROLL_WORKER_TURNS_WAIT=5'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
+      - 'SETUP_RABBITMQ_BINDINGS=yes'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    command: configure
+    depends_on:
+      - pg
+
+
+volumes:
+  pg-data-volume:
+  rabbitmq-data-volume:
+  redis-data-volume:
