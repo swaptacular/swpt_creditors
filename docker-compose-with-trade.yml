@@ -50,6 +50,8 @@ services:
       - 'CREDITORS_SERVER_URL=http://creditors-apiproxy:8080'
       - 'CREDITORS_SWAGGER_UI_URL=http://creditors-swagger-ui:8080'
       - 'CREDITORS_WEBAPP_URL=http://creditors-webapp:80'
+      - 'TRADE_SERVER_URL=http://trade-webserver:8080'
+      - 'TRADE_SWAGGER_UI_URL=http://trade-swagger-ui:8080'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
     depends_on:
       - creditors-server
@@ -340,10 +342,6 @@ services:
       - 'MIN_COLLECTOR_ID=0x0000010000000000'
       - 'MAX_COLLECTOR_ID=0x00000100000007ff'
       - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
-      - 'WEBSERVER_PROCESSES=1'
-      - 'WEBSERVER_THREADS=3'
-      - 'WEBSERVER_PORT=8080'
-      - 'OAUTH2_INTROSPECT_URL=http://creditors-login:4445/oauth2/introspect'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
     command: solver
@@ -359,6 +357,8 @@ services:
     environment:
       - 'MIN_COLLECTOR_ID=0x0000010000000000'
       - 'MAX_COLLECTOR_ID=0x00000100000007ff'
+      - 'TRANSFERS_HEALTHY_MAX_COMMIT_DELAY=5m'
+      - 'TRANSFERS_AMOUNT_CUT=1e-6'
       - 'WORKER_POSTGRES_URL=postgresql+psycopg://swpt_worker:swpt_worker@pg:5432/${POSTGRES_DB}'
       - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
@@ -367,14 +367,12 @@ services:
       - 'PROTOCOL_BROKER_PROCESSES=1'
       - 'PROTOCOL_BROKER_THREADS=3'
       - 'PROTOCOL_BROKER_PREFETCH_COUNT=10'
-      - 'TRANSFERS_HEALTHY_MAX_COMMIT_DELAY=4m'
-      - 'TRANSFERS_AMOUNT_CUT=1e-6'
       - 'FLUSH_PROCESSES=1'
       - 'FLUSH_PERIOD=1.5'
-      - 'FETCH_PROCESSES=1'
-      - 'FETCH_PERIOD=2.0'
-      - 'FETCH_CONNECTIONS=100'
-      - 'FETCH_TIMEOUT=10.0'
+      - 'HTTP_FETCH_PROCESSES=1'
+      - 'HTTP_FETCH_PERIOD=2.0'
+      - 'HTTP_FETCH_CONNECTIONS=100'
+      - 'HTTP_FETCH_TIMEOUT=10.0'
       - 'TRIGGER_TRANSFERS_PROCESSES=1'
       - 'TRIGGER_TRANSFERS_PERIOD=2.0'
       - 'HANDLE_PRISTINE_COLLECTORS_THREADS=1'
@@ -390,6 +388,40 @@ services:
     command: worker
     depends_on:
       - pg
+
+
+  trade-webserver:
+    build:
+      context: /home/evgeni/src/swpt_trade/
+      dockerfile: /home/evgeni/src/swpt_trade/Dockerfile
+      target: app-image
+    environment:
+      - 'MIN_COLLECTOR_ID=0x0000010000000000'
+      - 'MAX_COLLECTOR_ID=0x00000100000007ff'
+      - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
+      - 'WEBSERVER_PROCESSES=1'
+      - 'WEBSERVER_THREADS=3'
+      - 'WEBSERVER_PORT=8080'
+      - 'OAUTH2_INTROSPECT_URL=http://creditors-login:4445/oauth2/introspect'
+      - 'APP_LOG_LEVEL=warning'
+      - 'APP_LOG_FORMAT=json'
+    command: webserver
+    depends_on:
+      - pg
+
+
+  trade-swagger-ui:
+    build:
+      context: /home/evgeni/src/swpt_trade/
+      dockerfile: /home/evgeni/src/swpt_trade/Dockerfile
+      target: swagger-ui-image
+    environment:
+      - 'BASE_URL=/trade-swagger-ui'
+      - 'API_ROOT=https://$PUBLIC_HOST/'
+      - 'OAUTH2_AUTHORIZATION_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/auth'
+      - 'OAUTH2_TOKEN_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'OAUTH2_REFRESH_URL=https://$PUBLIC_HOST/creditors-hydra/oauth2/token'
+      - 'OAUTH2_REDIRECT_URL=https://$PUBLIC_HOST/trade-swagger-ui/oauth2-redirect.html'
 
 
   # The purpose of this container is to create the database schema for
