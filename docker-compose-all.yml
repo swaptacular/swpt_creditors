@@ -50,6 +50,8 @@ services:
       - 'CREDITORS_SERVER_URL=http://creditors-apiproxy:8080'
       - 'CREDITORS_SWAGGER_UI_URL=http://creditors-swagger-ui:8080'
       - 'CREDITORS_WEBAPP_URL=http://creditors-webapp:80'
+      - 'TRADE_SERVER_URL=http://trade-webserver:8080'
+      - 'TRADE_SWAGGER_UI_URL=http://trade-swagger-ui:8080'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
     depends_on:
       - creditors-server
