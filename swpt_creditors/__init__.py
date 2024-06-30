@@ -175,8 +175,12 @@ class MetaEnvReader(type):
 
 
 class Configuration(metaclass=MetaEnvReader):
-    MIN_CREDITOR_ID: _parse_creditor_id = None
-    MAX_CREDITOR_ID: _parse_creditor_id = None
+    MIN_CREDITOR_ID: _parse_creditor_id = (
+        _parse_creditor_id("0x0000010100000000")
+    )
+    MAX_CREDITOR_ID: _parse_creditor_id = (
+        _parse_creditor_id("0x000001ffffffffff")
+    )
 
     PIN_PROTECTION_SECRET = ""
 

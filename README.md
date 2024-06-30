@@ -89,7 +89,8 @@ example values:
 # hexadecimal number (like "0x100000000"). Numbers between
 # 0x8000000000000000 and 0xffffffffffffffff will be automatically
 # converted to their corresponding two's complement negative
-# numbers.
+# numbers. The defaults are: from "0x0000010100000000" to
+# "0x000001ffffffffff".
 MIN_CREDITOR_ID=4294967296
 MAX_CREDITOR_ID=8589934591
 
