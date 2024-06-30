@@ -13,7 +13,7 @@ deliverables are two [docker images]: the *app-image*, and the
   order to "talk" to the creditors agent, currency holders will use a
   ["wallet" client application].
 
-* The `swagger-ui-image` is a simple [Swagger UI] cleint for the
+* The `swagger-ui-image` is a simple [Swagger UI] client for the
   server Web API, mainly useful for testing.
 
 **Note:** This implementation uses [JSON Serialization for the
@@ -89,7 +89,8 @@ example values:
 # hexadecimal number (like "0x100000000"). Numbers between
 # 0x8000000000000000 and 0xffffffffffffffff will be automatically
 # converted to their corresponding two's complement negative
-# numbers.
+# numbers. The defaults are: from "0x0000010100000000" to
+# "0x000001ffffffffff".
 MIN_CREDITOR_ID=4294967296
 MAX_CREDITOR_ID=8589934591
 
@@ -308,10 +309,10 @@ How to setup a development environment
 How to run all services (production-like)
 -----------------------------------------
 
-To start the "Creditors Agent" server, along with creditors UI webapp,
-Swagger UI client, STOMP server, STOMP client, PostgerSQL server, RabbitMQ
-server, Redis server, OAuth 2.0 authorization server, and HTTP reverse-proxy
-server, use this command:
+To start the "Creditors Agent" server, along with "Circular Trade"
+servers, creditors UI webapp, Swagger UI client, STOMP server, STOMP
+client, PostgerSQL server, RabbitMQ server, Redis server, OAuth 2.0
+authorization server, and HTTP reverse-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
 
