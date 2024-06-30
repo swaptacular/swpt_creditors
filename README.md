@@ -13,7 +13,7 @@ deliverables are two [docker images]: the *app-image*, and the
   order to "talk" to the creditors agent, currency holders will use a
   ["wallet" client application].
 
-* The `swagger-ui-image` is a simple [Swagger UI] cleint for the
+* The `swagger-ui-image` is a simple [Swagger UI] client for the
   server Web API, mainly useful for testing.
 
 **Note:** This implementation uses [JSON Serialization for the
