@@ -309,10 +309,10 @@ How to setup a development environment
 How to run all services (production-like)
 -----------------------------------------
 
-To start the "Creditors Agent" server, along with creditors UI webapp,
-Swagger UI client, STOMP server, STOMP client, PostgerSQL server, RabbitMQ
-server, Redis server, OAuth 2.0 authorization server, and HTTP reverse-proxy
-server, use this command:
+To start the "Creditors Agent" server, along with "Circular Trade"
+servers, creditors UI webapp, Swagger UI client, STOMP server, STOMP
+client, PostgerSQL server, RabbitMQ server, Redis server, OAuth 2.0
+authorization server, and HTTP reverse-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
 
