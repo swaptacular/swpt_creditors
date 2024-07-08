@@ -177,7 +177,7 @@ services:
       - 'WEBSERVER_PROCESSES=1'
       - 'WEBSERVER_THREADS=3'
       - 'SUBJECT_PREFIX=creditors:'
-      - 'TTL_ACCESS_TOKEN=168h'
+      - 'TTL_ACCESS_TOKEN=720h'
       - 'TTL_REFRESH_TOKEN=720h'
       - 'SECRETS_SYSTEM=$HYDRA_SYSTEM_SECRET'
       - 'URLS_SELF_ISSUER=https://$PUBLIC_HOST/creditors-hydra/'
