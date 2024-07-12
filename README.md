@@ -303,6 +303,11 @@ How to setup a development environment
     the RabbitMQ connection URLs accordingly (`PROTOCOL_BROKER_URL` in
     the *.env* file).
 
+    Moreover, you need to enable the `rabbitmq_random_exchange` plugin by
+    running:
+
+        $ sudo rabbitmq-plugins enable rabbitmq_random_exchange
+
 5.  You can use `flask run -p 5000` to run a local web server, and
     `pytest --cov=swpt_creditors --cov-report=html` to run the tests
     and generate a test coverage report.
