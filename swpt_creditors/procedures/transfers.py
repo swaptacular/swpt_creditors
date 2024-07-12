@@ -14,6 +14,7 @@ from swpt_creditors.models import (
     PrepareTransferSignal,
     FinalizeTransferSignal,
     PendingLedgerUpdate,
+    RejectedConfigSignal,
     SC_OK,
     SC_CANCELED_BY_THE_SENDER,
     SC_UNEXPECTED_ERROR,
@@ -403,6 +404,30 @@ def process_finalized_direct_transfer_signal(
             )
         else:
             _finalize_running_transfer(rt, error_code=SC_UNEXPECTED_ERROR)
+
+
+@atomic
+def process_configure_account_signal(
+    debtor_id: int,
+    creditor_id: int,
+    ts: datetime,
+    seqnum: int,
+    negligible_amount: float,
+    config_flags: int,
+    config_data: str,
+) -> None:
+    db.session.add(
+        RejectedConfigSignal(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            config_ts=ts,
+            config_seqnum=seqnum,
+            config_flags=config_flags,
+            config_data=config_data,
+            negligible_amount=negligible_amount,
+            rejection_code='NO_CONNECTION_TO_DEBTOR',
+        )
+    )
 
 
 def _find_running_transfer(

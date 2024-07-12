@@ -58,7 +58,10 @@ class Signal(db.Model):
         creditor_id = data["creditor_id"]
         debtor_id = data["debtor_id"]
 
-        if not is_valid_creditor_id(creditor_id):
+        if (
+                message_type != "RejectedConfig"
+                and not is_valid_creditor_id(creditor_id)
+        ):
             if current_app.config[
                 "DELETE_PARENT_SHARD_RECORDS"
             ] and is_valid_creditor_id(creditor_id, match_parent=True):

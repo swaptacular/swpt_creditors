@@ -16,6 +16,7 @@ from swpt_creditors.models import (
     PrepareTransferSignal,
     RunningTransfer,
     FinalizeTransferSignal,
+    RejectedConfigSignal,
 )
 
 D_ID = -1
@@ -450,6 +451,27 @@ def test_process_rejected_config_signal(account):
 
     p.process_rejected_config_signal(**params)
     assert len(LogEntry.query.all()) == ple_count + 1
+
+
+def test_process_configure_account_signal(account, current_ts):
+    p.process_configure_account_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        ts=current_ts,
+        seqnum=123,
+        negligible_amount=3.14,
+        config_flags=3,
+        config_data="test",
+    )
+    rcs = RejectedConfigSignal.query.one()
+    assert rcs.debtor_id == D_ID
+    assert rcs.creditor_id == C_ID
+    assert rcs.config_ts == current_ts
+    assert rcs.config_seqnum == 123
+    assert rcs.config_flags == 3
+    assert rcs.config_data == 'test'
+    assert rcs.negligible_amount == 3.14
+    assert rcs.rejection_code == 'NO_CONNECTION_TO_DEBTOR'
 
 
 def test_process_account_purge_signal(account, current_ts):

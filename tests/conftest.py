@@ -64,6 +64,7 @@ def db_session(app):
         "TRUNCATE TABLE updated_ledger_signal",
         "TRUNCATE TABLE updated_policy_signal",
         "TRUNCATE TABLE updated_flags_signal",
+        "TRUNCATE TABLE rejected_config_signal",
     ]:
         db.session.execute(sqlalchemy.text(cmd))
     db.session.commit()

@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import pytest
 from swpt_pythonlib.rabbitmq import MessageProperties
 
@@ -140,6 +140,18 @@ def test_activate_creditor_signal(db_session, actors):
         creditor_id=C_ID,
         reservation_id="test_id",
         ts=datetime.fromisoformat("2019-10-01T00:00:00+00:00"),
+    )
+
+
+def test_configure_account_signal(db_session, actors):
+    actors._on_configure_account_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        ts=datetime.fromisoformat("2019-10-01T00:00:00+00:00"),
+        seqnum=123,
+        negligible_amount=3.14,
+        config_flags=3,
+        config_data="test",
     )
 
 

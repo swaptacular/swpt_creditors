@@ -247,6 +247,44 @@ def _on_activate_creditor_signal(
         pass
 
 
+def _on_configure_account_signal(
+    debtor_id: int,
+    creditor_id: int,
+    ts: datetime,
+    seqnum: int,
+    negligible_amount: float,
+    config_flags: int,
+    config_data: str,
+    *args,
+    **kwargs
+) -> None:
+    """NOTE: If a `ConfigureAccount` message that we have sent can not
+    be routed to the respective accounting authority, the message may
+    be received back via the "ca.loopback" exchange (in case this
+    exchange has been properly configured).
+
+    It is important to note that the `creditor_id` which we receive
+    here may belong to a completely different shard than the current
+    one. The reason for this is that "ca.loopback" normally is a
+    random exchange which queues messages to random shards.
+    """
+    min_creditor_id = current_app.config["MIN_CREDITOR_ID"]
+    max_creditor_id = current_app.config["MAX_CREDITOR_ID"]
+
+    if min_creditor_id <= creditor_id <= max_creditor_id:
+        # Send a `RejectedConfig` SMP message, with
+        # "NO_CONNECTION_TO_DEBTOR" rejection_code.
+        procedures.process_configure_account_signal(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            ts=ts,
+            seqnum=seqnum,
+            negligible_amount=negligible_amount,
+            config_flags=config_flags,
+            config_data=config_data,
+        )
+
+
 _MESSAGE_TYPES = {
     "RejectedConfig": (
         ps.RejectedConfigMessageSchema(),
@@ -276,6 +314,10 @@ _MESSAGE_TYPES = {
     "ActivateCreditor": (
         ActivateCreditorMessageSchema(),
         _on_activate_creditor_signal,
+    ),
+    "ConfigureAccount": (
+        ps.ConfigureAccountMessageSchema(),
+        _on_configure_account_signal,
     ),
 }
 
@@ -315,7 +357,10 @@ class SmpConsumer(rabbitmq.Consumer):
             _LOGGER.error("Message validation error: %s", str(e))
             return False
 
-        if not is_valid_creditor_id(message_content["creditor_id"]):
+        if (
+                massage_type != "ConfigureAccount"
+                and not is_valid_creditor_id(message_content["creditor_id"])
+        ):
             raise RuntimeError(
                 "The agent is not responsible for this creditor."
             )
