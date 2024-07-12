@@ -29,7 +29,8 @@ following servers:
 1. [PostgreSQL] server instance, which stores creditors' data.
 
 2. [RabbitMQ] server instance, which acts as broker for [Swaptacular
-   Messaging Protocol] (SMP) messages.
+   Messaging Protocol] (SMP) messages. The [rabbitmq_random_exchange
+   plugin] should be enabled.
 
    A [RabbitMQ queue] must be configured on the broker instance, so
    that all incoming SMP messages for the creditors stored on the
@@ -242,7 +243,8 @@ container allows you to execute the following *documented commands*:
 
 * `flush_configure_accounts`, `flush_prepare_transfers`,
   `flush_finalize_transfers`, `flush_updated_ledgers`,
-  `flush_updated_policies`, `flush_updated_flags`
+  `flush_updated_policies`, `flush_updated_flags`,
+  `flush_rejected_configs`
 
   Starts additional worker processes that send particular type of outgoing
   messages to the RabbitMQ broker, and remove the messages from the
@@ -301,6 +303,11 @@ How to setup a development environment
     the RabbitMQ connection URLs accordingly (`PROTOCOL_BROKER_URL` in
     the *.env* file).
 
+    Moreover, you need to enable the `rabbitmq_random_exchange` plugin by
+    running:
+
+        $ sudo rabbitmq-plugins enable rabbitmq_random_exchange
+
 5.  You can use `flask run -p 5000` to run a local web server, and
     `pytest --cov=swpt_creditors --cov-report=html` to run the tests
     and generate a test coverage report.
@@ -341,6 +348,7 @@ can be used for end-to-end testing.
 [RabbitMQ]: https://www.rabbitmq.com/
 [RabbitMQ queue]: https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html
 [RabbitMQ exchanges]: https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html
+[rabbitmq_random_exchange plugin]: https://github.com/rabbitmq/rabbitmq-random-exchange
 [Redis]: https://redis.io/
 [OAuth 2.0]: https://oauth.net/2/
 [nginx]: https://en.wikipedia.org/wiki/Nginx

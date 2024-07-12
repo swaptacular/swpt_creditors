@@ -50,10 +50,12 @@ def subscribe():  # pragma: no cover
     from .extensions import (
         CREDITORS_IN_EXCHANGE,
         CREDITORS_OUT_EXCHANGE,
+        CA_CREDITORS_EXCHANGE,
         TO_TRADE_EXCHANGE,
     )
+    CA_LOOPBACK_EXCHANGE = "ca.loopback"
+    CA_LOOPBACK_FILTER_EXCHANGE = "ca.loopback_filter"
 
-    CA_CREDITORS_EXCHANGE = "ca.creditors"
     logger = logging.getLogger(__name__)
     queue_name = current_app.config["PROTOCOL_BROKER_QUEUE"]
     routing_key = current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
@@ -70,13 +72,40 @@ def subscribe():  # pragma: no cover
         CA_CREDITORS_EXCHANGE, exchange_type="topic", durable=True
     )
     channel.exchange_declare(
-        CREDITORS_OUT_EXCHANGE, exchange_type="topic", durable=True
+        CA_LOOPBACK_FILTER_EXCHANGE, exchange_type="headers", durable=True
+    )
+    channel.exchange_declare(
+        CA_LOOPBACK_EXCHANGE, exchange_type="x-random", durable=True
+    )
+    channel.exchange_declare(
+        CREDITORS_OUT_EXCHANGE,
+        exchange_type="topic",
+        durable=True,
+        arguments={"alternate-exchange": CA_LOOPBACK_FILTER_EXCHANGE},
     )
     channel.exchange_declare(
         TO_TRADE_EXCHANGE, exchange_type="topic", durable=True
     )
+    logger.info(
+        'Declared "%s" as alternative exchange for the "%s" exchange.',
+        CA_LOOPBACK_FILTER_EXCHANGE,
+        CREDITORS_OUT_EXCHANGE,
+    )
 
     # declare exchange bindings
+    channel.exchange_bind(
+        source=CA_LOOPBACK_FILTER_EXCHANGE,
+        destination=CA_LOOPBACK_EXCHANGE,
+        arguments={
+            "x-match": "all",
+            "message-type": "ConfigureAccount",
+        },
+    )
+    logger.info(
+        'Created a binding from "%s" to the "%s" exchange.',
+        CA_LOOPBACK_FILTER_EXCHANGE,
+        CA_LOOPBACK_EXCHANGE,
+    )
     channel.exchange_bind(
         source=CREDITORS_IN_EXCHANGE,
         destination=CA_CREDITORS_EXCHANGE,
@@ -117,6 +146,17 @@ def subscribe():  # pragma: no cover
         CA_CREDITORS_EXCHANGE,
         queue_name,
         routing_key,
+    )
+
+    # bind the queue to the loopback exchange
+    channel.queue_bind(
+        exchange=CA_LOOPBACK_EXCHANGE,
+        queue=queue_name,
+    )
+    logger.info(
+        'Created a binding from "%s" to "%s".',
+        CA_LOOPBACK_EXCHANGE,
+        queue_name,
     )
 
 

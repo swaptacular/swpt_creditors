@@ -116,7 +116,7 @@ case $1 in
         ;;
     flush_configure_accounts | flush_prepare_transfers | flush_finalize_transfers \
         | flush_updated_ledgers | flush_updated_policies | flush_updated_flags \
-        | flush_all)
+        | flush_rejected_configs | flush_all)
 
         flush_configure_accounts=ConfigureAccountSignal
         flush_prepare_transfers=PrepareTransferSignal
@@ -124,6 +124,7 @@ case $1 in
         flush_updated_ledgers=UpdatedLedgerSignal
         flush_updated_policies=UpdatedPolicySignal
         flush_updated_flags=UpdatedFlagsSignal
+        flush_rejected_configs=RejectedConfigSignal
         flush_all=
 
         # For example: if `$1` is "flush_configure_accounts",

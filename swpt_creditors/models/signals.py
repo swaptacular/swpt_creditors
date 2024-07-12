@@ -5,6 +5,7 @@ from swpt_pythonlib.utils import i64_to_hex_routing_key, calc_bin_routing_key
 from swpt_creditors.extensions import (
     db,
     CREDITORS_OUT_EXCHANGE,
+    CA_CREDITORS_EXCHANGE,
     TO_TRADE_EXCHANGE,
 )
 from .common import Signal, CT_DIRECT
@@ -248,3 +249,48 @@ class UpdatedFlagsSignal(Signal):
     @classproperty
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_UPDATED_FLAGS_BURST_COUNT"]
+
+
+class RejectedConfigSignal(Signal):
+    """NOTE: For `ConfigureAccount` messages that can not be routed to
+    the respective accounting authority node, we are able to
+    automatically sent to ourselves `RejectedConfig` SMP messages with
+    "NO_CONNECTION_TO_DEBTOR" rejection_code.
+
+    It is important to note that the `creditor_id` field in the
+    signals may belong to a completely different shard than the
+    current one.
+    """
+    exchange_name = CA_CREDITORS_EXCHANGE
+
+    class __marshmallow__(Schema):
+        type = fields.Constant("RejectedConfig")
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        config_ts = fields.DateTime()
+        config_seqnum = fields.Integer()
+        negligible_amount = fields.Float()
+        config_data = fields.String()
+        config_flags = fields.Integer()
+        inserted_at = fields.DateTime(data_key="ts")
+        rejection_code = fields.String()
+
+    __marshmallow_schema__ = __marshmallow__()
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    config_seqnum = db.Column(db.Integer, nullable=False)
+    config_flags = db.Column(db.Integer, nullable=False)
+    config_data = db.Column(db.String, nullable=False)
+    negligible_amount = db.Column(db.REAL, nullable=False)
+    rejection_code = db.Column(db.String(30), nullable=False)
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return calc_bin_routing_key(self.creditor_id)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config["APP_FLUSH_REJECTED_CONFIGS_BURST_COUNT"]
