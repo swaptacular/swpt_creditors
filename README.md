@@ -104,6 +104,36 @@ MAX_CREDITOR_ID=8589934591
 # verified correctly, until each user configures a new PIN.
 PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret
 
+# Requests to the "Payments Web API" are protected by an OAuth
+# 2.0 authorization server. With every request, the client (a Web
+# browser, for example) presents a token, and to verify the
+# validity of the token, internally, a request is made to the
+# OAuth 2.0 authorization server. This is called "token
+# introspection". The OAUTH2_INTROSPECT_URL variable sets the URL
+# at which internal token introspection requests will be sent.
+#
+# IMPORTANT NOTE: The response to the "token introspection"
+# request will contain a "username" field. The OAuth 2.0
+# authorization server must be configured to return one of the
+# following usernames:
+#
+# 1) "$OAUTH2_SUPERUSER_USERNAME" -- This user will be allowed
+#    to do everything. The default value for
+#    OAUTH2_SUPERUSER_USERNAME is "creditors-superuser".
+#
+# 2) "$OAUTH2_SUPERVISOR_USERNAME" -- This user will be
+#    allowed to view creditors' data, and to create new
+#    creditors. The default value for
+#    OAUTH2_SUPERVISOR_USERNAME is "creditors-supervisor".
+#
+# 3) An username that matches the regular expression
+#    "^creditors:([0-9]+)$" -- These "creditors:<CREDITOR_ID>"
+#    users will only be allowed access to the creditor with
+#    the specified <CREDITOR_ID> (an unsigned 64-bit integer).
+OAUTH2_INTROSPECT_URL=http://localhost:4445/oauth2/introspect
+OAUTH2_SUPERUSER_USERNAME=creditors-superuser
+OAUTH2_SUPERVISOR_USERNAME=creditors-supervisor
+
 # The specified number of processes ("$WEBSERVER_PROCESSES") will be
 # spawned to handle "Payments Web API" requests (default 1),
 # each process will run "$WEBSERVER_THREADS" threads in parallel
@@ -112,26 +142,6 @@ PIN_PROTECTION_SECRET=some-long-string-that-must-be-kept-secret
 WEBSERVER_PROCESSES=2
 WEBSERVER_THREADS=10
 WEBSERVER_PORT=8003
-
-# Requests to the "Payments Web API" are protected by an OAuth
-# 2.0 authorization server. With every request, the client (a Web
-# browser, for example) presents a token, and to verify the validity
-# of the token, internally, a request is made to the OAuth 2.0
-# authorization server. This is called "token introspection". This
-# variable sets the URL at which internal token introspection requests
-# will be sent.
-#
-# NOTE: The response to the "token introspection" request will contain
-# a "username" field. The OAuth 2.0 authorization server must be
-# configured to return usernames that match one of the following
-# regular expressions: ^creditors-superuser$, ^creditors-supervisor$,
-# ^creditors:([0-9]+)$. The "creditors-superuser" account will be
-# allowed to do everything; the "creditors-supervisor" account will be
-# allowed to view creditors' data, and to create new creditors; the
-# "creditors:<CREDITOR_ID>" accounts will only be allowed access to
-# the creditor with the specified <CREDITOR_ID> (an unsigned 64-bit
-# integer).
-OAUTH2_INTROSPECT_URL=http://localhost:4445/oauth2/introspect
 
 # Connection string for a PostgreSQL database server to connect to.
 POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@localhost:5435/test

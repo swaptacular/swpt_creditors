@@ -5,6 +5,7 @@ import json
 import sys
 import os
 import os.path
+import re
 from json import dumps
 from typing import List
 from flask_cors import CORS
@@ -113,6 +114,10 @@ def _filter_pika_connection_reset_errors(
     return not is_pika_connection_reset_error
 
 
+def _as_regex(s: str) -> str:
+    return f"^{re.escape(s)}$"
+
+
 def configure_logging(
     level: str, format: str, associated_loggers: List[str]
 ) -> None:
@@ -181,8 +186,9 @@ class Configuration(metaclass=MetaEnvReader):
     MAX_CREDITOR_ID: _parse_creditor_id = (
         _parse_creditor_id("0x000001ffffffffff")
     )
-
     PIN_PROTECTION_SECRET = ""
+    OAUTH2_SUPERUSER_USERNAME = "creditors-superuser"
+    OAUTH2_SUPERVISOR_USERNAME = "creditors-supervisor"
 
     SQLALCHEMY_DATABASE_URI = ""
     SQLALCHEMY_ENGINE_OPTIONS: _engine_options = _engine_options(
@@ -269,8 +275,8 @@ class Configuration(metaclass=MetaEnvReader):
     APP_MAX_CREDITOR_RECONFIGS = 5000
     APP_MAX_CREDITOR_INITIATIONS = 20000
     APP_CREDITOR_DOS_STATS_CLEAR_HOURS = 168.0
-    APP_SUPERUSER_SUBJECT_REGEX = "^creditors-superuser$"
-    APP_SUPERVISOR_SUBJECT_REGEX = "^creditors-supervisor$"
+    APP_SUPERUSER_SUBJECT_REGEX = ""
+    APP_SUPERVISOR_SUBJECT_REGEX = ""
     APP_CREDITOR_SUBJECT_REGEX = "^creditors:([0-9]+)$"
 
 
@@ -302,9 +308,18 @@ def create_app(config_dict={}):
     app.url_map.converters["i64"] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
+
+    if not app.config["APP_SUPERUSER_SUBJECT_REGEX"]:
+        app.config["APP_SUPERUSER_SUBJECT_REGEX"] = _as_regex(
+            app.config["OAUTH2_SUPERUSER_USERNAME"]
+        )
+    if not app.config["APP_SUPERVISOR_SUBJECT_REGEX"]:
+        app.config["APP_SUPERVISOR_SUBJECT_REGEX"] = _as_regex(
+            app.config["OAUTH2_SUPERVISOR_USERNAME"]
+        )
     app.config["API_SPEC_OPTIONS"] = specs.API_SPEC_OPTIONS
     app.config["SHARDING_REALM"] = ShardingRealm(
-        Configuration.PROTOCOL_BROKER_QUEUE_ROUTING_KEY
+        app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
     )
     if app.config["APP_ENABLE_CORS"]:
         CORS(
