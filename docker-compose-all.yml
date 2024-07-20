@@ -54,10 +54,13 @@ services:
       - 'TRADE_SWAGGER_UI_URL=http://trade-swagger-ui:8080'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
     depends_on:
-      - creditors-server
-      - creditors-swagger-ui
-      - creditors-login
       - creditors-hydra
+      - creditors-login
+      - creditors-apiproxy
+      - creditors-swagger-ui
+      - creditors-webapp
+      - trade-webserver
+      - trade-swagger-ui
 
 
   # This container acts as a reverse proxy. It extracts the the creditor ID
@@ -202,6 +205,7 @@ services:
       - pg
       - redis
       - mail
+      - creditors-hydra
 
 
   # The purpose of this container is to initialize the database of the
