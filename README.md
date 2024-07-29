@@ -57,13 +57,7 @@ following servers:
    attempt will be made to automatically setup all the required
    RabbitMQ queues, exchanges, and the bindings between them.
 
-3. [Redis] server instance, which stores Denial of Service attack
-   protection statistics for the creditors stored on the PostgreSQL
-   server instance. For this kind of information, the tolerance for
-   data loss is high, but nevertheless, the Redis server instance must
-   be configured as persistent (on-disk) database.
-
-4. [OAuth 2.0] authorization server, which authorizes clients'
+3. [OAuth 2.0] authorization server, which authorizes clients'
    requests to the [Payments Web API]. There is a plethora of popular
    Oauth 2.0 server implementations. Normally, they maintain their own
    user database, and go together with UI for user registration,
@@ -145,9 +139,6 @@ WEBSERVER_PORT=8003
 
 # Connection string for a PostgreSQL database server to connect to.
 POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@localhost:5435/test
-
-# Connection string for a Redis database server to connect to.
-REDIS_URL=redis://localhost:6380/0?health_check_interval=30
 
 # Parameters for the communication with the RabbitMQ server which is
 # responsible for brokering SMP messages. The container will connect
@@ -264,8 +255,8 @@ container allows you to execute the following *documented commands*:
 
 This [docker-compose example](../master/docker-compose-all.yml) shows
 how to use the generated docker images, along with the PostgerSQL
-server, the RabbitMQ server, the Redis server, the OAuth 2.0
-authorization server, and the HTTP reverse-proxy server.
+server, the RabbitMQ server, the OAuth 2.0 authorization server, and
+the HTTP reverse-proxy server.
 
 
 How to run the tests
@@ -301,11 +292,10 @@ How to setup a development environment
 
         $ docker-compose up --build
 
-    This will start its own PostgreSQL and Redis server instances in
-    docker containers, but will rely on being able to connect to a
-    RabbitMQ server instance at
-    "amqp://guest:guest@localhost:5672". The OAuth 2.0 authorization
-    will be bypassed.
+    This will start its own PostgreSQL server instance in docker
+    containers, but will rely on being able to connect to a RabbitMQ
+    server instance at "amqp://guest:guest@localhost:5672". The OAuth
+    2.0 authorization will be bypassed.
 
     Note that because the RabbitMQ "guest" user [can only connect from
     localhost], you should either explicitly allow the "guest" user to
@@ -328,8 +318,8 @@ How to run all services (production-like)
 
 To start the "Creditors Agent" server, along with "Circular Trade"
 servers, creditors UI webapp, Swagger UI client, STOMP server, STOMP
-client, PostgerSQL server, RabbitMQ server, Redis server, OAuth 2.0
-authorization server, and HTTP reverse-proxy server, use this command:
+client, PostgerSQL server, RabbitMQ server, OAuth 2.0 authorization
+server, and HTTP reverse-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
 
@@ -359,7 +349,6 @@ can be used for end-to-end testing.
 [RabbitMQ queue]: https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html
 [RabbitMQ exchanges]: https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html
 [rabbitmq_random_exchange plugin]: https://github.com/rabbitmq/rabbitmq-random-exchange
-[Redis]: https://redis.io/
 [OAuth 2.0]: https://oauth.net/2/
 [nginx]: https://en.wikipedia.org/wiki/Nginx
 [Docker Engine]: https://docs.docker.com/engine/

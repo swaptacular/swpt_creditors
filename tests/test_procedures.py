@@ -1254,3 +1254,61 @@ def test_unsuccessful_transfer_unexpected_error(account, current_ts):
     assert rt.transfer_id == 123
     assert rt.error_code == models.SC_UNEXPECTED_ERROR
     assert rt.total_locked_amount is None
+
+
+def test_inspect_ops_procedures(creditor):
+    assert p.is_account_creation_allowed(C_ID, 1, 1) is True
+    assert p.is_account_creation_allowed(C_ID, 0, 1) is False
+    assert p.is_account_creation_allowed(C_ID, 1, 0) is False
+
+    assert p.is_account_reconfig_allowed(C_ID, 1) is True
+    assert p.is_account_reconfig_allowed(C_ID, 0) is False
+
+    assert p.is_transfer_creation_allowed(C_ID, 1, 1) is True
+    assert p.is_transfer_creation_allowed(C_ID, 0, 1) is False
+    assert p.is_transfer_creation_allowed(C_ID, 1, 0) is False
+
+    p.register_account_creation(C_ID, 0)
+    assert p.is_account_creation_allowed(C_ID, 2, 1) is True
+    assert p.is_account_creation_allowed(C_ID, 1, 1) is False
+    assert p.is_account_creation_allowed(C_ID, 2, 0) is False
+    assert p.is_account_reconfig_allowed(C_ID, 1) is True
+    assert p.is_account_reconfig_allowed(C_ID, 0) is False
+
+    p.register_account_creation(C_ID, 10000)
+    assert p.is_account_creation_allowed(C_ID, 3, 2) is True
+    assert p.is_account_creation_allowed(C_ID, 2, 2) is False
+    assert p.is_account_creation_allowed(C_ID, 3, 1) is False
+    assert p.is_account_reconfig_allowed(C_ID, 2) is True
+    assert p.is_account_reconfig_allowed(C_ID, 1) is False
+
+    p.register_account_reconfig(C_ID, 10000)
+    assert p.is_account_creation_allowed(C_ID, 3, 3) is True
+    assert p.is_account_creation_allowed(C_ID, 2, 3) is False
+    assert p.is_account_creation_allowed(C_ID, 3, 2) is False
+    assert p.is_account_reconfig_allowed(C_ID, 3) is True
+    assert p.is_account_reconfig_allowed(C_ID, 2) is False
+
+    p.register_transfer_creation(C_ID, 0)
+    assert p.is_transfer_creation_allowed(C_ID, 2, 1) is True
+    assert p.is_transfer_creation_allowed(C_ID, 1, 1) is False
+    assert p.is_transfer_creation_allowed(C_ID, 2, 0) is False
+
+    p.register_transfer_creation(C_ID, 10000)
+    assert p.is_transfer_creation_allowed(C_ID, 3, 2) is True
+    assert p.is_transfer_creation_allowed(C_ID, 2, 2) is False
+    assert p.is_transfer_creation_allowed(C_ID, 3, 1) is False
+
+    assert p.is_account_creation_allowed(C_ID, 3, 3) is True
+    p.increment_account_number(C_ID)
+    assert p.is_account_creation_allowed(C_ID, 3, 3) is False
+    assert p.is_account_creation_allowed(C_ID, 4, 3) is True
+    p.decrement_account_number(C_ID)
+    assert p.is_account_creation_allowed(C_ID, 3, 3) is True
+
+    assert p.is_transfer_creation_allowed(C_ID, 3, 2) is True
+    p.increment_transfer_number(C_ID)
+    assert p.is_transfer_creation_allowed(C_ID, 3, 2) is False
+    assert p.is_transfer_creation_allowed(C_ID, 4, 2) is True
+    p.decrement_transfer_number(C_ID)
+    assert p.is_transfer_creation_allowed(C_ID, 3, 2) is True

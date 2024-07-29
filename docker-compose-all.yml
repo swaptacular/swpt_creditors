@@ -96,7 +96,6 @@ services:
       - 'WEBSERVER_THREADS=3'
       - 'WEBSERVER_PORT=8080'
       - 'POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@pg:5432/${POSTGRES_DB}'
-      - 'REDIS_URL=redis://redis:6379/1?health_check_interval=30'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'PROTOCOL_BROKER_QUEUE=swpt_creditors'
       - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
@@ -112,7 +111,6 @@ services:
     depends_on:
       - pg
       - rabbitmq
-      - redis
       - creditors-hydra
 
 

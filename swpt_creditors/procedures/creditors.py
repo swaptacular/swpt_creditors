@@ -1,7 +1,7 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, text
 from sqlalchemy.orm import joinedload
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -33,6 +33,39 @@ LOG_ENTRY_NONE_AUX_FIELDS_EXCLUDED_TYPE_HINT = {
     attr: None for attr in LogEntry.AUX_FIELDS if attr != "object_type_hint"
 }
 LOG_ENTRY_NONE_DATA_FIELDS = {attr: None for attr in LogEntry.DATA_FIELDS}
+
+CALL_IS_ACCOUNT_CREATION_ALLOWED = text(
+    "SELECT is_account_creation_allowed(:creditor_id, :max_accounts,"
+    " :max_reconfigs)"
+)
+CALL_IS_ACCOUNT_RECONFIG_ALLOWED = text(
+    "SELECT is_account_reconfig_allowed(:creditor_id, :max_reconfigs)"
+)
+CALL_IS_TRANSFER_CREATION_ALLOWED = text(
+    "SELECT is_transfer_creation_allowed(:creditor_id, :max_transfers,"
+    " :max_initiations)"
+)
+CALL_REGISTER_ACCOUNT_CREATION = text(
+    "SELECT register_account_creation(:creditor_id, :reconfig_clear_hours)"
+)
+CALL_REGISTER_ACCOUNT_RECONFIG = text(
+    "SELECT register_account_reconfig(:creditor_id, :reconfig_clear_hours)"
+)
+CALL_REGISTER_TRANSFER_CREATION = text(
+    "SELECT register_transfer_creation(:creditor_id, :initiations_clear_hours)"
+)
+CALL_INCREMENT_ACCOUNT_NUMBER = text(
+    "SELECT increment_account_number(:creditor_id)"
+)
+CALL_DECREMENT_ACCOUNT_NUMBER = text(
+    "SELECT decrement_account_number(:creditor_id)"
+)
+CALL_INCREMENT_TRANSFER_NUMBER = text(
+    "SELECT increment_transfer_number(:creditor_id)"
+)
+CALL_DECREMENT_TRANSFER_NUMBER = text(
+    "SELECT decrement_transfer_number(:creditor_id)"
+)
 
 
 def verify_pin_value(
@@ -279,6 +312,122 @@ def verify_pin_value_helper(
         raise errors.CreditorDoesNotExist()
 
     return pin_info.try_value(pin_value, secret, pin_failures_reset_interval)
+
+
+@atomic
+def is_account_creation_allowed(
+    creditor_id: int,
+    max_accounts: int,
+    max_reconfigs: int,
+) -> bool:
+    return (
+        db.session.execute(
+            CALL_IS_ACCOUNT_CREATION_ALLOWED,
+            {
+                "creditor_id": creditor_id,
+                "max_accounts": max_accounts,
+                "max_reconfigs": max_reconfigs,
+            },
+        )
+        .scalar()
+    )
+
+
+@atomic
+def is_account_reconfig_allowed(
+    creditor_id: int,
+    max_reconfigs: int,
+) -> bool:
+    return (
+        db.session.execute(
+            CALL_IS_ACCOUNT_RECONFIG_ALLOWED,
+            {
+                "creditor_id": creditor_id,
+                "max_reconfigs": max_reconfigs,
+            },
+        )
+        .scalar()
+    )
+
+
+@atomic
+def is_transfer_creation_allowed(
+    creditor_id: int,
+    max_transfers: int,
+    max_initiations: int,
+) -> bool:
+    return (
+        db.session.execute(
+            CALL_IS_TRANSFER_CREATION_ALLOWED,
+            {
+                "creditor_id": creditor_id,
+                "max_transfers": max_transfers,
+                "max_initiations": max_initiations,
+            },
+        )
+        .scalar()
+    )
+
+
+@atomic
+def register_account_creation(creditor_id: int, reconfig_clear_hours: int):
+    db.session.execute(
+        CALL_REGISTER_ACCOUNT_CREATION,
+        {
+            "creditor_id": creditor_id,
+            "reconfig_clear_hours": reconfig_clear_hours,
+        },
+    )
+
+
+@atomic
+def register_account_reconfig(creditor_id: int, reconfig_clear_hours: int):
+    db.session.execute(
+        CALL_REGISTER_ACCOUNT_RECONFIG,
+        {
+            "creditor_id": creditor_id,
+            "reconfig_clear_hours": reconfig_clear_hours,
+        },
+    )
+
+
+@atomic
+def register_transfer_creation(creditor_id: int, initiations_clear_hours: int):
+    db.session.execute(
+        CALL_REGISTER_TRANSFER_CREATION,
+        {
+            "creditor_id": creditor_id,
+            "initiations_clear_hours": initiations_clear_hours,
+        },
+    )
+
+
+@atomic
+def increment_account_number(creditor_id):
+    db.session.execute(
+        CALL_INCREMENT_ACCOUNT_NUMBER, {"creditor_id": creditor_id}
+    )
+
+
+@atomic
+def decrement_account_number(creditor_id):
+    db.session.execute(
+        CALL_DECREMENT_ACCOUNT_NUMBER, {"creditor_id": creditor_id}
+    )
+
+
+@atomic
+def increment_transfer_number(creditor_id):
+    db.session.execute(
+        CALL_INCREMENT_TRANSFER_NUMBER, {"creditor_id": creditor_id}
+    )
+
+
+@atomic
+def decrement_transfer_number(creditor_id):
+    db.session.execute(
+        CALL_DECREMENT_TRANSFER_NUMBER, {"creditor_id": creditor_id}
+    )
 
 
 def _process_pending_log_entry(

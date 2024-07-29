@@ -24,10 +24,10 @@ config_dict = {
     "APP_INACTIVE_CREDITOR_RETENTION_DAYS": 14.0,
     "APP_DEACTIVATED_CREDITOR_RETENTION_DAYS": 1826.0,
     "APP_PIN_FAILURES_RESET_DAYS": 7.0,
-    "APP_MAX_CREDITOR_ACCOUNTS": 100000000,
-    "APP_MAX_CREDITOR_TRANSFERS": 100000000,
-    "APP_MAX_CREDITOR_RECONFIGS": 100000000,
-    "APP_MAX_CREDITOR_INITIATIONS": 100000000,
+    "APP_MAX_CREDITOR_ACCOUNTS": 32000,
+    "APP_MAX_CREDITOR_TRANSFERS": 32000,
+    "APP_MAX_CREDITOR_RECONFIGS": 32000,
+    "APP_MAX_CREDITOR_INITIATIONS": 32000,
     "APP_CREDITOR_DOS_STATS_CLEAR_HOURS": 168.0,
 }
 
@@ -62,6 +62,7 @@ def db_session(app):
         "TRUNCATE TABLE updated_policy_signal",
         "TRUNCATE TABLE updated_flags_signal",
         "TRUNCATE TABLE rejected_config_signal",
+        "TRUNCATE TABLE usage_stats",
     ]:
         db.session.execute(sqlalchemy.text(cmd))
     db.session.commit()
