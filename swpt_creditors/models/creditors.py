@@ -477,3 +477,52 @@ class LogEntry(BaseLogEntry):
         db.CheckConstraint("data_next_entry_id > 0"),
         db.CheckConstraint(entry_id > 0),
     )
+
+
+class UsageStats(db.Model):
+    creditor_id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=False
+    )
+    accounts_count = db.Column(
+        db.SmallInteger, nullable=False, server_default="0"
+    )
+    transfers_count = db.Column(
+        db.SmallInteger, nullable=False, server_default="0"
+    )
+    reconfigs_count = db.Column(
+        db.SmallInteger, nullable=False, server_default="0"
+    )
+    reconfigs_reset_at = db.Column(
+        db.Integer,
+        nullable=False,
+        server_default="0",
+        comment=(
+            'Indicates when the `reconfigs_count` filed should be reset to'
+            ' zero. The value is represented as "Unix time" divided by 3600.'
+            ' That is: number of hours after 1970-01-01 00:00:00Z.'
+        ),
+    )
+    initiations_count = db.Column(
+        db.SmallInteger, nullable=False, server_default="0"
+    )
+    initiations_reset_at = db.Column(
+        db.Integer,
+        nullable=False,
+        server_default="0",
+        comment=(
+            'Indicates when the `initiations_count` filed should be reset to'
+            ' zero. The value is represented as "Unix time" divided by 3600.'
+            ' That is: number of hours after 1970-01-01 00:00:00Z.'
+        ),
+    )
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ["creditor_id"], ["creditor.creditor_id"], ondelete="CASCADE"
+        ),
+        {
+            "comment": (
+                "Usage statistics that are used to protect against DOS"
+                " attacks."
+            ),
+        },
+    )

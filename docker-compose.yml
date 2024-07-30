@@ -2,13 +2,6 @@ version: '3.6'
 
 services:
 
-  tests-redis:
-    image: redis:$REDIS_VERSION
-    env_file: .env
-    ports:
-      - $REDIS_LOCAL_PORT:6379
-    restart: always
-
   tests-pg:
     image: postgres:$POSTGRES_VERSION
     environment:
@@ -32,12 +25,10 @@ services:
     env_file: .env
     environment:
       - 'POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@tests-pg:5432/${POSTGRES_DB}'
-      - 'REDIS_URL=redis://tests-redis:6379/0?health_check_interval=30'
       - 'PYTHONDONTWRITEBYTECODE=1'
     command: configure
     depends_on:
       - tests-pg
-      - tests-redis
 
 
   tests-web:
@@ -51,7 +42,6 @@ services:
     environment:
       - 'WEBSERVER_PORT=8080'
       - 'POSTGRES_URL=postgresql+psycopg://swpt_creditors:swpt_creditors@tests-pg:5432/${POSTGRES_DB}'
-      - 'REDIS_URL=redis://tests-redis:6379/0?health_check_interval=30'
       - 'PYTHONDONTWRITEBYTECODE=1'
       - 'PYTHONBREAKPOINT=web_pdb.set_trace'
     ports:

@@ -507,6 +507,7 @@ class AccountExchangeEndpoint(MethodView):
 
         optional_peg = account_exchange.get("optional_peg")
         try:
+            inspect_ops.allow_account_reconfig(creditorId, debtorId)
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
@@ -532,7 +533,7 @@ class AccountExchangeEndpoint(MethodView):
                 ),
                 latest_update_id=account_exchange["latest_update_id"],
             )
-        except procedures.WrongPinValue:
+        except (inspect_ops.ForbiddenOperation, procedures.WrongPinValue):
             abort(403)
         except (
             procedures.CreditorDoesNotExist,
@@ -557,6 +558,7 @@ class AccountExchangeEndpoint(MethodView):
                 },
             )
 
+        inspect_ops.register_account_reconfig(creditorId, debtorId)
         return exchange
 
 

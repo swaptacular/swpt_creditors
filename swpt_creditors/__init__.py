@@ -197,8 +197,6 @@ class Configuration(metaclass=MetaEnvReader):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
 
-    REDIS_URL = "redis://localhost:6379/0?health_check_interval=30"
-
     PROTOCOL_BROKER_URL = "amqp://guest:guest@localhost:5672"
     PROTOCOL_BROKER_QUEUE = "swpt_creditors"
     PROTOCOL_BROKER_QUEUE_ROUTING_KEY = "#"
@@ -270,10 +268,10 @@ class Configuration(metaclass=MetaEnvReader):
     APP_MAX_TRANSFER_DELAY_DAYS = 14.0
     APP_MAX_CONFIG_DELAY_HOURS = 24.0
     APP_PIN_FAILURES_RESET_DAYS = 7.0
-    APP_MAX_CREDITOR_ACCOUNTS = 1000
-    APP_MAX_CREDITOR_TRANSFERS = 20000
-    APP_MAX_CREDITOR_RECONFIGS = 5000
-    APP_MAX_CREDITOR_INITIATIONS = 20000
+    APP_MAX_CREDITOR_ACCOUNTS = 1000  # should fit int16
+    APP_MAX_CREDITOR_TRANSFERS = 20000  # should fit int16
+    APP_MAX_CREDITOR_RECONFIGS = 5000  # should fit int16
+    APP_MAX_CREDITOR_INITIATIONS = 20000  # should fit int16
     APP_CREDITOR_DOS_STATS_CLEAR_HOURS = 168.0
     APP_SUPERUSER_SUBJECT_REGEX = ""
     APP_SUPERVISOR_SUBJECT_REGEX = ""
@@ -289,7 +287,7 @@ def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
     from swpt_pythonlib.utils import Int64Converter
-    from .extensions import db, migrate, api, publisher, redis_store
+    from .extensions import db, migrate, api, publisher
     from .routes import (
         admin_api,
         creditors_api,
@@ -330,7 +328,6 @@ def create_app(config_dict={}):
         )
     db.init_app(app)
     migrate.init_app(app, db)
-    redis_store.init_app(app)
     publisher.init_app(app)
     api.init_app(app)
     api.register_blueprint(admin_api)
