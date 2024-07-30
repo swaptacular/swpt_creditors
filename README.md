@@ -292,8 +292,8 @@ How to setup a development environment
 
         $ docker-compose up --build
 
-    This will start its own PostgreSQL server instance in docker
-    containers, but will rely on being able to connect to a RabbitMQ
+    This will start its own PostgreSQL server instance in a docker
+    container, but will rely on being able to connect to a RabbitMQ
     server instance at "amqp://guest:guest@localhost:5672". The OAuth
     2.0 authorization will be bypassed.
 
