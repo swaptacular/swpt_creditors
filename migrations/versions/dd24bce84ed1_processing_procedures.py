@@ -103,27 +103,26 @@ make_correcting_ledger_entry_if_necessary_sp = ReplaceableObject(
     """
     AS $$
     DECLARE
-      previous_principal BIGINT;
+      previous_principal NUMERIC(24);
       ledger_principal BIGINT;
       correction_amount NUMERIC(24);
       safe_amount BIGINT;
     BEGIN
       made_correcting_ledger_entry := FALSE;
 
-      BEGIN
-        previous_principal := principal - acquired_amount;
-      EXCEPTION
-        WHEN numeric_value_out_of_range THEN
-          RETURN;
-      END;
-
-      ledger_principal := data.ledger_principal;
+      previous_principal := (
+        principal::NUMERIC(24) - acquired_amount::NUMERIC(24)
+      );
+      IF previous_principal < -9223372036854775808::NUMERIC(24)
+         OR previous_principal > 9223372036854775807::NUMERIC(24)
+           THEN
+         RETURN;  -- Normally, this should not happen.
+      END IF;
 
       -- We will make correcting transfers until `ledger_principal` becomes
       -- equal to `previous_principal`.
-      correction_amount := (
-        previous_principal::NUMERIC(24) - ledger_principal::NUMERIC(24)
-      );
+      ledger_principal := data.ledger_principal;
+      correction_amount := previous_principal - ledger_principal::NUMERIC(24);
 
       LOOP
         EXIT WHEN correction_amount = 0;
