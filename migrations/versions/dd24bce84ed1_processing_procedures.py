@@ -16,6 +16,27 @@ down_revision = '54696121695a'
 branch_labels = None
 depends_on = None
 
+account_ledger_data_type = ReplaceableObject(
+    "account_ledger_data",
+    """
+    AS (
+      creditor_id BIGINT,
+      debtor_id BIGINT,
+      creation_date DATE,
+      principal BIGINT,
+      account_id TEXT,
+      ledger_principal BIGINT,
+      ledger_last_entry_id BIGINT,
+      ledger_last_transfer_number BIGINT,
+      ledger_latest_update_id BIGINT,
+      ledger_latest_update_ts TIMESTAMP WITH TIME ZONE,
+      ledger_pending_transfer_ts TIMESTAMP WITH TIME ZONE,
+      last_transfer_number BIGINT,
+      last_transfer_committed_at TIMESTAMP WITH TIME ZONE
+    )
+    """
+)
+
 pending_log_entry_result_type = ReplaceableObject(
     "pending_log_entry_result",
     """
@@ -35,7 +56,7 @@ update_ledger_result_type = ReplaceableObject(
     "update_ledger_result",
     """
     AS (
-      data account_data,
+      data account_ledger_data,
       log_entry pending_log_entry_result
     )
     """
@@ -45,7 +66,7 @@ make_correcting_ledger_entry_result_type = ReplaceableObject(
     "make_correcting_ledger_entry_result",
     """
     AS (
-      data account_data,
+      data account_ledger_data,
       made_correcting_ledger_entry BOOLEAN
     )
     """
@@ -73,7 +94,7 @@ contain_principal_overflow_sp = ReplaceableObject(
 
 make_correcting_ledger_entry_if_necessary_sp = ReplaceableObject(
     "make_correcting_ledger_entry_if_necessary("
-    " INOUT data account_data,"
+    " INOUT data account_ledger_data,"
     " acquired_amount BIGINT,"
     " principal BIGINT,"
     " current_ts TIMESTAMP WITH TIME ZONE,"
@@ -108,10 +129,10 @@ make_correcting_ledger_entry_if_necessary_sp = ReplaceableObject(
         EXIT WHEN correction_amount = 0;
 
         safe_amount := contain_principal_overflow(correction_amount);
-        ledger_principal = ledger_principal + safe_amount;
         correction_amount = correction_amount - safe_amount::NUMERIC(24);
-
+        ledger_principal = ledger_principal + safe_amount;
         data.ledger_last_entry_id := data.ledger_last_entry_id + 1;
+
         INSERT INTO ledger_entry (
           creditor_id, debtor_id, entry_id,
           acquired_amount, principal, added_at
@@ -120,6 +141,7 @@ make_correcting_ledger_entry_if_necessary_sp = ReplaceableObject(
           data.creditor_id, data.debtor_id, data.ledger_last_entry_id,
           safe_amount, ledger_principal, current_ts
         );
+
         made_correcting_ledger_entry := TRUE;
       END LOOP;
     END;
@@ -129,7 +151,7 @@ make_correcting_ledger_entry_if_necessary_sp = ReplaceableObject(
 
 update_ledger_sp = ReplaceableObject(
     "update_ledger("
-    " INOUT data account_data,"
+    " INOUT data account_ledger_data,"
     " transfer_number BIGINT,"
     " acquired_amount BIGINT,"
     " principal BIGINT,"
@@ -140,16 +162,17 @@ update_ledger_sp = ReplaceableObject(
     AS $$
     DECLARE
       r make_correcting_ledger_entry_result%ROWTYPE;
-      should_create_log_entry BOOLEAN;
+      should_return_log_entry BOOLEAN;
     BEGIN
       r := make_correcting_ledger_entry_if_necessary(
         data, acquired_amount, principal, current_ts
       );
       data := r.data;
-      should_create_log_entry := r.made_correcting_ledger_entry;
+      should_return_log_entry := r.made_correcting_ledger_entry;
 
       IF acquired_amount != 0 THEN
         data.ledger_last_entry_id = data.ledger_last_entry_id + 1;
+
         INSERT INTO ledger_entry (
           creditor_id, debtor_id, entry_id,
           acquired_amount, principal, added_at,
@@ -160,24 +183,25 @@ update_ledger_sp = ReplaceableObject(
           acquired_amount, principal, current_ts,
           data.creation_date, transfer_number
         );
-        should_create_log_entry := TRUE;
+
+        should_return_log_entry := TRUE;
       END IF;
 
       data.ledger_principal := principal;
       data.ledger_last_transfer_number := transfer_number;
 
-      IF should_create_log_entry THEN
+      IF should_return_log_entry THEN
         data.ledger_latest_update_id := data.ledger_latest_update_id + 1;
         data.ledger_latest_update_ts := current_ts;
 
         log_entry := ROW(
-            data.creditor_id,
-            current_ts,
-            4,  -- Object type hint: OTH_ACCOUNT_LEDGER
-            data.debtor_id,
-            data.ledger_latest_update_id,
-            principal,
-            data.ledger_last_entry_id + 1
+          data.creditor_id,
+          current_ts,
+          4,
+          data.debtor_id,
+          data.ledger_latest_update_id,
+          principal,
+          data.ledger_last_entry_id + 1
         );
       END IF;
     END;
@@ -195,7 +219,7 @@ process_pending_ledger_update_sp = ReplaceableObject(
     """
     RETURNS BOOLEAN AS $$
     DECLARE
-      data account_data%ROWTYPE;
+      data account_ledger_data%ROWTYPE;
       committed_at_cutoff TIMESTAMP WITH TIME ZONE;
       n INTEGER;
       previous_transfer_number BIGINT;
@@ -216,9 +240,23 @@ process_pending_ledger_update_sp = ReplaceableObject(
         RETURN TRUE;
       END IF;
 
-      SELECT * INTO data
-      FROM account_data
-      WHERE creditor_id = cid AND debtor_id = did
+      SELECT
+        ad.creditor_id,
+        ad.debtor_id,
+        ad.creation_date,
+        ad.principal,
+        ad.account_id,
+        ad.ledger_principal,
+        ad.ledger_last_entry_id,
+        ad.ledger_last_transfer_number,
+        ad.ledger_latest_update_id,
+        ad.ledger_latest_update_ts,
+        ad.ledger_pending_transfer_ts,
+        ad.last_transfer_number,
+        ad.last_transfer_committed_at
+      INTO data
+      FROM account_data ad
+      WHERE ad.creditor_id = cid AND ad.debtor_id = did
       FOR UPDATE;
 
       committed_at_cutoff := CURRENT_TIMESTAMP - max_delay;
@@ -247,10 +285,9 @@ process_pending_ledger_update_sp = ReplaceableObject(
         LIMIT max_count
 
       LOOP
-        IF (
-              previous_transfer_number != data.ledger_last_transfer_number
-              AND committed_at >= committed_at_cutoff
-              ) THEN
+        IF previous_transfer_number != data.ledger_last_transfer_number
+           AND committed_at >= committed_at_cutoff
+              THEN
             data.ledger_pending_transfer_ts = committed_at;
             is_done := TRUE;
             EXIT;
@@ -291,9 +328,7 @@ process_pending_ledger_update_sp = ReplaceableObject(
         END IF;
 
         DELETE FROM pending_ledger_update
-        WHERE
-          creditor_id = data.creditor_id
-          AND debtor_id = data.debtor_id;
+        WHERE creditor_id = cid AND debtor_id = did;
       END IF;
 
       IF log_entry IS NOT NULL THEN
@@ -304,7 +339,7 @@ process_pending_ledger_update_sp = ReplaceableObject(
           inserted_at
         )
         VALUES (
-          data.creditor_id, data.debtor_id, data.ledger_latest_update_id,
+          cid, did, data.ledger_latest_update_id,
           data.account_id, data.creation_date, data.ledger_principal,
           data.ledger_last_transfer_number, CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
@@ -328,14 +363,17 @@ process_pending_ledger_update_sp = ReplaceableObject(
 
       UPDATE account_data
       SET
+        creation_date = data.creation_date,
+        principal = data.principal,
+        account_id = data.account_id,
         ledger_principal = data.ledger_principal,
         ledger_last_entry_id = data.ledger_last_entry_id,
         ledger_last_transfer_number = data.ledger_last_transfer_number,
         ledger_latest_update_id = data.ledger_latest_update_id,
         ledger_latest_update_ts = data.ledger_latest_update_ts,
         ledger_pending_transfer_ts = data.ledger_pending_transfer_ts,
-        last_transfer_committed_at = data.last_transfer_committed_at,
-        last_transfer_number = data.last_transfer_number
+        last_transfer_number = data.last_transfer_number,
+        last_transfer_committed_at = data.last_transfer_committed_at
       WHERE creditor_id = cid AND debtor_id = did;
 
       RETURN is_done;
@@ -346,6 +384,7 @@ process_pending_ledger_update_sp = ReplaceableObject(
 
 
 def upgrade():
+    op.create_type(account_ledger_data_type)
     op.create_type(pending_log_entry_result_type)
     op.create_type(update_ledger_result_type)
     op.create_type(make_correcting_ledger_entry_result_type)
@@ -363,3 +402,4 @@ def downgrade():
     op.drop_type(make_correcting_ledger_entry_result_type)
     op.drop_type(update_ledger_result_type)
     op.drop_type(pending_log_entry_result_type)
+    op.drop_type(account_ledger_data_type)
