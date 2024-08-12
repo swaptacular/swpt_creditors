@@ -1,5 +1,6 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from datetime import datetime, timezone, timedelta
+from flask import current_app
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func, text
 from sqlalchemy.orm import joinedload
@@ -65,6 +66,9 @@ CALL_INCREMENT_TRANSFER_NUMBER = text(
 )
 CALL_DECREMENT_TRANSFER_NUMBER = text(
     "SELECT decrement_transfer_number(:creditor_id)"
+)
+CALL_PROCESS_PENDING_LOG_ENTRIES = text(
+    "SELECT process_pending_log_entries(:creditor_id)"
 )
 
 
@@ -286,12 +290,21 @@ def get_creditors_with_pending_log_entries(
 
 @atomic
 def process_pending_log_entries(creditor_id: int) -> None:
+    if current_app.config["APP_USE_PGPLSQL_FUNCTIONS"]:  # pragma: no cover
+        db.session.execute(
+            CALL_PROCESS_PENDING_LOG_ENTRIES,
+            {
+                "creditor_id": creditor_id,
+            },
+        )
+        return
+
     creditor = _get_creditor(creditor_id, lock=True)
     if creditor:
         pending_log_entries = (
             PendingLogEntry.query.filter_by(creditor_id=creditor_id)
             .order_by(PendingLogEntry.pending_entry_id)
-            .with_for_update()
+            .with_for_update(skip_locked=True)
             .all()
         )
 

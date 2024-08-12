@@ -381,6 +381,93 @@ process_pending_ledger_update_sp = ReplaceableObject(
     """
 )
 
+process_pending_log_entries_sp = ReplaceableObject(
+    "process_pending_log_entries(cid BIGINT)",
+    """
+    RETURNS void AS $$
+    DECLARE
+      cr creditor%ROWTYPE;
+      entry pending_log_entry%ROWTYPE;
+    BEGIN
+      SELECT * INTO cr
+      FROM creditor
+      WHERE creditor_id = cid
+      FOR UPDATE;
+
+      IF NOT FOUND THEN
+        RETURN;
+      END IF;
+
+      FOR entry IN
+        SELECT *
+        FROM pending_log_entry
+        WHERE creditor_id = cid
+        FOR UPDATE SKIP LOCKED
+
+      LOOP
+        cr.last_log_entry_id := cr.last_log_entry_id + 1;
+        INSERT INTO log_entry (
+          creditor_id, entry_id, object_type,
+          object_uri, object_update_id, added_at,
+          is_deleted, data, object_type_hint,
+          debtor_id, creation_date, transfer_number,
+          transfer_uuid, data_principal, data_next_entry_id,
+          data_finalized_at, data_error_code
+        )
+        VALUES (
+          cr.creditor_id, cr.last_log_entry_id, entry.object_type,
+          entry.object_uri, entry.object_update_id, entry.added_at,
+          entry.is_deleted, entry.data, entry.object_type_hint,
+          entry.debtor_id, entry.creation_date, entry.transfer_number,
+          entry.transfer_uuid, entry.data_principal, entry.data_next_entry_id,
+          entry.data_finalized_at, entry.data_error_code
+        );
+
+        IF  (
+              (entry.object_type IS NULL AND entry.object_type_hint = 1)
+              OR entry.object_type = 'Transfer'
+            )
+            AND (
+              entry.object_update_id IS NULL
+              OR entry.object_update_id = 1
+              OR entry.is_deleted
+            ) THEN
+          cr.last_log_entry_id := cr.last_log_entry_id + 1;
+          cr.transfers_list_latest_update_ts := entry.added_at;
+          cr.transfers_list_latest_update_id := (
+            cr.transfers_list_latest_update_id + 1
+          );
+          INSERT INTO log_entry (
+            creditor_id, entry_id,
+            added_at,
+            object_update_id,
+            object_type_hint
+          )
+          VALUES (
+            cr.creditor_id, cr.last_log_entry_id,
+            cr.transfers_list_latest_update_ts,
+            cr.transfers_list_latest_update_id,
+            2
+          );
+        END IF;
+
+        DELETE FROM pending_log_entry
+        WHERE
+          creditor_id = entry.creditor_id
+          AND pending_entry_id = entry.pending_entry_id;
+      END LOOP;
+
+      UPDATE creditor
+      SET
+        last_log_entry_id = cr.last_log_entry_id,
+        transfers_list_latest_update_id = cr.transfers_list_latest_update_id,
+        transfers_list_latest_update_ts = cr.transfers_list_latest_update_ts
+      WHERE creditor_id = cid;
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+)
+
 
 def upgrade():
     op.create_type(account_ledger_data_type)
@@ -391,9 +478,11 @@ def upgrade():
     op.create_sp(make_correcting_ledger_entry_if_necessary_sp)
     op.create_sp(update_ledger_sp)
     op.create_sp(process_pending_ledger_update_sp)
+    op.create_sp(process_pending_log_entries_sp)
 
 
 def downgrade():
+    op.drop_sp(process_pending_log_entries_sp)
     op.drop_sp(process_pending_ledger_update_sp)
     op.drop_sp(update_ledger_sp)
     op.drop_sp(make_correcting_ledger_entry_if_necessary_sp)

@@ -1,6 +1,7 @@
 from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Callable, Tuple, List, Optional
-from sqlalchemy.sql.expression import func
+from flask import current_app
+from sqlalchemy.sql.expression import func, text
 from sqlalchemy.orm import exc, Load
 from swpt_pythonlib.utils import Seqnum
 from swpt_creditors.extensions import db
@@ -33,6 +34,11 @@ atomic: Callable[[T], T] = db.atomic
 
 EPS = 1e-5
 HUGE_INTERVAL = timedelta(days=500000)
+
+CALL_PROCESS_PENDING_LEDGER_UPDATE = text(
+    "SELECT process_pending_ledger_update(:creditor_id, :debtor_id, "
+    ":max_count, :max_delay)"
+)
 
 
 @atomic
@@ -268,6 +274,20 @@ def process_pending_ledger_update(
     skipped.
 
     """
+
+    if current_app.config["APP_USE_PGPLSQL_FUNCTIONS"]:  # pragma: no cover
+        return (
+            db.session.execute(
+                CALL_PROCESS_PENDING_LEDGER_UPDATE,
+                {
+                    "creditor_id": creditor_id,
+                    "debtor_id": debtor_id,
+                    "max_count": max_count,
+                    "max_delay": max_delay,
+                },
+            )
+            .scalar()
+        )
 
     current_ts = datetime.now(tz=timezone.utc)
 

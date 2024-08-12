@@ -226,6 +226,19 @@ class Configuration(metaclass=MetaEnvReader):
         None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
     )
 
+    # NOTE: Some of the functionality has two implementations: A pure
+    # Python implementation, and a PG/PLSQL implementation. The goal
+    # of the pure Python implementation is to be easy to understand,
+    # change, and test. The goal of PG/PLSQL implementations is to
+    # avoid possible Python single-process performance bottlenecks, as
+    # well as to avoid unnecessary network round trips. The PG/PLSQL
+    # implementations will be used by default, because they are likely
+    # to perform better. When running the tests however, the pure
+    # Python implementations will be used. If you want to run the
+    # tests with the PG/PLSQL implementations, start the tests with
+    # the command: `pytest --use-pgplsql=true`.
+    APP_USE_PGPLSQL_FUNCTIONS = True
+
     APP_ENABLE_CORS = False
     APP_PROCESS_LOG_ADDITIONS_WAIT = 5.0
     APP_PROCESS_LOG_ADDITIONS_MAX_COUNT = 100000
