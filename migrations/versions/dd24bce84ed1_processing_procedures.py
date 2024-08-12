@@ -253,7 +253,7 @@ process_pending_ledger_update_sp = ReplaceableObject(
         ad.ledger_pending_transfer_ts,
         ad.last_transfer_number,
         ad.last_transfer_committed_at
-      INTO data
+      INTO STRICT data
       FROM account_data ad
       WHERE ad.creditor_id = cid AND ad.debtor_id = did
       FOR UPDATE;
