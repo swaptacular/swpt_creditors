@@ -239,15 +239,6 @@ def process_log_additions(threads, wait, quit_early):
     "-t", "--threads", type=int, help="The number of worker threads."
 )
 @click.option(
-    "-b",
-    "--burst",
-    type=int,
-    help=(
-        "The maximal number of transfers to process in"
-        " a single database transaction."
-    ),
-)
-@click.option(
     "-w",
     "--wait",
     type=float,
@@ -262,16 +253,12 @@ def process_log_additions(threads, wait, quit_early):
     default=False,
     help="Exit after some time (mainly useful during testing).",
 )
-def process_ledger_updates(threads, burst, wait, quit_early):
+def process_ledger_updates(threads, wait, quit_early):
     """Process all pending ledger updates.
 
     If --threads is not specified, the value of the configuration
     variable PROCESS_LEDGER_UPDATES_THREADS is taken. If it is not
     set, the default number of threads is 1.
-
-    If --burst is not specified, the value of the configuration
-    variable APP_PROCESS_LEDGER_UPDATES_BURST is taken. If it is not
-    set, the default is 1000.
 
     If --wait is not specified, the value of the configuration
     variable APP_PROCESS_LEDGER_UPDATES_WAIT is taken. If it is not
@@ -280,7 +267,7 @@ def process_ledger_updates(threads, burst, wait, quit_early):
     """
 
     threads = threads or current_app.config["PROCESS_LEDGER_UPDATES_THREADS"]
-    burst = burst or current_app.config["APP_PROCESS_LEDGER_UPDATES_BURST"]
+    burst_count = current_app.config["APP_PROCESS_LEDGER_UPDATES_BURST"]
     wait = (
         wait
         if wait is not None
@@ -296,7 +283,10 @@ def process_ledger_updates(threads, burst, wait, quit_early):
 
     def process_ledger_update(creditor_id, debtor_id):
         while not procedures.process_pending_ledger_update(
-            creditor_id, debtor_id, max_count=burst, max_delay=max_delay
+                creditor_id,
+                debtor_id,
+                burst_count=burst_count,
+                max_delay=max_delay,
         ):
             pass
 

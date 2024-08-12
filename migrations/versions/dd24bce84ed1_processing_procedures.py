@@ -212,109 +212,96 @@ process_pending_ledger_update_sp = ReplaceableObject(
     "process_pending_ledger_update("
     " cid BIGINT,"
     " did BIGINT,"
-    " max_count INTEGER,"
     " max_delay INTERVAL"
     ")",
     """
-    RETURNS BOOLEAN AS $$
+    RETURNS void AS $$
     DECLARE
       data account_ledger_data%ROWTYPE;
-      committed_at_cutoff TIMESTAMP WITH TIME ZONE;
-      n INTEGER;
       previous_transfer_number BIGINT;
       transfer_number BIGINT;
       acquired_amount BIGINT;
       principal BIGINT;
       committed_at TIMESTAMP WITH TIME ZONE;
-      is_done BOOLEAN;
       ulr update_ledger_result%ROWTYPE;
       log_entry pending_log_entry_result%ROWTYPE;
+      committed_at_cutoff TIMESTAMP WITH TIME ZONE = (
+        CURRENT_TIMESTAMP - max_delay
+      );
     BEGIN
       PERFORM
       FROM pending_ledger_update
       WHERE creditor_id = cid AND debtor_id = did
       FOR UPDATE;
 
-      IF NOT FOUND THEN
-        RETURN TRUE;
-      END IF;
-
-      SELECT
-        ad.creditor_id,
-        ad.debtor_id,
-        ad.creation_date,
-        ad.principal,
-        ad.account_id,
-        ad.ledger_principal,
-        ad.ledger_last_entry_id,
-        ad.ledger_last_transfer_number,
-        ad.ledger_latest_update_id,
-        ad.ledger_latest_update_ts,
-        ad.ledger_pending_transfer_ts,
-        ad.last_transfer_number,
-        ad.last_transfer_committed_at
-      INTO STRICT data
-      FROM account_data ad
-      WHERE ad.creditor_id = cid AND ad.debtor_id = did
-      FOR UPDATE;
-
-      committed_at_cutoff := CURRENT_TIMESTAMP - max_delay;
-      n := 0;
-
-      FOR
-        previous_transfer_number,
-        transfer_number,
-        acquired_amount,
-        principal,
-        committed_at
-      IN
+      IF FOUND THEN
         SELECT
-          ct.previous_transfer_number,
-          ct.transfer_number,
-          ct.acquired_amount,
-          ct.principal,
-          ct.committed_at
-        FROM committed_transfer ct
-        WHERE
-          ct.creditor_id = data.creditor_id
-          AND ct.debtor_id = data.debtor_id
-          AND ct.creation_date = data.creation_date
-          AND ct.transfer_number > data.ledger_last_transfer_number
-        ORDER BY ct.transfer_number
-        LIMIT max_count
+          ad.creditor_id,
+          ad.debtor_id,
+          ad.creation_date,
+          ad.principal,
+          ad.account_id,
+          ad.ledger_principal,
+          ad.ledger_last_entry_id,
+          ad.ledger_last_transfer_number,
+          ad.ledger_latest_update_id,
+          ad.ledger_latest_update_ts,
+          NULL,
+          ad.last_transfer_number,
+          ad.last_transfer_committed_at
+        INTO STRICT data
+        FROM account_data ad
+        WHERE ad.creditor_id = cid AND ad.debtor_id = did
+        FOR UPDATE;
 
-      LOOP
-        IF previous_transfer_number != data.ledger_last_transfer_number
-           AND committed_at >= committed_at_cutoff
-              THEN
-            data.ledger_pending_transfer_ts = committed_at;
-            is_done := TRUE;
-            EXIT;
-        END IF;
-
-        ulr := update_ledger(
-          data,
+        FOR
+          previous_transfer_number,
           transfer_number,
           acquired_amount,
           principal,
-          CURRENT_TIMESTAMP
-        );
-        data := ulr.data;
-        log_entry := COALESCE(ulr.log_entry, log_entry);
-        n := n + 1;
-      END LOOP;
+          committed_at
+        IN
+          SELECT
+            ct.previous_transfer_number,
+            ct.transfer_number,
+            ct.acquired_amount,
+            ct.principal,
+            ct.committed_at
+          FROM committed_transfer ct
+          WHERE
+            ct.creditor_id = data.creditor_id
+            AND ct.debtor_id = data.debtor_id
+            AND ct.creation_date = data.creation_date
+            AND ct.transfer_number > data.ledger_last_transfer_number
+          ORDER BY ct.transfer_number
 
-      IF is_done IS NULL THEN
-        data.ledger_pending_transfer_ts := NULL;
-        is_done := n < max_count;
-      END IF;
+        LOOP
+          IF previous_transfer_number != data.ledger_last_transfer_number
+             AND committed_at >= committed_at_cutoff
+                THEN
+              -- We are missing a transfer.
+              data.ledger_pending_transfer_ts = committed_at;
+              EXIT;
+          END IF;
 
-      IF is_done THEN
+          ulr := update_ledger(
+            data,
+            transfer_number,
+            acquired_amount,
+            principal,
+            CURRENT_TIMESTAMP
+          );
+          data := ulr.data;
+          log_entry := COALESCE(ulr.log_entry, log_entry);
+        END LOOP;
+
         IF (
               data.ledger_pending_transfer_ts IS NULL
               AND data.last_transfer_number > data.ledger_last_transfer_number
               AND data.last_transfer_committed_at < committed_at_cutoff
             ) THEN
+          -- We are missing the latest transfers, and we have given up hope
+          -- to receive them. Here we create a fake "catch-up" ledger entry.
           ulr := update_ledger(
             data,
             data.last_transfer_number,
@@ -326,56 +313,53 @@ process_pending_ledger_update_sp = ReplaceableObject(
           log_entry := COALESCE(ulr.log_entry, log_entry);
         END IF;
 
+        IF log_entry IS NOT NULL THEN
+          INSERT INTO pending_log_entry (
+            creditor_id, added_at,
+            object_update_id, object_type_hint,
+            debtor_id, data_principal,
+            data_next_entry_id
+          )
+          VALUES (
+            log_entry.creditor_id, log_entry.added_at,
+            log_entry.object_update_id, log_entry.object_type_hint,
+            log_entry.debtor_id, log_entry.data_principal,
+            log_entry.data_next_entry_id
+          );
+
+          INSERT INTO updated_ledger_signal (
+            creditor_id, debtor_id, update_id,
+            account_id, creation_date, principal,
+            last_transfer_number, ts,
+            inserted_at
+          )
+          VALUES (
+            cid, did, data.ledger_latest_update_id,
+            data.account_id, data.creation_date, data.ledger_principal,
+            data.ledger_last_transfer_number, CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+          );
+
+          LOOP
+            EXIT WHEN (
+              nextval('object_update_id_seq') >= data.ledger_latest_update_id
+            );
+          END LOOP;
+        END IF;
+
+        UPDATE account_data
+        SET
+          ledger_principal = data.ledger_principal,
+          ledger_last_entry_id = data.ledger_last_entry_id,
+          ledger_last_transfer_number = data.ledger_last_transfer_number,
+          ledger_latest_update_id = data.ledger_latest_update_id,
+          ledger_latest_update_ts = data.ledger_latest_update_ts,
+          ledger_pending_transfer_ts = data.ledger_pending_transfer_ts
+        WHERE creditor_id = cid AND debtor_id = did;
+
         DELETE FROM pending_ledger_update
         WHERE creditor_id = cid AND debtor_id = did;
       END IF;
-
-      IF log_entry IS NOT NULL THEN
-        INSERT INTO updated_ledger_signal (
-          creditor_id, debtor_id, update_id,
-          account_id, creation_date, principal,
-          last_transfer_number, ts,
-          inserted_at
-        )
-        VALUES (
-          cid, did, data.ledger_latest_update_id,
-          data.account_id, data.creation_date, data.ledger_principal,
-          data.ledger_last_transfer_number, CURRENT_TIMESTAMP,
-          CURRENT_TIMESTAMP
-        );
-
-        INSERT INTO pending_log_entry (
-          creditor_id, added_at,
-          object_update_id, object_type_hint,
-          debtor_id, data_principal,
-          data_next_entry_id
-        )
-        VALUES (
-          log_entry.creditor_id, log_entry.added_at,
-          log_entry.object_update_id, log_entry.object_type_hint,
-          log_entry.debtor_id, log_entry.data_principal,
-          log_entry.data_next_entry_id
-        );
-
-        PERFORM nextval('object_update_id_seq');
-      END IF;
-
-      UPDATE account_data
-      SET
-        creation_date = data.creation_date,
-        principal = data.principal,
-        account_id = data.account_id,
-        ledger_principal = data.ledger_principal,
-        ledger_last_entry_id = data.ledger_last_entry_id,
-        ledger_last_transfer_number = data.ledger_last_transfer_number,
-        ledger_latest_update_id = data.ledger_latest_update_id,
-        ledger_latest_update_ts = data.ledger_latest_update_ts,
-        ledger_pending_transfer_ts = data.ledger_pending_transfer_ts,
-        last_transfer_number = data.last_transfer_number,
-        last_transfer_committed_at = data.last_transfer_committed_at
-      WHERE creditor_id = cid AND debtor_id = did;
-
-      RETURN is_done;
     END;
     $$ LANGUAGE plpgsql;
     """

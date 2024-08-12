@@ -37,7 +37,7 @@ HUGE_INTERVAL = timedelta(days=500000)
 
 CALL_PROCESS_PENDING_LEDGER_UPDATE = text(
     "SELECT process_pending_ledger_update(:creditor_id, :debtor_id, "
-    ":max_count, :max_delay)"
+    ":max_delay)"
 )
 
 
@@ -259,11 +259,11 @@ def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
 
 @atomic
 def process_pending_ledger_update(
-    creditor_id: int, debtor_id: int, *, max_count: int, max_delay: timedelta
+    creditor_id: int, debtor_id: int, *, burst_count: int, max_delay: timedelta
 ) -> bool:
     """Try to add pending committed transfers to the account's ledger.
 
-    This function will not process more than `max_count`
+    This function will not try to process more than `burst_count`
     transfers. When some legible committed transfers remained
     unprocessed, `False` will be returned. In this case the function
     should be called again, and again, until it returns `True`.
@@ -276,18 +276,17 @@ def process_pending_ledger_update(
     """
 
     if current_app.config["APP_USE_PGPLSQL_FUNCTIONS"]:  # pragma: no cover
-        return (
-            db.session.execute(
-                CALL_PROCESS_PENDING_LEDGER_UPDATE,
-                {
-                    "creditor_id": creditor_id,
-                    "debtor_id": debtor_id,
-                    "max_count": max_count,
-                    "max_delay": max_delay,
-                },
-            )
-            .scalar()
+        db.session.execute(
+            CALL_PROCESS_PENDING_LEDGER_UPDATE,
+            {
+                "creditor_id": creditor_id,
+                "debtor_id": debtor_id,
+                "max_delay": max_delay,
+            },
         )
+        # NOTE: The PG/PLSQL function ignores the `burst_count`, and
+        # processes all pending committed transfers at once.
+        return True
 
     current_ts = datetime.now(tz=timezone.utc)
 
@@ -310,7 +309,7 @@ def process_pending_ledger_update(
 
     log_entry = None
     committed_at_cutoff = current_ts - max_delay
-    transfers = _get_sorted_pending_transfers(data, max_count)
+    transfers = _get_sorted_pending_transfers(data, burst_count)
 
     for (
         previous_transfer_number,
@@ -338,7 +337,7 @@ def process_pending_ledger_update(
         )
     else:
         data.ledger_pending_transfer_ts = None
-        is_done = len(transfers) < max_count
+        is_done = len(transfers) < burst_count
 
     if is_done:
         log_entry = (
@@ -361,7 +360,9 @@ def process_pending_ledger_update(
             ts=current_ts,
         ))
         db.session.add(log_entry)
-        db.session.scalar(uid_seq)
+
+        while db.session.scalar(uid_seq) < data.ledger_latest_update_id:
+            pass  # pragma: no cover
 
     return is_done
 

@@ -79,7 +79,6 @@ def test_process_ledger_entries(app, db_session, current_ts):
         args=[
             "swpt_creditors",
             "process_ledger_updates",
-            "--burst=1",
             "--quit-early",
             "--wait=0",
         ]
