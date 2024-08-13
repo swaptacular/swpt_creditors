@@ -252,7 +252,7 @@ process_pending_ledger_update_sp = ReplaceableObject(
         INTO STRICT data
         FROM account_data ad
         WHERE ad.creditor_id = cid AND ad.debtor_id = did
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
 
         FOR
           previous_transfer_number,
@@ -376,7 +376,7 @@ process_pending_log_entries_sp = ReplaceableObject(
       SELECT * INTO cr
       FROM creditor
       WHERE creditor_id = cid
-      FOR UPDATE;
+      FOR NO KEY UPDATE;
 
       FOR entry IN
         SELECT *

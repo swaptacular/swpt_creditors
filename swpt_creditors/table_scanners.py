@@ -429,7 +429,7 @@ class AccountScanner(TableScanner):
                     AccountData.ledger_latest_update_ts
                     < latest_update_cutoff_ts
                 )
-                .with_for_update(skip_locked=True)
+                .with_for_update(skip_locked=True, key_share=True)
                 .options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
                 .all()
             )
@@ -572,7 +572,7 @@ class AccountScanner(TableScanner):
                 )
                 .filter(AccountData.config_error == null())
                 .filter(AccountData.last_config_ts < last_config_ts_cutoff)
-                .with_for_update(skip_locked=True)
+                .with_for_update(skip_locked=True, key_share=True)
                 .options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
                 .all()
             )

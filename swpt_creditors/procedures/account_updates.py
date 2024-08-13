@@ -69,7 +69,7 @@ def process_rejected_config_signal(
             func.abs(AccountData.negligible_amount - negligible_amount)
             <= EPS * negligible_amount
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
         .options(LOAD_ONLY_CONFIG_RELATED_COLUMNS)
         .one_or_none()
     )
@@ -114,7 +114,7 @@ def process_account_update_signal(
         AccountData.query.filter_by(
             creditor_id=creditor_id, debtor_id=debtor_id
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
         .one_or_none()
     )
     if data is None:
@@ -234,7 +234,7 @@ def process_account_purge_signal(
             has_server_account=True,
         )
         .filter(AccountData.creation_date <= creation_date)
-        .with_for_update()
+        .with_for_update(key_share=True)
         .options(LOAD_ONLY_INFO_RELATED_COLUMNS)
         .one_or_none()
     )
@@ -290,23 +290,24 @@ def process_pending_ledger_update(
 
     current_ts = datetime.now(tz=timezone.utc)
 
-    query = (
-        db.session.query(PendingLedgerUpdate, AccountData)
-        .join(PendingLedgerUpdate.account_data)
-        .filter(
-            PendingLedgerUpdate.creditor_id == creditor_id,
-            PendingLedgerUpdate.debtor_id == debtor_id,
-        )
+    pending_ledger_update = (
+        db.session.query(PendingLedgerUpdate)
+        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
         .with_for_update()
+        .one_or_none()
+    )
+    if pending_ledger_update is None:
+        return True
+
+    data = (
+        db.session.query(AccountData)
+        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+        .with_for_update(key_share=True)
         .options(
             Load(AccountData).load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)
         )
+        .one()
     )
-    try:
-        pending_ledger_update, data = query.one()
-    except exc.NoResultFound:
-        return True
-
     log_entry = None
     committed_at_cutoff = current_ts - max_delay
     transfers = _get_sorted_pending_transfers(data, burst_count)

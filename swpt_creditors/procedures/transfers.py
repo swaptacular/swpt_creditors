@@ -52,7 +52,7 @@ def get_running_transfer(
         creditor_id=creditor_id, transfer_uuid=transfer_uuid
     )
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
 
     return query.one_or_none()
 

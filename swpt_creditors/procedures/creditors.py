@@ -204,7 +204,7 @@ def get_active_creditor(
 def get_pin_info(creditor_id: int, lock: bool = False) -> Optional[PinInfo]:
     query = PinInfo.query.filter_by(creditor_id=creditor_id)
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
 
     return query.one_or_none()
 
@@ -504,7 +504,7 @@ def _get_creditor(
 ) -> Optional[Creditor]:
     query = Creditor.query.filter_by(creditor_id=creditor_id)
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
     if join_pin:
         query = query.options(joinedload(Creditor.pin_info, innerjoin=True))
 
