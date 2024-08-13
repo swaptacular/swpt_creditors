@@ -378,14 +378,14 @@ process_pending_log_entries_sp = ReplaceableObject(
       WHERE creditor_id = cid
       FOR UPDATE;
 
-      IF FOUND THEN
-        FOR entry IN
-          SELECT *
-          FROM pending_log_entry
-          WHERE creditor_id = cid
-          FOR UPDATE SKIP LOCKED
+      FOR entry IN
+        SELECT *
+        FROM pending_log_entry
+        WHERE creditor_id = cid
+        FOR UPDATE SKIP LOCKED
 
-        LOOP
+      LOOP
+        IF cr.creditor_id IS NOT NULL THEN
           cr.last_log_entry_id := cr.last_log_entry_id + 1;
           INSERT INTO log_entry (
             creditor_id, entry_id, object_type,
@@ -435,13 +435,15 @@ process_pending_log_entries_sp = ReplaceableObject(
               2
             );
           END IF;
+        END IF;
 
-          DELETE FROM pending_log_entry
-          WHERE
-            creditor_id = entry.creditor_id
-            AND pending_entry_id = entry.pending_entry_id;
-        END LOOP;
+        DELETE FROM pending_log_entry
+        WHERE
+          creditor_id = entry.creditor_id
+          AND pending_entry_id = entry.pending_entry_id;
+      END LOOP;
 
+      IF cr.creditor_id IS NOT NULL THEN
         UPDATE creditor
         SET
           last_log_entry_id = cr.last_log_entry_id,
@@ -466,8 +468,16 @@ def upgrade():
     op.create_sp(process_pending_ledger_update_sp)
     op.create_sp(process_pending_log_entries_sp)
 
+    with op.batch_alter_table('pending_log_entry', schema=None) as batch_op:
+        batch_op.drop_constraint('pending_log_entry_creditor_id_fkey', type_='foreignkey')
+
 
 def downgrade():
+    op.execute("DELETE FROM pending_log_entry WHERE creditor_id NOT IN (SELECT creditor_id FROM creditor)")
+
+    with op.batch_alter_table('pending_log_entry', schema=None) as batch_op:
+        batch_op.create_foreign_key('pending_log_entry_creditor_id_fkey', 'creditor', ['creditor_id'], ['creditor_id'], ondelete='CASCADE')
+
     op.drop_sp(process_pending_log_entries_sp)
     op.drop_sp(process_pending_ledger_update_sp)
     op.drop_sp(update_ledger_sp)

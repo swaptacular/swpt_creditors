@@ -62,6 +62,7 @@ def db_session(app):
         "TRUNCATE TABLE creditor CASCADE",
         "TRUNCATE TABLE ledger_entry",
         "TRUNCATE TABLE log_entry",
+        "TRUNCATE TABLE pending_log_entry",
         "TRUNCATE TABLE committed_transfer",
         "TRUNCATE TABLE configure_account_signal",
         "TRUNCATE TABLE prepare_transfer_signal",

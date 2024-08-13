@@ -300,16 +300,14 @@ def process_pending_log_entries(creditor_id: int) -> None:
         return
 
     creditor = _get_creditor(creditor_id, lock=True)
-    if creditor:
-        pending_log_entries = (
-            PendingLogEntry.query.filter_by(creditor_id=creditor_id)
-            .order_by(PendingLogEntry.pending_entry_id)
-            .with_for_update(skip_locked=True)
-            .all()
-        )
-
-        for entry in pending_log_entries:
-            _process_pending_log_entry(creditor, entry)
+    pending_log_entries = (
+        PendingLogEntry.query.filter_by(creditor_id=creditor_id)
+        .order_by(PendingLogEntry.pending_entry_id)
+        .with_for_update(skip_locked=True)
+        .all()
+    )
+    for entry in pending_log_entries:
+        _process_pending_log_entry(creditor, entry)
 
 
 @atomic
@@ -446,32 +444,36 @@ def decrement_transfer_number(creditor_id):
 def _process_pending_log_entry(
     creditor: Creditor, entry: PendingLogEntry
 ) -> None:
-    paths, types = get_paths_and_types()
-    aux_fields = {attr: getattr(entry, attr) for attr in LogEntry.AUX_FIELDS}
-    data_fields = {attr: getattr(entry, attr) for attr in LogEntry.DATA_FIELDS}
-
-    _add_log_entry(
-        creditor,
-        object_type=entry.object_type,
-        object_uri=entry.object_uri,
-        object_update_id=entry.object_update_id,
-        added_at=entry.added_at,
-        is_deleted=entry.is_deleted,
-        data=entry.data,
-        **aux_fields,
-        **data_fields,
-    )
-
-    if entry.get_object_type(types) == types.transfer and (
-        entry.is_created or entry.is_deleted
-    ):
-        # NOTE: When a running transfer has been created or deleted,
-        # the client should be informed about the update in his list
-        # of transfers. The write to the log is performed now, because
-        # at the time the running transfer was created/deleted, the
-        # correct value of the `object_update_id` field had been
-        # unknown (a lock on creditor's table row would be required).
-        _add_transfers_list_update_log_entry(creditor, entry.added_at)
+    if creditor:
+        paths, types = get_paths_and_types()
+        aux_fields = {
+            attr: getattr(entry, attr) for attr in LogEntry.AUX_FIELDS
+        }
+        data_fields = {
+            attr: getattr(entry, attr) for attr in LogEntry.DATA_FIELDS
+        }
+        _add_log_entry(
+            creditor,
+            object_type=entry.object_type,
+            object_uri=entry.object_uri,
+            object_update_id=entry.object_update_id,
+            added_at=entry.added_at,
+            is_deleted=entry.is_deleted,
+            data=entry.data,
+            **aux_fields,
+            **data_fields,
+        )
+        if entry.get_object_type(types) == types.transfer and (
+            entry.is_created or entry.is_deleted
+        ):
+            # NOTE: When a running transfer has been created or
+            # deleted, the client should be informed about the update
+            # in his list of transfers. The write to the log is
+            # performed now, because at the time the running transfer
+            # was created/deleted, the correct value of the
+            # `object_update_id` field had been unknown (a lock on
+            # creditor's table row would be required).
+            _add_transfers_list_update_log_entry(creditor, entry.added_at)
 
     db.session.delete(entry)
 
