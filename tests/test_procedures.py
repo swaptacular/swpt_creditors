@@ -26,7 +26,7 @@ TEST_UUID2 = UUID("123e4567-e89b-12d3-a456-426655440001")
 
 
 @pytest.fixture(params=[2, 1000000])
-def max_count(request):
+def burst_count(request):
     return request.param
 
 
@@ -767,7 +767,7 @@ def test_get_pending_ledger_updates(db_session):
     assert p.get_pending_ledger_updates(max_count=10) == []
 
 
-def test_process_pending_ledger_update(account, max_count, current_ts):
+def test_process_pending_ledger_update(account, burst_count, current_ts):
     def get_ledger_update_entries_count():
         p.process_pending_log_entries(C_ID)
         return len(
@@ -844,17 +844,17 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
     )
 
     assert p.process_pending_ledger_update(
-        2222, D_ID, max_count=max_count, max_delay=timedelta(days=10000)
+        2222, D_ID, burst_count=burst_count, max_delay=timedelta(days=10000)
     )
     assert p.process_pending_ledger_update(
-        C_ID, 1111, max_count=max_count, max_delay=timedelta(days=10000)
+        C_ID, 1111, burst_count=burst_count, max_delay=timedelta(days=10000)
     )
     assert get_ledger_update_entries_count() == 1
     assert len(models.UpdatedLedgerSignal.query.all()) == 1
 
     n = 0
     while not p.process_pending_ledger_update(
-        C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)
+        C_ID, D_ID, burst_count=burst_count, max_delay=timedelta(days=10000)
     ):
         x = len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000))
         assert x > n
@@ -876,7 +876,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
 
     assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
     while not p.process_pending_ledger_update(
-        C_ID, D_ID, max_count=max_count, max_delay=timedelta(days=10000)
+        C_ID, D_ID, burst_count=burst_count, max_delay=timedelta(days=10000)
     ):
         pass
     assert get_ledger_update_entries_count() > lue_count
@@ -895,7 +895,7 @@ def test_process_pending_ledger_update(account, max_count, current_ts):
 
 
 def test_process_pending_ledger_update_missing_last_transfer(
-    account, max_count, current_ts
+    account, burst_count, current_ts
 ):
     def get_ledger_update_entries_count():
         p.process_pending_log_entries(C_ID)
@@ -940,7 +940,7 @@ def test_process_pending_ledger_update_missing_last_transfer(
     assert len(PendingLedgerUpdate.query.all()) == 1
     max_delay = timedelta(days=30)
     while not p.process_pending_ledger_update(
-        C_ID, D_ID, max_count=max_count, max_delay=max_delay
+        C_ID, D_ID, burst_count=burst_count, max_delay=max_delay
     ):
         pass
     assert len(PendingLedgerUpdate.query.all()) == 0
@@ -959,7 +959,7 @@ def test_process_pending_ledger_update_missing_last_transfer(
     p.ensure_pending_ledger_update(C_ID, D_ID)
     assert len(PendingLedgerUpdate.query.all()) == 1
     while not p.process_pending_ledger_update(
-        C_ID, D_ID, max_count=max_count, max_delay=max_delay
+        C_ID, D_ID, burst_count=burst_count, max_delay=max_delay
     ):
         pass
     lue_count = get_ledger_update_entries_count()

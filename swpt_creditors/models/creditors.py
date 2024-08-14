@@ -442,9 +442,6 @@ class PendingLogEntry(BaseLogEntry):
     )
 
     __table_args__ = (
-        db.ForeignKeyConstraint(
-            ["creditor_id"], ["creditor.creditor_id"], ondelete="CASCADE"
-        ),
         db.CheckConstraint("object_update_id > 0"),
         db.CheckConstraint("transfer_number > 0"),
         db.CheckConstraint("data_next_entry_id > 0"),

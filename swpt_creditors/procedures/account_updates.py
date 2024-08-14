@@ -1,6 +1,7 @@
 from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Callable, Tuple, List, Optional
-from sqlalchemy.sql.expression import func
+from flask import current_app
+from sqlalchemy.sql.expression import func, text
 from sqlalchemy.orm import exc, Load
 from swpt_pythonlib.utils import Seqnum
 from swpt_creditors.extensions import db
@@ -34,6 +35,11 @@ atomic: Callable[[T], T] = db.atomic
 EPS = 1e-5
 HUGE_INTERVAL = timedelta(days=500000)
 
+CALL_PROCESS_PENDING_LEDGER_UPDATE = text(
+    "SELECT process_pending_ledger_update(:creditor_id, :debtor_id, "
+    ":max_delay)"
+)
+
 
 @atomic
 def process_rejected_config_signal(
@@ -63,7 +69,7 @@ def process_rejected_config_signal(
             func.abs(AccountData.negligible_amount - negligible_amount)
             <= EPS * negligible_amount
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
         .options(LOAD_ONLY_CONFIG_RELATED_COLUMNS)
         .one_or_none()
     )
@@ -108,7 +114,7 @@ def process_account_update_signal(
         AccountData.query.filter_by(
             creditor_id=creditor_id, debtor_id=debtor_id
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
         .one_or_none()
     )
     if data is None:
@@ -228,7 +234,7 @@ def process_account_purge_signal(
             has_server_account=True,
         )
         .filter(AccountData.creation_date <= creation_date)
-        .with_for_update()
+        .with_for_update(key_share=True)
         .options(LOAD_ONLY_INFO_RELATED_COLUMNS)
         .one_or_none()
     )
@@ -253,11 +259,11 @@ def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
 
 @atomic
 def process_pending_ledger_update(
-    creditor_id: int, debtor_id: int, *, max_count: int, max_delay: timedelta
+    creditor_id: int, debtor_id: int, *, burst_count: int, max_delay: timedelta
 ) -> bool:
     """Try to add pending committed transfers to the account's ledger.
 
-    This function will not process more than `max_count`
+    This function will not try to process more than `burst_count`
     transfers. When some legible committed transfers remained
     unprocessed, `False` will be returned. In this case the function
     should be called again, and again, until it returns `True`.
@@ -269,28 +275,42 @@ def process_pending_ledger_update(
 
     """
 
+    if current_app.config["APP_USE_PGPLSQL_FUNCTIONS"]:  # pragma: no cover
+        db.session.execute(
+            CALL_PROCESS_PENDING_LEDGER_UPDATE,
+            {
+                "creditor_id": creditor_id,
+                "debtor_id": debtor_id,
+                "max_delay": max_delay,
+            },
+        )
+        # NOTE: The PG/PLSQL function ignores the `burst_count`, and
+        # processes all pending committed transfers at once.
+        return True
+
     current_ts = datetime.now(tz=timezone.utc)
 
-    query = (
-        db.session.query(PendingLedgerUpdate, AccountData)
-        .join(PendingLedgerUpdate.account_data)
-        .filter(
-            PendingLedgerUpdate.creditor_id == creditor_id,
-            PendingLedgerUpdate.debtor_id == debtor_id,
-        )
+    pending_ledger_update = (
+        db.session.query(PendingLedgerUpdate)
+        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
         .with_for_update()
+        .one_or_none()
+    )
+    if pending_ledger_update is None:
+        return True
+
+    data = (
+        db.session.query(AccountData)
+        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+        .with_for_update(key_share=True)
         .options(
             Load(AccountData).load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)
         )
+        .one()
     )
-    try:
-        pending_ledger_update, data = query.one()
-    except exc.NoResultFound:
-        return True
-
     log_entry = None
     committed_at_cutoff = current_ts - max_delay
-    transfers = _get_sorted_pending_transfers(data, max_count)
+    transfers = _get_sorted_pending_transfers(data, burst_count)
 
     for (
         previous_transfer_number,
@@ -318,7 +338,7 @@ def process_pending_ledger_update(
         )
     else:
         data.ledger_pending_transfer_ts = None
-        is_done = len(transfers) < max_count
+        is_done = len(transfers) < burst_count
 
     if is_done:
         log_entry = (
@@ -341,7 +361,9 @@ def process_pending_ledger_update(
             ts=current_ts,
         ))
         db.session.add(log_entry)
-        db.session.scalar(uid_seq)
+
+        while db.session.scalar(uid_seq) < data.ledger_latest_update_id:
+            pass  # pragma: no cover
 
     return is_done
 

@@ -12,6 +12,7 @@ config_dict = {
     "MAX_CREDITOR_ID": 8589934591,
     "APP_ENABLE_CORS": True,
     "APP_TRANSFERS_FINALIZATION_APPROX_SECONDS": 10.0,
+    "APP_PROCESS_LEDGER_UPDATES_BURST": 1,
     "APP_MAX_TRANSFERS_PER_MONTH": 10,
     "APP_CREDITORS_PER_PAGE": 2,
     "APP_LOG_ENTRIES_PER_PAGE": 2,
@@ -32,10 +33,17 @@ config_dict = {
 }
 
 
+def pytest_addoption(parser):
+    parser.addoption("--use-pgplsql", action="store", default="false")
+
+
 @pytest.fixture(scope="module")
-def app():
+def app(request):
     """Get a Flask application object."""
 
+    config_dict["APP_USE_PGPLSQL_FUNCTIONS"] = (
+        request.config.option.use_pgplsql.lower() not in ["false", "no", "off"]
+    )
     app = create_app(config_dict)
     with app.app_context():
         flask_migrate.upgrade()
@@ -54,6 +62,7 @@ def db_session(app):
         "TRUNCATE TABLE creditor CASCADE",
         "TRUNCATE TABLE ledger_entry",
         "TRUNCATE TABLE log_entry",
+        "TRUNCATE TABLE pending_log_entry",
         "TRUNCATE TABLE committed_transfer",
         "TRUNCATE TABLE configure_account_signal",
         "TRUNCATE TABLE prepare_transfer_signal",

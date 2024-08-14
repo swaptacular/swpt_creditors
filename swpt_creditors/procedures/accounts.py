@@ -164,7 +164,7 @@ def get_account_config(
     ).options(LOAD_ONLY_CONFIG_RELATED_COLUMNS)
 
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
 
     return query.one_or_none()
 
@@ -257,7 +257,7 @@ def get_account_display(
         creditor_id=creditor_id, debtor_id=debtor_id
     )
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
 
     return query.one_or_none()
 
@@ -337,7 +337,7 @@ def get_account_knowledge(
         creditor_id=creditor_id, debtor_id=debtor_id
     )
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
 
     return query.one_or_none()
 
@@ -387,7 +387,7 @@ def get_account_exchange(
         creditor_id=creditor_id, debtor_id=debtor_id
     )
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
 
     return query.one_or_none()
 
