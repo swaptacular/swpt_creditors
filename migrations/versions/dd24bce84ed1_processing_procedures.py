@@ -24,7 +24,7 @@ account_ledger_data_type = ReplaceableObject(
       debtor_id BIGINT,
       creation_date DATE,
       principal BIGINT,
-      account_id TEXT,
+      account_id VARCHAR,
       ledger_principal BIGINT,
       ledger_last_entry_id BIGINT,
       ledger_last_transfer_number BIGINT,
