@@ -13,6 +13,7 @@ from swpt_creditors.schemas import (
     PinInfoSchema,
 )
 from swpt_creditors import procedures
+from swpt_creditors import inspect_ops
 from .common import context, ensure_creditor_permissions, Blueprint
 from .specs import CID
 from . import specs
@@ -119,7 +120,8 @@ class PinInfoEndpoint(MethodView):
         """
 
         try:
-            return procedures.update_pin_info(
+            inspect_ops.allow_pin_change(creditorId)
+            pin_info = procedures.update_pin_info(
                 creditor_id=creditorId,
                 status_name=pin_info["status_name"],
                 secret=current_app.config["PIN_PROTECTION_SECRET"],
@@ -131,7 +133,7 @@ class PinInfoEndpoint(MethodView):
                     days=current_app.config["APP_PIN_FAILURES_RESET_DAYS"]
                 ),
             )
-        except procedures.WrongPinValue:
+        except (inspect_ops.ForbiddenOperation, procedures.WrongPinValue):
             abort(403)
         except procedures.CreditorDoesNotExist:
             abort(404)
@@ -139,6 +141,9 @@ class PinInfoEndpoint(MethodView):
             abort(
                 409, errors={"json": {"latestUpdateId": ["Incorrect value."]}}
             )
+
+        inspect_ops.register_pin_change(creditorId)
+        return pin_info
 
 
 @creditors_api.route("/<i64:creditorId>/log", parameters=[CID])

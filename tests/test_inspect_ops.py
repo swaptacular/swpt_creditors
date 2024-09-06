@@ -12,6 +12,9 @@ def test_forbidden_operations(app):
     app.config["APP_MAX_CREDITOR_INITIATIONS"] = 0
 
     with pytest.raises(inspect_ops.ForbiddenOperation):
+        inspect_ops.allow_pin_change(C_ID)
+
+    with pytest.raises(inspect_ops.ForbiddenOperation):
         inspect_ops.allow_account_creation(C_ID, D_ID)
 
     with pytest.raises(inspect_ops.ForbiddenOperation):

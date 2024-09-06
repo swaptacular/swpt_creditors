@@ -427,6 +427,7 @@ class AccountDisplayEndpoint(MethodView):
         """
 
         try:
+            inspect_ops.allow_account_reconfig(creditorId, debtorId)
             if not g.pin_reset_mode:
                 procedures.verify_pin_value(
                     creditor_id=creditorId,
@@ -446,7 +447,7 @@ class AccountDisplayEndpoint(MethodView):
                 known_debtor=account_display["known_debtor"],
                 latest_update_id=account_display["latest_update_id"],
             )
-        except procedures.WrongPinValue:
+        except (inspect_ops.ForbiddenOperation, procedures.WrongPinValue):
             abort(403)
         except (
             procedures.CreditorDoesNotExist,
@@ -470,6 +471,7 @@ class AccountDisplayEndpoint(MethodView):
                 },
             )
 
+        inspect_ops.register_account_reconfig(creditorId, debtorId)
         return display
 
 
@@ -614,12 +616,15 @@ class AccountKnowledgeEndpoint(MethodView):
         """
 
         try:
+            inspect_ops.allow_account_reconfig(creditorId, debtorId)
             knowledge = procedures.update_account_knowledge(
                 creditorId,
                 debtorId,
                 latest_update_id=account_knowledge["latest_update_id"],
                 data=account_knowledge["data"],
             )
+        except inspect_ops.ForbiddenOperation:  # pragma: no cover
+            abort(403)
         except procedures.AccountDoesNotExist:
             abort(404)
         except procedures.UpdateConflict:
@@ -627,6 +632,7 @@ class AccountKnowledgeEndpoint(MethodView):
                 409, errors={"json": {"latestUpdateId": ["Incorrect value."]}}
             )
 
+        inspect_ops.register_account_reconfig(creditorId, debtorId)
         return knowledge
 
 
