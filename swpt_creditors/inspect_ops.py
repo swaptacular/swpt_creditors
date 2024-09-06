@@ -9,6 +9,21 @@ class ForbiddenOperation(Exception):
     """The operation is forbidden."""
 
 
+def allow_pin_change(creditor_id: int) -> None:
+    if not procedures.is_account_reconfig_allowed(
+            creditor_id,
+            current_app.config["APP_MAX_CREDITOR_RECONFIGS"],
+    ):
+        raise ForbiddenOperation
+
+
+def register_pin_change(creditor_id: int) -> None:
+    procedures.register_account_reconfig(
+        creditor_id,
+        math.ceil(current_app.config["APP_CREDITOR_DOS_STATS_CLEAR_HOURS"]),
+    )
+
+
 def allow_account_creation(creditor_id: int, debtor_id: int) -> None:
     if not procedures.is_account_creation_allowed(
             creditor_id,
