@@ -1,6 +1,8 @@
 from __future__ import annotations
 import logging
+import os
 import hmac
+from base64 import b64encode
 from math import exp
 from typing import Dict, Optional
 from datetime import datetime, timezone, timedelta
@@ -168,6 +170,7 @@ class PinInfo(db.Model):
     )
     pin_length = db.Column(db.SmallInteger, nullable=False, default=0)
     pin_hmac = db.Column(db.LargeBinary)
+    pin_salt = db.Column(db.String)
     latest_update_id = db.Column(db.BigInteger, nullable=False, default=1)
     latest_update_ts = db.Column(
         db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
@@ -212,6 +215,7 @@ class PinInfo(db.Model):
         self.status = self.STATUS_BLOCKED
         self.pin_length = 0
         self.pin_hmac = None
+        self.pin_salt = None
         self._reset_afa(datetime.now(tz=timezone.utc))
 
     def _get_max_cfa(self) -> int:
@@ -269,7 +273,8 @@ class PinInfo(db.Model):
             if value is None:
                 return False
 
-            if PinInfo.calc_hmac(secret, value) != self.pin_hmac:
+            salted_value = value + (self.pin_salt or "")
+            if PinInfo.calc_hmac(secret, salted_value) != self.pin_hmac:
                 self._register_failed_attempt(afa_reset_interval)
                 return False
 
@@ -280,10 +285,13 @@ class PinInfo(db.Model):
         self.cfa = 0
 
         if value is None:
-            self.pin_hmac = None
             self.pin_length = 0
+            self.pin_hmac = None
+            self.pin_salt = None
         else:
-            self.pin_hmac = self.calc_hmac(secret, value)
+            self.pin_salt = b64encode(os.urandom(6)).decode('ascii')
+            salted_value = value + self.pin_salt
+            self.pin_hmac = self.calc_hmac(secret, salted_value)
             self.pin_length = len(value)
 
 
