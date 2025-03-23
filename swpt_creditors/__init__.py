@@ -306,6 +306,7 @@ def create_app(config_dict={}):
         creditors_api,
         accounts_api,
         transfers_api,
+        health_api,
         path_builder,
         specs,
     )
@@ -347,6 +348,7 @@ def create_app(config_dict={}):
     api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)
+    api.register_blueprint(health_api)
     app.cli.add_command(swpt_creditors)
     procedures.init(path_builder, type_registry)
     return app
