@@ -3,3 +3,4 @@ from .admin import admin_api  # noqa
 from .creditors import creditors_api  # noqa
 from .accounts import accounts_api  # noqa
 from .transfers import transfers_api  # noqa
+from .health import health_api  # noqa
