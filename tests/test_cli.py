@@ -1,3 +1,4 @@
+import pytest
 import sqlalchemy
 from unittest.mock import Mock
 from datetime import date, timedelta
@@ -503,3 +504,16 @@ def test_flush_messages(mocker, app, db_session):
     assert result.exit_code == 1
     send_signalbus_message.assert_called_once()
     assert len(m.FinalizeTransferSignal.query.all()) == 0
+
+
+def test_alembic_current_head(app, request, capfd):
+    if request.config.option.capture != "no":
+        pytest.skip("needs to be run with --capture=no")
+
+    runner = app.test_cli_runner()
+    result = runner.invoke(
+        args=["db", "current"]
+    )
+    assert result.exit_code == 0
+    captured = capfd.readouterr()
+    assert captured.out.strip().endswith(" (head)")
