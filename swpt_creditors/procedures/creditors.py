@@ -168,15 +168,14 @@ def activate_creditor(creditor_id: int, reservation_id: str) -> Creditor:
     if creditor is None:
         raise errors.InvalidReservationId()
 
-    if not creditor.is_activated:
-        if (
-            reservation_id != str(creditor.reservation_id)
-            or creditor.is_deactivated
-        ):
-            raise errors.InvalidReservationId()
-
-        creditor.activate()
-        db.session.add(PinInfo(creditor_id=creditor_id))
+    if reservation_id == str(creditor.reservation_id):
+        if not creditor.is_activated:
+            creditor.activate()
+            db.session.add(PinInfo(creditor_id=creditor_id))
+    elif creditor.is_activated:
+        raise errors.CreditorExists()  # pragma: no cover
+    else:
+        raise errors.InvalidReservationId()
 
     return creditor
 
