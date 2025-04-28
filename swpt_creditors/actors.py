@@ -243,7 +243,7 @@ def _on_activate_creditor_signal(
 ) -> None:
     try:
         procedures.activate_creditor(creditor_id, reservation_id)
-    except procedures.InvalidReservationId:
+    except (procedures.InvalidReservationId, procedures.CreditorExists):
         pass
 
 
