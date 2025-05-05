@@ -1,0 +1,14 @@
+{
+  "client_id": "creditors-superuser",
+  "client_secret": "creditors-superuser",
+  "description": "This is the creditors superuser.",
+  "scope": "access access.readonly disable_pin activate deactivate",
+  "grant_types": [
+    "client_credentials",
+    "refresh_token"
+  ],
+  "response_types": [
+    "token"
+  ],
+  "token_endpoint_auth_method": "client_secret_basic"
+}
