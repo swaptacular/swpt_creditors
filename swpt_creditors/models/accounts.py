@@ -267,6 +267,8 @@ class AccountExchange(db.Model):
         db.ForeignKeyConstraint(
             ["creditor_id", "peg_debtor_id"],
             ["account_exchange.creditor_id", "account_exchange.debtor_id"],
+            deferrable=True,
+            initially="DEFERRED",
         ),
         db.CheckConstraint(latest_update_id > 0),
         db.CheckConstraint(min_principal <= max_principal),
