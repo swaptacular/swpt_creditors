@@ -103,6 +103,14 @@ case $1 in
             setup_rabbitmq_bindings
         fi
         ;;
+    subscribe)
+        export SQLALCHEMY_DATABASE_URI=postgresql+psycopg://localhost:5432/dummy
+        exec flask swpt_creditors "$@"
+        ;;
+    unsubscribe)
+        export SQLALCHEMY_DATABASE_URI=postgresql+psycopg://localhost:5432/dummy
+        exec flask swpt_creditors "$@"
+        ;;
     webserver)
         generate_oathkeeper_configuration
         exec supervisord -c "$APP_ROOT_DIR/supervisord-webserver.conf"
