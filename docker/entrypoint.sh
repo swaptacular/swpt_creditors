@@ -107,6 +107,9 @@ case $1 in
         export SQLALCHEMY_DATABASE_URI=postgresql+psycopg://localhost:5432/dummy
         exec flask swpt_creditors "$@"
         ;;
+    verify_shard_content)
+        exec flask swpt_creditors "$@"
+        ;;
     webserver)
         generate_oathkeeper_configuration
         exec supervisord -c "$APP_ROOT_DIR/supervisord-webserver.conf"
