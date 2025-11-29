@@ -6,6 +6,7 @@ from marshmallow import ValidationError
 from flask import current_app
 import swpt_pythonlib.protocol_schemas as ps
 from swpt_pythonlib import rabbitmq
+from swpt_creditors.extensions import db
 from swpt_creditors import procedures
 from swpt_creditors.models import CT_DIRECT, is_valid_creditor_id
 from swpt_creditors.schemas import ActivateCreditorMessageSchema
@@ -366,4 +367,5 @@ class SmpConsumer(rabbitmq.Consumer):
             )
 
         actor(**message_content)
+        db.session.close()
         return True
