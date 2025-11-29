@@ -403,10 +403,7 @@ def process_log_additions(threads, wait, quit_early):
     variable PROCESS_LOG_ADDITIONS_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
-    If --wait is not specified, the value of the configuration
-    variable APP_PROCESS_LOG_ADDITIONS_WAIT is taken. If it is not
-    set, the default number of seconds is 5.
-
+    If --wait is not specified, the default 4 seconds.
     """
 
     # TODO: Consider allowing load-sharing between multiple processes
@@ -476,10 +473,7 @@ def process_ledger_updates(threads, wait, quit_early):
     variable PROCESS_LEDGER_UPDATES_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
-    If --wait is not specified, the value of the configuration
-    variable APP_PROCESS_LEDGER_UPDATES_WAIT is taken. If it is not
-    set, the default number of seconds is 5.
-
+    If --wait is not specified, the default is 4 seconds.
     """
 
     threads = threads or current_app.config["PROCESS_LEDGER_UPDATES_THREADS"]
@@ -536,10 +530,7 @@ def scan_creditors(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the creditors table. If the number of days is
-    not specified, the value of the configuration variable
-    APP_CREDITORS_SCAN_DAYS is taken. If it is not set, the default
-    number of days is 7.
-
+    not specified, the default is 7 days.
     """
 
     logger = logging.getLogger(__name__)
@@ -564,10 +555,7 @@ def scan_accounts(hours, quit_early):
 
     The specified number of hours determines the intended duration of
     a single pass through the accounts table. If the number of hours
-    is not specified, the value of the configuration variable
-    APP_ACCOUNTS_SCAN_HOURS is taken. If it is not set, the default
-    number of hours is 8.
-
+    is not specified, the default is 8 hours.
     """
 
     logger = logging.getLogger(__name__)
@@ -592,10 +580,7 @@ def scan_log_entries(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the log entries table. If the number of days
-    is not specified, the value of the configuration variable
-    APP_LOG_ENTRIES_SCAN_DAYS is taken. If it is not set, the default
-    number of days is 7.
-
+    is not specified, the default is 7 days.
     """
 
     logger = logging.getLogger(__name__)
@@ -620,10 +605,7 @@ def scan_ledger_entries(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the ledger entries table. If the number of
-    days is not specified, the value of the configuration variable
-    APP_LEDGER_ENTRIES_SCAN_DAYS is taken. If it is not set, the
-    default number of days is 7.
-
+    days is not specified, the default is 7 days.
     """
 
     logger = logging.getLogger(__name__)
@@ -648,10 +630,7 @@ def scan_committed_transfers(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the committed transfers table. If the number
-    of days is not specified, the value of the configuration variable
-    APP_COMMITTED_TRANSFERS_SCAN_DAYS is taken. If it is not set, the
-    default number of days is 7.
-
+    of days is not specified, the default is 7 days.
     """
 
     logger = logging.getLogger(__name__)
