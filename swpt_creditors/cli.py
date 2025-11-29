@@ -7,9 +7,11 @@ import click
 import pika
 from typing import Optional, Any
 from datetime import timedelta
+from sqlalchemy import select
 from flask import current_app
 from flask.cli import with_appcontext
 from flask_sqlalchemy.model import Model
+from swpt_pythonlib.utils import ShardingRealm
 from swpt_creditors import procedures
 from .extensions import db
 from .table_scanners import (
@@ -27,6 +29,9 @@ from swpt_pythonlib.multiproc_utils import (
 )
 from swpt_pythonlib.flask_signalbus import SignalBus, get_models_to_flush
 
+CA_LOOPBACK_EXCHANGE = "ca.loopback"
+CA_LOOPBACK_FILTER_EXCHANGE = "ca.loopback_filter"
+
 
 @click.group("swpt_creditors")
 def swpt_creditors():
@@ -35,16 +40,36 @@ def swpt_creditors():
 
 @swpt_creditors.command()
 @with_appcontext
-def subscribe():  # pragma: no cover
+@click.option(
+    "-u",
+    "--url",
+    type=str,
+    help="The RabbitMQ connection URL.",
+)
+@click.option(
+    "-q",
+    "--queue",
+    type=str,
+    help="The name of the queue to declare and subscribe.",
+)
+@click.option(
+    "-k",
+    "--queue-routing-key",
+    type=str,
+    help="The RabbitMQ binding key for the queue.",
+)
+def subscribe(url, queue, queue_routing_key):  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
     messages.
 
-    The value of the PROTOCOL_BROKER_QUEUE_ROUTING_KEY configuration
-    variable will be used as a binding key for the created queue. The
-    default binding key is "#".
+    If some of the available options are not specified directly, the
+    values of the following environment variables will be used:
 
-    This is mainly useful during development and testing.
+    * PROTOCOL_BROKER_URL (default "amqp://guest:guest@localhost:5672")
 
+    * PROTOCOL_BROKER_QUEUE (defalut "swpt_creditors")
+
+    * PROTOCOL_BROKER_QUEUE_ROUTING_KEY (default "#")
     """
 
     from .extensions import (
@@ -53,14 +78,15 @@ def subscribe():  # pragma: no cover
         CA_CREDITORS_EXCHANGE,
         TO_TRADE_EXCHANGE,
     )
-    CA_LOOPBACK_EXCHANGE = "ca.loopback"
-    CA_LOOPBACK_FILTER_EXCHANGE = "ca.loopback_filter"
 
     logger = logging.getLogger(__name__)
-    queue_name = current_app.config["PROTOCOL_BROKER_QUEUE"]
-    routing_key = current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    queue_name = queue or current_app.config["PROTOCOL_BROKER_QUEUE"]
+    routing_key = (
+        queue_routing_key
+        or current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    )
     dead_letter_queue_name = queue_name + ".XQ"
-    broker_url = current_app.config["PROTOCOL_BROKER_URL"]
+    broker_url = url or current_app.config["PROTOCOL_BROKER_URL"]
     connection = pika.BlockingConnection(pika.URLParameters(broker_url))
     channel = connection.channel()
 
@@ -164,6 +190,189 @@ def subscribe():  # pragma: no cover
         CA_LOOPBACK_EXCHANGE,
         queue_name,
     )
+
+
+@swpt_creditors.command("unsubscribe")
+@with_appcontext
+@click.option(
+    "-u",
+    "--url",
+    type=str,
+    help="The RabbitMQ connection URL.",
+)
+@click.option(
+    "-q",
+    "--queue",
+    type=str,
+    help="The name of the queue to unsubscribe.",
+)
+@click.option(
+    "-k",
+    "--queue-routing-key",
+    type=str,
+    help="The RabbitMQ binding key for the queue.",
+)
+def unsubscribe(url, queue, queue_routing_key):  # pragma: no cover
+    """Unsubscribe a RabbitMQ queue from receiving incoming messages.
+
+    If some of the available options are not specified directly, the
+    values of the following environment variables will be used:
+
+    * PROTOCOL_BROKER_URL (default "amqp://guest:guest@localhost:5672")
+
+    * PROTOCOL_BROKER_QUEUE (defalut "swpt_creditors")
+
+    * PROTOCOL_BROKER_QUEUE_ROUTING_KEY (default "#")
+    """
+
+    from .extensions import CA_CREDITORS_EXCHANGE
+
+    logger = logging.getLogger(__name__)
+    queue_name = queue or current_app.config["PROTOCOL_BROKER_QUEUE"]
+    routing_key = (
+        queue_routing_key
+        or current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    )
+    broker_url = url or current_app.config["PROTOCOL_BROKER_URL"]
+    connection = pika.BlockingConnection(pika.URLParameters(broker_url))
+    channel = connection.channel()
+
+    # unbind the queue
+    channel.queue_unbind(
+        exchange=CA_CREDITORS_EXCHANGE,
+        queue=queue_name,
+        routing_key=routing_key,
+    )
+    logger.info(
+        'Removed binding from "%s" to "%s" with routing key "%s".',
+        CA_CREDITORS_EXCHANGE,
+        queue_name,
+        routing_key,
+    )
+
+    # unbind the queue from the loopback exchange
+    channel.queue_unbind(
+        exchange=CA_LOOPBACK_EXCHANGE,
+        queue=queue_name,
+    )
+    logger.info(
+        'Removed binding from "%s" to "%s".',
+        CA_LOOPBACK_EXCHANGE,
+        queue_name,
+    )
+
+
+@swpt_creditors.command("delete_queue")
+@with_appcontext
+@click.option(
+    "-u",
+    "--url",
+    type=str,
+    help="The RabbitMQ connection URL.",
+)
+@click.option(
+    "-q",
+    "--queue",
+    type=str,
+    help="The name of the queue to delete.",
+)
+def delete_queue(url, queue):  # pragma: no cover
+    """Try to safely delete a RabbitMQ queue.
+
+    When the queue is not empty or is currently in use, this command
+    will continuously try to delete the queue, until the deletion
+    succeeds or fails for some other reason.
+
+    If some of the available options are not specified directly, the
+    values of the following environment variables will be used:
+
+    * PROTOCOL_BROKER_URL (default "amqp://guest:guest@localhost:5672")
+
+    * PROTOCOL_BROKER_QUEUE (defalut "swpt_creditors")
+    """
+
+    logger = logging.getLogger(__name__)
+    queue_name = queue or current_app.config["PROTOCOL_BROKER_QUEUE"]
+    broker_url = url or current_app.config["PROTOCOL_BROKER_URL"]
+    connection = pika.BlockingConnection(pika.URLParameters(broker_url))
+    REPLY_CODE_NOT_FOUND = 404
+
+    # Wait for the queue to become empty. Note that passing
+    # `if_empty=True` to queue_delete() currently does not work for
+    # quorum queues. Instead, we check the number of messages in the
+    # queue before deleting it.
+    while True:
+        channel = connection.channel()
+        try:
+            status = channel.queue_declare(
+                queue_name,
+                durable=True,
+                passive=True,
+            )
+        except pika.exceptions.ChannelClosedByBroker as e:
+            if e.reply_code != REPLY_CODE_NOT_FOUND:
+                raise
+            break  # already deleted
+
+        if status.method.message_count == 0:
+            channel.queue_delete(queue=queue_name)
+            logger.info('Deleted "%s" queue.', queue_name)
+            break
+
+        channel.close()
+        time.sleep(3.0)
+
+
+@swpt_creditors.command("verify_shard_content")
+@with_appcontext
+def verify_shard_content():
+    """Verify that the shard contains only records belonging to the
+    shard.
+
+    If the verification is successful, the exit code will be 0. If a
+    record has been found that does not belong to the shard, the exit
+    code will be 1.
+    """
+
+    import swpt_creditors.models as m
+
+    class InvalidRecord(Exception):
+        """The record does not belong the shard."""
+
+    sharding_realm: ShardingRealm = current_app.config["SHARDING_REALM"]
+    yield_per = current_app.config["APP_VERIFY_SHARD_YIELD_PER"]
+    sleep_seconds = current_app.config["APP_VERIFY_SHARD_SLEEP_SECONDS"]
+
+    def verify_table(conn, *table_columns):
+        with conn.execution_options(yield_per=yield_per).execute(
+                select(*table_columns)
+        ) as result:
+            for n, row in enumerate(result):
+                if n % yield_per == 0 and sleep_seconds > 0.0:
+                    time.sleep(sleep_seconds)
+                if not sharding_realm.match(*row):
+                    raise InvalidRecord
+
+    with db.engine.connect() as conn:
+        logger = logging.getLogger(__name__)
+        try:
+            verify_table(conn, m.Creditor.creditor_id)
+            verify_table(conn, m.PendingLogEntry.creditor_id)
+            verify_table(conn, m.LogEntry.creditor_id)
+            verify_table(conn, m.LedgerEntry.creditor_id)
+            verify_table(conn, m.CommittedTransfer.creditor_id)
+            verify_table(conn, m.ConfigureAccountSignal.creditor_id)
+            verify_table(conn, m.PrepareTransferSignal.creditor_id)
+            verify_table(conn, m.FinalizeTransferSignal.creditor_id)
+            verify_table(conn, m.UpdatedLedgerSignal.creditor_id)
+            verify_table(conn, m.UpdatedPolicySignal.creditor_id)
+            verify_table(conn, m.UpdatedFlagsSignal.creditor_id)
+        except InvalidRecord:
+            logger.error(
+                "At least one record has been found that does not belong to"
+                " the shard."
+            )
+            sys.exit(1)
 
 
 @swpt_creditors.command("process_log_additions")
@@ -479,8 +688,14 @@ def scan_committed_transfers(days, quit_early):
     type=int,
     help="The prefetch window in terms of whole messages.",
 )
+@click.option(
+    "--draining-mode",
+    is_flag=True,
+    help="Make periodic pauses to allow the queue to be deleted safely.",
+)
 def consume_messages(
-    url, queue, processes, threads, prefetch_size, prefetch_count
+    url, queue, processes, threads, prefetch_size, prefetch_count,
+    draining_mode
 ):
     """Consume and process incoming Swaptacular Messaging Protocol
     messages.
@@ -518,6 +733,7 @@ def consume_messages(
             threads=threads,
             prefetch_size=prefetch_size,
             prefetch_count=prefetch_count,
+            draining_mode=draining_mode,
         )
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, consumer.stop)

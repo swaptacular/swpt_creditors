@@ -1,3 +1,4 @@
+import pytest
 import sqlalchemy
 from unittest.mock import Mock
 from datetime import date, timedelta
@@ -503,3 +504,31 @@ def test_flush_messages(mocker, app, db_session):
     assert result.exit_code == 1
     send_signalbus_message.assert_called_once()
     assert len(m.FinalizeTransferSignal.query.all()) == 0
+
+
+@pytest.mark.parametrize("realm", ["0.#", "1.#"])
+def test_verify_shard_content(app, db_session, realm):
+    orig_sharding_realm = app.config["SHARDING_REALM"]
+    app.config["SHARDING_REALM"] = ShardingRealm(realm)
+    _create_new_creditor(1234, activate=True)
+    db.session.commit()
+
+    runner = app.test_cli_runner()
+    result = runner.invoke(
+        args=["swpt_creditors", "verify_shard_content"]
+    )
+    assert result.exit_code == int(realm[0])
+    app.config["SHARDING_REALM"] = orig_sharding_realm
+
+
+def test_alembic_current_head(app, request, capfd):
+    if request.config.option.capture != "no":
+        pytest.skip("needs to be run with --capture=no")
+
+    runner = app.test_cli_runner()
+    result = runner.invoke(
+        args=["db", "current"]
+    )
+    assert result.exit_code == 0
+    captured = capfd.readouterr()
+    assert captured.out.strip().endswith(" (head)")

@@ -109,7 +109,6 @@ class Creditor(db.Model):
 
     def activate(self):
         self.status_flags |= Creditor.STATUS_IS_ACTIVATED_FLAG
-        self.reservation_id = None
 
     def deactivate(self):
         self.status_flags |= Creditor.STATUS_IS_DEACTIVATED_FLAG

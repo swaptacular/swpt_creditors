@@ -268,6 +268,8 @@ class Configuration(metaclass=MetaEnvReader):
     APP_COMMITTED_TRANSFERS_SCAN_BLOCKS_PER_QUERY = 100
     APP_COMMITTED_TRANSFERS_SCAN_BEAT_MILLISECS = 100
     APP_TRANSFERS_FINALIZATION_APPROX_SECONDS = 20.0
+    APP_VERIFY_SHARD_YIELD_PER = 10000
+    APP_VERIFY_SHARD_SLEEP_SECONDS = 0.005
     APP_CREDITORS_PER_PAGE = 2000
     APP_LOG_ENTRIES_PER_PAGE = 100
     APP_ACCOUNTS_PER_PAGE = 100
@@ -306,6 +308,7 @@ def create_app(config_dict={}):
         creditors_api,
         accounts_api,
         transfers_api,
+        health_api,
         path_builder,
         specs,
     )
@@ -347,6 +350,7 @@ def create_app(config_dict={}):
     api.register_blueprint(creditors_api)
     api.register_blueprint(accounts_api)
     api.register_blueprint(transfers_api)
+    api.register_blueprint(health_api)
     app.cli.add_command(swpt_creditors)
     procedures.init(path_builder, type_registry)
     return app

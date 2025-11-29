@@ -2298,3 +2298,9 @@ def test_pin_afa_reset(app, client, creditor, account, reset_days):
     assert r.status_code == 200
     data = r.get_json()
     assert data["status"] == "blocked" if reset_days >= 1 else "on"
+
+
+def test_health_check(client):
+    r = client.get("/creditors/health/check/public")
+    assert r.status_code == 200
+    assert r.content_type == "text/plain"
