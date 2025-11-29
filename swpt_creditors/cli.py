@@ -221,13 +221,19 @@ def process_log_additions(threads, wait, quit_early):
             max_count=max_count
         )
 
+    def process_func(*args):
+        try:
+            procedures.process_pending_log_entries(*args)
+        finally:
+            db.session.close()
+
     logger = logging.getLogger(__name__)
     logger.info("Started log additions processor.")
 
     ThreadPoolProcessor(
         threads,
         get_args_collection=get_args_collection,
-        process_func=procedures.process_pending_log_entries,
+        process_func=process_func,
         wait_seconds=wait,
         max_count=max_count,
     ).run(quit_early=quit_early)
@@ -282,13 +288,17 @@ def process_ledger_updates(threads, wait, quit_early):
         return procedures.get_pending_ledger_updates(max_count=max_count)
 
     def process_ledger_update(creditor_id, debtor_id):
-        while not procedures.process_pending_ledger_update(
-                creditor_id,
-                debtor_id,
-                burst_count=burst_count,
-                max_delay=max_delay,
-        ):
-            pass
+        try:
+            while True:
+                if procedures.process_pending_ledger_update(
+                        creditor_id,
+                        debtor_id,
+                        burst_count=burst_count,
+                        max_delay=max_delay,
+                ):
+                    break
+        finally:
+            db.session.close()
 
     logger = logging.getLogger(__name__)
     logger.info("Started ledger updates processor.")
