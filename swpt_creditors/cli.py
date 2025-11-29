@@ -3,6 +3,7 @@ import os
 import time
 import signal
 import sys
+import random
 import click
 import pika
 from typing import Optional, Any
@@ -830,6 +831,8 @@ def flush_messages(
 
         with app.app_context():
             signalbus: SignalBus = current_app.extensions["signalbus"]
+            time.sleep(wait * random.random())
+
             while not stopped:
                 started_at = time.time()
                 try:
