@@ -403,7 +403,7 @@ def process_log_additions(threads, wait, quit_early):
     variable PROCESS_LOG_ADDITIONS_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
-    If --wait is not specified, the default 4 seconds.
+    If --wait is not specified, the default 5 seconds.
     """
 
     # TODO: Consider allowing load-sharing between multiple processes
@@ -423,9 +423,9 @@ def process_log_additions(threads, wait, quit_early):
     )
     max_count = current_app.config["APP_PROCESS_LOG_ADDITIONS_MAX_COUNT"]
 
-    def get_args_collection():
-        return procedures.get_creditors_with_pending_log_entries(
-            max_count=max_count
+    def iter_args_collections():
+        return procedures.iter_creditors_with_pending_log_entries(
+            yield_per=max_count
         )
 
     def process_func(*args):
@@ -439,10 +439,9 @@ def process_log_additions(threads, wait, quit_early):
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=get_args_collection,
+        iter_args_collections=iter_args_collections,
         process_func=process_func,
         wait_seconds=wait,
-        max_count=max_count,
     ).run(quit_early=quit_early)
 
 
@@ -473,7 +472,7 @@ def process_ledger_updates(threads, wait, quit_early):
     variable PROCESS_LEDGER_UPDATES_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
-    If --wait is not specified, the default is 4 seconds.
+    If --wait is not specified, the default is 5 seconds.
     """
 
     threads = threads or current_app.config["PROCESS_LEDGER_UPDATES_THREADS"]
@@ -488,8 +487,8 @@ def process_ledger_updates(threads, wait, quit_early):
         days=current_app.config["APP_MAX_TRANSFER_DELAY_DAYS"]
     )
 
-    def get_args_collection():
-        return procedures.get_pending_ledger_updates(max_count=max_count)
+    def iter_args_collections():
+        return procedures.iter_pending_ledger_updates(yield_per=max_count)
 
     def process_ledger_update(creditor_id, debtor_id):
         try:
@@ -509,10 +508,9 @@ def process_ledger_updates(threads, wait, quit_early):
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=get_args_collection,
+        iter_args_collections=iter_args_collections,
         process_func=process_ledger_update,
         wait_seconds=wait,
-        max_count=max_count,
     ).run(quit_early=quit_early)
 
 

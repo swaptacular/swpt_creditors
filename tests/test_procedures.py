@@ -376,7 +376,7 @@ def test_process_account_update_signal(account):
         creditor_id=C_ID, debtor_id=1235
     ).one()
 
-    assert list(p.get_creditors_with_pending_log_entries()) == [(C_ID,)]
+    assert list(p.iter_creditors_with_pending_log_entries(100))[0] == [(C_ID,)]
     p.process_pending_log_entries(1235)
     p.process_pending_log_entries(C_ID)
     assert (
@@ -762,9 +762,8 @@ def test_process_account_transfer_signal(account, current_ts):
     assert get_committed_tranfer_entries_count() == 1
 
 
-def test_get_pending_ledger_updates(db_session):
-    assert p.get_pending_ledger_updates() == []
-    assert p.get_pending_ledger_updates(max_count=10) == []
+def test_iter_pending_ledger_updates(db_session):
+    assert list(p.iter_pending_ledger_updates(100)) == []
 
 
 def test_process_pending_ledger_update(account, burst_count, current_ts):
@@ -808,7 +807,7 @@ def test_process_pending_ledger_update(account, burst_count, current_ts):
     p.process_account_transfer_signal(**params)
 
     assert get_ledger_update_entries_count() == 0
-    assert p.get_pending_ledger_updates() == []
+    assert list(p.iter_pending_ledger_updates(100)) == []
 
     p.process_account_update_signal(
         debtor_id=D_ID,
@@ -837,7 +836,7 @@ def test_process_pending_ledger_update(account, burst_count, current_ts):
     )
     assert get_ledger_update_entries_count() == 1
     assert len(models.UpdatedLedgerSignal.query.all()) == 1
-    assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
+    assert list(p.iter_pending_ledger_updates(100))[0] == [(C_ID, D_ID)]
     assert (
         len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000))
         == 0
@@ -866,7 +865,7 @@ def test_process_pending_ledger_update(account, burst_count, current_ts):
         len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000))
         == 3
     )
-    assert p.get_pending_ledger_updates() == []
+    assert list(p.iter_pending_ledger_updates(100)) == []
     assert len(models.UpdatedLedgerSignal.query.all()) == lue_count
 
     params["transfer_number"] = 21
@@ -874,13 +873,13 @@ def test_process_pending_ledger_update(account, burst_count, current_ts):
     params["principal"] = 3150
     p.process_account_transfer_signal(**params)
 
-    assert p.get_pending_ledger_updates() == [(C_ID, D_ID)]
+    assert list(p.iter_pending_ledger_updates(100))[0] == [(C_ID, D_ID)]
     while not p.process_pending_ledger_update(
         C_ID, D_ID, burst_count=burst_count, max_delay=timedelta(days=10000)
     ):
         pass
     assert get_ledger_update_entries_count() > lue_count
-    assert p.get_pending_ledger_updates() == []
+    assert list(p.iter_pending_ledger_updates(100)) == []
     assert (
         len(p.get_account_ledger_entries(C_ID, D_ID, prev=1000, count=1000))
         == 6

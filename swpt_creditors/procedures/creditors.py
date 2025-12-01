@@ -1,6 +1,7 @@
 from typing import TypeVar, Callable, List, Tuple, Optional, Iterable
 from datetime import datetime, timezone, timedelta
 from flask import current_app
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import func, text
 from sqlalchemy.orm import joinedload
@@ -276,15 +277,16 @@ def get_log_entries(
     return log_entries, last_log_entry_id
 
 
-@atomic
-def get_creditors_with_pending_log_entries(
-    max_count: int = None,
-) -> Iterable[Tuple[int]]:
-    query = db.session.query(PendingLogEntry.creditor_id).distinct()
-    if max_count is not None:
-        query = query.limit(max_count)
-
-    return query.all()
+def iter_creditors_with_pending_log_entries(
+    yield_per: int = None,
+) -> Iterable[List[Tuple[int]]]:
+    with db.engine.connect() as conn:
+        with conn.execution_options(yield_per=yield_per).execute(
+                select(PendingLogEntry.creditor_id)
+                .distinct()
+        ) as result:
+            for rows in result.partitions():
+                yield rows
 
 
 @atomic
