@@ -1,8 +1,9 @@
 from datetime import datetime, date, timezone, timedelta
-from typing import TypeVar, Callable, Tuple, List, Optional
+from typing import TypeVar, Callable, Iterable, Tuple, List, Optional
 from flask import current_app
+from sqlalchemy import select
 from sqlalchemy.sql.expression import func, text
-from sqlalchemy.orm import exc, Load
+from sqlalchemy.orm import Load
 from swpt_pythonlib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -246,15 +247,19 @@ def process_account_purge_signal(
         _insert_info_update_pending_log_entry(data, current_ts)
 
 
-@atomic
-def get_pending_ledger_updates(max_count: int = None) -> List[Tuple[int, int]]:
-    query = db.session.query(
-        PendingLedgerUpdate.creditor_id, PendingLedgerUpdate.debtor_id
-    )
-    if max_count is not None:
-        query = query.limit(max_count)
-
-    return query.all()
+def iter_pending_ledger_updates(
+    yield_per: int
+) -> Iterable[List[Tuple[int, int]]]:
+    with db.engine.connect() as conn:
+        with conn.execution_options(yield_per=yield_per).execute(
+                select(
+                    PendingLedgerUpdate.creditor_id,
+                    PendingLedgerUpdate.debtor_id
+                )
+                .distinct()
+        ) as result:
+            for rows in result.partitions():
+                yield rows
 
 
 @atomic

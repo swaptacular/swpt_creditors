@@ -85,6 +85,7 @@ def test_process_ledger_entries(app, db_session, current_ts):
         ]
     )
     assert not result.output
+    db_session.close()
     assert (
         len(p.get_account_ledger_entries(C_ID, D_ID, prev=10000, count=10000))
         == 2
@@ -116,6 +117,7 @@ def test_process_log_additions(app, db_session, current_ts):
     )
     assert result.exit_code == 0
     assert not result.output
+    db_session.close()
     entries2, _ = p.get_log_entries(C_ID, count=10000)
     assert len(entries2) > len(entries1)
 
