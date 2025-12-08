@@ -2,6 +2,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from flask import current_app
+from sqlalchemy import text
 from swpt_creditors.extensions import db, publisher
 from swpt_pythonlib import rabbitmq
 
@@ -22,6 +23,7 @@ PIN_REGEX = r"^[0-9]{4,10}$"
 TRANSFER_NOTE_MAX_BYTES = 500
 TRANSFER_NOTE_FORMAT_REGEX = r"^[0-9A-Za-z.-]{0,8}$"
 CONFIG_DATA_MAX_BYTES = 2000
+SET_SEQSCAN_ON = text("SET LOCAL enable_seqscan = on")
 
 CT_DIRECT = "direct"
 

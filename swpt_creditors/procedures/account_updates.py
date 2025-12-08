@@ -15,6 +15,7 @@ from swpt_creditors.models import (
     PendingLedgerUpdate,
     LedgerEntry,
     CommittedTransfer,
+    SET_SEQSCAN_ON,
     HUGE_NEGLIGIBLE_AMOUNT,
     DEFAULT_CONFIG_FLAGS,
     MIN_INT64,
@@ -251,12 +252,12 @@ def iter_pending_ledger_updates(
     yield_per: int
 ) -> Iterable[List[Tuple[int, int]]]:
     with db.engine.connect() as conn:
+        conn.execute(SET_SEQSCAN_ON)
         with conn.execution_options(yield_per=yield_per).execute(
                 select(
                     PendingLedgerUpdate.creditor_id,
                     PendingLedgerUpdate.debtor_id
                 )
-                .distinct()
         ) as result:
             for rows in result.partitions():
                 yield rows
