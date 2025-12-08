@@ -75,23 +75,28 @@ class CreditorScanner(TableScanner):
 
     def _delete_creditors_not_activated_for_long_time(self, rows, current_ts):
         c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_status_flags = c.status_flags
+        c_created_at = c.created_at
         activated_flag = Creditor.STATUS_IS_ACTIVATED_FLAG
         inactive_cutoff_ts = current_ts - self.inactive_interval
 
         def not_activated_for_long_time(row) -> bool:
             return (
-                row[c.status_flags] & activated_flag == 0
-                and row[c.created_at] < inactive_cutoff_ts
+                row[c_status_flags] & activated_flag == 0
+                and row[c_created_at] < inactive_cutoff_ts
             )
 
         ids_to_delete = [
-            row[c.creditor_id]
+            row[c_creditor_id]
             for row in rows
             if not_activated_for_long_time(row)
         ]
         if ids_to_delete:
             to_delete = (
-                Creditor.query.filter(Creditor.creditor_id.in_(ids_to_delete))
+                Creditor.query
+                .options(load_only(Creditor.creditor_id))
+                .filter(Creditor.creditor_id.in_(ids_to_delete))
                 .filter(Creditor.status_flags.op("&")(activated_flag) == 0)
                 .filter(Creditor.created_at < inactive_cutoff_ts)
                 .with_for_update(skip_locked=True)
@@ -105,25 +110,30 @@ class CreditorScanner(TableScanner):
 
     def _delete_creditors_deactivated_long_time_ago(self, rows, current_ts):
         c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_status_flags = c.status_flags
+        c_deactivation_date = c.deactivation_date
         deactivated_flag = Creditor.STATUS_IS_DEACTIVATED_FLAG
         deactivated_cutoff_date = (
             current_ts - self.deactivated_interval
         ).date()
 
         def deactivated_long_time_ago(row) -> bool:
-            return row[c.status_flags] & deactivated_flag != 0 and (
-                row[c.deactivation_date] is None
-                or row[c.deactivation_date] < deactivated_cutoff_date
+            return row[c_status_flags] & deactivated_flag != 0 and (
+                row[c_deactivation_date] is None
+                or row[c_deactivation_date] < deactivated_cutoff_date
             )
 
         ids_to_delete = [
-            row[c.creditor_id]
+            row[c_creditor_id]
             for row in rows
             if deactivated_long_time_ago(row)
         ]
         if ids_to_delete:
             to_delete = (
-                Creditor.query.filter(Creditor.creditor_id.in_(ids_to_delete))
+                Creditor.query
+                .options(load_only(Creditor.creditor_id))
+                .filter(Creditor.creditor_id.in_(ids_to_delete))
                 .filter(Creditor.status_flags.op("&")(deactivated_flag) != 0)
                 .filter(
                     or_(
@@ -142,18 +152,21 @@ class CreditorScanner(TableScanner):
 
     def _delete_parent_shard_creditors(self, rows, current_ts):
         c = self.table.c
+        c_creditor_id = c.creditor_id
 
         def belongs_to_parent_shard(row) -> bool:
             return not is_valid_creditor_id(
-                row[c.creditor_id]
-            ) and is_valid_creditor_id(row[c.creditor_id], match_parent=True)
+                row[c_creditor_id]
+            ) and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
 
         ids_to_delete = [
-            row[c.creditor_id] for row in rows if belongs_to_parent_shard(row)
+            row[c_creditor_id] for row in rows if belongs_to_parent_shard(row)
         ]
         if ids_to_delete:
             to_delete = (
-                Creditor.query.filter(Creditor.creditor_id.in_(ids_to_delete))
+                Creditor.query
+                .options(load_only(Creditor.creditor_id))
+                .filter(Creditor.creditor_id.in_(ids_to_delete))
                 .with_for_update(skip_locked=True)
                 .all()
             )
@@ -400,26 +413,35 @@ class AccountScanner(TableScanner):
 
     def _update_ledgers_if_necessary(self, rows, current_ts):
         c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_debtor_id = c.debtor_id
+        c_last_transfer_number = c.last_transfer_number
+        c_ledger_last_transfer_number = c.ledger_last_transfer_number
+        c_ledger_principal = c.ledger_principal
+        c_principal = c.principal
+        c_ledger_latest_update_ts = c.ledger_latest_update_ts
         latest_update_cutoff_ts = current_ts - TD_HOUR
 
         def needs_update(row) -> bool:
             return (
-                row[c.last_transfer_number]
-                == row[c.ledger_last_transfer_number]
-                and row[c.ledger_principal] != row[c.principal]
-                and row[c.ledger_latest_update_ts] < latest_update_cutoff_ts
+                row[c_last_transfer_number]
+                == row[c_ledger_last_transfer_number]
+                and row[c_ledger_principal] != row[c_principal]
+                and row[c_ledger_latest_update_ts] < latest_update_cutoff_ts
             )
 
         pks_to_update = [
-            (row[c.creditor_id], row[c.debtor_id])
+            (row[c_creditor_id], row[c_debtor_id])
             for row in rows
-            if needs_update(row) and is_valid_creditor_id(row[c.creditor_id])
+            if needs_update(row) and is_valid_creditor_id(row[c_creditor_id])
         ]
         if pks_to_update:
             ledger_update_pending_log_entries = []
 
             to_update = (
-                AccountData.query.filter(self.pk.in_(pks_to_update))
+                AccountData.query
+                .options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+                .filter(self.pk.in_(pks_to_update))
                 .filter(
                     AccountData.last_transfer_number
                     == AccountData.ledger_last_transfer_number
@@ -430,7 +452,6 @@ class AccountScanner(TableScanner):
                     < latest_update_cutoff_ts
                 )
                 .with_for_update(skip_locked=True, key_share=True)
-                .options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
                 .all()
             )
 
@@ -501,23 +522,29 @@ class AccountScanner(TableScanner):
 
     def _schedule_ledger_repairs_if_necessary(self, rows, current_ts):
         c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_debtor_id = c.debtor_id
+        c_last_transfer_number = c.last_transfer_number
+        c_ledger_last_transfer_number = c.ledger_last_transfer_number
+        c_ledger_pending_transfer_ts = c.ledger_pending_transfer_ts
+        c_last_transfer_committed_at = c.last_transfer_committed_at
         committed_at_cutoff = current_ts - self.max_transfer_delay
 
         def needs_repair(row) -> bool:
             if (
-                row[c.last_transfer_number]
-                <= row[c.ledger_last_transfer_number]
+                row[c_last_transfer_number]
+                <= row[c_ledger_last_transfer_number]
             ):
                 return False
-            ledger_pending_transfer_ts = row[c.ledger_pending_transfer_ts]
+            ledger_pending_transfer_ts = row[c_ledger_pending_transfer_ts]
             if ledger_pending_transfer_ts is not None:
                 return ledger_pending_transfer_ts < committed_at_cutoff
-            return row[c.last_transfer_committed_at] < committed_at_cutoff
+            return row[c_last_transfer_committed_at] < committed_at_cutoff
 
         pks_to_repair = [
-            (row[c.creditor_id], row[c.debtor_id])
+            (row[c_creditor_id], row[c_debtor_id])
             for row in rows
-            if needs_repair(row) and is_valid_creditor_id(row[c.creditor_id])
+            if needs_repair(row) and is_valid_creditor_id(row[c_creditor_id])
         ]
         if pks_to_repair:
             db.session.execute(
@@ -531,35 +558,44 @@ class AccountScanner(TableScanner):
 
     def _set_config_errors_if_necessary(self, rows, current_ts):
         c = self.table.c
+        c_creditor_id = c.creditor_id
+        c_debtor_id = c.debtor_id
+        c_is_config_effectual = c.is_config_effectual
+        c_has_server_account = c.has_server_account
+        c_last_heartbeat_ts = c.last_heartbeat_ts
+        c_config_error = c.config_error
+        c_last_config_ts = c.last_config_ts
         last_heartbeat_ts_cutoff = current_ts - self.max_heartbeat_delay
         last_config_ts_cutoff = current_ts - self.max_config_delay
 
         def has_unreported_config_problem(row) -> bool:
             return (
                 (
-                    not row[c.is_config_effectual]
+                    not row[c_is_config_effectual]
                     or (
-                        row[c.has_server_account]
-                        and row[c.last_heartbeat_ts] < last_heartbeat_ts_cutoff
+                        row[c_has_server_account]
+                        and row[c_last_heartbeat_ts] < last_heartbeat_ts_cutoff
                     )
                 )
-                and row[c.config_error] is None
-                and row[c.last_config_ts] < last_config_ts_cutoff
+                and row[c_config_error] is None
+                and row[c_last_config_ts] < last_config_ts_cutoff
             )
 
         pks_to_set = [
-            (row[c.creditor_id], row[c.debtor_id])
+            (row[c_creditor_id], row[c_debtor_id])
             for row in rows
             if (
                 has_unreported_config_problem(row)
-                and is_valid_creditor_id(row[c.creditor_id])
+                and is_valid_creditor_id(row[c_creditor_id])
             )
         ]
         if pks_to_set:
             info_update_pending_log_entries = []
 
             to_set = (
-                AccountData.query.filter(self.pk.in_(pks_to_set))
+                AccountData.query
+                .options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+                .filter(self.pk.in_(pks_to_set))
                 .filter(
                     or_(
                         AccountData.is_config_effectual == false(),
@@ -573,7 +609,6 @@ class AccountScanner(TableScanner):
                 .filter(AccountData.config_error == null())
                 .filter(AccountData.last_config_ts < last_config_ts_cutoff)
                 .with_for_update(skip_locked=True, key_share=True)
-                .options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
                 .all()
             )
 
