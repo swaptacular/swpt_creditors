@@ -2,7 +2,7 @@ from uuid import UUID
 from math import floor
 from datetime import datetime, timezone, date, timedelta
 from typing import TypeVar, Callable, Optional, List
-from sqlalchemy.orm import exc
+from sqlalchemy.orm import exc, defer
 from sqlalchemy.dialects import postgresql
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -27,6 +27,7 @@ from . import errors
 T = TypeVar("T")
 atomic: Callable[[T], T] = db.atomic
 
+DEFER_RUNNING_TRANSFER_TOASTED_COLUMNS = [defer(RunningTransfer.transfer_note)]
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(
     PendingLedgerUpdate.__table__
 ).on_conflict_do_nothing()
@@ -297,7 +298,9 @@ def process_rejected_direct_transfer_signal(
     debtor_id: int,
     creditor_id: int
 ) -> None:
-    rt = _find_running_transfer(coordinator_id, coordinator_request_id)
+    rt = _find_running_transfer(
+        coordinator_id, coordinator_request_id, defer_toasted=True
+    )
     if rt and not rt.is_finalized:
         if (
             status_code != SC_OK
@@ -383,8 +386,9 @@ def process_finalized_direct_transfer_signal(
     status_code: str,
     total_locked_amount: int
 ) -> None:
-    rt = _find_running_transfer(coordinator_id, coordinator_request_id)
-
+    rt = _find_running_transfer(
+        coordinator_id, coordinator_request_id, defer_toasted=True
+    )
     the_signal_matches_the_transfer = (
         rt is not None
         and rt.debtor_id == debtor_id
@@ -431,12 +435,18 @@ def process_configure_account_signal(
 
 
 def _find_running_transfer(
-    coordinator_id: int, coordinator_request_id: int
+    coordinator_id: int,
+    coordinator_request_id: int,
+    defer_toasted: bool = False,
 ) -> Optional[RunningTransfer]:
-    return RunningTransfer.query.filter_by(
+    query = RunningTransfer.query.filter_by(
         creditor_id=coordinator_id,
         coordinator_request_id=coordinator_request_id,
-    ).one_or_none()
+    )
+    if defer_toasted:
+        query = query.options(*DEFER_RUNNING_TRANSFER_TOASTED_COLUMNS)
+
+    return query.one_or_none()
 
 
 def _finalize_running_transfer(
