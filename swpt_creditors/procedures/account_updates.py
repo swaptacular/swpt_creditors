@@ -3,7 +3,7 @@ from typing import TypeVar, Callable, Iterable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy import select
 from sqlalchemy.sql.expression import func, text
-from sqlalchemy.orm import Load
+from sqlalchemy.orm import Load, load_only
 from swpt_pythonlib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -24,7 +24,6 @@ from swpt_creditors.models import (
 )
 from .common import (
     ACCOUNT_DATA_LEDGER_RELATED_COLUMNS,
-    LOAD_ONLY_CONFIG_RELATED_COLUMNS,
     LOAD_ONLY_INFO_RELATED_COLUMNS,
 )
 from .common import contain_principal_overflow
@@ -72,7 +71,7 @@ def process_rejected_config_signal(
             <= EPS * negligible_amount
         )
         .with_for_update(key_share=True)
-        .options(LOAD_ONLY_CONFIG_RELATED_COLUMNS)
+        .options(load_only(AccountData.info_latest_update_id))
         .one_or_none()
     )
 

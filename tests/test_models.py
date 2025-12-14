@@ -57,3 +57,47 @@ def test_log_entry(db_session, current_ts):
     assert le.is_created
     le.is_deleted = True
     assert not le.is_created
+
+
+def test_account_data_tuple_size(db_session, current_ts):
+    from sqlalchemy import text
+
+    db_session.add(
+        m.Creditor(creditor_id=1)
+    )
+    db_session.flush()
+    db_session.add(
+        m.Account(
+            creditor_id=1,
+            debtor_id=2,
+            latest_update_ts=current_ts,
+        )
+    )
+    db_session.flush()
+    db_session.add(
+        m.AccountData(
+            creditor_id=1,
+            debtor_id=2,
+            config_error='CONFIGURATION_IS_NOT_EFFECTUAL',
+            config_latest_update_ts=current_ts,
+            account_id=100 * 'x',
+            debtor_info_iri=(
+                "https://www.swaptacular.org/debtors/12345678901234567890/"
+                "documents/12345678901234567890/public",
+            ),
+            debtor_info_content_type=(
+                "application/vnd.swaptacular.coin-info+json"
+            ),
+            debtor_info_sha256=32 * b'0',
+            info_latest_update_ts=current_ts,
+            ledger_pending_transfer_ts=current_ts,
+            ledger_latest_update_ts=current_ts,
+        )
+    )
+    db_session.flush()
+    tuple_byte_size = db_session.execute(
+        text("SELECT pg_column_size(account_data.*) FROM account_data")
+    ).scalar()
+    toast_tuple_target = 600
+    some_extra_bytes = 40
+    assert tuple_byte_size + some_extra_bytes <= toast_tuple_target

@@ -21,8 +21,7 @@ from .models import (
 from .procedures import (
     contain_principal_overflow,
     get_paths_and_types,
-    ACCOUNT_DATA_LEDGER_RELATED_COLUMNS,
-    ACCOUNT_DATA_CONFIG_RELATED_COLUMNS,
+    LOAD_ONLY_LEDGER_RELATED_COLUMNS,
 )
 
 T = TypeVar("T")
@@ -440,7 +439,7 @@ class AccountScanner(TableScanner):
 
             to_update = (
                 AccountData.query
-                .options(load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS))
+                .options(LOAD_ONLY_LEDGER_RELATED_COLUMNS)
                 .filter(self.pk.in_(pks_to_update))
                 .filter(
                     AccountData.last_transfer_number
@@ -594,7 +593,7 @@ class AccountScanner(TableScanner):
 
             to_set = (
                 AccountData.query
-                .options(load_only(*ACCOUNT_DATA_CONFIG_RELATED_COLUMNS))
+                .options(load_only(AccountData.info_latest_update_id))
                 .filter(self.pk.in_(pks_to_set))
                 .filter(
                     or_(
