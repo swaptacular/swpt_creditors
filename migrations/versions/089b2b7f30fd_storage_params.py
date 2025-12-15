@@ -56,9 +56,9 @@ def upgrade():
         'log_entry',
         fillfactor=100,
         autovacuum_vacuum_threshold=100000,
-        autovacuum_vacuum_scale_factor=0.0004,
+        autovacuum_vacuum_scale_factor=0.0005,
         autovacuum_vacuum_insert_threshold=100000,
-        autovacuum_vacuum_insert_scale_factor=0.0004,
+        autovacuum_vacuum_insert_scale_factor=0.0005,
     )
 
     # Related to accounts:
@@ -97,9 +97,9 @@ def upgrade():
         'ledger_entry',
         fillfactor=100,
         autovacuum_vacuum_threshold=100000,
-        autovacuum_vacuum_scale_factor=0.0004,
+        autovacuum_vacuum_scale_factor=0.0005,
         autovacuum_vacuum_insert_threshold=100000,
-        autovacuum_vacuum_insert_scale_factor=0.0004,
+        autovacuum_vacuum_insert_scale_factor=0.0005,
     )
 
     # Related to transfers:
@@ -107,17 +107,17 @@ def upgrade():
         'running_transfer',
         fillfactor=100,
         autovacuum_vacuum_threshold=10000,
-        autovacuum_vacuum_scale_factor=0.004,
+        autovacuum_vacuum_scale_factor=0.00002,
         autovacuum_vacuum_insert_threshold=10000,
-        autovacuum_vacuum_insert_scale_factor=0.004,
+        autovacuum_vacuum_insert_scale_factor=0.00002,
     )
     set_storage_params(
         'committed_transfer',
         fillfactor=100,
         autovacuum_vacuum_threshold=100000,
-        autovacuum_vacuum_scale_factor=0.0004,
+        autovacuum_vacuum_scale_factor=0.0005,
         autovacuum_vacuum_insert_threshold=100000,
-        autovacuum_vacuum_insert_scale_factor=0.0004,
+        autovacuum_vacuum_insert_scale_factor=0.0005,
     )
 
     # Buffer tables:
