@@ -348,7 +348,12 @@ def test_scan_accounts(app, db_session, current_ts):
     assert len(m.LedgerEntry.query.all())
 
 
-def test_scan_log_entries(app, db_session, current_ts):
+def test_scan_log_entries(mocker, app, db_session, current_ts):
+    mocker.patch(
+        "swpt_creditors.table_scanners.LogEntryScanner"
+        ".MIN_DELETABLE_GROUP",
+        1
+    )
     _create_new_creditor(C_ID, activate=True)
     creditor = m.Creditor.query.one()
     creditor.creditor_latest_update_id += 1
@@ -395,9 +400,13 @@ def test_scan_log_entries(app, db_session, current_ts):
     assert le.added_at == current_ts
 
 
-def test_scan_ledger_entries(app, db_session, current_ts):
+def test_scan_ledger_entries(mocker, app, db_session, current_ts):
     from swpt_creditors.procedures.account_updates import _update_ledger
-
+    mocker.patch(
+        "swpt_creditors.table_scanners.LedgerEntryScanner"
+        ".MIN_DELETABLE_GROUP",
+        1
+    )
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     data = m.AccountData.query.one()
@@ -425,7 +434,12 @@ def test_scan_ledger_entries(app, db_session, current_ts):
     assert le.added_at == current_ts
 
 
-def test_scan_committed_transfers(app, db_session, current_ts):
+def test_scan_committed_transfers(mocker, app, db_session, current_ts):
+    mocker.patch(
+        "swpt_creditors.table_scanners.CommittedTransferScanner"
+        ".MIN_DELETABLE_GROUP",
+        1
+    )
     _create_new_creditor(C_ID, activate=True)
     p.create_new_account(C_ID, D_ID)
     params = {

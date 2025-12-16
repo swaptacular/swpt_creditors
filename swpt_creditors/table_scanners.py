@@ -181,7 +181,9 @@ class LogEntryScanner(TableScanner):
 
     table = LogEntry.__table__
     columns = [LogEntry.creditor_id, LogEntry.entry_id, LogEntry.added_at]
+    process_individual_blocks = True
     pk = tuple_(table.c.creditor_id, table.c.entry_id)
+    MIN_DELETABLE_GROUP = 25  # ~2/3 of the maximum number of rows in the page
 
     def __init__(self):
         super().__init__()
@@ -215,10 +217,16 @@ class LogEntryScanner(TableScanner):
             or (
                 delete_parent_shard_records
                 and not is_valid_creditor_id(row[c_creditor_id])
-                and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
             )
         ]
-        if pks_to_delete:
+        this_page_contains_lots_of_deletable_rows = (
+            # We do not want to remove this page from the visibility
+            # map only because a few of the tuples in the page are
+            # dead. Instead, we will wait until most of the rows can
+            # be killed.
+            len(pks_to_delete) >= self.MIN_DELETABLE_GROUP
+        )
+        if this_page_contains_lots_of_deletable_rows:
             db.session.execute(
                 self.table.delete().where(self.pk.in_(pks_to_delete))
             )
@@ -235,7 +243,9 @@ class LedgerEntryScanner(TableScanner):
         LedgerEntry.entry_id,
         LedgerEntry.added_at,
     ]
+    process_individual_blocks = True
     pk = tuple_(table.c.creditor_id, table.c.debtor_id, table.c.entry_id)
+    MIN_DELETABLE_GROUP = 50  # ~2/3 of the maximum number of rows in the page
 
     def __init__(self):
         super().__init__()
@@ -274,10 +284,16 @@ class LedgerEntryScanner(TableScanner):
             or (
                 delete_parent_shard_records
                 and not is_valid_creditor_id(row[c_creditor_id])
-                and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
             )
         ]
-        if pks_to_delete:
+        this_page_contains_lots_of_deletable_rows = (
+            # We do not want to remove this page from the visibility
+            # map only because a few of the tuples in the page are
+            # dead. Instead, we will wait until most of the rows can
+            # be killed.
+            len(pks_to_delete) >= self.MIN_DELETABLE_GROUP
+        )
+        if this_page_contains_lots_of_deletable_rows:
             db.session.execute(
                 self.table.delete().where(self.pk.in_(pks_to_delete))
             )
@@ -295,12 +311,14 @@ class CommittedTransferScanner(TableScanner):
         CommittedTransfer.transfer_number,
         CommittedTransfer.committed_at,
     ]
+    process_individual_blocks = True
     pk = tuple_(
         table.c.creditor_id,
         table.c.debtor_id,
         table.c.creation_date,
         table.c.transfer_number,
     )
+    MIN_DELETABLE_GROUP = 25  # ~2/3 of the maximum number of rows in the page
 
     def __init__(self):
         super().__init__()
@@ -348,10 +366,16 @@ class CommittedTransferScanner(TableScanner):
             or (
                 delete_parent_shard_records
                 and not is_valid_creditor_id(row[c_creditor_id])
-                and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
             )
         ]
-        if pks_to_delete:
+        this_page_contains_lots_of_deletable_rows = (
+            # We do not want to remove this page from the visibility
+            # map only because a few of the tuples in the page are
+            # dead. Instead, we will wait until most of the rows can
+            # be killed.
+            len(pks_to_delete) >= self.MIN_DELETABLE_GROUP
+        )
+        if this_page_contains_lots_of_deletable_rows:
             db.session.execute(
                 self.table.delete().where(self.pk.in_(pks_to_delete))
             )

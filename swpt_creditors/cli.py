@@ -360,9 +360,7 @@ def verify_shard_content():
         try:
             verify_table(conn, m.Creditor.creditor_id)
             verify_table(conn, m.PendingLogEntry.creditor_id)
-            verify_table(conn, m.LogEntry.creditor_id)
-            verify_table(conn, m.LedgerEntry.creditor_id)
-            verify_table(conn, m.CommittedTransfer.creditor_id)
+            verify_table(conn, m.PendingLedgerUpdate.creditor_id)
             verify_table(conn, m.ConfigureAccountSignal.creditor_id)
             verify_table(conn, m.PrepareTransferSignal.creditor_id)
             verify_table(conn, m.FinalizeTransferSignal.creditor_id)
