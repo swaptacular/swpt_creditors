@@ -122,7 +122,7 @@ def test_ledger_entry_tuple_size(db_session, current_ts):
     tuple_byte_size = db_session.execute(
         text("SELECT pg_column_size(ledger_entry.*) FROM ledger_entry")
     ).scalar()
-    toast_tuple_target = 100
+    toast_tuple_target = 128
     some_extra_bytes = 5
     assert tuple_byte_size + some_extra_bytes <= toast_tuple_target
 

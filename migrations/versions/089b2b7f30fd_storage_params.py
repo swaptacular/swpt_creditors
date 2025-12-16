@@ -96,7 +96,7 @@ def upgrade():
     )
     set_storage_params(
         'ledger_entry',
-        toast_tuple_target=100,
+        toast_tuple_target=128,
         fillfactor=100,
         autovacuum_vacuum_threshold=10000,
         autovacuum_vacuum_scale_factor=0.002,
