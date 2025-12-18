@@ -54,19 +54,22 @@ def upgrade():
     )
     set_storage_params(
         'log_entry',
+        toast_tuple_target=200,
         fillfactor=100,
-        autovacuum_vacuum_threshold=100000,
-        autovacuum_vacuum_scale_factor=0.0005,
-        autovacuum_vacuum_insert_threshold=100000,
-        autovacuum_vacuum_insert_scale_factor=0.0005,
+        autovacuum_vacuum_threshold=10000,
+        autovacuum_vacuum_scale_factor=0.002,
+        autovacuum_vacuum_insert_threshold=10000,
+        autovacuum_vacuum_insert_scale_factor=0.00025,
     )
 
     # Related to accounts:
     set_storage_params(
         'account',
-        fillfactor=80,
-        autovacuum_vacuum_scale_factor=0.08,
-        autovacuum_vacuum_insert_scale_factor=0.2,
+        fillfactor=100,
+        autovacuum_vacuum_threshold=10000,
+        autovacuum_vacuum_scale_factor=0.001,
+        autovacuum_vacuum_insert_threshold=10000,
+        autovacuum_vacuum_insert_scale_factor=0.001,
     )
     set_storage_params(
         'account_data',
@@ -95,29 +98,31 @@ def upgrade():
     )
     set_storage_params(
         'ledger_entry',
+        toast_tuple_target=128,
         fillfactor=100,
-        autovacuum_vacuum_threshold=100000,
-        autovacuum_vacuum_scale_factor=0.0005,
-        autovacuum_vacuum_insert_threshold=100000,
-        autovacuum_vacuum_insert_scale_factor=0.0005,
+        autovacuum_vacuum_threshold=10000,
+        autovacuum_vacuum_scale_factor=0.002,
+        autovacuum_vacuum_insert_threshold=10000,
+        autovacuum_vacuum_insert_scale_factor=0.000125,
     )
 
     # Related to transfers:
     set_storage_params(
         'running_transfer',
         fillfactor=100,
-        autovacuum_vacuum_threshold=100000,
-        autovacuum_vacuum_scale_factor=0.0005,
-        autovacuum_vacuum_insert_threshold=100000,
-        autovacuum_vacuum_insert_scale_factor=0.0005,
+        autovacuum_vacuum_threshold=10000,
+        autovacuum_vacuum_scale_factor=0.004,
+        autovacuum_vacuum_insert_threshold=10000,
+        autovacuum_vacuum_insert_scale_factor=0.004,
     )
     set_storage_params(
         'committed_transfer',
+        toast_tuple_target=200,
         fillfactor=100,
-        autovacuum_vacuum_threshold=100000,
-        autovacuum_vacuum_scale_factor=0.0005,
-        autovacuum_vacuum_insert_threshold=100000,
-        autovacuum_vacuum_insert_scale_factor=0.0005,
+        autovacuum_vacuum_threshold=10000,
+        autovacuum_vacuum_scale_factor=0.002,
+        autovacuum_vacuum_insert_threshold=10000,
+        autovacuum_vacuum_insert_scale_factor=0.00025,
     )
 
     # Buffer tables:
@@ -221,6 +226,7 @@ def downgrade():
     reset_storage_params(
         'log_entry',
         [
+            'toast_tuple_target',
             'fillfactor',
             'autovacuum_vacuum_threshold',
             'autovacuum_vacuum_scale_factor',
@@ -234,7 +240,9 @@ def downgrade():
         'account',
         [
             'fillfactor',
+            'autovacuum_vacuum_threshold',
             'autovacuum_vacuum_scale_factor',
+            'autovacuum_vacuum_insert_threshold',
             'autovacuum_vacuum_insert_scale_factor',
         ]
     )
@@ -274,6 +282,7 @@ def downgrade():
     reset_storage_params(
         'ledger_entry',
         [
+            'toast_tuple_target',
             'fillfactor',
             'autovacuum_vacuum_threshold',
             'autovacuum_vacuum_scale_factor',
@@ -296,6 +305,7 @@ def downgrade():
     reset_storage_params(
         'committed_transfer',
         [
+            'toast_tuple_target',
             'fillfactor',
             'autovacuum_vacuum_threshold',
             'autovacuum_vacuum_scale_factor',

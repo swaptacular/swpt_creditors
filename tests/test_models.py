@@ -101,3 +101,88 @@ def test_account_data_tuple_size(db_session, current_ts):
     toast_tuple_target = 600
     some_extra_bytes = 40
     assert tuple_byte_size + some_extra_bytes <= toast_tuple_target
+
+
+def test_ledger_entry_tuple_size(db_session, current_ts):
+    from sqlalchemy import text
+
+    db_session.add(
+        m.LedgerEntry(
+            creditor_id=1,
+            debtor_id=2,
+            entry_id=3,
+            creation_date=m.DATE0,
+            transfer_number=1234,
+            acquired_amount=1000,
+            principal=2000,
+            added_at=m.TS0,
+        )
+    )
+    db_session.flush()
+    tuple_byte_size = db_session.execute(
+        text("SELECT pg_column_size(ledger_entry.*) FROM ledger_entry")
+    ).scalar()
+    toast_tuple_target = 128
+    some_extra_bytes = 5
+    assert tuple_byte_size + some_extra_bytes <= toast_tuple_target
+
+
+def test_committed_transfer_tuple_size(db_session, current_ts):
+    from sqlalchemy import text
+
+    db_session.add(
+        m.CommittedTransfer(
+            creditor_id=1,
+            debtor_id=2,
+            creation_date=m.DATE0,
+            transfer_number=1234,
+            acquired_amount=1000,
+            principal=2000,
+            committed_at=m.TS0,
+            previous_transfer_number=1233,
+            coordinator_type=30 * "x",
+            sender='12345678901234567890',
+            recipient='12345678901234567890',
+            transfer_note_format='xxxxxxxx',
+            transfer_note=18 * "x",
+        )
+    )
+    db_session.flush()
+    tuple_byte_size = db_session.execute(
+        text(
+            "SELECT pg_column_size(committed_transfer.*)"
+            " FROM committed_transfer"
+        )
+    ).scalar()
+    toast_tuple_target = 200
+    some_extra_bytes = 5
+    assert tuple_byte_size + some_extra_bytes <= toast_tuple_target
+
+
+def test_log_entry_tuple_size(db_session, current_ts):
+    from sqlalchemy import text
+
+    db_session.add(
+        m.LogEntry(
+            creditor_id=1,
+            entry_id=123,
+            added_at=m.TS0,
+            object_update_id=56789,
+            is_deleted=False,
+            object_type_hint=0,
+            data_principal=1000,
+            data_next_entry_id=12345,
+            data_finalized_at=m.TS0,
+            creation_date=m.DATE0,
+            transfer_number=1234,
+            debtor_id=2,
+            data_error_code=30 * 'x',
+        )
+    )
+    db_session.flush()
+    tuple_byte_size = db_session.execute(
+        text("SELECT pg_column_size(log_entry.*) FROM log_entry")
+    ).scalar()
+    toast_tuple_target = 200
+    some_extra_bytes = 40
+    assert tuple_byte_size + some_extra_bytes <= toast_tuple_target
