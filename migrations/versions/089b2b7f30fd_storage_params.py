@@ -65,9 +65,11 @@ def upgrade():
     # Related to accounts:
     set_storage_params(
         'account',
-        fillfactor=80,
-        autovacuum_vacuum_scale_factor=0.08,
-        autovacuum_vacuum_insert_scale_factor=0.2,
+        fillfactor=100,
+        autovacuum_vacuum_threshold=10000,
+        autovacuum_vacuum_scale_factor=0.001,
+        autovacuum_vacuum_insert_threshold=10000,
+        autovacuum_vacuum_insert_scale_factor=0.001,
     )
     set_storage_params(
         'account_data',
@@ -238,7 +240,9 @@ def downgrade():
         'account',
         [
             'fillfactor',
+            'autovacuum_vacuum_threshold',
             'autovacuum_vacuum_scale_factor',
+            'autovacuum_vacuum_insert_threshold',
             'autovacuum_vacuum_insert_scale_factor',
         ]
     )
