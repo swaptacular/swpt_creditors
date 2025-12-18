@@ -219,14 +219,12 @@ class LogEntryScanner(TableScanner):
                 and not is_valid_creditor_id(row[c_creditor_id])
             )
         ]
-        this_page_contains_lots_of_deletable_rows = (
-            # We do not want to remove this page from the visibility
-            # map only because a few of the tuples in the page are
-            # dead. Instead, we will wait until most of the rows can
-            # be killed.
-            len(pks_to_delete) >= self.MIN_DELETABLE_GROUP
-        )
-        if this_page_contains_lots_of_deletable_rows:
+
+        # We do not want to remove this page from the visibility map
+        # only because a few of the tuples in the page are dead.
+        # Instead, we will wait until most of the rows can
+        # be killed.
+        if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
             db.session.execute(
                 self.table.delete().where(self.pk.in_(pks_to_delete))
             )
@@ -286,14 +284,12 @@ class LedgerEntryScanner(TableScanner):
                 and not is_valid_creditor_id(row[c_creditor_id])
             )
         ]
-        this_page_contains_lots_of_deletable_rows = (
-            # We do not want to remove this page from the visibility
-            # map only because a few of the tuples in the page are
-            # dead. Instead, we will wait until most of the rows can
-            # be killed.
-            len(pks_to_delete) >= self.MIN_DELETABLE_GROUP
-        )
-        if this_page_contains_lots_of_deletable_rows:
+
+        # We do not want to remove this page from the visibility map
+        # only because a few of the tuples in the page are dead.
+        # Instead, we will wait until most of the rows can
+        # be killed.
+        if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
             db.session.execute(
                 self.table.delete().where(self.pk.in_(pks_to_delete))
             )
@@ -368,14 +364,12 @@ class CommittedTransferScanner(TableScanner):
                 and not is_valid_creditor_id(row[c_creditor_id])
             )
         ]
-        this_page_contains_lots_of_deletable_rows = (
-            # We do not want to remove this page from the visibility
-            # map only because a few of the tuples in the page are
-            # dead. Instead, we will wait until most of the rows can
-            # be killed.
-            len(pks_to_delete) >= self.MIN_DELETABLE_GROUP
-        )
-        if this_page_contains_lots_of_deletable_rows:
+
+        # We do not want to remove this page from the visibility map
+        # only because a few of the tuples in the page are dead.
+        # Instead, we will wait until most of the rows can
+        # be killed.
+        if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
             db.session.execute(
                 self.table.delete().where(self.pk.in_(pks_to_delete))
             )
