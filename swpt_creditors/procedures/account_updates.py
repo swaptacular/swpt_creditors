@@ -57,7 +57,8 @@ def process_rejected_config_signal(
     current_ts = datetime.now(tz=timezone.utc)
 
     data = (
-        AccountData.query.filter_by(
+        AccountData.query
+        .filter_by(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             last_config_ts=config_ts,
@@ -112,7 +113,8 @@ def process_account_update_signal(
         return
 
     data = (
-        AccountData.query.filter_by(
+        AccountData.query
+        .filter_by(
             creditor_id=creditor_id, debtor_id=debtor_id
         )
         .with_for_update(key_share=True)
@@ -229,7 +231,8 @@ def process_account_purge_signal(
     current_ts = datetime.now(tz=timezone.utc)
 
     data = (
-        AccountData.query.filter_by(
+        AccountData.query
+        .filter_by(
             creditor_id=creditor_id,
             debtor_id=debtor_id,
             has_server_account=True,

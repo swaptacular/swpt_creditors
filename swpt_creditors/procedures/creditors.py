@@ -124,10 +124,10 @@ def get_creditor_ids(
     assert count >= 1
     query = (
         db.session.query(Creditor.creditor_id)
-        .filter(Creditor.creditor_id >= start_from)
         .filter(
+            Creditor.creditor_id >= start_from,
             Creditor.status_flags.op("&")(ACTIVATION_STATUS_MASK)
-            == Creditor.STATUS_IS_ACTIVATED_FLAG
+            == Creditor.STATUS_IS_ACTIVATED_FLAG,
         )
         .order_by(Creditor.creditor_id)
         .limit(count + 1)
@@ -267,8 +267,11 @@ def get_log_entries(
         raise errors.CreditorDoesNotExist()
 
     log_entries = (
-        LogEntry.query.filter(LogEntry.creditor_id == creditor_id)
-        .filter(LogEntry.entry_id > prev)
+        LogEntry.query
+        .filter(
+            LogEntry.creditor_id == creditor_id,
+            LogEntry.entry_id > prev,
+        )
         .order_by(LogEntry.entry_id)
         .limit(count)
         .all()
@@ -302,7 +305,8 @@ def process_pending_log_entries(creditor_id: int) -> None:
 
     creditor = _get_creditor(creditor_id, lock=True)
     pending_log_entries = (
-        PendingLogEntry.query.filter_by(creditor_id=creditor_id)
+        PendingLogEntry.query
+        .filter_by(creditor_id=creditor_id)
         .order_by(PendingLogEntry.pending_entry_id)
         .with_for_update(skip_locked=True)
         .all()
@@ -573,7 +577,8 @@ def _delete_creditor_accounts(creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     object_update_id = db.session.scalar(uid_seq)
     accounts = (
-        Account.query.filter_by(creditor_id=creditor_id)
+        Account.query
+        .filter_by(creditor_id=creditor_id)
         .with_for_update()
         .all()
     )

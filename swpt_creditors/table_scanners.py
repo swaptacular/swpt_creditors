@@ -95,9 +95,11 @@ class CreditorScanner(TableScanner):
             to_delete = (
                 Creditor.query
                 .options(load_only(Creditor.creditor_id))
-                .filter(Creditor.creditor_id.in_(ids_to_delete))
-                .filter(Creditor.status_flags.op("&")(activated_flag) == 0)
-                .filter(Creditor.created_at < inactive_cutoff_ts)
+                .filter(
+                    Creditor.creditor_id.in_(ids_to_delete),
+                    Creditor.status_flags.op("&")(activated_flag) == 0,
+                    Creditor.created_at < inactive_cutoff_ts,
+                )
                 .with_for_update(skip_locked=True)
                 .all()
             )
@@ -132,9 +134,9 @@ class CreditorScanner(TableScanner):
             to_delete = (
                 Creditor.query
                 .options(load_only(Creditor.creditor_id))
-                .filter(Creditor.creditor_id.in_(ids_to_delete))
-                .filter(Creditor.status_flags.op("&")(deactivated_flag) != 0)
                 .filter(
+                    Creditor.creditor_id.in_(ids_to_delete),
+                    Creditor.status_flags.op("&")(deactivated_flag) != 0,
                     or_(
                         Creditor.deactivation_date == null(),
                         Creditor.deactivation_date < deactivated_cutoff_date,
@@ -458,15 +460,13 @@ class AccountScanner(TableScanner):
             to_update = (
                 AccountData.query
                 .options(LOAD_ONLY_LEDGER_RELATED_COLUMNS)
-                .filter(self.pk.in_(pks_to_update))
                 .filter(
+                    self.pk.in_(pks_to_update),
                     AccountData.last_transfer_number
-                    == AccountData.ledger_last_transfer_number
-                )
-                .filter(AccountData.ledger_principal != AccountData.principal)
-                .filter(
+                    == AccountData.ledger_last_transfer_number,
+                    AccountData.ledger_principal != AccountData.principal,
                     AccountData.ledger_latest_update_ts
-                    < latest_update_cutoff_ts
+                    < latest_update_cutoff_ts,
                 )
                 .with_for_update(skip_locked=True, key_share=True)
                 .all()
@@ -612,8 +612,8 @@ class AccountScanner(TableScanner):
             to_set = (
                 AccountData.query
                 .options(load_only(AccountData.info_latest_update_id))
-                .filter(self.pk.in_(pks_to_set))
                 .filter(
+                    self.pk.in_(pks_to_set),
                     or_(
                         AccountData.is_config_effectual == false(),
                         and_(
@@ -621,10 +621,10 @@ class AccountScanner(TableScanner):
                             AccountData.last_heartbeat_ts
                             < last_heartbeat_ts_cutoff,
                         ),
-                    )
+                    ),
+                    AccountData.config_error == null(),
+                    AccountData.last_config_ts < last_config_ts_cutoff,
                 )
-                .filter(AccountData.config_error == null())
-                .filter(AccountData.last_config_ts < last_config_ts_cutoff)
                 .with_for_update(skip_locked=True, key_share=True)
                 .all()
             )
