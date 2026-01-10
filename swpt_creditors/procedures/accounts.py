@@ -68,7 +68,8 @@ def has_account(creditor_id: int, debtor_id: int) -> bool:
 @atomic
 def get_account(creditor_id: int, debtor_id: int) -> Optional[Account]:
     return (
-        Account.query.filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+        Account.query
+        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
         .options(
             joinedload(Account.knowledge, innerjoin=True),
             joinedload(Account.exchange, innerjoin=True),
@@ -468,9 +469,8 @@ def get_account_info(
     creditor_id: int, debtor_id: int
 ) -> Optional[AccountData]:
     return (
-        AccountData.query.filter_by(
-            creditor_id=creditor_id, debtor_id=debtor_id
-        )
+        AccountData.query
+        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
         .options(LOAD_ONLY_INFO_RELATED_COLUMNS)
         .one_or_none()
     )
@@ -481,9 +481,8 @@ def get_account_ledger(
     creditor_id: int, debtor_id: int
 ) -> Optional[AccountData]:
     return (
-        AccountData.query.filter_by(
-            creditor_id=creditor_id, debtor_id=debtor_id
-        )
+        AccountData.query
+        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
         .options(LOAD_ONLY_LEDGER_RELATED_COLUMNS)
         .one_or_none()
     )
@@ -499,7 +498,8 @@ def get_account_ledger_entries(
     count: int = 1
 ) -> List[LedgerEntry]:
     return (
-        LedgerEntry.query.filter(
+        LedgerEntry.query
+        .filter(
             LedgerEntry.creditor_id == creditor_id,
             LedgerEntry.debtor_id == debtor_id,
             LedgerEntry.entry_id < prev,
