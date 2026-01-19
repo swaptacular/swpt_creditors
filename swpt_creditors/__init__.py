@@ -226,6 +226,11 @@ class Configuration(metaclass=MetaEnvReader):
         None  # or 'https://cdn.jsdelivr.net/npm/swagger-ui-dist/'
     )
 
+    # Limit Flask content lengths.
+    MAX_CONTENT_LENGTH = 20480
+    MAX_FORM_MEMORY_SIZE = 20480
+    MAX_FORM_PARTS = 10
+
     # NOTE: Some of the functionality has two implementations: A pure
     # Python implementation, and a PG/PLSQL implementation. The goal
     # of the pure Python implementation is to be easy to understand,
