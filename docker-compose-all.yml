@@ -386,11 +386,10 @@ services:
   trade-solver:
     image: ghcr.io/swaptacular/swpt_trade:$SWPT_TRADE_VERSION
     environment:
-      - 'TURN_PERIOD=10m'
+      - 'TURN_PERIOD=20m'
       - 'TURN_PERIOD_OFFSET=0'
-      - 'TURN_CHECK_INTERVAL=6s'
-      - 'TURN_PHASE1_DURATION=1m'
-      - 'TURN_PHASE2_DURATION=5m'
+      - 'TURN_PHASE1_DURATION=2m'
+      - 'TURN_PHASE2_DURATION=8m'
       - 'BASE_DEBTOR_INFO_LOCATOR=$BASE_DEBTOR_INFO_LOCATOR'
       - 'BASE_DEBTOR_ID=$BASE_DEBTOR_ID'
       - 'MAX_DISTANCE_TO_BASE=10'
@@ -400,6 +399,9 @@ services:
       - 'MAX_COLLECTOR_ID=$MAX_COLLECTOR_ID'
       - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
       - 'SOLVER_INCREASED_WORK_MEM=4MB'
+      - 'APP_EXTREME_MESSAGE_DELAY_DAYS=0.25'
+      - 'APP_SURPLUS_BLOCKING_DELAY_DAYS=0.5'
+      - 'APP_COLLECTOR_ACTIVITY_MIN_DAYS=1.0'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
     command: solver
@@ -413,7 +415,7 @@ services:
       - 'MIN_COLLECTOR_ID=$MIN_COLLECTOR_ID'
       - 'MAX_COLLECTOR_ID=$MAX_COLLECTOR_ID'
       - 'OWNER_CREDITOR_ID=$OWNER_CREDITOR_ID'
-      - 'TRANSFERS_HEALTHY_MAX_COMMIT_DELAY=5m'
+      - 'TRANSFERS_HEALTHY_MAX_COMMIT_DELAY=10m'
       - 'TRANSFERS_AMOUNT_CUT=1e-6'
       - 'WORKER_POSTGRES_URL=postgresql+psycopg://swpt_worker:swpt_worker@pg:5432/${POSTGRES_DB}'
       - 'SOLVER_POSTGRES_URL=postgresql+psycopg://swpt_solver:swpt_solver@pg:5432/${POSTGRES_DB}'
@@ -437,6 +439,9 @@ services:
       - 'TRIGGER_TRANSFERS_PROCESSES=1'
       - 'DELETE_PARENT_SHARD_RECORDS=false'
       - 'APP_ROLL_WORKER_TURNS_WAIT=5.0'
+      - 'APP_EXTREME_MESSAGE_DELAY_DAYS=0.25'
+      - 'APP_SURPLUS_BLOCKING_DELAY_DAYS=0.5'
+      - 'APP_COLLECTOR_ACTIVITY_MIN_DAYS=1.0'
       - 'APP_VERIFY_SSL_CERTS=false'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
