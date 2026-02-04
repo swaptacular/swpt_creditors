@@ -489,10 +489,12 @@ services:
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'PROTOCOL_BROKER_QUEUE=swpt_trade'
       - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
+      - 'INTERNAL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'INTERNAL_BROKER_QUEUE=swpt_trade-internal'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
       - 'SETUP_RABBITMQ_BINDINGS=yes'
-      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL INTERNAL_BROKER_URL'
     command: configure
     depends_on:
       - pg
