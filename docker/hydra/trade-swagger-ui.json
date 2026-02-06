@@ -1,0 +1,17 @@
+{
+  "client_id": "trade-swagger-ui",
+  "client_name": "Trade Swagger UI",
+  "description": "This client is used by trade's Swagger-UI.",
+  "client_secret": "trade-swagger-ui",
+  "scope": "access access.readonly",
+  "grant_types": [
+    "authorization_code"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "token_endpoint_auth_method": "client_secret_post",
+  "redirect_uris": [
+    "https://localhost:44301/trade-swagger-ui/oauth2-redirect.html"
+  ]
+}

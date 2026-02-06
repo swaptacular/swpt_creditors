@@ -234,6 +234,7 @@ services:
       /etc/hydra-config/creditors-supervisor.json
       /etc/hydra-config/creditors-superuser.json
       /etc/hydra-config/swagger-ui.json
+      /etc/hydra-config/trade-swagger-ui.json
       /etc/hydra-config/creditors-webapp.json
       --fake-tls-termination
       )'
