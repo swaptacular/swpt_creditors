@@ -122,18 +122,20 @@ def get_creditor_ids(
     start_from: int, count: int = 1
 ) -> Tuple[List[int], Optional[int]]:
     assert count >= 1
-    query = (
-        db.session.query(Creditor.creditor_id)
-        .filter(
-            Creditor.creditor_id >= start_from,
-            Creditor.status_flags.op("&")(ACTIVATION_STATUS_MASK)
-            == Creditor.STATUS_IS_ACTIVATED_FLAG,
+    creditor_ids = (
+        db.session.execute(
+            select(Creditor.creditor_id)
+            .where(
+                Creditor.creditor_id >= start_from,
+                Creditor.status_flags.op("&")(ACTIVATION_STATUS_MASK)
+                == Creditor.STATUS_IS_ACTIVATED_FLAG,
+            )
+            .order_by(Creditor.creditor_id)
+            .limit(count + 1)
         )
-        .order_by(Creditor.creditor_id)
-        .limit(count + 1)
+        .scalars()
+        .all()
     )
-    creditor_ids = [t[0] for t in query.all()]
-
     if len(creditor_ids) > count:
         next_creditor_id = creditor_ids.pop()
     else:
@@ -151,11 +153,11 @@ def reserve_creditor(creditor_id) -> Creditor:
     except IntegrityError:
         raise errors.CreditorExists() from None
 
-    relic_log_entry_id = (
-        db.session.query(func.max(LogEntry.entry_id))
-        .filter_by(creditor_id=creditor_id)
-        .scalar()
-    )
+    relic_log_entry_id = db.session.execute(
+        select(func.max(LogEntry.entry_id))
+        .where(LogEntry.creditor_id == creditor_id)
+    ).scalar()
+
     creditor.last_log_entry_id = (
         0 if relic_log_entry_id is None else relic_log_entry_id + 1
     )  # a gap
@@ -257,11 +259,10 @@ def update_pin_info_helper(
 def get_log_entries(
     creditor_id: int, *, count: int = 1, prev: int = 0
 ) -> Tuple[List[LogEntry], int]:
-    last_log_entry_id = (
-        db.session.query(Creditor.last_log_entry_id)
-        .filter(Creditor.creditor_id == creditor_id)
-        .scalar()
-    )
+    last_log_entry_id = db.session.execute(
+        select(Creditor.last_log_entry_id)
+        .where(Creditor.creditor_id == creditor_id)
+    ).scalar()
 
     if last_log_entry_id is None:
         raise errors.CreditorDoesNotExist()

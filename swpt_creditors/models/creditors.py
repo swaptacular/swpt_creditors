@@ -9,12 +9,12 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_creditors.extensions import db
-from .common import get_now_utc, ROOT_CREDITOR_ID
+from .common import get_now_utc, ChooseRowsMixin, ROOT_CREDITOR_ID
 
 DEFAULT_CREDITOR_STATUS = 0
 
 
-class Creditor(db.Model):
+class Creditor(db.Model, ChooseRowsMixin):
     STATUS_IS_ACTIVATED_FLAG = 1 << 0
     STATUS_IS_DEACTIVATED_FLAG = 1 << 1
 
@@ -465,7 +465,7 @@ class PendingLogEntry(BaseLogEntry):
     )
 
 
-class LogEntry(BaseLogEntry):
+class LogEntry(BaseLogEntry, ChooseRowsMixin):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     entry_id = db.Column(db.BigInteger, primary_key=True)
 

@@ -6,6 +6,7 @@ from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_creditors.extensions import db
 from .common import (
     get_now_utc,
+    ChooseRowsMixin,
     MAX_INT64,
     MIN_INT64,
     TS0,
@@ -59,7 +60,7 @@ class Account(db.Model):
     )
 
 
-class AccountData(db.Model):
+class AccountData(db.Model, ChooseRowsMixin):
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
 
@@ -319,7 +320,7 @@ class AccountDisplay(db.Model):
     )
 
 
-class LedgerEntry(db.Model):
+class LedgerEntry(db.Model, ChooseRowsMixin):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     entry_id = db.Column(db.BigInteger, primary_key=True)

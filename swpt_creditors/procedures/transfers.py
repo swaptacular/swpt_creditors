@@ -2,6 +2,7 @@ from uuid import UUID
 from math import floor
 from datetime import datetime, timezone, date, timedelta
 from typing import TypeVar, Callable, Optional, List
+from sqlalchemy import select
 from sqlalchemy.orm import exc, defer
 from sqlalchemy.dialects import postgresql
 from swpt_creditors.extensions import db
@@ -182,15 +183,15 @@ def get_creditor_transfer_uuids(
     creditor_id: int, *, count: int = 1, prev: UUID = None
 ) -> List[UUID]:
     query = (
-        db.session.query(RunningTransfer.transfer_uuid)
-        .filter(RunningTransfer.creditor_id == creditor_id)
+        select(RunningTransfer.transfer_uuid)
+        .where(RunningTransfer.creditor_id == creditor_id)
         .order_by(RunningTransfer.transfer_uuid)
+        .limit(count)
     )
-
     if prev is not None:
-        query = query.filter(RunningTransfer.transfer_uuid > prev)
+        query = query.where(RunningTransfer.transfer_uuid > prev)
 
-    return [t[0] for t in query.limit(count).all()]
+    return db.session.execute(query).scalars().all()
 
 
 @atomic
@@ -239,15 +240,19 @@ def process_account_transfer_signal(
     # concurrent transaction, without inserting a corresponding
     # `PendingLedgerUpdate` record, which would result in the ledger
     # not being updated.
-    ledger_data_query = (
-        db.session.query(
-            AccountData.creation_date, AccountData.ledger_last_transfer_number
+    ledger_data = db.session.execute(
+        select(
+            AccountData.creation_date,
+            AccountData.ledger_last_transfer_number,
         )
-        .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
+        .where(
+            AccountData.creditor_id == creditor_id,
+            AccountData.debtor_id == debtor_id,
+        )
         .with_for_update(read=True)
     )
     try:
-        ledger_date, ledger_last_transfer_number = ledger_data_query.one()
+        ledger_date, ledger_last_transfer_number = ledger_data.one()
     except exc.NoResultFound:
         return
 
