@@ -17,6 +17,8 @@ from .models import (
     UpdatedLedgerSignal,
     uid_seq,
     is_valid_creditor_id,
+    SET_INDEXSCAN_ON,
+    SET_INDEXSCAN_OFF,
 )
 from .procedures import (
     contain_principal_overflow,
@@ -88,6 +90,7 @@ class CreditorScanner(TableScanner):
             if not_activated_for_long_time(row)
         ]
         if pks_to_delete:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
@@ -100,6 +103,7 @@ class CreditorScanner(TableScanner):
                 .with_for_update(skip_locked=True)
                 .all()
             )
+            db.session.execute(SET_INDEXSCAN_ON)
 
             for creditor in to_delete:
                 db.session.delete(creditor)
@@ -128,6 +132,7 @@ class CreditorScanner(TableScanner):
             if deactivated_long_time_ago(row)
         ]
         if pks_to_delete:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
@@ -143,6 +148,7 @@ class CreditorScanner(TableScanner):
                 .with_for_update(skip_locked=True)
                 .all()
             )
+            db.session.execute(SET_INDEXSCAN_ON)
 
             for creditor in to_delete:
                 db.session.delete(creditor)
@@ -164,6 +170,7 @@ class CreditorScanner(TableScanner):
             if belongs_to_parent_shard(row)
         ]
         if pks_to_delete:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
@@ -172,6 +179,7 @@ class CreditorScanner(TableScanner):
                 .with_for_update(skip_locked=True)
                 .all()
             )
+            db.session.execute(SET_INDEXSCAN_ON)
 
             for creditor in to_delete:
                 db.session.delete(creditor)
@@ -227,6 +235,7 @@ class LogEntryScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = LogEntry.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(LogEntry)
@@ -299,6 +308,7 @@ class LedgerEntryScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = LedgerEntry.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(LedgerEntry)
@@ -382,6 +392,7 @@ class CommittedTransferScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = CommittedTransfer.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(CommittedTransfer)
@@ -469,6 +480,7 @@ class AccountScanner(TableScanner):
             if needs_update(row) and is_valid_creditor_id(row[c_creditor_id])
         ]
         if pks_to_update:
+            db.session.execute(SET_INDEXSCAN_OFF)
             ledger_update_pending_log_entry_dicts = []
             chosen = AccountData.choose_rows(pks_to_update)
             to_update = (
@@ -485,6 +497,7 @@ class AccountScanner(TableScanner):
                 .with_for_update(skip_locked=True, key_share=True)
                 .all()
             )
+            db.session.execute(SET_INDEXSCAN_ON)
 
             for data in to_update:
                 log_entry = self._update_ledger(data, current_ts)
@@ -626,6 +639,7 @@ class AccountScanner(TableScanner):
             )
         ]
         if pks_to_set:
+            db.session.execute(SET_INDEXSCAN_OFF)
             info_update_pending_log_entriy_dicts = []
             chosen = AccountData.choose_rows(pks_to_set)
             to_set = (
@@ -647,6 +661,7 @@ class AccountScanner(TableScanner):
                 .with_for_update(skip_locked=True, key_share=True)
                 .all()
             )
+            db.session.execute(SET_INDEXSCAN_ON)
 
             for data in to_set:
                 log_entry = self._set_config_error(data, current_ts)
