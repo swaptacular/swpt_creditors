@@ -25,8 +25,8 @@ TRANSFER_NOTE_MAX_BYTES = 500
 TRANSFER_NOTE_FORMAT_REGEX = r"^[0-9A-Za-z.-]{0,8}$"
 CONFIG_DATA_MAX_BYTES = 2000
 SET_SEQSCAN_ON = text("SET LOCAL enable_seqscan = on")
-SET_INDEXSCAN_ON = text("SET LOCAL enable_indexscan = on")
-SET_INDEXSCAN_OFF = text("SET LOCAL enable_indexscan = off")
+SET_HASHJOIN_OFF = text("SET LOCAL enable_hashjoin = off")
+SET_MERGEJOIN_OFF = text("SET LOCAL enable_mergejoin = off")
 
 CT_DIRECT = "direct"
 
