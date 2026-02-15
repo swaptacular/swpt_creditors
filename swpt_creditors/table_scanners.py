@@ -1,6 +1,6 @@
-from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from flask import current_app
+from sqlalchemy import delete, insert
 from sqlalchemy.sql.expression import tuple_, or_, and_, false, true, null
 from sqlalchemy.orm import load_only
 from sqlalchemy.dialects import postgresql
@@ -17,6 +17,7 @@ from .models import (
     UpdatedLedgerSignal,
     uid_seq,
     is_valid_creditor_id,
+    DISCARD_PLANS,
 )
 from .procedures import (
     contain_principal_overflow,
@@ -24,16 +25,34 @@ from .procedures import (
     LOAD_ONLY_LEDGER_RELATED_COLUMNS,
 )
 
-T = TypeVar("T")
-atomic: Callable[[T], T] = db.atomic
-
+INSERT_BATCH_SIZE = 5000
+PLANS_DISCARD_INTERVAL = timedelta(seconds=10.0)
 TD_HOUR = timedelta(hours=1)
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(
     PendingLedgerUpdate.__table__
 ).on_conflict_do_nothing()
 
 
-class CreditorScanner(TableScanner):
+class PlansDiscardingTableScanner(TableScanner):
+    def __init__(self):
+        super().__init__()
+        self.latest_plans_discard_ts = datetime.now(tz=timezone.utc)
+
+    def _process_rows_done(self):
+        db.session.expunge_all()
+        current_ts = datetime.now(tz=timezone.utc)
+        if (
+                current_ts - self.latest_plans_discard_ts
+                >= PLANS_DISCARD_INTERVAL
+        ):  # pragma: no cover
+            # Discard possibly outdated execution plans.
+            db.session.execute(DISCARD_PLANS)
+            db.session.commit()
+            db.session.close()
+            self.latest_plans_discard_ts = current_ts
+
+
+class CreditorScanner(PlansDiscardingTableScanner):
     """Garbage-collects inactive creditors."""
 
     table = Creditor.__table__
@@ -43,9 +62,7 @@ class CreditorScanner(TableScanner):
         Creditor.status_flags,
         Creditor.deactivation_date,
     ]
-    pk = tuple_(
-        table.c.creditor_id,
-    )
+    pk = tuple_(Creditor.creditor_id)
 
     def __init__(self):
         super().__init__()
@@ -64,13 +81,13 @@ class CreditorScanner(TableScanner):
     def target_beat_duration(self) -> int:
         return current_app.config["APP_CREDITORS_SCAN_BEAT_MILLISECS"]
 
-    @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
         if current_app.config["DELETE_PARENT_SHARD_RECORDS"]:
             self._delete_parent_shard_creditors(rows, current_ts)
         self._delete_creditors_not_activated_for_long_time(rows, current_ts)
         self._delete_creditors_deactivated_long_time_ago(rows, current_ts)
+        self._process_rows_done()
 
     def _delete_creditors_not_activated_for_long_time(self, rows, current_ts):
         c = self.table.c
@@ -86,17 +103,18 @@ class CreditorScanner(TableScanner):
                 and row[c_created_at] < inactive_cutoff_ts
             )
 
-        ids_to_delete = [
-            row[c_creditor_id]
+        pks_to_delete = [
+            (row[c_creditor_id],)
             for row in rows
             if not_activated_for_long_time(row)
         ]
-        if ids_to_delete:
+        if pks_to_delete:
+            chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
                 .options(load_only(Creditor.creditor_id))
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .filter(
-                    Creditor.creditor_id.in_(ids_to_delete),
                     Creditor.status_flags.op("&")(activated_flag) == 0,
                     Creditor.created_at < inactive_cutoff_ts,
                 )
@@ -125,17 +143,18 @@ class CreditorScanner(TableScanner):
                 or row[c_deactivation_date] < deactivated_cutoff_date
             )
 
-        ids_to_delete = [
-            row[c_creditor_id]
+        pks_to_delete = [
+            (row[c_creditor_id],)
             for row in rows
             if deactivated_long_time_ago(row)
         ]
-        if ids_to_delete:
+        if pks_to_delete:
+            chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
                 .options(load_only(Creditor.creditor_id))
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .filter(
-                    Creditor.creditor_id.in_(ids_to_delete),
                     Creditor.status_flags.op("&")(deactivated_flag) != 0,
                     or_(
                         Creditor.deactivation_date == null(),
@@ -160,14 +179,17 @@ class CreditorScanner(TableScanner):
                 row[c_creditor_id]
             ) and is_valid_creditor_id(row[c_creditor_id], match_parent=True)
 
-        ids_to_delete = [
-            row[c_creditor_id] for row in rows if belongs_to_parent_shard(row)
+        pks_to_delete = [
+            (row[c_creditor_id],)
+            for row in rows
+            if belongs_to_parent_shard(row)
         ]
-        if ids_to_delete:
+        if pks_to_delete:
+            chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
                 .options(load_only(Creditor.creditor_id))
-                .filter(Creditor.creditor_id.in_(ids_to_delete))
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .with_for_update(skip_locked=True)
                 .all()
             )
@@ -178,13 +200,13 @@ class CreditorScanner(TableScanner):
             db.session.commit()
 
 
-class LogEntryScanner(TableScanner):
+class LogEntryScanner(PlansDiscardingTableScanner):
     """Garbage-collects staled log entries."""
 
     table = LogEntry.__table__
     columns = [LogEntry.creditor_id, LogEntry.entry_id, LogEntry.added_at]
     process_individual_blocks = True
-    pk = tuple_(table.c.creditor_id, table.c.entry_id)
+    pk = tuple_(LogEntry.creditor_id, LogEntry.entry_id)
     MIN_DELETABLE_GROUP = 25  # ~2/3 of the maximum number of rows in the page
 
     def __init__(self):
@@ -201,7 +223,6 @@ class LogEntryScanner(TableScanner):
     def target_beat_duration(self) -> int:
         return int(current_app.config["APP_LOG_ENTRIES_SCAN_BEAT_MILLISECS"])
 
-    @atomic
     def process_rows(self, rows):
         c = self.table.c
         c_creditor_id = c.creditor_id
@@ -227,13 +248,18 @@ class LogEntryScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
+            chosen = LogEntry.choose_rows(pks_to_delete)
             db.session.execute(
-                self.table.delete().where(self.pk.in_(pks_to_delete))
+                delete(LogEntry)
+                .execution_options(synchronize_session=False)
+                .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
 
+        self._process_rows_done()
 
-class LedgerEntryScanner(TableScanner):
+
+class LedgerEntryScanner(PlansDiscardingTableScanner):
     """Garbage-collects staled ledger entries."""
 
     table = LedgerEntry.__table__
@@ -244,7 +270,11 @@ class LedgerEntryScanner(TableScanner):
         LedgerEntry.added_at,
     ]
     process_individual_blocks = True
-    pk = tuple_(table.c.creditor_id, table.c.debtor_id, table.c.entry_id)
+    pk = tuple_(
+        LedgerEntry.creditor_id,
+        LedgerEntry.debtor_id,
+        LedgerEntry.entry_id,
+    )
     MIN_DELETABLE_GROUP = 50  # ~2/3 of the maximum number of rows in the page
 
     def __init__(self):
@@ -265,7 +295,6 @@ class LedgerEntryScanner(TableScanner):
             current_app.config["APP_LEDGER_ENTRIES_SCAN_BEAT_MILLISECS"]
         )
 
-    @atomic
     def process_rows(self, rows):
         c = self.table.c
         c_creditor_id = c.creditor_id
@@ -292,13 +321,18 @@ class LedgerEntryScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
+            chosen = LedgerEntry.choose_rows(pks_to_delete)
             db.session.execute(
-                self.table.delete().where(self.pk.in_(pks_to_delete))
+                delete(LedgerEntry)
+                .execution_options(synchronize_session=False)
+                .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
 
+        self._process_rows_done()
 
-class CommittedTransferScanner(TableScanner):
+
+class CommittedTransferScanner(PlansDiscardingTableScanner):
     """Garbage-collects staled committed transfers."""
 
     table = CommittedTransfer.__table__
@@ -311,10 +345,10 @@ class CommittedTransferScanner(TableScanner):
     ]
     process_individual_blocks = True
     pk = tuple_(
-        table.c.creditor_id,
-        table.c.debtor_id,
-        table.c.creation_date,
-        table.c.transfer_number,
+        CommittedTransfer.creditor_id,
+        CommittedTransfer.debtor_id,
+        CommittedTransfer.creation_date,
+        CommittedTransfer.transfer_number,
     )
     MIN_DELETABLE_GROUP = 25  # ~2/3 of the maximum number of rows in the page
 
@@ -339,7 +373,6 @@ class CommittedTransferScanner(TableScanner):
             current_app.config["APP_COMMITTED_TRANSFERS_SCAN_BEAT_MILLISECS"]
         )
 
-    @atomic
     def process_rows(self, rows):
         c = self.table.c
         c_creditor_id = c.creditor_id
@@ -372,13 +405,18 @@ class CommittedTransferScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
+            chosen = CommittedTransfer.choose_rows(pks_to_delete)
             db.session.execute(
-                self.table.delete().where(self.pk.in_(pks_to_delete))
+                delete(CommittedTransfer)
+                .execution_options(synchronize_session=False)
+                .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
 
+        self._process_rows_done()
 
-class AccountScanner(TableScanner):
+
+class AccountScanner(PlansDiscardingTableScanner):
     """Performs accounts maintenance operations."""
 
     table = AccountData.__table__
@@ -422,13 +460,13 @@ class AccountScanner(TableScanner):
     def target_beat_duration(self) -> int:
         return int(current_app.config["APP_ACCOUNTS_SCAN_BEAT_MILLISECS"])
 
-    @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
 
         self._update_ledgers_if_necessary(rows, current_ts)
         self._schedule_ledger_repairs_if_necessary(rows, current_ts)
         self._set_config_errors_if_necessary(rows, current_ts)
+        self._process_rows_done()
 
     def _update_ledgers_if_necessary(self, rows, current_ts):
         c = self.table.c
@@ -455,13 +493,13 @@ class AccountScanner(TableScanner):
             if needs_update(row) and is_valid_creditor_id(row[c_creditor_id])
         ]
         if pks_to_update:
-            ledger_update_pending_log_entries = []
-
+            ledger_update_pending_log_entry_dicts = []
+            chosen = AccountData.choose_rows(pks_to_update)
             to_update = (
                 AccountData.query
                 .options(LOAD_ONLY_LEDGER_RELATED_COLUMNS)
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .filter(
-                    self.pk.in_(pks_to_update),
                     AccountData.last_transfer_number
                     == AccountData.ledger_last_transfer_number,
                     AccountData.ledger_principal != AccountData.principal,
@@ -474,17 +512,22 @@ class AccountScanner(TableScanner):
 
             for data in to_update:
                 log_entry = self._update_ledger(data, current_ts)
-                ledger_update_pending_log_entries.append(log_entry)
+                ledger_update_pending_log_entry_dicts.append(log_entry)
 
-            db.session.bulk_save_objects(
-                ledger_update_pending_log_entries, preserve_order=False
+            db.session.execute(
+                insert(PendingLogEntry)
+                .execution_options(
+                    insertmanyvalues_page_size=INSERT_BATCH_SIZE,
+                    synchronize_session=False,
+                ),
+                ledger_update_pending_log_entry_dicts,
             )
             db.session.scalar(uid_seq)
             db.session.commit()
 
     def _update_ledger(
         self, data: AccountData, current_ts: datetime
-    ) -> PendingLogEntry:
+    ) -> dict:
         creditor_id = data.creditor_id
         debtor_id = data.debtor_id
         principal = data.principal
@@ -527,7 +570,7 @@ class AccountScanner(TableScanner):
             ts=current_ts,
         ))
 
-        return PendingLogEntry(
+        return dict(
             creditor_id=creditor_id,
             added_at=current_ts,
             object_type_hint=LogEntry.OTH_ACCOUNT_LEDGER,
@@ -607,13 +650,13 @@ class AccountScanner(TableScanner):
             )
         ]
         if pks_to_set:
-            info_update_pending_log_entries = []
-
+            info_update_pending_log_entriy_dicts = []
+            chosen = AccountData.choose_rows(pks_to_set)
             to_set = (
                 AccountData.query
                 .options(load_only(AccountData.info_latest_update_id))
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .filter(
-                    self.pk.in_(pks_to_set),
                     or_(
                         AccountData.is_config_effectual == false(),
                         and_(
@@ -631,23 +674,28 @@ class AccountScanner(TableScanner):
 
             for data in to_set:
                 log_entry = self._set_config_error(data, current_ts)
-                info_update_pending_log_entries.append(log_entry)
+                info_update_pending_log_entriy_dicts.append(log_entry)
 
-            db.session.bulk_save_objects(
-                info_update_pending_log_entries, preserve_order=False
+            db.session.execute(
+                insert(PendingLogEntry)
+                .execution_options(
+                    insertmanyvalues_page_size=INSERT_BATCH_SIZE,
+                    synchronize_session=False,
+                ),
+                info_update_pending_log_entriy_dicts,
             )
             db.session.scalar(uid_seq)
             db.session.commit()
 
     def _set_config_error(
         self, data: AccountData, current_ts: datetime
-    ) -> PendingLogEntry:
+    ) -> dict:
         data.config_error = "CONFIGURATION_IS_NOT_EFFECTUAL"
         data.info_latest_update_id += 1
         data.info_latest_update_ts = current_ts
 
         paths, types = get_paths_and_types()
-        return PendingLogEntry(
+        return dict(
             creditor_id=data.creditor_id,
             added_at=current_ts,
             object_type=types.account_info,

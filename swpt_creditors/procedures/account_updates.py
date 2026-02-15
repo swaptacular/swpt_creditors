@@ -3,7 +3,7 @@ from typing import TypeVar, Callable, Iterable, Tuple, List, Optional
 from flask import current_app
 from sqlalchemy import select
 from sqlalchemy.sql.expression import func, text
-from sqlalchemy.orm import Load, load_only
+from sqlalchemy.orm import load_only
 from swpt_pythonlib.utils import Seqnum
 from swpt_creditors.extensions import db
 from swpt_creditors.models import (
@@ -23,8 +23,8 @@ from swpt_creditors.models import (
     uid_seq,
 )
 from .common import (
-    ACCOUNT_DATA_LEDGER_RELATED_COLUMNS,
     LOAD_ONLY_INFO_RELATED_COLUMNS,
+    LOAD_ONLY_LEDGER_RELATED_COLUMNS
 )
 from .common import contain_principal_overflow
 from .accounts import _insert_info_update_pending_log_entry
@@ -299,7 +299,7 @@ def process_pending_ledger_update(
     current_ts = datetime.now(tz=timezone.utc)
 
     pending_ledger_update = (
-        db.session.query(PendingLedgerUpdate)
+        PendingLedgerUpdate.query
         .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
         .with_for_update()
         .one_or_none()
@@ -308,12 +308,10 @@ def process_pending_ledger_update(
         return True
 
     data = (
-        db.session.query(AccountData)
+        AccountData.query
         .filter_by(creditor_id=creditor_id, debtor_id=debtor_id)
         .with_for_update(key_share=True)
-        .options(
-            Load(AccountData).load_only(*ACCOUNT_DATA_LEDGER_RELATED_COLUMNS)
-        )
+        .options(LOAD_ONLY_LEDGER_RELATED_COLUMNS)
         .one()
     )
     log_entry = None
@@ -379,15 +377,15 @@ def process_pending_ledger_update(
 def _get_sorted_pending_transfers(
     data: AccountData, max_count: int
 ) -> List[Tuple]:
-    return (
-        db.session.query(
+    return db.session.execute(
+        select(
             CommittedTransfer.previous_transfer_number,
             CommittedTransfer.transfer_number,
             CommittedTransfer.acquired_amount,
             CommittedTransfer.principal,
             CommittedTransfer.committed_at,
         )
-        .filter(
+        .where(
             CommittedTransfer.creditor_id == data.creditor_id,
             CommittedTransfer.debtor_id == data.debtor_id,
             CommittedTransfer.creation_date == data.creation_date,
@@ -396,8 +394,7 @@ def _get_sorted_pending_transfers(
         )
         .order_by(CommittedTransfer.transfer_number)
         .limit(max_count)
-        .all()
-    )
+    ).all()
 
 
 def _fix_missing_last_transfer_if_necessary(

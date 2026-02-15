@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from flask import current_app
 from sqlalchemy import text
+from sqlalchemy.inspection import inspect
 from swpt_creditors.extensions import db, publisher
 from swpt_pythonlib import rabbitmq
 
@@ -24,6 +25,7 @@ TRANSFER_NOTE_MAX_BYTES = 500
 TRANSFER_NOTE_FORMAT_REGEX = r"^[0-9A-Za-z.-]{0,8}$"
 CONFIG_DATA_MAX_BYTES = 2000
 SET_SEQSCAN_ON = text("SET LOCAL enable_seqscan = on")
+DISCARD_PLANS = text("DISCARD PLANS")
 
 CT_DIRECT = "direct"
 
@@ -42,7 +44,20 @@ def is_valid_creditor_id(creditor_id: int, match_parent=False) -> bool:
     )
 
 
-class Signal(db.Model):
+class ChooseRowsMixin:
+    @classmethod
+    def choose_rows(cls, primary_keys: list[tuple], name: str = "chosen"):
+        pktype_name = f"{cls.__table__.name}_pktype"
+        bindparam_name = f"{name}_rows"
+        return (
+            text(f"SELECT * FROM unnest(:{bindparam_name} :: {pktype_name}[])")
+            .bindparams(**{bindparam_name: primary_keys})
+            .columns(**{c.key: c.type for c in inspect(cls).primary_key})
+            .cte(name=name)
+        )
+
+
+class Signal(db.Model, ChooseRowsMixin):
     __abstract__ = True
 
     @classmethod

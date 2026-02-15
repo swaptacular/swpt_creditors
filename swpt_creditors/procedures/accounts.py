@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import TypeVar, Callable, List, Optional
+from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import null
 from swpt_pythonlib.utils import increment_seqnum
@@ -46,15 +47,15 @@ def get_account_debtor_ids(
     creditor_id: int, *, count: int = 1, prev: int = None
 ) -> List[int]:
     query = (
-        db.session.query(Account.debtor_id)
-        .filter(Account.creditor_id == creditor_id)
+        select(Account.debtor_id)
+        .where(Account.creditor_id == creditor_id)
         .order_by(Account.debtor_id)
+        .limit(count)
     )
-
     if prev is not None:
-        query = query.filter(Account.debtor_id > prev)
+        query = query.where(Account.debtor_id > prev)
 
-    return [t[0] for t in query.limit(count).all()]
+    return db.session.execute(query).scalars().all()
 
 
 @atomic
