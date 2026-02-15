@@ -17,8 +17,7 @@ from .models import (
     UpdatedLedgerSignal,
     uid_seq,
     is_valid_creditor_id,
-    SET_HASHJOIN_OFF,
-    SET_MERGEJOIN_OFF,
+    DISCARD_PLANS,
 )
 from .procedures import (
     contain_principal_overflow,
@@ -27,13 +26,33 @@ from .procedures import (
 )
 
 INSERT_BATCH_SIZE = 5000
+PLANS_DISCARD_INTERVAL = timedelta(seconds=10.0)
 TD_HOUR = timedelta(hours=1)
 ENSURE_PENDING_LEDGER_UPDATE_STATEMENT = postgresql.insert(
     PendingLedgerUpdate.__table__
 ).on_conflict_do_nothing()
 
 
-class CreditorScanner(TableScanner):
+class PlansDiscardingTableScanner(TableScanner):
+    def __init__(self):
+        super().__init__()
+        self.latest_plans_discard_ts = datetime.now(tz=timezone.utc)
+
+    def _process_rows_done(self):
+        db.session.expunge_all()
+        current_ts = datetime.now(tz=timezone.utc)
+        if (
+                current_ts - self.latest_plans_discard_ts
+                >= PLANS_DISCARD_INTERVAL
+        ):  # pragma: no cover
+            # Discard possibly outdated execution plans.
+            db.session.execute(DISCARD_PLANS)
+            db.session.commit()
+            db.session.close()
+            self.latest_plans_discard_ts = current_ts
+
+
+class CreditorScanner(PlansDiscardingTableScanner):
     """Garbage-collects inactive creditors."""
 
     table = Creditor.__table__
@@ -68,7 +87,7 @@ class CreditorScanner(TableScanner):
             self._delete_parent_shard_creditors(rows, current_ts)
         self._delete_creditors_not_activated_for_long_time(rows, current_ts)
         self._delete_creditors_deactivated_long_time_ago(rows, current_ts)
-        db.session.close()
+        self._process_rows_done()
 
     def _delete_creditors_not_activated_for_long_time(self, rows, current_ts):
         c = self.table.c
@@ -90,8 +109,6 @@ class CreditorScanner(TableScanner):
             if not_activated_for_long_time(row)
         ]
         if pks_to_delete:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
@@ -132,8 +149,6 @@ class CreditorScanner(TableScanner):
             if deactivated_long_time_ago(row)
         ]
         if pks_to_delete:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
@@ -170,8 +185,6 @@ class CreditorScanner(TableScanner):
             if belongs_to_parent_shard(row)
         ]
         if pks_to_delete:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = Creditor.choose_rows(pks_to_delete)
             to_delete = (
                 Creditor.query
@@ -187,7 +200,7 @@ class CreditorScanner(TableScanner):
             db.session.commit()
 
 
-class LogEntryScanner(TableScanner):
+class LogEntryScanner(PlansDiscardingTableScanner):
     """Garbage-collects staled log entries."""
 
     table = LogEntry.__table__
@@ -235,8 +248,6 @@ class LogEntryScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = LogEntry.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(LogEntry)
@@ -244,10 +255,11 @@ class LogEntryScanner(TableScanner):
                 .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
-            db.session.close()
+
+        self._process_rows_done()
 
 
-class LedgerEntryScanner(TableScanner):
+class LedgerEntryScanner(PlansDiscardingTableScanner):
     """Garbage-collects staled ledger entries."""
 
     table = LedgerEntry.__table__
@@ -309,8 +321,6 @@ class LedgerEntryScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = LedgerEntry.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(LedgerEntry)
@@ -318,10 +328,11 @@ class LedgerEntryScanner(TableScanner):
                 .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
-            db.session.close()
+
+        self._process_rows_done()
 
 
-class CommittedTransferScanner(TableScanner):
+class CommittedTransferScanner(PlansDiscardingTableScanner):
     """Garbage-collects staled committed transfers."""
 
     table = CommittedTransfer.__table__
@@ -394,8 +405,6 @@ class CommittedTransferScanner(TableScanner):
         # Instead, we will wait until most of the rows can
         # be killed.
         if len(pks_to_delete) >= self.MIN_DELETABLE_GROUP:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = CommittedTransfer.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(CommittedTransfer)
@@ -403,10 +412,11 @@ class CommittedTransferScanner(TableScanner):
                 .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
-            db.session.close()
+
+        self._process_rows_done()
 
 
-class AccountScanner(TableScanner):
+class AccountScanner(PlansDiscardingTableScanner):
     """Performs accounts maintenance operations."""
 
     table = AccountData.__table__
@@ -456,7 +466,7 @@ class AccountScanner(TableScanner):
         self._update_ledgers_if_necessary(rows, current_ts)
         self._schedule_ledger_repairs_if_necessary(rows, current_ts)
         self._set_config_errors_if_necessary(rows, current_ts)
-        db.session.close()
+        self._process_rows_done()
 
     def _update_ledgers_if_necessary(self, rows, current_ts):
         c = self.table.c
@@ -483,8 +493,6 @@ class AccountScanner(TableScanner):
             if needs_update(row) and is_valid_creditor_id(row[c_creditor_id])
         ]
         if pks_to_update:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             ledger_update_pending_log_entry_dicts = []
             chosen = AccountData.choose_rows(pks_to_update)
             to_update = (
@@ -642,8 +650,6 @@ class AccountScanner(TableScanner):
             )
         ]
         if pks_to_set:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             info_update_pending_log_entriy_dicts = []
             chosen = AccountData.choose_rows(pks_to_set)
             to_set = (
