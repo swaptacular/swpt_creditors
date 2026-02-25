@@ -106,7 +106,7 @@ services:
       - 'FLUSH_PERIOD=1.5'
       - 'DELETE_PARENT_SHARD_RECORDS=false'
       - 'APP_LOG_LEVEL=warning'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
     depends_on:
       - pg
@@ -133,7 +133,7 @@ services:
       - 'PROTOCOL_BROKER_QUEUE=swpt_creditors'
       - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
       - 'APP_LOG_LEVEL=warning'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
       - 'SETUP_RABBITMQ_BINDINGS=yes'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
     command: configure
@@ -200,7 +200,7 @@ services:
       - 'API_TIMEOUT_SECONDS=5'
       - 'APP_VERIFY_SSL_CERTIFICATES=False'
       - 'APP_LOG_LEVEL=info'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
     depends_on:
       - pg
       - redis
@@ -310,7 +310,7 @@ services:
       - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
       - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
       - 'APP_LOG_LEVEL=info'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
     volumes:
       - './docker/nodedata/server.crt:/etc/swpt/server.crt'
@@ -336,7 +336,7 @@ services:
       - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
       - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
       - 'APP_LOG_LEVEL=info'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
     volumes:
       - './docker/nodedata/server.crt:/etc/swpt/server.crt'
@@ -361,7 +361,7 @@ services:
       - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
       - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
       - 'APP_LOG_LEVEL=info'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
     volumes:
       - './docker/nodedata/server.crt:/etc/swpt/server.crt'
@@ -404,7 +404,7 @@ services:
       - 'APP_SURPLUS_BLOCKING_DELAY_DAYS=0.5'
       - 'APP_COLLECTOR_ACTIVITY_MIN_DAYS=1.0'
       - 'APP_LOG_LEVEL=warning'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
     command: solver
     depends_on:
       - pg
@@ -444,7 +444,7 @@ services:
       - 'APP_COLLECTOR_ACTIVITY_MIN_DAYS=1.0'
       - 'APP_VERIFY_SSL_CERTS=false'
       - 'APP_LOG_LEVEL=warning'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL INTERNAL_BROKER_URL'
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -468,7 +468,7 @@ services:
       - 'WEBSERVER_THREADS=3'
       - 'WEBSERVER_PORT=8080'
       - 'APP_LOG_LEVEL=warning'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
     command: webserver
     depends_on:
       - pg
@@ -492,7 +492,7 @@ services:
       - 'INTERNAL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'INTERNAL_BROKER_QUEUE=swpt_trade-internal'
       - 'APP_LOG_LEVEL=warning'
-      - 'APP_LOG_FORMAT=json'
+      - 'APP_LOG_FORMAT=text'
       - 'SETUP_RABBITMQ_BINDINGS=yes'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL INTERNAL_BROKER_URL'
     command: configure
