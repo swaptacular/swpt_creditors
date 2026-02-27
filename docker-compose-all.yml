@@ -387,7 +387,7 @@ services:
   trade-solver:
     image: ghcr.io/swaptacular/swpt_trade:$SWPT_TRADE_VERSION
     environment:
-      - 'TURN_PERIOD=20m'
+      - 'TURN_PERIOD=30m'
       - 'TURN_PERIOD_OFFSET=0'
       - 'TURN_PHASE1_DURATION=2m'
       - 'TURN_PHASE2_DURATION=8m'
