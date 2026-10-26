@@ -32,7 +32,8 @@ In `swpt_pythonlib.rabbitmq.Consumer`, an exception from
 `process_message` stops the worker thread and terminates consumption.
 The message is never acknowledged, so it is redelivered after the
 restart, and the consumer stops again. One message therefore blocks all
-further messages in the queue. 
+further messages in the queue.
+
 `swpt_debtors` handles the same situation (an unexpected `issuing`
 coordinator type) by logging an error and ignoring the message.
 
