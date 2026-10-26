@@ -160,10 +160,9 @@ def _on_rejected_direct_transfer_signal(
     *args,
     **kwargs
 ) -> None:
-    if coordinator_type != CT_DIRECT:  # pragma: no cover
-        raise RuntimeError(
-            f'Unexpected coordinator type: "{coordinator_type}"'
-        )
+    if coordinator_type != CT_DIRECT:
+        _LOGGER.error('Unexpected coordinator type: "%s"', coordinator_type)
+        return
 
     procedures.process_rejected_direct_transfer_signal(
         coordinator_id=coordinator_id,
@@ -191,10 +190,9 @@ def _on_prepared_direct_transfer_signal(
     *args,
     **kwargs
 ) -> None:
-    if coordinator_type != CT_DIRECT:  # pragma: no cover
-        raise RuntimeError(
-            f'Unexpected coordinator type: "{coordinator_type}"'
-        )
+    if coordinator_type != CT_DIRECT:
+        _LOGGER.error('Unexpected coordinator type: "%s"', coordinator_type)
+        return
 
     procedures.process_prepared_direct_transfer_signal(
         debtor_id=debtor_id,
@@ -222,10 +220,9 @@ def _on_finalized_direct_transfer_signal(
     *args,
     **kwargs
 ) -> None:
-    if coordinator_type != CT_DIRECT:  # pragma: no cover
-        raise RuntimeError(
-            f'Unexpected coordinator type: "{coordinator_type}"'
-        )
+    if coordinator_type != CT_DIRECT:
+        _LOGGER.error('Unexpected coordinator type: "%s"', coordinator_type)
+        return
 
     procedures.process_finalized_direct_transfer_signal(
         debtor_id=debtor_id,

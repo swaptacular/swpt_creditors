@@ -155,6 +155,30 @@ def test_configure_account_signal(db_session, actors):
     )
 
 
+def test_consumer_unexpected_coordinator_type(db_session, actors):
+    consumer = actors.SmpConsumer()
+    props = MessageProperties(
+        content_type="application/json", type="RejectedTransfer"
+    )
+    body = f"""
+    {{
+      "type": "RejectedTransfer",
+      "debtor_id": {D_ID},
+      "creditor_id": {C_ID},
+      "coordinator_type": "unexpected",
+      "coordinator_id": {C_ID},
+      "coordinator_request_id": 1,
+      "status_code": "TEST",
+      "total_locked_amount": 0,
+      "ts": "2099-12-31T00:00:00+00:00"
+    }}
+    """.encode()
+
+    # The message must be consumed and ignored, so that the
+    # consumer does not stop.
+    assert consumer.process_message(body, props) is True
+
+
 def test_consumer(db_session, actors):
     consumer = actors.SmpConsumer()
 
