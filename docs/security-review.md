@@ -15,9 +15,9 @@ reported to the maintainers privately.
 
 | ID | Severity | Finding | Status |
 |---|---|---|---|
-| SEC-1 | Medium | A transfer message with an unexpected coordinator type stops message processing | Fixed |
+| SEC-1 | Low | A transfer message with an unexpected coordinator type stops message processing | Fixed |
 
-## SEC-1: Poison transfer message halts the consumer (Medium, fixed)
+## SEC-1: Poison transfer message halts the consumer (Low, fixed)
 
 **Where:** `swpt_creditors/actors.py`, `_on_rejected_direct_transfer_signal`,
 `_on_prepared_direct_transfer_signal` and
@@ -32,11 +32,16 @@ In `swpt_pythonlib.rabbitmq.Consumer`, an exception from
 `process_message` stops the worker thread and terminates consumption.
 The message is never acknowledged, so it is redelivered after the
 restart, and the consumer stops again. One message therefore blocks all
-further messages in the queue. These messages come from accounting
-nodes, which may be run by other organizations.
-
+further messages in the queue. 
 `swpt_debtors` handles the same situation (an unexpected `issuing`
 coordinator type) by logging an error and ignoring the message.
+
+**Reachability.** For messages arriving from remote accounting nodes,
+`swpt_stomp` already rejects coordinator types other than `direct` and
+`agent`, and routes `agent` transfers to the trade queue. A remote peer
+therefore cannot normally deliver such a message to this consumer. It
+remains reachable through local components or misrouted messages, so
+this is a defence-in-depth fix.
 
 **Reproduction.**
 
